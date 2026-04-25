@@ -123,6 +123,20 @@ const server = http.createServer(async (req, res) => {
   // Static files
   if (method === 'GET' && (p === '/' || p === '/index.html'))
     return serveFile(res, path.join(__dirname, 'public', 'index.html'), 'text/html');
+  if (method === 'GET' && p === '/admin.html')
+    return serveFile(res, path.join(__dirname, 'public', 'admin.html'), 'text/html');
+  if (method === 'GET' && p === '/worker.html')
+    return serveFile(res, path.join(__dirname, 'public', 'worker.html'), 'text/html');
+  if (method === 'GET' && p === '/fax-shared.js')
+    return serveFile(res, path.join(__dirname, 'public', 'fax-shared.js'), 'application/javascript');
+  // Serve any file from /public/ by path
+  if (method === 'GET' && !p.startsWith('/api/')) {
+    const ext = path.extname(p);
+    const ctMap = { '.html':'text/html', '.js':'application/javascript', '.css':'text/css', '.json':'application/json', '.png':'image/png', '.jpg':'image/jpeg', '.ico':'image/x-icon', '.svg':'image/svg+xml' };
+    const ct = ctMap[ext] || 'application/octet-stream';
+    const fp = path.join(__dirname, 'public', p);
+    if (fs.existsSync(fp)) return serveFile(res, fp, ct);
+  }
 
   // ── AUTH ──────────────────────────────────────────────────────────────────
   if (p === '/api/login' && method === 'POST') {
