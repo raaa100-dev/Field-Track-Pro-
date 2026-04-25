@@ -613,3 +613,146 @@ create policy "lw_all"    on lien_waivers  for all using (is_staff());
 -- ════════════════════════════════════════════════
 -- DONE — FieldAxisHQ schema loaded
 -- ════════════════════════════════════════════════
+
+-- ════════════════════════════════════════════════
+-- ADDITIONS v2 — Daily Reports, Job Walks, Safety, etc.
+-- ════════════════════════════════════════════════
+
+-- DAILY REPORTS
+create table if not exists daily_reports (
+  id            uuid primary key default gen_random_uuid(),
+  job_id        uuid not null references jobs(id) on delete cascade,
+  report_date   date not null default current_date,
+  weather       text,
+  temp_high     integer,
+  temp_low      integer,
+  workers_on_site integer default 0,
+  work_performed text,
+  materials_used text,
+  equipment_used text,
+  safety_incidents text,
+  visitors       text,
+  delays         text,
+  delay_reason   text,
+  photos_taken   integer default 0,
+  submitted_by   text,
+  submitted_by_id uuid references profiles(id) on delete set null,
+  created_at     timestamptz not null default now()
+);
+
+-- JOB WALKS
+create table if not exists job_walks (
+  id              uuid primary key default gen_random_uuid(),
+  job_id          uuid not null references jobs(id) on delete cascade,
+  walk_date       date not null default current_date,
+  conducted_by    text,
+  conducted_by_id uuid references profiles(id) on delete set null,
+  attendees       text,
+  site_conditions text,
+  scope_confirmed boolean default false,
+  issues_found    text,
+  action_items    jsonb default '[]',
+  notes           text,
+  signature_url   text,
+  created_at      timestamptz not null default now()
+);
+
+-- JOB WALK PLANS (markup)
+create table if not exists job_walk_plans (
+  id            uuid primary key default gen_random_uuid(),
+  job_walk_id   uuid references job_walks(id) on delete cascade,
+  job_id        uuid references jobs(id) on delete cascade,
+  name          text not null,
+  url           text not null,
+  storage_path  text,
+  markup_json   jsonb default '{"dots":[],"texts":[],"legend":{}}',
+  uploaded_by   text,
+  created_at    timestamptz not null default now()
+);
+
+-- SAFETY TOPICS
+create table if not exists safety_topics (
+  id            uuid primary key default gen_random_uuid(),
+  title         text not null,
+  content       text not null,
+  category      text default 'General',
+  week_of       date,
+  created_by    text,
+  created_by_id uuid references profiles(id) on delete set null,
+  assigned_to   text[] default '{}',
+  company_ids   uuid[] default '{}',
+  created_at    timestamptz not null default now()
+);
+
+-- SAFETY ACKNOWLEDGEMENTS
+create table if not exists safety_acks (
+  id              uuid primary key default gen_random_uuid(),
+  topic_id        uuid not null references safety_topics(id) on delete cascade,
+  profile_id      uuid not null references profiles(id) on delete cascade,
+  full_name       text,
+  acknowledged_at timestamptz not null default now(),
+  signature_url   text,
+  unique(topic_id, profile_id)
+);
+
+-- PUNCHLIST (deficiencies from job walk)
+create table if not exists punchlist (
+  id          uuid primary key default gen_random_uuid(),
+  job_id      uuid not null references jobs(id) on delete cascade,
+  job_walk_id uuid references job_walks(id) on delete set null,
+  item        text not null,
+  location    text,
+  assigned_to text,
+  priority    text default 'normal',
+  status      text default 'open',
+  due_date    date,
+  resolved_at timestamptz,
+  resolved_by text,
+  notes       text,
+  created_by  text,
+  created_at  timestamptz not null default now()
+);
+
+-- SCAN LOG (detailed barcode scan history)
+create table if not exists scan_log (
+  id          uuid primary key default gen_random_uuid(),
+  job_id      uuid references jobs(id) on delete cascade,
+  part_id     text not null,
+  part_name   text,
+  action      text not null check (action in ('stage','sign_out','return')),
+  qty         integer not null default 1,
+  scanned_by  text,
+  scanned_by_id uuid references profiles(id) on delete set null,
+  scanner_type text default 'camera',
+  batch_id    uuid,
+  created_at  timestamptz not null default now()
+);
+
+-- Enable RLS on new tables
+alter table daily_reports    enable row level security;
+alter table job_walks        enable row level security;
+alter table job_walk_plans   enable row level security;
+alter table safety_topics    enable row level security;
+alter table safety_acks      enable row level security;
+alter table punchlist        enable row level security;
+alter table scan_log         enable row level security;
+
+-- Policies (staff full access, subs read their assigned)
+create policy "dr_all" on daily_reports for all using (auth.role()='authenticated');
+create policy "jw_all_v2" on job_walks for all using (auth.role()='authenticated');
+create policy "jwp_all" on job_walk_plans for all using (auth.role()='authenticated');
+create policy "st_select" on safety_topics for select using (auth.role()='authenticated');
+create policy "st_write" on safety_topics for all using (is_staff());
+create policy "sa_all" on safety_acks for all using (auth.role()='authenticated');
+create policy "pl_all_v2" on punchlist for all using (auth.role()='authenticated');
+create policy "sl_all" on scan_log for all using (auth.role()='authenticated');
+
+-- Indexes
+create index if not exists idx_daily_reports_job  on daily_reports(job_id);
+create index if not exists idx_daily_reports_date on daily_reports(report_date desc);
+create index if not exists idx_job_walks_job      on job_walks(job_id);
+create index if not exists idx_safety_topics_week on safety_topics(week_of desc);
+create index if not exists idx_safety_acks_topic  on safety_acks(topic_id);
+create index if not exists idx_punchlist_job      on punchlist(job_id);
+create index if not exists idx_scan_log_job       on scan_log(job_id);
+create index if not exists idx_scan_log_part      on scan_log(part_id);
