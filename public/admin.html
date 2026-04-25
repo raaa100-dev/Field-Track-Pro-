@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>FieldAxisHQ — Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#060a10;--bg2:#0c1220;--bg3:#131c2e;--bg4:#1a2540;--border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.11);--text:#e8edf5;--text2:#8a96ab;--text3:#414e63;--accent:#2563eb;--accent2:#1d4ed8;--ag:rgba(37,99,235,.25);--green:#16a34a;--gbg:rgba(22,163,74,.1);--gb:rgba(22,163,74,.2);--amber:#d97706;--abg:rgba(217,119,6,.1);--ab:rgba(217,119,6,.2);--red:#dc2626;--rbg:rgba(220,38,38,.1);--rb:rgba(220,38,38,.2);--teal:#0d9488;--tbg:rgba(13,148,136,.1);--tb:rgba(13,148,136,.2);--purple:#7c3aed;--pbg:rgba(124,58,237,.1);--pb:rgba(124,58,237,.2);--r:10px;--rs:7px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.app{display:flex;flex:1;overflow:hidden}
+/* SIDEBAR */
+.sidebar{width:218px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.logo{padding:16px 14px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.logo-mark{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;letter-spacing:-.5px;background:linear-gradient(135deg,#e8edf5,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-sub{font-size:9px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;margin-top:2px;font-family:'DM Mono',monospace}
+.nav-sec{padding:10px 12px 3px;font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.1em;text-transform:uppercase}
+.ni{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:var(--rs);cursor:pointer;color:var(--text2);font-size:12px;transition:.15s;margin:1px 5px;position:relative;white-space:nowrap}
+.ni:hover{background:var(--bg3);color:var(--text)}
+.ni.active{background:var(--bg4);color:var(--text)}
+.ni.active::before{content:'';position:absolute;left:-5px;top:22%;height:56%;width:2px;background:var(--accent);border-radius:2px}
+.ni svg{width:14px;height:14px;flex-shrink:0;opacity:.7}
+.nb{margin-left:auto;background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:10px;font-weight:700}
+.sb-bot{margin-top:auto;padding:10px;border-top:1px solid var(--border)}
+.u-pill{display:flex;align-items:center;gap:8px;padding:7px;background:var(--bg3);border-radius:var(--rs);cursor:pointer}
+.u-pill:hover{background:var(--bg4)}
+/* MAIN */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.topbar{height:48px;padding:0 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);flex-shrink:0}
+.tb-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700}
+.tb-right{display:flex;gap:7px;align-items:center}
+.content{flex:1;overflow-y:auto;padding:16px}
+.page{display:none}.page.active{display:block}
+/* BUTTONS */
+.btn{padding:6px 12px;border-radius:var(--rs);font-size:12px;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:'DM Sans',sans-serif;transition:.15s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.btn:hover{background:var(--bg4)}.btn:active{opacity:.8}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-p{background:var(--accent);color:#fff;border-color:var(--accent)}.btn-p:hover{background:var(--accent2)}
+.btn-g{background:var(--gbg);color:var(--green);border-color:var(--gb)}
+.btn-a{background:var(--abg);color:var(--amber);border-color:var(--ab)}
+.btn-r{background:var(--rbg);color:var(--red);border-color:var(--rb)}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--text2)}.btn-ghost:hover{background:var(--bg3);color:var(--text)}
+.btn-sm{padding:3px 8px;font-size:11px}
+.btn-full{width:100%;justify-content:center}
+/* FORMS */
+.fg{margin-bottom:12px}
+.fl{font-size:10px;font-weight:500;color:var(--text3);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.06em}
+.fi,.fs,.ft{width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rs);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg3);color:var(--text);transition:.15s}
+.fi:focus,.fs:focus,.ft:focus{outline:none;border-color:var(--accent);background:var(--bg4)}
+.fs{cursor:pointer;-webkit-appearance:none}.ft{resize:vertical;min-height:68px;line-height:1.5}
+.fi::placeholder,.ft::placeholder{color:var(--text3)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card-hdr{font-size:10px;font-weight:500;color:var(--text3);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;text-transform:uppercase;letter-spacing:.06em}
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:13px}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px}
+.stat-lbl{font-size:10px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.stat-val{font-size:22px;font-weight:300}
+.c-green{color:var(--green)}.c-amber{color:var(--amber)}.c-red{color:var(--red)}.c-blue{color:#60a5fa}.c-teal{color:var(--teal)}
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap}
+.b-green{background:var(--gbg);color:var(--green)}.b-amber{background:var(--abg);color:var(--amber)}
+.b-blue{background:rgba(37,99,235,.1);color:#60a5fa}.b-red{background:var(--rbg);color:var(--red)}
+.b-gray{background:var(--bg4);color:var(--text2)}.b-purple{background:var(--pbg);color:var(--purple)}
+.b-teal{background:var(--tbg);color:var(--teal)}
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text3);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl-click tbody tr{cursor:pointer}.tbl-click tbody tr:hover td{background:rgba(255,255,255,.02)}
+/* TABS */
+.tab-bar{display:flex;border-bottom:1px solid var(--border);background:var(--bg2);overflow-x:auto;flex-shrink:0}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{padding:10px 14px;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);transition:.15s;white-space:nowrap;flex-shrink:0}
+.tab:hover{color:var(--text2)}.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.tc{display:none;padding:16px;overflow-y:auto}.tc.active{display:block}
+/* MISC */
+.pbar{height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;display:inline-block;vertical-align:middle}
+.pb{height:100%;border-radius:2px;background:var(--accent);transition:width .3s}
+.pb.g{background:var(--green)}.pb.a{background:var(--amber)}.pb.r{background:var(--red)}
+.gps-live{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:var(--gbg);color:var(--green);border-radius:20px;font-size:9px;font-weight:500}
+.pulse{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.4s infinite;display:inline-block}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
+.av{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-family:'Syne',sans-serif}
+.w-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--rs);background:var(--bg3);border:1px solid var(--border);margin-bottom:6px}
+.wr-info{flex:1}.wr-n{font-size:12px;font-weight:500}.wr-m{font-size:10px;color:var(--text3);margin-top:1px}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.modal-ov.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:20px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.modal-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{cursor:pointer;color:var(--text3);font-size:18px;line-height:1}.modal-close:hover{color:var(--text)}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.spin{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{display:flex;align-items:center;justify-content:center;padding:36px;color:var(--text3);gap:9px;font-size:12px}
+.empty{text-align:center;padding:32px 16px;color:var(--text3)}
+.es-icon{font-size:30px;margin-bottom:8px}.es-ttl{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px}.es-sub{font-size:11px;line-height:1.6}
+@keyframes fadeUp{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
+.anim{animation:fadeUp .2s ease}
+.cart-box{background:var(--bg3);border-radius:var(--r);border:1px solid var(--border2);padding:11px}
+.cart-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.cart-ttl{font-size:13px;font-weight:600}
+.cart-badge{background:var(--text);color:var(--bg);font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px}
+.cart-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)}
+.cart-item:last-child{border-bottom:none}
+.ci-info{flex:1;min-width:0}.ci-n{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ci-b{font-size:10px;color:var(--text2)}
+.qty-c{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.qty-c span{font-size:13px;font-weight:600;min-width:22px;text-align:center}
+.qty-c button{width:22px;height:22px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;justify-content:center}
+.mode-toggle{display:flex;border:1px solid var(--border2);border-radius:var(--rs);overflow:hidden;margin-bottom:9px}
+.mode-toggle button{flex:1;padding:7px 6px;font-size:12px;font-weight:500;background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-family:inherit}
+.mode-toggle button.active{background:var(--accent);color:#fff}
+.cam-wrap{position:relative;border-radius:var(--r);overflow:hidden;background:#000;aspect-ratio:4/3;width:100%;margin-bottom:7px}
+.cam-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-rect{width:60%;max-width:220px;aspect-ratio:3/1;border:2px solid rgba(255,255,255,.8);border-radius:6px;box-shadow:0 0 0 2000px rgba(0,0,0,.4)}
+.scan-line{position:absolute;left:4px;right:4px;height:2px;background:rgba(255,59,48,.9);border-radius:2px;animation:scanA 2s ease-in-out infinite}
+@keyframes scanA{0%,100%{top:12%}50%{top:82%}}
+.cam-status{position:absolute;bottom:7px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,.9);background:rgba(0,0,0,.45);padding:3px}
+.upload-zone{border:1.5px dashed var(--border2);border-radius:var(--r);padding:16px;text-align:center;cursor:pointer;background:var(--bg3)}
+.upload-zone:hover{border-color:var(--accent);background:var(--bg4)}
+.upload-zone input{display:none}
+.file-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);font-size:11px;color:var(--text2);margin:2px}
+.rm{cursor:pointer;color:var(--text3)}.rm:hover{color:var(--red)}
+.sec-hdr{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;padding:12px 0 7px;border-bottom:1px solid var(--border);margin-bottom:11px}
+.insp-card{border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);margin-bottom:9px;overflow:hidden}
+.insp-hd{padding:10px 13px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);background:var(--bg3)}
+.insp-body{padding:12px}
+.co-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:8px}
+.a-row{display:flex;gap:9px;padding:8px 10px;border-radius:var(--rs);border:1px solid var(--border);margin-bottom:5px;align-items:flex-start}
+.a-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.mf-item{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid var(--border)}
+.mf-item:last-child{border-bottom:none}
+.mf-dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px}
+.mfd-s{background:var(--abg);border-color:var(--ab);color:var(--amber)}
+.mfd-o{background:rgba(37,99,235,.1);border-color:rgba(37,99,235,.2);color:#60a5fa}
+.mfd-i{background:var(--gbg);border-color:var(--gb);color:var(--green)}
+.mfd-m{border-color:var(--border);color:var(--text3)}
+.phase-bar{display:flex;gap:3px;margin:7px 0}
+.phase-step{flex:1;height:4px;border-radius:99px;background:var(--bg4)}
+.phase-step.done{background:var(--green)}.phase-step.active{background:var(--amber)}
+.fin-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)}
+.fin-row:last-child{border-bottom:none}
+.fin-lbl{font-size:12px;color:var(--text2)}.fin-val{font-size:12px;font-weight:500}
+.sched-item{display:flex;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.sched-item:last-child{border-bottom:none}
+.sched-date{background:var(--bg3);border-radius:var(--rs);padding:5px 8px;text-align:center;flex-shrink:0;min-width:44px}
+.sd{font-size:16px;font-weight:700;line-height:1}.sm{font-size:9px;color:var(--text2)}
+.surg .sched-date{background:var(--rbg);border:1px solid var(--rb)}.surg .sd{color:var(--red)}
+.ssoon .sched-date{background:var(--abg);border:1px solid var(--ab)}.ssoon .sd{color:var(--amber)}
+.prow{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.prow:last-child{border-bottom:none}
+.pi{flex:1;min-width:0}.pid{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pn{font-size:11px;color:var(--text2);margin-top:2px}.pa{font-size:10px;color:var(--text3);margin-top:2px}
+.notif-item{display:flex;gap:9px;padding:9px 0;border-bottom:1px solid var(--border)}
+.notif-item:last-child{border-bottom:none}
+.ndot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px}
+.ndot.read{background:var(--bg4)}
+.chk-item{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px solid var(--border)}
+.chk-item:last-child{border-bottom:none}
+.chk-box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);cursor:pointer;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.chk-box.ck{background:var(--green);border-color:var(--green)}.chk-box.ck::after{content:'✓';color:#fff;font-size:9px;font-weight:700}
+.chk-lbl{font-size:12px;color:var(--text2);line-height:1.5}.chk-lbl.done{text-decoration:line-through;color:var(--text3)}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.photo-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer}
+.photo-card:hover{border-color:var(--border2)}
+.photo-thumb{height:95px;object-fit:cover;width:100%;display:block}
+.photo-ph{height:95px;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--text3)}
+.photo-info{padding:5px 7px;font-size:10px;color:var(--text3);border-top:1px solid var(--border)}
+.addr-dd{position:absolute;left:0;right:0;top:100%;z-index:100;background:var(--bg2);border:1px solid var(--border2);border-top:none;border-radius:0 0 var(--rs) var(--rs);box-shadow:0 8px 24px rgba(0,0,0,.5);max-height:150px;overflow-y:auto;display:none}
+.addr-item{padding:8px 11px;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:1px solid var(--border)}
+.addr-item:last-child{border-bottom:none}.addr-item:hover{background:var(--bg4);color:var(--text)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">FieldAxisHQ</div>
+    <div class="logo-sub">Operations Platform</div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:3px 0">
+    <div class="nav-sec">Overview</div>
+    <div class="ni active" id="nav-dash"    onclick="nav('dash',this)">   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="1.5" width="5" height="5" rx="1"/><rect x="9.5" y="1.5" width="5" height="5" rx="1"/><rect x="1.5" y="9.5" width="5" height="5" rx="1"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/></svg>Dashboard</div>
+    <div class="ni"        id="nav-jobs"    onclick="nav('jobs',this)">    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>All Jobs</div>
+    <div class="ni"        id="nav-newjob"  onclick="nav('newjob',this)">  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/></svg>New Job</div>
+    <div class="ni"        id="nav-sched"   onclick="nav('sched',this)">   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>Schedule</div>
+    <div class="nav-sec">Warehouse</div>
+    <div class="ni"        id="nav-scan"    onclick="nav('scan',this)">    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5V3a1 1 0 011-1h2M11 2h2a1 1 0 011 1v2M14 11v2a1 1 0 01-1 1h-2M5 14H3a1 1 0 01-1-1v-2"/><path d="M4 8h8"/></svg>Scan Parts</div>
+    <div class="ni"        id="nav-orders"  onclick="nav('orders',this)">  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10l-1.5 7H4.5L3 3z"/><circle cx="6" cy="13.5" r="1"/><circle cx="11" cy="13.5" r="1"/></svg>Orders<span class="nb" id="nb-orders" style="display:none">0</span></div>
+    <div class="ni"        id="nav-catalog" onclick="nav('catalog',this)"> <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 5h6M5 8h6M5 11h3"/></svg>Catalog</div>
+    <div class="ni"        id="nav-inv"     onclick="nav('inv',this)">     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="8" width="3" height="6"/><rect x="6.5" y="5" width="3" height="9"/><rect x="11" y="2" width="3" height="12"/></svg>Stock</div>
+    <div class="nav-sec">Field</div>
+    <div class="ni"        id="nav-gps"     onclick="nav('gps',this)">     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2C5.8 2 4 3.8 4 6c0 3.5 4 8 4 8s4-4.5 4-8c0-2.2-1.8-4-4-4z"/><circle cx="8" cy="6" r="1.5"/></svg>GPS Tracking</div>
+    <div class="ni"        id="nav-hours"   onclick="nav('hours',this)">   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>Hours</div>
+    <div class="ni"        id="nav-subs"    onclick="nav('subs',this)">    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1.5 13c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4"/><circle cx="12" cy="5" r="2"/><path d="M14.5 12c0-2-1.2-3-2.5-3"/></svg>Sub Companies</div>
+    <div class="nav-sec">Finance &amp; Reports</div>
+    <div class="ni"        id="nav-fin"     onclick="nav('fin',this)">     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l3-4 3 2 3-5 3 3"/><rect x="2" y="2" width="12" height="12" rx="1"/></svg>Financials</div>
+    <div class="ni"        id="nav-reports" onclick="nav('reports',this)"> <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 13V8m4 5V5m4 8V2"/></svg>Reports</div>
+    <div class="ni"        id="nav-comply"  onclick="nav('comply',this)">  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2l6 3v5c0 3-6 6-6 6S2 13 2 10V5z"/><path d="M5.5 8l2 2 3-3"/></svg>Compliance<span class="nb" id="nb-comply" style="display:none">!</span></div>
+    <div class="ni"        id="nav-log"     onclick="nav('log',this)">     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M3 8h7M3 12h5"/></svg>Audit Log</div>
+    <div class="ni"        id="nav-notif"   onclick="nav('notif',this)">   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a5 5 0 00-5 5c0 2-.5 3-1 4h12c-.5-1-1-2-1-4a5 5 0 00-5-5z"/><path d="M6.5 13a1.5 1.5 0 003 0"/></svg>Notifications<span class="nb" id="nb-notif" style="display:none">0</span></div>
+    <div class="ni"        id="nav-admin"   onclick="nav('admin',this)">   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/></svg>Users</div>
+  </div>
+  <div class="sb-bot">
+    <div class="u-pill" onclick="doSignOut()">
+      <div class="av" id="ua" style="width:28px;height:28px;font-size:10px"></div>
+      <div style="flex:1"><div style="font-size:12px;font-weight:500" id="un">…</div><div style="font-size:10px;color:var(--text3)">Sign out</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- ── DASHBOARD ── -->
+<div id="page-dash" class="page active">
+  <div class="topbar"><div class="tb-title">Dashboard</div><div class="tb-right"><span id="dash-date" style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace"></span><button class="btn btn-p btn-sm" onclick="nav('newjob',document.getElementById('nav-newjob'))">+ New Job</button></div></div>
+  <div class="content">
+    <div class="stats">
+      <div class="stat"><div class="stat-lbl">Active Jobs</div><div class="stat-val" id="ds-jobs">—</div><div style="font-size:10px;color:var(--text3);margin-top:2px" id="ds-jobs-m"></div></div>
+      <div class="stat"><div class="stat-lbl">Parts Staged</div><div class="stat-val c-amber" id="ds-staged">—</div></div>
+      <div class="stat"><div class="stat-lbl">Signed Out</div><div class="stat-val c-blue" id="ds-out">—</div></div>
+      <div class="stat"><div class="stat-lbl">GPS On Site</div><div class="stat-val c-green" id="ds-onsite">—</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:12px">
+      <div>
+        <div class="card"><div class="card-hdr">Active Jobs <button class="btn btn-sm btn-ghost" onclick="nav('jobs',document.getElementById('nav-jobs'))">All →</button></div><div id="dash-jobs-tbl"></div></div>
+        <div class="card"><div class="card-hdr">Overages &amp; Alerts</div><div id="dash-alerts"></div></div>
+      </div>
+      <div>
+        <div class="card"><div class="card-hdr">Live Check-ins</div><div id="dash-checkins"></div></div>
+        <div class="card"><div class="card-hdr">Low Stock</div><div id="dash-low"></div></div>
+        <div class="card"><div class="card-hdr">Pending Orders</div><div id="dash-pend-orders"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ALL JOBS ── -->
+<div id="page-jobs" class="page">
+  <div class="topbar"><div class="tb-title">All Jobs</div><div class="tb-right">
+    <input type="text" id="j-search" class="fi" placeholder="Search…" style="width:170px;padding:5px 9px" oninput="renderJobsList()">
+    <select class="fs" id="j-phase" style="width:130px;padding:5px 7px;font-size:12px" onchange="renderJobsList()"><option value="">All phases</option><option value="not_started">Not Started</option><option value="pre_construction">Pre-Con</option><option value="rough_in">Rough-in</option><option value="trim_out">Trim-out</option><option value="inspection">Inspection</option><option value="closeout">Closeout</option><option value="complete">Complete</option></select>
+    <label class="btn btn-sm" style="cursor:pointer">⬇ Import CSV<input type="file" accept=".csv" style="display:none" onchange="importJobsCSV(this)"></label>
+    <button class="btn btn-sm" onclick="exportJobsCSV()">⬆ Export</button>
+    <button class="btn btn-p btn-sm" onclick="nav('newjob',document.getElementById('nav-newjob'))">+ New Job</button>
+  </div></div>
+  <div class="content"><div class="card" style="padding:0;overflow:hidden"><div id="jobs-tbl"></div></div></div>
+</div>
+
+<!-- ── JOB DETAIL ── -->
+<div id="page-jobdetail" class="page" style="display:none;flex-direction:column">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:9px">
+      <button class="btn btn-ghost btn-sm" onclick="nav('jobs',document.getElementById('nav-jobs'))">← Back</button>
+      <div class="tb-title" id="jd-title">Job</div>
+      <span id="jd-phase-badge"></span>
+    </div>
+    <div class="tb-right">
+      <select class="fs" id="jd-phase-sel" style="width:130px;padding:5px 7px;font-size:12px" onchange="updateJobPhase()"><option value="not_started">Not Started</option><option value="pre_construction">Pre-Con</option><option value="rough_in">Rough-in</option><option value="trim_out">Trim-out</option><option value="inspection">Inspection</option><option value="closeout">Closeout</option><option value="complete">Complete</option></select>
+      <input type="number" id="jd-pct" class="fi" style="width:65px;padding:5px 8px;font-size:12px" min="0" max="100" placeholder="%" onchange="updateJobPhase()">
+    </div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab active" onclick="jdTab(this,'jt-info')">Info</div>
+    <div class="tab" onclick="jdTab(this,'jt-scope')">Scope</div>
+    <div class="tab" onclick="jdTab(this,'jt-workers')">Workers</div>
+    <div class="tab" onclick="jdTab(this,'jt-parts')">Parts</div>
+    <div class="tab" onclick="jdTab(this,'jt-photos')">Photos &amp; Plans</div>
+    <div class="tab" onclick="jdTab(this,'jt-checklist')">Checklist</div>
+    <div class="tab" onclick="jdTab(this,'jt-pmreview')">PM Review</div>
+    <div class="tab" onclick="jdTab(this,'jt-changes')">Change Orders</div>
+    <div class="tab" onclick="jdTab(this,'jt-fin')">Financials</div>
+    <div class="tab" onclick="jdTab(this,'jt-logs')">Daily Log</div>
+    <div class="tab" onclick="jdTab(this,'jt-gc')">GC Alerts</div>
+    <div class="tab" onclick="jdTab(this,'jt-requests')">Part Requests</div>
+  </div>
+  <div style="flex:1;overflow-y:auto">
+    <div id="jt-info" class="tc active"></div><div id="jt-scope" class="tc"></div>
+    <div id="jt-workers" class="tc"></div><div id="jt-parts" class="tc"></div>
+    <div id="jt-photos" class="tc"></div><div id="jt-checklist" class="tc"></div>
+    <div id="jt-pmreview" class="tc"></div><div id="jt-changes" class="tc"></div>
+    <div id="jt-fin" class="tc"></div><div id="jt-logs" class="tc"></div>
+    <div id="jt-gc" class="tc"></div><div id="jt-requests" class="tc"></div>
+  </div>
+</div>
+
+<!-- ── NEW JOB ── -->
+<div id="page-newjob" class="page">
+  <div class="topbar"><div class="tb-title">New Job</div><div class="tb-right"><button class="btn btn-p" id="nj-btn" onclick="submitNewJob()">Create Job</button></div></div>
+  <div class="content">
+    <div class="two">
+      <div>
+        <div class="card">
+          <div class="fg"><label class="fl">Job Name *</label><input class="fi" id="nj-name" placeholder="Project name"></div>
+          <div class="fg" style="position:relative"><label class="fl">Address *</label><input class="fi" id="nj-addr" placeholder="Start typing…" autocomplete="off" oninput="njAddrInput(this.value)"><div id="nj-addr-dd" class="addr-dd"></div>
+          <div id="nj-geo-ok" style="display:none;margin-top:4px;font-size:10px;color:var(--green)" id="nj-geo-ok">✓ GPS set: <span id="nj-coords" style="font-family:'DM Mono',monospace"></span></div>
+          <input type="hidden" id="nj-lat"><input type="hidden" id="nj-lng"></div>
+          <div class="three">
+            <div class="fg"><label class="fl">Radius</label><select class="fs" id="nj-radius"><option value="100">100ft</option><option value="250" selected>250ft</option><option value="500">500ft</option><option value="1000">1000ft</option></select></div>
+            <div class="fg"><label class="fl">Start Date</label><input class="fi" type="date" id="nj-start"></div>
+            <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="nj-due"></div>
+          </div>
+          <div class="three">
+            <div class="fg"><label class="fl">Contract $</label><input class="fi" type="number" id="nj-cv" placeholder="0"></div>
+            <div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="nj-lb" placeholder="0"></div>
+            <div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="nj-lr" placeholder="0"></div>
+          </div>
+          <div class="fg"><label class="fl">GC Company</label><input class="fi" id="nj-gc"></div>
+          <div class="two">
+            <div class="fg"><label class="fl">GC Contact</label><input class="fi" id="nj-gcc"></div>
+            <div class="fg"><label class="fl">GC Phone</label><input class="fi" id="nj-gcp"></div>
+          </div>
+          <div class="two">
+            <div class="fg"><label class="fl">Superintendent</label><input class="fi" id="nj-sup"></div>
+            <div class="fg"><label class="fl">Super Phone</label><input class="fi" id="nj-supp"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">Milestone Dates</div>
+          <div class="three">
+            <div class="fg"><label class="fl">Contract Signed</label><input class="fi" type="date" id="nj-dc"></div>
+            <div class="fg"><label class="fl">Permit</label><input class="fi" type="date" id="nj-dp"></div>
+            <div class="fg"><label class="fl">Rough-in</label><input class="fi" type="date" id="nj-dr"></div>
+          </div>
+          <div class="three">
+            <div class="fg"><label class="fl">Trim-out</label><input class="fi" type="date" id="nj-dt"></div>
+            <div class="fg"><label class="fl">Inspection</label><input class="fi" type="date" id="nj-di"></div>
+            <div class="fg"><label class="fl">Closeout</label><input class="fi" type="date" id="nj-dco"></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="fg"><label class="fl">Sub Company</label><select class="fs" id="nj-company" onchange="loadWorkerCBs()"><option value="">— None / Internal —</option></select></div>
+          <div class="fg"><label class="fl">Workers</label><div id="nj-workers-wrap" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:9px;min-height:48px"><div style="font-size:11px;color:var(--text3)">Select a company first</div></div></div>
+          <div class="fg"><label class="fl">PM Review</label><select class="fs" id="nj-pmr"><option value="midpoint_and_final">Mid-point &amp; Final</option><option value="final_only">Final only</option><option value="none">None</option></select></div>
+          <div class="fg"><label class="fl">Scope of Work</label><textarea class="ft" id="nj-scope"></textarea></div>
+          <div class="fg"><label class="fl">Install Notes</label><textarea class="ft" id="nj-notes" style="min-height:55px"></textarea></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">Plans / Documents</div>
+          <label class="upload-zone"><input type="file" id="nj-plans" multiple accept=".pdf,.png,.jpg,.jpeg" onchange="previewNjPlans()"><div style="font-size:20px;color:var(--text3)">📁</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Attach plans (optional)</div></label>
+          <div id="nj-plan-prev" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCHEDULE ── -->
+<div id="page-sched" class="page">
+  <div class="topbar"><div class="tb-title">Schedule</div></div>
+  <div class="content">
+    <div class="card"><div class="card-hdr">Upcoming Milestones</div><div id="sched-list"></div></div>
+    <div class="card"><div class="card-hdr">Gantt — Current Month</div><div id="gantt-wrap"></div></div>
+  </div>
+</div>
+
+<!-- ── SCAN ── -->
+<div id="page-scan" class="page">
+  <div class="topbar"><div class="tb-title">Scan Parts</div></div>
+  <div class="content">
+    <div class="two">
+      <div>
+        <div class="card">
+          <div class="fg"><label class="fl">Job</label><select class="fs" id="sc-job" onchange="loadScanRecent(this.value)"><option value="">— Select job —</option></select></div>
+          <div class="mode-toggle"><button class="active" id="mode-stage" onclick="setScanMode('stage')">Stage In</button><button id="mode-out" onclick="setScanMode('out')">Sign Out</button></div>
+          <div id="cam-wrap-main" style="display:none"><div class="cam-wrap"><div id="cam-prev-main"></div><div class="cam-overlay"><div class="scan-rect"><div class="scan-line"></div></div></div><div class="cam-status">Align barcode in frame</div></div></div>
+          <div style="margin-bottom:8px"><button class="btn btn-sm" id="cam-btn" onclick="toggleCam()" style="width:100%">📷 Camera</button></div>
+          <div class="fg"><label class="fl">Barcode</label><input class="fi" id="sc-part" placeholder="Scan or type — Enter to add" oninput="resolveBC(this.value,'sc-resolve')" onkeydown="if(event.key==='Enter'){addToCart();this.value='';document.getElementById('sc-resolve').style.display='none'}"></div>
+          <div id="sc-resolve" style="display:none;margin-bottom:8px"></div>
+          <div id="cart-box" style="display:none">
+            <div class="cart-box"><div class="cart-hdr"><div class="cart-ttl" id="cart-lbl">Staging cart</div><span class="cart-badge" id="cart-cnt">0</span></div><div id="cart-items"></div></div>
+            <div style="display:flex;gap:7px;margin-top:7px"><button class="btn btn-p" id="cart-commit-btn" onclick="commitCart()" style="flex:2">Stage to job</button><button class="btn btn-r btn-sm" onclick="clearCart()">Clear</button></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card"><div class="card-hdr">Recent on Job</div><div id="sc-recent"><div class="empty"><div class="es-icon">📦</div><div class="es-sub">Select a job to see recent parts</div></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ORDERS ── -->
+<div id="page-orders" class="page">
+  <div class="topbar"><div class="tb-title">Orders</div></div>
+  <div class="content">
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-hdr">Request Parts for Job</div>
+      <div class="two"><div class="fg"><label class="fl">Job *</label><select class="fs" id="ord-job"><option value="">— Select —</option></select></div><div class="fg"><label class="fl">Notes</label><input class="fi" id="ord-notes" placeholder="Optional note"></div></div>
+      <div id="ord-items-list" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px"></div>
+      <div style="display:flex;gap:7px;margin-bottom:7px">
+        <input class="fi" id="ord-bc" placeholder="Barcode" style="flex:1" oninput="resolveBC(this.value,'ord-resolve')">
+        <input class="fi" id="ord-qty" type="number" value="1" min="1" style="width:65px">
+        <button class="btn btn-p btn-sm" onclick="addOrdItem()">Add</button>
+      </div>
+      <div id="ord-resolve" style="display:none;margin-bottom:7px"></div>
+      <button class="btn btn-p btn-full" onclick="submitOrder()">Submit Order</button>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden"><div id="orders-tbl"></div></div>
+  </div>
+</div>
+
+<!-- ── CATALOG ── -->
+<div id="page-catalog" class="page">
+  <div class="topbar"><div class="tb-title">Parts Catalog</div><div class="tb-right"><button class="btn btn-p btn-sm" onclick="openAddCatalogModal()">+ Add Part</button></div></div>
+  <div class="content">
+    <div style="margin-bottom:11px"><input type="text" class="fi" id="cat-search" placeholder="Search catalog…" oninput="renderCatalog()"></div>
+    <div class="card" style="padding:0;overflow:hidden"><div id="catalog-tbl"></div></div>
+  </div>
+</div>
+
+<!-- ── INVENTORY ── -->
+<div id="page-inv" class="page">
+  <div class="topbar"><div class="tb-title">Stock / Inventory</div><div class="tb-right"><button class="btn btn-p btn-sm" onclick="openAddInvModal()">+ Adjust Stock</button></div></div>
+  <div class="content">
+    <div style="margin-bottom:11px"><input type="text" class="fi" id="inv-search" placeholder="Search stock…" oninput="renderInv()"></div>
+    <div class="card" style="padding:0;overflow:hidden"><div id="inv-tbl"></div></div>
+  </div>
+</div>
+
+<!-- ── GPS ── -->
+<div id="page-gps" class="page">
+  <div class="topbar"><div class="tb-title">GPS Tracking — Today</div><div class="tb-right"><button class="btn btn-sm" onclick="loadGpsPage()">Refresh</button></div></div>
+  <div class="content"><div class="card" style="padding:0;overflow:hidden"><div id="gps-tbl"></div></div></div>
+</div>
+
+<!-- ── HOURS ── -->
+<div id="page-hours" class="page">
+  <div class="topbar"><div class="tb-title">Labor Hours</div><div class="tb-right"><button class="btn btn-sm" onclick="exportReport('labor')">Export CSV</button></div></div>
+  <div class="content">
+    <div class="two">
+      <div class="card"><div class="card-hdr">By Technician</div><div id="hrs-tech"></div></div>
+      <div class="card"><div class="card-hdr">By Job</div><div id="hrs-job"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SUBS ── -->
+<div id="page-subs" class="page">
+  <div class="topbar"><div class="tb-title">Sub Companies</div><div class="tb-right"><button class="btn btn-p btn-sm" onclick="openAddCoModal()">+ Add Company</button></div></div>
+  <div class="content" id="subs-content"></div>
+</div>
+
+<!-- ── FINANCIALS ── -->
+<div id="page-fin" class="page">
+  <div class="topbar"><div class="tb-title">Financials</div></div>
+  <div class="content">
+    <div class="stats">
+      <div class="stat"><div class="stat-lbl">Total Contract</div><div class="stat-val" id="fin-contract">—</div></div>
+      <div class="stat"><div class="stat-lbl">Total Cost</div><div class="stat-val" id="fin-cost">—</div></div>
+      <div class="stat"><div class="stat-lbl">Gross Profit</div><div class="stat-val" id="fin-profit">—</div></div>
+      <div class="stat"><div class="stat-lbl">Avg Margin</div><div class="stat-val" id="fin-margin">—</div></div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden"><div id="fin-tbl"></div></div>
+  </div>
+</div>
+
+<!-- ── REPORTS ── -->
+<div id="page-reports" class="page">
+  <div class="topbar"><div class="tb-title">Reports</div></div>
+  <div class="content">
+    <div class="stats">
+      <div class="stat"><div class="stat-lbl">Jobs</div><div class="stat-val" id="rpt-jobs">—</div></div>
+      <div class="stat"><div class="stat-lbl">Staged</div><div class="stat-val c-amber" id="rpt-staged">—</div></div>
+      <div class="stat"><div class="stat-lbl">Signed Out</div><div class="stat-val c-blue" id="rpt-out">—</div></div>
+      <div class="stat"><div class="stat-lbl">Overages</div><div class="stat-val c-red" id="rpt-over">—</div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">Export</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;cursor:pointer" onclick="exportReport('labor')"><div style="font-size:18px;margin-bottom:5px">⏱</div><div style="font-size:12px;font-weight:500">Labor &amp; Hours</div><div style="font-size:10px;color:var(--text3);margin-top:2px">GPS check-in logs</div></div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;cursor:pointer" onclick="exportReport('parts')"><div style="font-size:18px;margin-bottom:5px">📦</div><div style="font-size:12px;font-weight:500">Parts Report</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Staged, signed-out, installed</div></div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;cursor:pointer" onclick="exportReport('jobs')"><div style="font-size:18px;margin-bottom:5px">📋</div><div style="font-size:12px;font-weight:500">Jobs CSV</div><div style="font-size:10px;color:var(--text3);margin-top:2px">All jobs with dates</div></div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;cursor:pointer" onclick="exportReport('fin')"><div style="font-size:18px;margin-bottom:5px">💰</div><div style="font-size:12px;font-weight:500">Financial Summary</div><div style="font-size:10px;color:var(--text3);margin-top:2px">P&L per job</div></div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;cursor:pointer" onclick="exportReport('audit')"><div style="font-size:18px;margin-bottom:5px">🔐</div><div style="font-size:12px;font-weight:500">Audit Log</div><div style="font-size:10px;color:var(--text3);margin-top:2px">All actions with GPS</div></div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;cursor:pointer" onclick="exportReport('inventory')"><div style="font-size:18px;margin-bottom:5px">📊</div><div style="font-size:12px;font-weight:500">Inventory</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Stock levels</div></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-hdr">Parts Activity</div><div id="rpt-parts-tbl"></div></div>
+  </div>
+</div>
+
+<!-- ── COMPLIANCE ── -->
+<div id="page-comply" class="page">
+  <div class="topbar"><div class="tb-title">Compliance</div></div>
+  <div class="content" id="comply-content"></div>
+</div>
+
+<!-- ── AUDIT LOG ── -->
+<div id="page-log" class="page">
+  <div class="topbar"><div class="tb-title">Audit Log</div><div class="tb-right"><button class="btn btn-sm" onclick="exportReport('audit')">Export CSV</button></div></div>
+  <div class="content"><div class="card" style="padding:0;overflow:hidden"><div id="log-tbl"></div></div></div>
+</div>
+
+<!-- ── NOTIFICATIONS ── -->
+<div id="page-notif" class="page">
+  <div class="topbar"><div class="tb-title">Notifications</div><div class="tb-right"><button class="btn btn-sm" onclick="markAllRead()">Mark all read</button></div></div>
+  <div class="content"><div class="card"><div id="notif-list"></div></div></div>
+</div>
+
+<!-- ── USERS ── -->
+<div id="page-admin" class="page">
+  <div class="topbar"><div class="tb-title">User Management</div><div class="tb-right"><button class="btn btn-p btn-sm" onclick="openAddUserModal()">+ Add User</button></div></div>
+  <div class="content"><div class="card" style="padding:0;overflow:hidden"><div id="users-tbl"></div></div></div>
+</div>
+
+</div><!-- end .main -->
+</div><!-- end .app -->
+
+<!-- MODAL -->
+<div class="modal-ov" id="modal-ov" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title"><span id="modal-title">—</span><span class="modal-close" onclick="closeModal()">×</span></div>
+    <div id="modal-body"></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-p" id="modal-ok">Save</button></div>
+  </div>
+</div>
+<script src="fax-shared.js"></script>
+<script>
+// ════════════════════════════════════════════════
+// FieldAxisHQ Admin  v1.0
+// ════════════════════════════════════════════════
+const sb = getSb()
+let MY = null, allJobs = [], allCatalog = [], allInv = []
+let currentJobId = null, currentJob = null
+let scanMode = 'stage', cart = [], camRunning = false
+let ordItemsTmp = [], njAddrDeb = null
+
+// ── BOOT ────────────────────────────────────────
+window.addEventListener('load', async () => {
+  const session = await requireAuth(sb); if (!session) return
+  const { data: profile } = await sb.from('profiles').select('*').eq('id', session.user.id).single()
+  MY = profile
+  const name = profile?.full_name || session.user.email
+  document.getElementById('un').textContent = name
+  const av = document.getElementById('ua')
+  av.textContent = initials(name)
+  av.style.cssText += ';width:28px;height:28px;font-size:10px;' + avStyle(name)
+  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}).toUpperCase()
+  if (!['admin','pm'].includes(profile?.role)) {
+    document.getElementById('nav-admin').style.display = 'none'
+    document.getElementById('nav-log').style.display = 'none'
+  }
+  await Promise.all([loadDash(), prefetch(), loadNotifBadge()])
+})
+function doSignOut() { signOut(sb) }
+
+// ── NAV ─────────────────────────────────────────
+function nav(id, el) {
+  document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display = '' })
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'))
+  const pg = document.getElementById('page-' + id)
+  if (pg) { pg.classList.add('active'); pg.classList.add('anim') }
+  if (id === 'jobdetail') pg.style.display = 'flex'
+  if (el) el.classList.add('active')
+  stopCam()
+  const loaders = { jobs: loadJobsPage, sched: loadSchedPage, gps: loadGpsPage, hours: loadHoursPage, subs: loadSubsPage, fin: loadFinPage, reports: loadReportsPage, comply: loadComplyPage, log: loadLogPage, orders: loadOrdersPage, catalog: loadCatalogPage, inv: loadInvPage, notif: loadNotifPage, admin: loadAdminPage, scan: () => loadJobsSelect('sc-job'), newjob: () => { loadJobsSelect(); loadCompanySelect() } }
+  if (loaders[id]) loaders[id]()
+}
+function jdTab(el, id) {
+  el.closest('.tab-bar').querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+  document.querySelectorAll('[id^="jt-"]').forEach(t => t.classList.remove('active'))
+  el.classList.add('active')
+  const tc = document.getElementById(id); if (tc) { tc.classList.add('active'); loadJobTab(id) }
+}
+
+// ── API ──────────────────────────────────────────
+async function api(path, method = 'GET', body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } }
+  if (body) opts.body = JSON.stringify(body)
+  const r = await fetch('/api' + path, opts)
+  const d = await r.json()
+  if (!r.ok) throw new Error(d.error || 'Error ' + r.status)
+  return d
+}
+
+// ── MODAL ────────────────────────────────────────
+function openModal(title, html, onOk, okLabel = 'Save') {
+  document.getElementById('modal-title').textContent = title
+  document.getElementById('modal-body').innerHTML = html
+  const btn = document.getElementById('modal-ok')
+  btn.textContent = okLabel; btn.onclick = onOk
+  document.getElementById('modal-ov').classList.add('show')
+}
+function closeModal() { document.getElementById('modal-ov').classList.remove('show') }
+
+// ── HELPERS ──────────────────────────────────────
+function es(icon, ttl, sub = '') { return `<div class="empty"><div class="es-icon">${icon}</div><div class="es-ttl">${ttl}</div>${sub?`<div class="es-sub">${sub}</div>`:''}</div>` }
+function ld(msg = 'Loading…') { return `<div class="loading"><div class="spin"></div>${msg}</div>` }
+function sBadge(s) {
+  const m = { staged:'b-amber|Staged', signed_out:'b-blue|Signed Out', installed:'b-green|Installed', partial_install:'b-teal|Partial', not_staged:'b-gray|Not Staged', pending:'b-amber|Pending', approved:'b-green|Approved', rejected:'b-red|Rejected', open:'b-amber|Open', resolved:'b-green|Resolved', not_started:'b-gray|Not Started', pre_construction:'b-blue|Pre-Con', rough_in:'b-amber|Rough-in', trim_out:'b-teal|Trim-out', inspection:'b-purple|Inspection', closeout:'b-green|Closeout', complete:'b-green|Complete', active:'b-blue|Active' }
+  const [c, l] = (m[s] || 'b-gray|'+s).split('|')
+  return `<span class="badge ${c}">${l}</span>`
+}
+function rBadge(r) {
+  const m = { admin:'b-purple', pm:'b-blue', stager:'b-amber', foreman:'b-teal', technician:'b-green', signout:'b-gray', requestor:'b-blue', sub_lead:'b-amber', sub_worker:'b-gray' }
+  return `<span class="badge ${m[r]||'b-gray'}">${r}</span>`
+}
+const PHASES = ['not_started','pre_construction','rough_in','trim_out','inspection','closeout','complete']
+function pBar(cur) { const i = PHASES.indexOf(cur); return `<div class="phase-bar">${PHASES.map((p,j)=>`<div class="phase-step ${j<i?'done':j===i?'active':''}" title="${p.replace(/_/g,' ')}"></div>`).join('')}</div>` }
+
+// ── PREFETCH ─────────────────────────────────────
+async function prefetch() {
+  try { allJobs = await api('/jobs') } catch {}
+  try { allCatalog = await api('/catalog') } catch {}
+}
+
+// ── DASHBOARD ────────────────────────────────────
+async function loadDash() {
+  try {
+    const [jobsR, rptR, ciR, invR, ordR] = await Promise.all([
+      api('/jobs'), api('/report'),
+      sb.from('checkins').select('id,job_id,checkin_at,profiles:worker_id(full_name),jobs(name)').is('checkout_at', null).order('checkin_at', { ascending: false }),
+      sb.from('inventory').select('*').gt('min_qty', 0),
+      api('/orders')
+    ])
+    allJobs = jobsR || []
+    const active = allJobs.filter(j => !j.archived && j.phase !== 'complete')
+    document.getElementById('ds-jobs').textContent = active.length
+    document.getElementById('ds-jobs-m').textContent = active.filter(j => isOverdue(j.due_date, j.phase)).length + ' overdue'
+    document.getElementById('ds-staged').textContent = (rptR.staged||[]).length
+    document.getElementById('ds-out').textContent = (rptR.signedOut||[]).length
+    document.getElementById('ds-onsite').textContent = (ciR.data||[]).length
+
+    document.getElementById('dash-jobs-tbl').innerHTML = active.slice(0,8).length
+      ? `<table class="tbl tbl-click"><thead><tr><th>Job</th><th>Phase</th><th>Due</th></tr></thead><tbody>${active.slice(0,8).map(j=>`<tr onclick="openJob('${j.id}')"><td><div style="font-weight:500">${j.name}</div><div style="font-size:10px;color:var(--text3)">${j.address||''}</div></td><td>${sBadge(j.phase)}</td><td style="font-size:11px${isOverdue(j.due_date,j.phase)?';color:var(--red)':''}">${fmtDate(j.due_date)||'—'}${isOverdue(j.due_date,j.phase)?' ⚠':''}</td></tr>`).join('')}</tbody></table>`
+      : es('📋', 'No active jobs', 'Create your first job →')
+
+    const over = rptR.overages || []
+    document.getElementById('dash-alerts').innerHTML = over.length
+      ? over.slice(0,4).map(o=>`<div class="a-row"><div class="a-dot" style="background:var(--red)"></div><div><div style="font-size:12px;font-weight:500">Overage — ${o.part_name}</div><div style="font-size:10px;color:var(--text3)">Job ${o.job_id}</div></div></div>`).join('')
+      : '<div style="font-size:12px;color:var(--text3)">No overages ✓</div>'
+
+    document.getElementById('dash-checkins').innerHTML = (ciR.data||[]).length
+      ? ciR.data.slice(0,5).map(c=>`<div class="w-row"><div class="av" style="width:24px;height:24px;font-size:9px;${avStyle(c.profiles?.full_name)}">${initials(c.profiles?.full_name)}</div><div class="wr-info"><div class="wr-n">${c.profiles?.full_name||'?'}</div><div class="wr-m">${c.jobs?.name||''} · ${fmtTime(c.checkin_at)}</div></div><span class="gps-live" style="font-size:9px"><span class="pulse"></span></span></div>`).join('')
+      : '<div style="font-size:12px;color:var(--text3)">No one on site</div>'
+
+    const low = (invR.data||[]).filter(i => i.qty <= i.min_qty)
+    document.getElementById('dash-low').innerHTML = low.length
+      ? low.slice(0,4).map(i=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span>${i.name}</span><span style="color:var(--red);font-weight:500">${i.qty}/${i.min_qty}</span></div>`).join('')
+      : '<div style="font-size:12px;color:var(--text3)">All stock OK ✓</div>'
+
+    const pend = (ordR||[]).filter(o => o.status==='pending').slice(0,4)
+    document.getElementById('dash-pend-orders').innerHTML = pend.length
+      ? pend.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span>${o.job_id} · ${o.created_by}</span><button class="btn btn-sm btn-g" onclick="stageOrder('${o.id}')">Stage</button></div>`).join('')
+      : '<div style="font-size:12px;color:var(--text3)">No pending orders</div>'
+  } catch(e) { console.error('Dash:', e) }
+}
+
+// ── JOBS PAGE ────────────────────────────────────
+async function loadJobsPage() {
+  try { allJobs = await api('/jobs') } catch(e) { toast('Load error', 'error'); return }
+  renderJobsList()
+}
+function renderJobsList() {
+  const q = (document.getElementById('j-search')?.value||'').toLowerCase()
+  const pf = document.getElementById('j-phase')?.value||''
+  const rows = allJobs.filter(j => (!q || j.name.toLowerCase().includes(q) || (j.address||'').toLowerCase().includes(q)) && (!pf || j.phase===pf))
+  document.getElementById('jobs-tbl').innerHTML = rows.length
+    ? `<table class="tbl tbl-click"><thead><tr><th>Job</th><th>GC</th><th>Phase</th><th>Due</th><th>Completed</th><th>Contract</th></tr></thead><tbody>${rows.map(j=>`<tr onclick="openJob('${j.id}')"><td><div style="font-weight:500">${j.name}</div><div style="font-size:10px;color:var(--text3)">${j.address||''}</div></td><td style="font-size:11px;color:var(--text3)">${j.gc_company||'—'}</td><td>${sBadge(j.phase)}</td><td style="font-size:11px${isOverdue(j.due_date,j.phase)?';color:var(--red)':''}">${fmtDate(j.due_date)||'—'}</td><td style="font-size:11px;color:var(--green)">${fmtDate(j.completion_date)||'—'}</td><td style="font-size:11px">${j.contract_value?fmtCurrency(j.contract_value):'—'}</td></tr>`).join('')}</tbody></table>`
+    : `<div style="padding:28px">${es('📋','No jobs found','')}</div>`
+}
+async function openJob(jobId) {
+  currentJobId = jobId
+  nav('jobdetail', null)
+  document.getElementById('nav-jobs').classList.add('active')
+  const { data: job } = await sb.from('jobs').select('*').eq('id', jobId).single()
+  currentJob = job; if (!job) return
+  document.getElementById('jd-title').textContent = job.name
+  document.getElementById('jd-phase-badge').innerHTML = sBadge(job.phase)
+  document.getElementById('jd-phase-sel').value = job.phase || 'not_started'
+  document.getElementById('jd-pct').value = job.pct_complete || 0
+  loadJobTab('jt-info')
+}
+async function updateJobPhase() {
+  if (!currentJobId) return
+  await api('/jobs/'+currentJobId,'PUT',{ phase: document.getElementById('jd-phase-sel').value, pct_complete: parseInt(document.getElementById('jd-pct').value)||0 })
+  document.getElementById('jd-phase-badge').innerHTML = sBadge(document.getElementById('jd-phase-sel').value)
+  toast('Phase updated')
+}
+async function loadJobTab(id) {
+  if (!currentJobId) return
+  const fns = { 'jt-info': renderInfoTab, 'jt-scope': renderScopeTab, 'jt-workers': renderWorkersTab, 'jt-parts': renderPartsTab, 'jt-photos': renderPhotosTab, 'jt-checklist': renderChecklistTab, 'jt-pmreview': renderPmReviewTab, 'jt-changes': renderChangesTab, 'jt-fin': renderFinTab, 'jt-logs': renderLogsTab, 'jt-gc': renderGcTab, 'jt-requests': renderRequestsTab }
+  if (fns[id]) await fns[id]()
+}
+
+// ── INFO TAB ─────────────────────────────────────
+function renderInfoTab() {
+  const j = currentJob || {}
+  document.getElementById('jt-info').innerHTML = `
+  ${pBar(j.phase)}
+  <div class="two" style="margin-top:12px">
+    <div>
+      <div class="fg"><label class="fl">Name</label><input class="fi" id="ed-name" value="${j.name||''}"></div>
+      <div class="fg"><label class="fl">Address</label><input class="fi" id="ed-addr" value="${j.address||''}"></div>
+      <div class="two"><div class="fg"><label class="fl">GPS Lat</label><input class="fi" id="ed-lat" value="${j.gps_lat||''}" style="font-family:'DM Mono',monospace;font-size:11px"></div><div class="fg"><label class="fl">GPS Lng</label><input class="fi" id="ed-lng" value="${j.gps_lng||''}" style="font-family:'DM Mono',monospace;font-size:11px"></div></div>
+      <div class="fg"><label class="fl">Radius</label><select class="fs" id="ed-radius"><option value="100">100ft</option><option value="250">250ft</option><option value="500">500ft</option><option value="1000">1000ft</option></select></div>
+      <div class="sec-hdr">GC / Owner</div>
+      <div class="fg"><label class="fl">GC Company</label><input class="fi" id="ed-gc" value="${j.gc_company||''}"></div>
+      <div class="two"><div class="fg"><label class="fl">Contact</label><input class="fi" id="ed-gcc" value="${j.gc_contact||''}"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="ed-gcp" value="${j.gc_phone||''}"></div></div>
+      <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="ed-sup" value="${j.super_name||''}"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="ed-supp" value="${j.super_phone||''}"></div></div>
+    </div>
+    <div>
+      <div class="sec-hdr">Dates</div>
+      <div class="two"><div class="fg"><label class="fl">Start</label><input class="fi" type="date" id="ed-start" value="${j.date_start||''}"></div><div class="fg"><label class="fl">Due</label><input class="fi" type="date" id="ed-due" value="${j.due_date||''}"></div></div>
+      <div class="two"><div class="fg"><label class="fl">Contract Signed</label><input class="fi" type="date" id="ed-dc" value="${j.date_contract||''}"></div><div class="fg"><label class="fl">Permit</label><input class="fi" type="date" id="ed-dp" value="${j.date_permit||''}"></div></div>
+      <div class="two"><div class="fg"><label class="fl">Rough-in</label><input class="fi" type="date" id="ed-dr" value="${j.date_roughin||''}"></div><div class="fg"><label class="fl">Trim-out</label><input class="fi" type="date" id="ed-dt" value="${j.date_trimout||''}"></div></div>
+      <div class="two"><div class="fg"><label class="fl">Inspection</label><input class="fi" type="date" id="ed-di" value="${j.date_inspection||''}"></div><div class="fg"><label class="fl">Next Visit</label><input class="fi" type="date" id="ed-dnv" value="${j.date_next_visit||''}"></div></div>
+      <div class="two"><div class="fg"><label class="fl">Closeout</label><input class="fi" type="date" id="ed-dco" value="${j.date_closeout||''}"></div><div class="fg"><label class="fl">Completion</label><input class="fi" type="date" id="ed-comp" value="${j.completion_date||''}"></div></div>
+      <div class="fg"><label class="fl">% Complete</label><input class="fi" type="number" id="ed-pct" value="${j.pct_complete||0}" min="0" max="100"></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:4px">
+    <button class="btn btn-p" onclick="saveInfoTab()">Save Changes</button>
+    <button class="btn btn-a" onclick="archiveJob()">Archive</button>
+  </div>`
+  document.getElementById('ed-radius').value = j.gps_radius_ft || 250
+}
+async function saveInfoTab() {
+  const u = { name:v('ed-name'), address:v('ed-addr'), gps_lat:fN('ed-lat'), gps_lng:fN('ed-lng'), gps_radius_ft:parseInt(v('ed-radius'))||250, gc_company:v('ed-gc'), gc_contact:v('ed-gcc'), gc_phone:v('ed-gcp'), super_name:v('ed-sup'), super_phone:v('ed-supp'), date_start:v('ed-start')||null, due_date:v('ed-due')||null, date_contract:v('ed-dc')||null, date_permit:v('ed-dp')||null, date_roughin:v('ed-dr')||null, date_trimout:v('ed-dt')||null, date_inspection:v('ed-di')||null, date_next_visit:v('ed-dnv')||null, date_closeout:v('ed-dco')||null, completion_date:v('ed-comp')||null, pct_complete:parseInt(v('ed-pct'))||0 }
+  try { await api('/jobs/'+currentJobId,'PUT',u); currentJob={...currentJob,...u}; document.getElementById('jd-title').textContent=u.name; toast('Saved') }
+  catch(e){ toast(e.message,'error') }
+}
+async function archiveJob() {
+  if (!confirm('Archive this job?')) return
+  await api('/jobs/'+currentJobId,'PUT',{archived:true}); toast('Archived'); nav('jobs',document.getElementById('nav-jobs'))
+}
+function v(id){ return document.getElementById(id)?.value||'' }
+function fN(id){ const v=parseFloat(document.getElementById(id)?.value); return isNaN(v)?null:v }
+
+// ── SCOPE TAB ────────────────────────────────────
+function renderScopeTab() {
+  const j = currentJob || {}
+  document.getElementById('jt-scope').innerHTML = `
+  <div class="fg"><label class="fl">Scope of Work</label><textarea class="ft" id="sc-scope" style="min-height:110px">${j.scope||''}</textarea></div>
+  <div class="fg"><label class="fl">Install Notes</label><textarea class="ft" id="sc-inotes">${j.install_notes||''}</textarea></div>
+  <div class="fg"><label class="fl">Job Walk Notes</label><textarea class="ft" id="sc-jwn">${j.job_walk_notes||''}</textarea></div>
+  <div class="two"><div class="fg"><label class="fl">Job Walk By</label><input class="fi" id="sc-jwb" value="${j.job_walk_by||''}"></div><div class="fg"><label class="fl">Job Walk Date</label><input class="fi" type="date" id="sc-jwd" value="${j.job_walk_date||''}"></div></div>
+  <button class="btn btn-p" onclick="saveScopeTab()">Save</button>`
+}
+async function saveScopeTab() {
+  try { await api('/jobs/'+currentJobId,'PUT',{ scope:v('sc-scope'), install_notes:v('sc-inotes'), job_walk_notes:v('sc-jwn'), job_walk_by:v('sc-jwb'), job_walk_date:v('sc-jwd')||null }); toast('Saved') }
+  catch(e){ toast(e.message,'error') }
+}
+
+// ── WORKERS TAB ──────────────────────────────────
+async function renderWorkersTab() {
+  const el = document.getElementById('jt-workers'); el.innerHTML = ld()
+  try {
+    const [{ data: workers }, ciR, attR] = await Promise.all([
+      sb.from('job_workers').select('*,profiles:worker_id(id,full_name,email,is_lead,avatar_url)').eq('job_id',currentJobId).eq('is_active',true),
+      sb.from('checkins').select('*,profiles:worker_id(full_name)').eq('job_id',currentJobId).order('checkin_at',{ascending:false}),
+      api('/jobs/'+currentJobId+'/attendance')
+    ])
+    const totalHrs = (ciR.data||[]).reduce((s,c)=>s+(c.hours_logged||0),0) + (attR||[]).reduce((s,a)=>s+(a.hours||0),0)
+    el.innerHTML = `
+    <div class="sec-hdr">Authorized Workers<button class="btn btn-sm" style="float:right" onclick="openAddWorkerModal()">+ Add</button></div>
+    ${(workers||[]).map(w=>`<div class="w-row">${w.profiles?.avatar_url?`<img src="${w.profiles.avatar_url}" style="width:28px;height:28px;border-radius:50%;object-fit:cover">`:`<div class="av" style="width:28px;height:28px;font-size:10px;${avStyle(w.profiles?.full_name)}">${initials(w.profiles?.full_name)}</div>`}<div class="wr-info"><div class="wr-n">${w.profiles?.full_name||'?'}${w.profiles?.is_lead?' <span style="font-size:9px;color:var(--amber)">LEAD</span>':''}</div><div class="wr-m">${w.profiles?.email||''}</div></div><button class="btn btn-sm btn-ghost" style="color:var(--red)" onclick="removeWorker('${w.id}')">Remove</button></div>`).join('')||'<div style="font-size:12px;color:var(--text3)">No workers assigned</div>'}
+    <div class="sec-hdr" style="margin-top:14px">GPS Check-in Log</div>
+    ${(ciR.data||[]).length?`<table class="tbl"><thead><tr><th>Worker</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Dist</th></tr></thead><tbody>${ciR.data.map(c=>`<tr><td>${c.profiles?.full_name||'?'}</td><td style="font-size:10px;font-family:'DM Mono',monospace">${fmtDate(c.checkin_at)}</td><td style="font-size:10px;font-family:'DM Mono',monospace">${fmtTime(c.checkin_at)}</td><td style="font-size:10px;font-family:'DM Mono',monospace">${c.checkout_at?fmtTime(c.checkout_at):'<span class="gps-live" style="font-size:9px"><span class="pulse"></span>Active</span>'}</td><td>${c.hours_logged?fmtHours(c.hours_logged):'—'}</td><td>${c.checkin_dist_ft!=null?`<span class="badge b-green">${c.checkin_dist_ft}ft</span>`:'—'}</td></tr>`).join('')}</tbody></table>`:'<div style="font-size:12px;color:var(--text3)">No GPS check-ins yet</div>'}
+    <div style="margin-top:11px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 13px;display:flex;gap:22px">
+      <div><div style="font-size:10px;color:var(--text3)">TOTAL HOURS</div><div style="font-size:18px;font-weight:300;margin-top:2px">${fmtHours(totalHrs)}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">WORKERS</div><div style="font-size:18px;font-weight:300;margin-top:2px">${(workers||[]).length}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">EST LABOR COST</div><div style="font-size:18px;font-weight:300;margin-top:2px;color:var(--accent)">${fmtCurrency(totalHrs*(currentJob?.labor_rate||0))}</div></div>
+    </div>`
+  } catch(e){ el.innerHTML=es('⚠','Error',e.message) }
+}
+async function removeWorker(id) {
+  await sb.from('job_workers').update({is_active:false}).eq('id',id); renderWorkersTab(); toast('Removed')
+}
+async function openAddWorkerModal() {
+  const {data:all}=await sb.from('profiles').select('id,full_name,email').eq('is_active',true)
+  const {data:ex}=await sb.from('job_workers').select('worker_id').eq('job_id',currentJobId).eq('is_active',true)
+  const exIds=(ex||[]).map(e=>e.worker_id)
+  const avail=(all||[]).filter(w=>!exIds.includes(w.id))
+  openModal('Add Worker', `<div class="fg"><label class="fl">Worker</label><select class="fs" id="aw-sel"><option value="">— Select —</option>${avail.map(w=>`<option value="${w.id}">${w.full_name} (${w.email||''})</option>`).join('')}</select></div>`,
+    async()=>{ const wid=v('aw-sel'); if(!wid)return; await sb.from('job_workers').upsert({id:crypto.randomUUID(),job_id:currentJobId,worker_id:wid,is_active:true,added_by:MY?.full_name,added_at:new Date().toISOString()},{onConflict:'job_id,worker_id'}); closeModal(); toast('Added'); renderWorkersTab() })
+}
+
+// ── PARTS TAB ─────────────────────────────────────
+async function renderPartsTab() {
+  const el = document.getElementById('jt-parts'); el.innerHTML = ld()
+  try {
+    const [parts, mf] = await Promise.all([api('/jobs/'+currentJobId+'/parts'), api('/jobs/'+currentJobId+'/manifest')])
+    const st=parts.filter(p=>p.status==='staged'),out=parts.filter(p=>p.status==='signed_out'),ins=parts.filter(p=>['installed','partial_install'].includes(p.status)),ov=parts.filter(p=>p.over)
+    el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px">
+      <div class="stat"><div class="stat-lbl">Staged</div><div class="stat-val c-amber">${st.length}</div></div>
+      <div class="stat"><div class="stat-lbl">Signed Out</div><div class="stat-val c-blue">${out.length}</div></div>
+      <div class="stat"><div class="stat-lbl">Installed</div><div class="stat-val c-green">${ins.length}</div></div>
+      <div class="stat"><div class="stat-lbl">Overages</div><div class="stat-val c-red">${ov.length}</div></div>
+    </div>
+    ${ov.length?`<div style="background:var(--rbg);border:1px solid var(--rb);border-radius:var(--rs);padding:9px 11px;margin-bottom:10px;font-size:12px;color:var(--red)">⚠ ${ov.length} overage(s) detected</div>`:''}
+    <div class="sec-hdr">Parts on Job<button class="btn btn-sm btn-p" style="float:right" onclick="openAddPartModal()">+ Add</button></div>
+    <table class="tbl"><thead><tr><th>Part</th><th>Barcode</th><th>Qty</th><th>Status</th><th>By</th><th>PO</th></tr></thead><tbody>
+    ${parts.map(p=>`<tr><td style="font-weight:500">${p.part_name}</td><td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)">${p.part_id}</td><td>${p.assigned_qty}</td>
+    <td><select style="font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text)" onchange="updatePartStatus('${p.id}',this.value)"><option value="staged" ${p.status==='staged'?'selected':''}>Staged</option><option value="signed_out" ${p.status==='signed_out'?'selected':''}>Signed Out</option><option value="partial_install" ${p.status==='partial_install'?'selected':''}>Partial</option><option value="installed" ${p.status==='installed'?'selected':''}>Installed</option></select></td>
+    <td style="font-size:10px;color:var(--text3)">${p.staged_by||'—'}</td><td><button class="btn btn-sm btn-ghost" onclick="genPO()">PO</button></td></tr>`).join('')}</tbody></table>
+    <div class="sec-hdr" style="margin-top:14px">Manifest<button class="btn btn-sm" style="float:right" onclick="openAddMfModal()">+ Add</button></div>
+    ${(mf||[]).map(m=>{const ac=parts.find(p=>p.part_id===m.part_id);const s=ac?.status||'not_staged';const dc=s==='installed'?'mfd-i':s==='signed_out'?'mfd-o':ac?'mfd-s':'mfd-m';return `<div class="mf-item"><div class="mf-dot ${dc}">${s==='installed'?'✓':ac?'●':'○'}</div><div style="flex:1"><div style="font-size:12px;font-weight:500">${m.part_name}</div><div style="font-size:10px;color:var(--text3)">Exp: ${m.expected_qty}</div></div>${sBadge(s)}</div>`}).join('')||'<div style="font-size:12px;color:var(--text3)">No manifest items</div>'}
+    <button class="btn btn-sm" style="margin-top:8px" onclick="genPO()">Generate PO</button>`
+  } catch(e){ el.innerHTML=es('⚠','Error',e.message) }
+}
+async function updatePartStatus(id, status) {
+  try { await api('/jobs/'+currentJobId+'/parts/'+id,'PUT',{status}); toast('Updated') }
+  catch(e){ toast(e.message,'error') }
+}
+function openAddPartModal() {
+  openModal('Add Part', `<div class="fg"><label class="fl">Barcode *</label><input class="fi" id="apt-bc"></div><div class="fg"><label class="fl">Name</label><input class="fi" id="apt-name"></div><div class="two"><div class="fg"><label class="fl">Qty</label><input class="fi" type="number" id="apt-qty" value="1"></div><div class="fg"><label class="fl">Action</label><select class="fs" id="apt-act"><option value="stage">Stage</option><option value="out">Sign Out</option></select></div></div>`,
+    async()=>{ const bc=v('apt-bc').trim(); if(!bc)return; const cat=allCatalog.find(c=>c.barcode===bc); try{await api('/jobs/'+currentJobId+'/parts','POST',{part_id:bc,part_name:v('apt-name')||cat?.name||bc,qty:parseInt(v('apt-qty'))||1,action:v('apt-act')}); closeModal(); toast('Added'); renderPartsTab()}catch(e){toast(e.message,'error')} })
+}
+function openAddMfModal() {
+  openModal('Add to Manifest', `<div class="fg"><label class="fl">Barcode *</label><input class="fi" id="mf-bc"></div><div class="fg"><label class="fl">Name</label><input class="fi" id="mf-nm"></div><div class="fg"><label class="fl">Expected Qty</label><input class="fi" type="number" id="mf-qty" value="1"></div>`,
+    async()=>{ const bc=v('mf-bc').trim(); if(!bc)return; const cat=allCatalog.find(c=>c.barcode===bc); try{await api('/jobs/'+currentJobId+'/manifest','POST',{part_id:bc,part_name:v('mf-nm')||cat?.name||bc,expected_qty:parseInt(v('mf-qty'))||1}); closeModal(); toast('Added'); renderPartsTab()}catch(e){toast(e.message,'error')} })
+}
+async function genPO() {
+  try{
+    const po=await api('/jobs/'+currentJobId+'/po')
+    openModal('PO — '+po.po_number,`<div style="font-size:11px;color:var(--text3);margin-bottom:10px">${po.job_name} · ${po.generated_by} · ${po.generated_at}</div><table class="tbl"><thead><tr><th>Part</th><th>Qty</th><th>Unit</th><th>Total</th></tr></thead><tbody>${po.line_items.map(i=>`<tr><td>${i.name}</td><td>${i.qty}</td><td>${fmtCurrency(i.unit_cost,2)}</td><td>${fmtCurrency(i.line_total,2)}</td></tr>`).join('')}</tbody></table><div style="text-align:right;padding:8px;font-weight:600">${fmtCurrency(po.total,2)}</div>`,
+    ()=>{dlCSV(toCSV([['Part','Qty','Unit Cost','Total'],...po.line_items.map(i=>[i.name,i.qty,i.unit_cost,i.line_total])]),po.po_number+'.csv')},'Download CSV')
+  }catch(e){toast(e.message,'error')}
+}
+
+// ── PHOTOS TAB ────────────────────────────────────
+async function renderPhotosTab() {
+  const el=document.getElementById('jt-photos'); el.innerHTML=ld()
+  try{
+    const [photos,plans]=await Promise.all([api('/jobs/'+currentJobId+'/photos'),api('/jobs/'+currentJobId+'/plans')])
+    el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-weight:500">Photos</span><label class="btn btn-p btn-sm" style="cursor:pointer">📷 Upload<input type="file" style="display:none" multiple accept="image/*" onchange="uploadPhotos(this.files)"></label></div>
+    <div class="photo-grid">${(photos||[]).map(p=>`<div class="photo-card" onclick="window.open('${p.url}','_blank')"><img class="photo-thumb" src="${p.url}" onerror="this.style.display='none';this.nextSibling.style.display='flex'" loading="lazy"><div class="photo-ph" style="display:none">🖼</div><div class="photo-info">${p.caption||p.type||'Photo'} · ${p.uploaded_by||''}</div></div>`).join('')}</div>
+    <div class="sec-hdr" style="margin-top:14px">Plans<label class="btn btn-sm" style="float:right;cursor:pointer">Upload<input type="file" style="display:none" multiple accept=".pdf,.png,.jpg" onchange="uploadPlans(this.files)"></label></div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px">${(plans||[]).map(p=>`<div class="file-chip"><a href="${p.url}" target="_blank" style="color:var(--text2);text-decoration:none">📄 ${p.name||p.file_name}</a></div>`).join('')}</div>`
+  }catch(e){el.innerHTML=es('⚠','Error',e.message)}
+}
+// ── CLOUDINARY UPLOAD HELPER ──────────────────────
+// Gets a signed upload from our server (keeps API keys server-side),
+// then uploads directly from the browser to Cloudinary — zero storage on Render.
+async function uploadToCloudinary(file, folder) {
+  // 1. Get signature from our server
+  const sig = await api('/upload-sign', 'POST', { folder })
+  // 2. Upload directly to Cloudinary
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('api_key', sig.api_key)
+  fd.append('timestamp', sig.timestamp)
+  fd.append('signature', sig.signature)
+  fd.append('folder', sig.folder)
+  if (sig.upload_preset) fd.append('upload_preset', sig.upload_preset)
+  const r = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloud_name}/auto/upload`, { method: 'POST', body: fd })
+  if (!r.ok) throw new Error('Cloudinary upload failed')
+  const d = await r.json()
+  return { url: d.secure_url, public_id: d.public_id, thumb_url: d.secure_url.replace('/upload/', '/upload/c_thumb,h_200,w_200/') }
+}
+
+async function uploadPhotos(files) {
+  for(const f of files){
+    try {
+      const { url, public_id } = await uploadToCloudinary(f, `fieldaxishq/jobs/${currentJobId}/photos`)
+      await api('/jobs/'+currentJobId+'/photos','POST',{url, public_id, type:'photo'})
+    } catch(e) { toast('Upload failed: ' + e.message, 'error') }
+  }
+  toast('Uploaded'); renderPhotosTab()
+}
+async function uploadPlans(files) {
+  for(const f of files){
+    try {
+      const { url, public_id, thumb_url } = await uploadToCloudinary(f, `fieldaxishq/jobs/${currentJobId}/plans`)
+      await api('/jobs/'+currentJobId+'/plans','POST',{url, public_id, thumb_url, name: f.name, file_name: f.name, plan_type:'plans'})
+    } catch(e) { toast('Upload failed: ' + e.message, 'error') }
+  }
+  toast('Uploaded'); renderPhotosTab()
+}
+
+// ── CHECKLIST TAB ─────────────────────────────────
+async function renderChecklistTab() {
+  const el=document.getElementById('jt-checklist'); el.innerHTML=ld()
+  try{
+    const {data:items}=await sb.from('job_checklist_items').select('*,profiles:checked_by(full_name)').eq('job_id',currentJobId).order('sort_order')
+    const done=(items||[]).filter(i=>i.is_checked).length,total=(items||[]).length
+    el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px"><span><span style="font-weight:500">Checklist</span> <span style="font-size:11px;color:var(--text3)">${done}/${total}</span></span><button class="btn btn-sm" onclick="openAddCheckModal()">+ Add</button></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div class="pbar" style="flex:1;height:6px"><div class="pb ${done===total&&total>0?'g':''}" style="width:${total?Math.round(done/total*100):0}%"></div></div><span style="font-size:10px;color:var(--text3)">${total?Math.round(done/total*100):0}%</span></div>
+    ${(items||[]).map(i=>`<div class="chk-item"><div class="chk-box ${i.is_checked?'ck':''}" onclick="toggleCheck('${i.id}',${!i.is_checked})"></div><div style="flex:1"><div class="chk-lbl ${i.is_checked?'done':''}">${i.item_text}</div>${i.is_checked&&i.profiles?`<div style="font-size:10px;color:var(--text3)">${i.profiles.full_name} · ${fmtDate(i.checked_at)}</div>`:''}</div><button class="btn btn-sm btn-ghost" style="color:var(--red)" onclick="delCheck('${i.id}')">×</button></div>`).join('')||es('✅','No items','Add checklist items to track progress')}`
+  }catch(e){el.innerHTML=es('⚠','Error',e.message)}
+}
+async function toggleCheck(id,chk){
+  const {data:{session}}=await sb.auth.getSession()
+  await sb.from('job_checklist_items').update({is_checked:chk,checked_by:chk?session?.user?.id:null,checked_at:chk?new Date().toISOString():null}).eq('id',id); renderChecklistTab()
+}
+async function delCheck(id){ await sb.from('job_checklist_items').delete().eq('id',id); renderChecklistTab() }
+function openAddCheckModal(){
+  openModal('Add Item',`<div class="fg"><label class="fl">Item *</label><input class="fi" id="cli-txt"></div><div class="fg"><label class="fl">Section</label><input class="fi" id="cli-sec" placeholder="Pre-work, Install, Closeout…"></div>`,
+    async()=>{const txt=v('cli-txt').trim();if(!txt)return;const{data:last}=await sb.from('job_checklist_items').select('sort_order').eq('job_id',currentJobId).order('sort_order',{ascending:false}).limit(1).single();await sb.from('job_checklist_items').insert({job_id:currentJobId,item_text:txt,section:v('cli-sec')||null,sort_order:(last?.sort_order||0)+1});closeModal();renderChecklistTab()})
+}
+
+// ── PM REVIEW TAB ─────────────────────────────────
+async function renderPmReviewTab(){
+  const el=document.getElementById('jt-pmreview'); el.innerHTML=ld()
+  try{
+    const insps=await api('/jobs/'+currentJobId+'/inspections')
+    el.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:13px"><span style="font-weight:500">PM Inspections</span><button class="btn btn-p btn-sm" onclick="openAddInspModal()">+ Log Visit</button></div>
+    ${(insps||[]).map(ins=>`<div class="insp-card"><div class="insp-hd"><div><div style="font-size:12px;font-weight:500">${ins.visit_type==='final'?'Final Sign-off':'Inspection'} — ${fmtDate(ins.visited_at)}</div><div style="font-size:10px;color:var(--text3)">${ins.pm_name||''}</div></div><span class="badge ${ins.approved_at?'b-green':ins.rejected_at?'b-red':'b-gray'}">${ins.approved_at?'Approved':ins.rejected_at?'Rejected':'Pending'}</span></div>
+    <div class="insp-body"><div class="two"><div><div style="font-size:10px;color:var(--text3)">OBSERVED</div><div style="font-size:12px;color:var(--text2)">${ins.work_observed||'—'}</div></div><div><div style="font-size:10px;color:var(--text3)">QUALITY</div><div style="font-size:12px">${ins.quality_result||'—'}</div></div></div>
+    ${ins.issues_noted?`<div style="margin-top:8px;font-size:12px;color:var(--amber)">${ins.issues_noted}</div>`:''}
+    ${!ins.approved_at&&!ins.rejected_at?`<div style="display:flex;gap:7px;margin-top:10px"><button class="btn btn-g btn-sm" onclick="approveInsp('${ins.id}')">✓ Approve</button><button class="btn btn-r btn-sm" onclick="rejectInsp('${ins.id}')">Reject</button></div>`:''}</div></div>`).join('')||es('🔍','No inspections logged','')}` 
+  }catch(e){el.innerHTML=es('⚠','Error',e.message)}
+}
+function openAddInspModal(){
+  openModal('Log PM Visit',`<div class="fg"><label class="fl">Type</label><select class="fs" id="ins-type"><option value="midpoint">Midpoint</option><option value="final">Final</option></select></div><div class="fg"><label class="fl">Work Observed</label><textarea class="ft" id="ins-obs"></textarea></div><div class="fg"><label class="fl">Quality</label><select class="fs" id="ins-q"><option value="">—</option><option value="satisfactory">Satisfactory</option><option value="needs_attention">Needs Attention</option><option value="unsatisfactory">Unsatisfactory</option><option value="approved">Approved — Complete</option></select></div><div class="fg"><label class="fl">Issues</label><textarea class="ft" id="ins-iss"></textarea></div>`,
+    async()=>{try{await api('/jobs/'+currentJobId+'/inspections','POST',{visit_type:v('ins-type'),work_observed:v('ins-obs'),quality_result:v('ins-q')||null,issues_noted:v('ins-iss')});closeModal();toast('Logged');renderPmReviewTab()}catch(e){toast(e.message,'error')}})
+}
+async function approveInsp(id){await api('/jobs/'+currentJobId+'/inspections/'+id+'/approve','POST',{});toast('Approved — job complete');document.getElementById('jd-phase-sel').value='complete';document.getElementById('jd-phase-badge').innerHTML=sBadge('complete');renderPmReviewTab()}
+async function rejectInsp(id){const r=prompt('Rejection reason:');if(r===null)return;await api('/jobs/'+currentJobId+'/inspections/'+id+'/reject','POST',{reason:r});toast('Rejected','warn');renderPmReviewTab()}
+
+// ── CHANGE ORDERS TAB ──────────────────────────────
+async function renderChangesTab(){
+  const el=document.getElementById('jt-changes'); el.innerHTML=ld()
+  try{
+    const cos=await api('/jobs/'+currentJobId+'/change-orders')
+    el.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:13px"><span style="font-weight:500">Change Orders</span><button class="btn btn-p btn-sm" onclick="openAddCOModal()">+ New CO</button></div>
+    ${(cos||[]).map(co=>`<div class="co-card"><div style="display:flex;justify-content:space-between;margin-bottom:7px"><div><div style="font-weight:500">${co.co_number} — ${co.title}</div><div style="font-size:10px;color:var(--text3);margin-top:1px">${fmtDate(co.created_at)} · ${co.created_by}</div></div><span class="badge ${co.status==='signed'?'b-green':'b-amber'}">${(co.status||'').replace('_',' ')}</span></div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:7px">${co.description||''}</div>
+    <div style="display:flex;gap:16px"><div><div style="font-size:10px;color:var(--text3)">VALUE</div><div style="color:var(--amber)">${co.value>=0?'+':''}${fmtCurrency(co.value)}</div></div><div><div style="font-size:10px;color:var(--text3)">PM SIGNED</div><div style="font-size:11px;color:${co.pm_signed_at?'var(--green)':'var(--amber)'}">${co.pm_signed_at?'✓ '+fmtDate(co.pm_signed_at):'Pending'}</div></div></div>
+    ${!co.pm_signed_at?`<button class="btn btn-g btn-sm" style="margin-top:8px" onclick="pmSignCO('${co.id}')">✓ PM Sign</button>`:''}</div>`).join('')||es('📝','No change orders','')}` 
+  }catch(e){el.innerHTML=es('⚠','Error',e.message)}
+}
+function openAddCOModal(){
+  openModal('New Change Order',`<div class="fg"><label class="fl">Title *</label><input class="fi" id="co-ttl"></div><div class="fg"><label class="fl">Description</label><textarea class="ft" id="co-desc"></textarea></div><div class="two"><div class="fg"><label class="fl">Value ($)</label><input class="fi" type="number" id="co-val" step="0.01"></div><div class="fg"><label class="fl">Days Added</label><input class="fi" type="number" id="co-days" value="0"></div></div>`,
+    async()=>{const t=v('co-ttl').trim();if(!t)return;try{await api('/jobs/'+currentJobId+'/change-orders','POST',{title:t,description:v('co-desc'),value:parseFloat(v('co-val'))||0,days_added:parseInt(v('co-days'))||0,status:'pending_sub'});closeModal();toast('Created');renderChangesTab()}catch(e){toast(e.message,'error')}})
+}
+async function pmSignCO(id){await fetch('/api/change-orders/'+id+'/sign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({side:'pm'})});toast('Signed');renderChangesTab()}
+
+// ── FINANCIALS TAB ────────────────────────────────
+async function renderFinTab(){
+  const el=document.getElementById('jt-fin'); el.innerHTML=ld()
+  try{
+    const fin=await api('/jobs/'+currentJobId+'/financials')
+    const pct=fin.profit_margin
+    el.innerHTML=`<div style="display:flex;justify-content:flex-end;margin-bottom:11px"><button class="btn btn-sm" onclick="openEditFinModal()">Edit Budget</button></div>
+    <div class="two">
+      <div><div class="card"><div class="card-hdr">Revenue</div><div class="fin-row"><span class="fin-lbl">Contract</span><span class="fin-val">${fmtCurrency(fin.contract_value)}</span></div></div>
+      <div class="card"><div class="card-hdr">Costs</div>
+        <div class="fin-row"><span class="fin-lbl">Material</span><span class="fin-val">${fmtCurrency(fin.material_cost)}</span></div>
+        <div class="fin-row"><span class="fin-lbl">Labor (${fmtHours(fin.total_hours)} @ ${fmtCurrency(fin.labor_rate)}/hr)</span><span class="fin-val">${fmtCurrency(fin.labor_cost)}</span></div>
+        <div class="fin-row"><span class="fin-lbl" style="font-weight:600">Total</span><span class="fin-val" style="font-weight:600">${fmtCurrency(fin.total_cost)}</span></div>
+      </div></div>
+      <div><div class="card"><div class="card-hdr">Profit</div>
+        <div class="fin-row"><span class="fin-lbl">Gross Profit</span><span class="fin-val" style="color:${fin.gross_profit>=0?'var(--green)':'var(--red)'};font-weight:600">${fmtCurrency(fin.gross_profit)}</span></div>
+        <div class="fin-row"><span class="fin-lbl">Margin</span><span class="fin-val" style="color:${pct>=20?'var(--green)':pct>=10?'var(--amber)':'var(--red)'}">${pct!=null?fmtPct(pct):'—'}</span></div>
+        ${fin.labor_budget?`<div class="fin-row"><span class="fin-lbl">Labor Budget</span><span class="fin-val">${fmtCurrency(fin.labor_budget)}</span></div>`:''}</div>
+      <div style="background:${fin.gross_profit>=0?'var(--gbg)':'var(--rbg)'};border:1px solid ${fin.gross_profit>=0?'var(--gb)':'var(--rb)'};border-radius:var(--rs);padding:10px 12px;margin-top:0">
+        <div style="font-size:18px;font-weight:300;color:${fin.gross_profit>=0?'var(--green)':'var(--red)'}">${pct!=null?fmtPct(pct)+' margin':'Set contract value'}</div>
+        <div style="font-size:11px;margin-top:2px;color:var(--text3)">${fmtCurrency(fin.gross_profit)} profit · ${fmtHours(fin.total_hours)} hrs</div>
+      </div></div>
+    </div>`
+  }catch(e){el.innerHTML=es('💰','No financial data',e.message)}
+}
+function openEditFinModal(){
+  const j=currentJob||{}
+  openModal('Edit Budget',`<div class="two"><div class="fg"><label class="fl">Contract Value</label><input class="fi" type="number" id="fn-cv" value="${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="fn-lr" value="${j.labor_rate||''}"></div></div><div class="two"><div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="fn-lb" value="${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="fn-mb" value="${j.material_budget||''}"></div></div>`,
+    async()=>{const u={contract_value:parseFloat(v('fn-cv'))||0,labor_rate:parseFloat(v('fn-lr'))||0,labor_budget:parseFloat(v('fn-lb'))||0,material_budget:parseFloat(v('fn-mb'))||0};try{await api('/jobs/'+currentJobId+'/financials','PUT',u);currentJob={...currentJob,...u};closeModal();toast('Saved');renderFinTab()}catch(e){toast(e.message,'error')}})
+}
+
+// ── LOGS TAB ──────────────────────────────────────
+async function renderLogsTab(){
+  const el=document.getElementById('jt-logs'); el.innerHTML=ld()
+  try{
+    const logs=await api('/jobs/'+currentJobId+'/logs')
+    el.innerHTML=`<div style="margin-bottom:11px"><div class="two" style="margin-bottom:7px"><select class="fs" id="log-type"><option value="note">Note</option><option value="issue">Issue</option><option value="progress">Progress</option><option value="delivery">Delivery</option></select><button class="btn btn-p" onclick="addLog()">Add</button></div><textarea class="ft" id="log-content" placeholder="Log entry…"></textarea></div>
+    ${(logs||[]).map(l=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;font-weight:500;color:${l.type==='issue'?'var(--red)':l.type==='progress'?'var(--green)':'var(--text3)'}">${(l.type||'NOTE').toUpperCase()}</span><span style="font-size:10px;color:var(--text3)">${l.author} · ${fmtDateTime(l.created_at)}</span></div><div style="font-size:12px;color:var(--text2);white-space:pre-wrap">${l.content}</div></div>`).join('')||'<div style="font-size:12px;color:var(--text3)">No entries yet</div>'}`
+  }catch(e){el.innerHTML=es('⚠','Error',e.message)}
+}
+async function addLog(){const c=v('log-content').trim();if(!c)return;try{await api('/jobs/'+currentJobId+'/logs','POST',{content:c,type:v('log-type')});document.getElementById('log-content').value='';toast('Added');renderLogsTab()}catch(e){toast(e.message,'error')}}
+
+// ── GC ALERTS TAB ─────────────────────────────────
+async function renderGcTab(){
+  const el=document.getElementById('jt-gc'); el.innerHTML=ld()
+  try{
+    const alerts=await api('/jobs/'+currentJobId+'/alerts')
+    el.innerHTML=`<div style="margin-bottom:11px"><div class="fg"><label class="fl">Title *</label><input class="fi" id="gc-t"></div><div class="two"><div class="fg"><label class="fl">Description</label><input class="fi" id="gc-d"></div><div class="fg"><label class="fl">Priority</label><select class="fs" id="gc-p"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></div></div><button class="btn btn-p btn-sm" onclick="addAlert()">Add Alert</button></div>
+    ${(alerts||[]).map(a=>`<div class="a-row"><div class="a-dot" style="background:${a.priority==='urgent'?'var(--red)':a.priority==='high'?'var(--amber)':'var(--accent)'}"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">${a.title}</div><div style="font-size:11px;color:var(--text3)">${a.description||''}</div><div style="font-size:10px;color:var(--text3)">${a.created_by} · ${fmtDate(a.created_at)}</div></div><span class="badge ${a.status==='open'?'b-amber':'b-green'}">${a.status}</span>${a.status==='open'?`<button class="btn btn-sm btn-g" onclick="resolveAlert('${a.id}')">Resolve</button>`:''}</div>`).join('')||'<div style="font-size:12px;color:var(--text3)">No alerts</div>'}`
+  }catch(e){el.innerHTML=es('⚠','Error',e.message)}
+}
+async function addAlert(){const t=v('gc-t').trim();if(!t)return;try{await api('/jobs/'+currentJobId+'/alerts','POST',{title:t,description:v('gc-d'),priority:v('gc-p')});document.getElementById('gc-t').value='';toast('Added');renderGcTab()}catch(e){toast(e.message,'error')}}
+async function resolveAlert(id){await api('/jobs/'+currentJobId+'/alerts/'+id,'PUT',{status:'resolved'});toast('Resolved');renderGcTab()}
+
+// ── REQUESTS TAB ──────────────────────────────────
+async function renderRequestsTab(){
+  const el=document.getElementById('jt-requests'); el.innerHTML=ld()
+  try{
+    const reqs=await api('/jobs/'+currentJobId+'/requests')
+    el.innerHTML=`<div style="margin-bottom:10px"><button class="btn btn-p btn-sm" onclick="openAddReqModal()">+ New Request</button></div>
+    ${(reqs||[]).map(r=>`<div class="a-row"><div class="a-dot" style="background:${r.status==='pending'?'var(--amber)':r.status==='approved'?'var(--green)':'var(--red)'}"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">${r.part_name} · qty ${r.qty}</div><div style="font-size:11px;color:var(--text3)">${r.reason||''} · ${r.created_by}</div></div><span class="badge ${r.status==='approved'?'b-green':r.status==='pending'?'b-amber':'b-red'}">${r.status}</span>${r.status==='pending'?`<button class="btn btn-sm btn-g" onclick="approveReq('${r.id}')">Approve</button>`:''}</div>`).join('')||'<div style="font-size:12px;color:var(--text3)">No requests</div>'}`
+  }catch(e){el.innerHTML=es('⚠','Error',e.message)}
+}
+function openAddReqModal(){
+  openModal('Part Request',`<div class="fg"><label class="fl">Barcode</label><input class="fi" id="rq-bc"></div><div class="fg"><label class="fl">Name</label><input class="fi" id="rq-nm"></div><div class="fg"><label class="fl">Qty</label><input class="fi" type="number" id="rq-qty" value="1"></div><div class="fg"><label class="fl">Reason</label><textarea class="ft" id="rq-rsn"></textarea></div>`,
+    async()=>{try{await api('/jobs/'+currentJobId+'/requests','POST',{part_id:v('rq-bc'),part_name:v('rq-nm'),qty:parseInt(v('rq-qty'))||1,reason:v('rq-rsn')});closeModal();toast('Submitted');renderRequestsTab()}catch(e){toast(e.message,'error')}})
+}
+async function approveReq(id){await api('/jobs/'+currentJobId+'/requests/'+id,'PUT',{status:'approved'});toast('Approved');renderRequestsTab()}
+
+// ── SCHEDULE PAGE ─────────────────────────────────
+async function loadSchedPage(){
+  try{
+    const events=await api('/schedule')
+    const today=new Date();today.setHours(0,0,0,0)
+    document.getElementById('sched-list').innerHTML=events.length
+      ?events.slice(0,20).map(e=>{const d=new Date(e.date);const dA=e.days_away;const cls=dA<0?'surg':dA<=7?'ssoon':''
+        return `<div class="sched-item ${cls}" onclick="openJob('${e.job_id}')"><div class="sched-date"><div class="sd">${d.getDate()}</div><div class="sm">${d.toLocaleDateString('en-US',{month:'short'})}</div></div><div style="flex:1"><div style="font-size:12px;font-weight:500">${e.job_name}</div><div style="font-size:10px;color:var(--text3)">${e.date_type}</div></div><span class="badge ${dA<0?'b-red':dA<=7?'b-amber':'b-gray'}">${dA<0?Math.abs(dA)+'d late':dA===0?'Today':dA+'d'}</span></div>`}).join('')
+      :es('📅','No upcoming dates','Add milestone dates to jobs to see them here')
+
+    const jobs=allJobs.filter(j=>!j.archived&&(j.date_start||j.due_date))
+    const now=new Date(),m=now.getMonth(),y=now.getFullYear(),dim=new Date(y,m+1,0).getDate(),td=now.getDate()
+    const clrs={not_started:'#414e63',pre_construction:'#2563eb',rough_in:'#d97706',trim_out:'#0d9488',inspection:'#7c3aed',closeout:'#16a34a',complete:'#16a34a'}
+    const hdrs=Array.from({length:dim},(_,i)=>`<div style="flex:1;text-align:center;font-size:9px;font-family:'DM Mono',monospace;color:${i+1===td?'var(--accent)':'var(--text3)'};${i+1===td?'font-weight:700':''}">${i+1}</div>`).join('')
+    const rows=jobs.slice(0,10).map(j=>{
+      const s=j.date_start?Math.max(0,(new Date(j.date_start).getDate()-1)/dim*100):0
+      const e=j.due_date?Math.min(100,new Date(j.due_date).getDate()/dim*100):Math.min(100,s+10)
+      const w=Math.max(1.5,e-s);const c=clrs[j.phase]||'#414e63'
+      return `<div style="display:flex;align-items:center;gap:0;margin-bottom:3px;height:24px"><div style="width:130px;flex-shrink:0;font-size:11px;color:var(--text2);padding-right:7px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="${j.name}">${j.name}</div><div style="flex:1;background:var(--bg3);border-radius:3px;height:100%;position:relative"><div style="position:absolute;top:0;bottom:0;width:1px;background:var(--accent);z-index:2;left:${(td-1)/dim*100}%"></div><div style="position:absolute;height:100%;border-radius:3px;background:${c}22;border:1px solid ${c}55;color:${c};font-size:9px;display:flex;align-items:center;padding:0 5px;white-space:nowrap;overflow:hidden;left:${s}%;width:${w}%">${j.name}</div></div></div>`}).join('')
+    document.getElementById('gantt-wrap').innerHTML=`<div style="display:flex;padding-left:130px;margin-bottom:5px">${hdrs}</div>${rows||es('📅','No jobs with dates','')}`
+  }catch(e){toast('Schedule error','error')}
+}
+
+// ── SCAN / CART ────────────────────────────────────
+function setScanMode(m){
+  scanMode=m
+  document.getElementById('mode-stage').classList.toggle('active',m==='stage')
+  document.getElementById('mode-out').classList.toggle('active',m==='out')
+  document.getElementById('cart-lbl').textContent=m==='stage'?'Staging cart':'Sign-out cart'
+  document.getElementById('cart-commit-btn').textContent=m==='stage'?'Stage to job':'Sign out from job'
+}
+let bcDeb=null
+function resolveBC(val,tid='sc-resolve'){
+  clearTimeout(bcDeb)
+  const el=document.getElementById(tid);if(!el)return
+  if(!val||val.length<2){el.style.display='none';return}
+  bcDeb=setTimeout(()=>{
+    const m=allCatalog.filter(c=>c.barcode.toLowerCase().includes(val.toLowerCase())||(c.name||'').toLowerCase().includes(val.toLowerCase())).slice(0,4)
+    if(!m.length){el.style.display='none';return}
+    el.innerHTML=m.map(c=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:8px 10px;cursor:pointer;margin-bottom:4px" onclick="selectBC('${c.barcode}','${(c.name||'').replace(/'/g,"\\'")}','${tid}')"><div style="font-size:12px;font-weight:500">${c.name}</div><div style="font-size:10px;color:var(--text3)">${c.barcode}${c.part_number?' · '+c.part_number:''}</div></div>`).join('')
+    el.style.display='block'
+  },200)
+}
+function selectBC(bc,nm,tid){
+  if(tid==='sc-resolve'){document.getElementById('sc-part').value=bc;document.getElementById('sc-resolve').style.display='none';addToCart(bc,nm)}
+  else if(tid==='ord-resolve'){document.getElementById('ord-bc').value=bc;document.getElementById('ord-resolve').style.display='none'}
+}
+function addToCart(bc,nm){
+  const vl=bc||v('sc-part').trim();if(!vl)return
+  const cat=allCatalog.find(c=>c.barcode===vl);const name=nm||cat?.name||vl
+  const ex=cart.find(c=>c.bc===vl);if(ex)ex.qty++;else cart.push({bc:vl,name,qty:1})
+  renderCart()
+}
+function renderCart(){
+  if(!cart.length){document.getElementById('cart-box').style.display='none';return}
+  document.getElementById('cart-box').style.display='block'
+  document.getElementById('cart-cnt').textContent=cart.reduce((s,c)=>s+c.qty,0)
+  document.getElementById('cart-items').innerHTML=cart.map((c,i)=>`<div class="cart-item"><div class="ci-info"><div class="ci-n">${c.name}</div><div class="ci-b">${c.bc}</div></div><div class="qty-c"><button onclick="adjCart(${i},-1)">−</button><span>${c.qty}</span><button onclick="adjCart(${i},1)">+</button></div><button class="btn btn-sm btn-ghost" style="color:var(--red)" onclick="rmCart(${i})">×</button></div>`).join('')
+}
+function adjCart(i,d){cart[i].qty=Math.max(1,cart[i].qty+d);renderCart()}
+function rmCart(i){cart.splice(i,1);renderCart()}
+function clearCart(){cart=[];renderCart()}
+async function commitCart(){
+  const jobId=v('sc-job');if(!jobId){toast('Select a job','warn');return}
+  if(!cart.length){toast('Cart is empty','warn');return}
+  const btn=document.getElementById('cart-commit-btn');btn.disabled=true;btn.textContent='Processing…'
+  try{for(const item of cart)await api('/jobs/'+jobId+'/parts','POST',{part_id:item.bc,part_name:item.name,qty:item.qty,action:scanMode});toast(`${cart.length} part type(s) ${scanMode==='stage'?'staged':'signed out'}`);clearCart();loadScanRecent(jobId)}
+  catch(e){toast(e.message,'error')}
+  btn.disabled=false;btn.textContent=scanMode==='stage'?'Stage to job':'Sign out from job'
+}
+async function loadScanRecent(jobId){
+  if(!jobId)return
+  try{const parts=await api('/jobs/'+jobId+'/parts');document.getElementById('sc-recent').innerHTML=parts.slice(0,8).map(p=>`<div class="prow"><div class="pi"><div class="pid">${p.part_name}</div><div class="pn">${p.part_id}</div></div>${sBadge(p.status)}</div>`).join('')||'<div style="font-size:12px;color:var(--text3)">No parts on this job yet</div>'}
+  catch{}
+}
+async function toggleCam(){
+  if(camRunning){stopCam();return}
+  document.getElementById('cam-wrap-main').style.display='block'
+  document.getElementById('cam-btn').textContent='⏹ Stop Camera'
+  try{
+    await Quagga.init({inputStream:{name:'Live',type:'LiveStream',target:document.getElementById('cam-prev-main'),constraints:{facingMode:'environment'}},decoder:{readers:['code_128_reader','ean_reader','ean_8_reader','upc_reader','code_39_reader']},locate:true},err=>{if(err){toast('Camera failed','error');stopCam();return};Quagga.start();camRunning=true})
+    Quagga.onDetected(data=>{const bc=data.codeResult.code;document.getElementById('sc-part').value=bc;resolveBC(bc);addToCart(bc);stopCam()})
+  }catch(e){toast('Camera error: '+e.message,'error');stopCam()}
+}
+function stopCam(){if(!camRunning)return;try{Quagga.stop()}catch{};camRunning=false;const w=document.getElementById('cam-wrap-main');if(w)w.style.display='none';const b=document.getElementById('cam-btn');if(b)b.textContent='📷 Camera'}
+
+// ── ORDERS PAGE ────────────────────────────────────
+async function loadOrdersPage(){await loadJobsSelect('ord-job');await loadOrdersTable()}
+async function loadOrdersTable(){
+  const orders=await api('/orders').catch(()=>[])
+  document.getElementById('orders-tbl').innerHTML=orders.length
+    ?`<table class="tbl"><thead><tr><th>Order</th><th>Job</th><th>By</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>${orders.map(o=>`<tr><td style="font-size:10px;font-family:'DM Mono',monospace">${o.id.slice(-6)}</td><td style="font-weight:500">${o.job_id}</td><td>${o.created_by}</td><td style="font-size:11px">${fmtDate(o.created_at)}</td><td>${sBadge(o.status)}</td><td style="display:flex;gap:5px">${o.status==='pending'?`<button class="btn btn-sm btn-g" onclick="stageOrder('${o.id}')">Stage</button><button class="btn btn-sm btn-r" onclick="rejectOrderOp('${o.id}')">Reject</button>`:''}</td></tr>`).join('')}</tbody></table>`
+    :es('🛒','No orders','')
+}
+let ordTmp=[]
+function addOrdItem(){
+  const bc=v('ord-bc').trim(),qty=parseInt(v('ord-qty'))||1;if(!bc)return
+  const cat=allCatalog.find(c=>c.barcode===bc);ordTmp.push({partId:bc,name:cat?.name||bc,qty})
+  document.getElementById('ord-bc').value='';document.getElementById('ord-qty').value=1
+  document.getElementById('ord-items-list').innerHTML=ordTmp.map((i,x)=>`<div class="file-chip">${i.name} (${i.qty})<span class="rm" onclick="ordTmp.splice(${x},1);document.getElementById('ord-items-list').innerHTML=ordTmp.map((i,y)=>'<span class=file-chip>'+i.name+'</span>').join('')">×</span></div>`).join('')
+}
+async function submitOrder(){
+  const job=v('ord-job');if(!job){toast('Select a job','warn');return}
+  if(!ordTmp.length){toast('Add parts','warn');return}
+  try{await api('/orders','POST',{job_id:job,notes:v('ord-notes'),items:ordTmp});toast('Order submitted');ordTmp=[];document.getElementById('ord-items-list').innerHTML='';loadOrdersTable()}
+  catch(e){toast(e.message,'error')}
+}
+async function stageOrder(id){await fetch('/api/orders/'+id+'/stage',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});toast('Staged');loadOrdersTable();loadDash()}
+async function rejectOrderOp(id){const n=prompt('Reason:');if(n===null)return;await fetch('/api/orders/'+id+'/reject',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note:n})});toast('Rejected','warn');loadOrdersTable()}
+
+// ── CATALOG PAGE ──────────────────────────────────
+async function loadCatalogPage(){try{allCatalog=await api('/catalog')}catch{}renderCatalog()}
+function renderCatalog(){
+  const q=(v('cat-search')||'').toLowerCase()
+  const f=allCatalog.filter(c=>!q||c.barcode.toLowerCase().includes(q)||c.name.toLowerCase().includes(q)||(c.category||'').toLowerCase().includes(q))
+  document.getElementById('catalog-tbl').innerHTML=f.length
+    ?`<table class="tbl"><thead><tr><th>Name</th><th>Barcode</th><th>Part #</th><th>Category</th><th>Unit Cost</th><th></th></tr></thead><tbody>${f.map(c=>`<tr><td style="font-weight:500">${c.name}</td><td style="font-family:'DM Mono',monospace;font-size:10px">${c.barcode}</td><td style="font-size:10px;color:var(--text3)">${c.part_number||'—'}</td><td>${c.category||'—'}</td><td>${c.unit_cost?fmtCurrency(c.unit_cost,2):'—'}</td><td><button class="btn btn-sm btn-ghost" style="color:var(--red)" onclick="delCatalog('${encodeURIComponent(c.barcode)}')">Del</button></td></tr>`).join('')}</tbody></table>`
+    :`<div style="padding:24px">${es('📋','No parts','')}</div>`
+}
+function openAddCatalogModal(){
+  openModal('Add Part',`<div class="fg"><label class="fl">Barcode *</label><input class="fi" id="ca-bc"></div><div class="fg"><label class="fl">Name *</label><input class="fi" id="ca-nm"></div><div class="two"><div class="fg"><label class="fl">Part #</label><input class="fi" id="ca-pn"></div><div class="fg"><label class="fl">Category</label><input class="fi" id="ca-cat"></div></div><div class="two"><div class="fg"><label class="fl">Description</label><input class="fi" id="ca-desc"></div><div class="fg"><label class="fl">Unit Cost</label><input class="fi" type="number" id="ca-cost" step="0.01"></div></div>`,
+    async()=>{const bc=v('ca-bc').trim(),nm=v('ca-nm').trim();if(!bc||!nm){toast('Barcode+name required','error');return};try{await api('/catalog','POST',{barcode:bc,name:nm,part_number:v('ca-pn'),category:v('ca-cat'),description:v('ca-desc'),unit_cost:parseFloat(v('ca-cost'))||0});closeModal();toast('Added');loadCatalogPage()}catch(e){toast(e.message,'error')}})
+}
+async function delCatalog(bc){if(!confirm('Delete?'))return;await api('/catalog/'+bc,'DELETE');toast('Deleted');loadCatalogPage()}
+
+// ── INVENTORY PAGE ────────────────────────────────
+async function loadInvPage(){try{allInv=await api('/inventory')}catch{}renderInv()}
+function renderInv(){
+  const q=(v('inv-search')||'').toLowerCase()
+  const f=allInv.filter(i=>!q||(i.name||'').toLowerCase().includes(q)||i.id.toLowerCase().includes(q))
+  document.getElementById('inv-tbl').innerHTML=f.length
+    ?`<table class="tbl"><thead><tr><th>Name</th><th>ID/Barcode</th><th>Qty</th><th>Min</th><th>Status</th><th></th></tr></thead><tbody>${f.map(i=>{const low=i.min_qty>0&&i.qty<=i.min_qty;return `<tr><td style="font-weight:500">${i.name}</td><td style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3)">${i.id}</td><td style="color:${low?'var(--red)':'var(--text)'};font-weight:${low?'600':'400'}">${i.qty}</td><td style="font-size:11px;color:var(--text3)">${i.min_qty||0}</td><td>${low?`<span class="badge b-red">Low Stock</span>`:'—'}</td><td><button class="btn btn-sm btn-ghost" onclick="openAdjModal('${i.id}','${(i.name||'').replace(/'/g,"\\'")}',${i.qty},${i.min_qty||0})">Adjust</button></td></tr>`}).join('')}</tbody></table>`
+    :`<div style="padding:24px">${es('📦','No inventory','')}</div>`
+}
+function openAddInvModal(){
+  openModal('Adjust Stock',`<div class="fg"><label class="fl">Barcode/ID *</label><input class="fi" id="iv-bc"></div><div class="fg"><label class="fl">Name</label><input class="fi" id="iv-nm"></div><div class="two"><div class="fg"><label class="fl">Qty to Add</label><input class="fi" type="number" id="iv-qty" value="0"></div><div class="fg"><label class="fl">Min Qty Alert</label><input class="fi" type="number" id="iv-min" value="0" min="0"></div></div>`,
+    async()=>{const id=v('iv-bc').trim();if(!id)return;try{await api('/inventory','POST',{id,name:v('iv-nm'),qty:parseInt(v('iv-qty'))||0,min_qty:parseInt(v('iv-min'))||0});closeModal();toast('Updated');loadInvPage()}catch(e){toast(e.message,'error')}})
+}
+function openAdjModal(id,nm,qty,min){
+  openModal('Adjust: '+nm,`<div style="font-size:12px;color:var(--text3);margin-bottom:10px">Current: <strong>${qty}</strong></div><div class="two"><div class="fg"><label class="fl">Add/Remove</label><input class="fi" type="number" id="adj-qty" value="0"></div><div class="fg"><label class="fl">Min Qty</label><input class="fi" type="number" id="adj-min" value="${min}" min="0"></div></div>`,
+    async()=>{try{await api('/inventory','POST',{id,name:nm,qty:parseInt(v('adj-qty'))||0,min_qty:parseInt(v('adj-min'))||0});closeModal();toast('Adjusted');loadInvPage()}catch(e){toast(e.message,'error')}})
+}
+
+// ── GPS PAGE ──────────────────────────────────────
+async function loadGpsPage(){
+  const today=new Date().toISOString().split('T')[0]
+  const {data}=await sb.from('checkins').select('*,jobs(name),profiles:worker_id(full_name,companies(name))').gte('checkin_at',today+'T00:00:00').order('checkin_at',{ascending:false})
+  document.getElementById('gps-tbl').innerHTML=(data||[]).length
+    ?`<table class="tbl"><thead><tr><th>Worker</th><th>Company</th><th>Job</th><th>In</th><th>Out</th><th>Hours</th><th>Dist</th></tr></thead><tbody>${data.map(c=>`<tr><td style="font-weight:500">${c.profiles?.full_name||'?'}</td><td style="font-size:11px;color:var(--text3)">${c.profiles?.companies?.name||'—'}</td><td>${c.jobs?.name||'—'}</td><td style="font-size:10px;font-family:'DM Mono',monospace">${fmtTime(c.checkin_at)}</td><td style="font-size:10px;font-family:'DM Mono',monospace">${c.checkout_at?fmtTime(c.checkout_at):'<span class="gps-live" style="font-size:9px"><span class="pulse"></span>On-site</span>'}</td><td>${c.hours_logged?fmtHours(c.hours_logged):'—'}</td><td>${c.checkin_dist_ft!=null?`<span class="badge b-green">${c.checkin_dist_ft}ft</span>`:'—'}</td></tr>`).join('')}</tbody></table>`
+    :es('📍','No check-ins today','')
+}
+
+// ── HOURS PAGE ────────────────────────────────────
+async function loadHoursPage(){
+  try{
+    const data=await api('/attendance/report')
+    document.getElementById('hrs-tech').innerHTML=data.by_tech?.length?`<table class="tbl"><thead><tr><th>Name</th><th>Role</th><th>Hours</th></tr></thead><tbody>${data.by_tech.map(t=>`<tr><td style="font-weight:500">${t.name}</td><td>${t.role}</td><td style="font-family:'DM Mono',monospace">${fmtHours(t.total_hours)}</td></tr>`).join('')}</tbody></table>`:es('⏱','No data','')
+    document.getElementById('hrs-job').innerHTML=data.by_job?.length?`<table class="tbl"><thead><tr><th>Job</th><th>Hours</th></tr></thead><tbody>${data.by_job.map(j=>`<tr><td style="font-weight:500">${j.job_id}</td><td style="font-family:'DM Mono',monospace">${fmtHours(j.total_hours)}</td></tr>`).join('')}</tbody></table>`:es('⏱','','')
+  }catch(e){document.getElementById('hrs-tech').innerHTML=es('⚠','Error',e.message)}
+}
+
+// ── SUBS PAGE ─────────────────────────────────────
+async function loadSubsPage(){
+  const {data:cos}=await sb.from('companies').select('*').eq('is_active',true).order('name')
+  const {data:profiles}=await sb.from('profiles').select('*').eq('is_active',true)
+  const byComp={};(profiles||[]).forEach(p=>{if(!byComp[p.company_id])byComp[p.company_id]=[];byComp[p.company_id].push(p)})
+  document.getElementById('subs-content').innerHTML=(cos||[]).map(co=>{
+    const ws=byComp[co.id]||[];const ins=!co.ins_expiry?'unknown':new Date(co.ins_expiry)<new Date()?'expired':new Date(co.ins_expiry)<new Date(Date.now()+30*864e5)?'expiring':'ok'
+    return `<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px"><div><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700">${co.name}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${co.trade||''} ${co.license_num?'· Lic: '+co.license_num:''}</div></div><span class="badge ${ins==='ok'?'b-green':ins==='expiring'?'b-amber':'b-red'}">${ins==='ok'?'Ins OK':ins==='expiring'?'Ins Expiring':'Ins Issue'}</span></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:8px">
+      ${ws.map(w=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px;display:flex;gap:10px;align-items:flex-start"><div class="av" style="width:44px;height:44px;font-size:14px;flex-shrink:0;${avStyle(w.full_name)}">${initials(w.full_name)}</div><div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12px">${w.full_name}${w.is_lead?' <span style="font-size:9px;color:var(--amber)">LEAD</span>':''}</div><div style="font-size:10px;color:var(--text3);margin-top:2px">${w.email||''}</div><div style="font-size:10px;color:var(--text3)">${w.phone||''}</div></div></div>`).join('')}
+      <div style="background:var(--bg3);border:1.5px dashed var(--border2);border-radius:var(--r);padding:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:80px" onclick="openAddWorkerToCoModal('${co.id}')"><div style="text-align:center;color:var(--text3)"><div style="font-size:20px">+</div><div style="font-size:11px;margin-top:3px">Add Worker</div></div></div>
+    </div></div>`
+  }).join('')||es('🏢','No companies','')
+}
+function openAddCoModal(){
+  openModal('Add Sub Company',`<div class="fg"><label class="fl">Company Name *</label><input class="fi" id="ns-nm"></div><div class="two"><div class="fg"><label class="fl">Trade</label><input class="fi" id="ns-tr" placeholder="HVAC, Electrical…"></div><div class="fg"><label class="fl">License #</label><input class="fi" id="ns-lic"></div></div><div class="fg"><label class="fl">Email</label><input class="fi" id="ns-em" type="email"></div><div class="fg"><label class="fl">GL Insurance Expiry</label><input class="fi" id="ns-ins" type="date"></div>`,
+    async()=>{const nm=v('ns-nm').trim();if(!nm)return;try{await sb.from('companies').insert({id:crypto.randomUUID(),name:nm,trade:v('ns-tr'),license_num:v('ns-lic'),email:v('ns-em'),ins_expiry:v('ns-ins')||null,is_active:true,created_at:new Date().toISOString()});closeModal();toast('Added');loadSubsPage();loadCompanySelect()}catch(e){toast(e.message,'error')}})
+}
+async function openAddWorkerToCoModal(coId){
+  openModal('Add Worker',`<div class="fg"><label class="fl">Full Name *</label><input class="fi" id="nw-nm"></div><div class="fg"><label class="fl">Email *</label><input class="fi" id="nw-em" type="email"></div><div class="fg"><label class="fl">Phone</label><input class="fi" id="nw-ph"></div><div class="fg"><label class="fl">Role</label><select class="fs" id="nw-rl"><option value="sub_worker">Worker</option><option value="sub_lead">Lead</option><option value="technician">Technician</option></select></div>`,
+    async()=>{const nm=v('nw-nm').trim(),em=v('nw-em').trim();if(!nm||!em){toast('Name+email required','error');return};try{await sb.from('profiles').insert({id:crypto.randomUUID(),company_id:coId,full_name:nm,email:em,phone:v('nw-ph'),role:v('nw-rl'),is_lead:v('nw-rl')==='sub_lead',is_active:true,created_at:new Date().toISOString()});closeModal();toast('Worker added — invite via Supabase dashboard');loadSubsPage()}catch(e){toast(e.message,'error')}})
+}
+
+// ── FINANCIALS PAGE ───────────────────────────────
+async function loadFinPage(){
+  try{
+    const data=await api('/financials/overview')
+    document.getElementById('fin-contract').textContent=fmtCurrency(data.totals?.contract||0)
+    document.getElementById('fin-cost').textContent=fmtCurrency(data.totals?.cost||0)
+    const p=data.totals?.profit||0
+    const finPEl=document.getElementById('fin-profit');finPEl.textContent=fmtCurrency(p);finPEl.style.color=p>=0?'var(--green)':'var(--red)'
+    document.getElementById('fin-margin').textContent=data.totals?.contract>0?fmtPct(p/data.totals.contract*100):'—'
+    document.getElementById('fin-tbl').innerHTML=`<table class="tbl tbl-click"><thead><tr><th>Job</th><th>Phase</th><th>Contract</th><th>Material</th><th>Labor</th><th>Profit</th><th>Margin</th></tr></thead><tbody>${(data.jobs||[]).map(j=>`<tr onclick="openJob('${j.job_id}')"><td style="font-weight:500">${j.job_name}</td><td>${sBadge(j.phase)}</td><td>${fmtCurrency(j.contract_value)}</td><td>${fmtCurrency(j.material_cost)}</td><td>${fmtCurrency(j.labor_cost)}</td><td style="color:${j.gross_profit>=0?'var(--green)':'var(--red)'};font-weight:500">${fmtCurrency(j.gross_profit)}</td><td><span class="badge ${j.profit_margin>=20?'b-green':j.profit_margin>=10?'b-amber':'b-red'}">${j.profit_margin!=null?fmtPct(j.profit_margin):'—'}</span></td></tr>`).join('')}</tbody></table>`
+  }catch(e){toast('Fin error','error')}
+}
+
+// ── REPORTS PAGE ──────────────────────────────────
+async function loadReportsPage(){
+  try{
+    const d=await api('/report')
+    document.getElementById('rpt-jobs').textContent=d.jobs||0
+    document.getElementById('rpt-staged').textContent=(d.staged||[]).length
+    document.getElementById('rpt-out').textContent=(d.signedOut||[]).length
+    document.getElementById('rpt-over').textContent=(d.overages||[]).length
+    document.getElementById('rpt-parts-tbl').innerHTML=`<table class="tbl"><thead><tr><th>Part</th><th>Job</th><th>Status</th><th>Qty</th><th>By</th></tr></thead><tbody>${[...(d.staged||[]),...(d.signedOut||[]),...(d.overages||[])].slice(0,30).map(p=>`<tr><td style="font-weight:500">${p.part_name}</td><td>${p.job_id}</td><td>${sBadge(p.over?'over':p.status)}</td><td>${p.assigned_qty}</td><td style="font-size:10px;color:var(--text3)">${p.staged_by||'—'}</td></tr>`).join('')}</tbody></table>`
+  }catch{}
+}
+async function exportReport(type){
+  let csv='',fn=type+'-report.csv'
+  try{
+    if(type==='labor'){const {data}=await sb.from('checkins').select('*,jobs(name),profiles:worker_id(full_name,companies(name))').order('checkin_at',{ascending:false});csv=toCSV([['Worker','Company','Job','In','Out','Hours','Dist ft'],...(data||[]).map(c=>[c.profiles?.full_name,c.profiles?.companies?.name,c.jobs?.name,c.checkin_at,c.checkout_at||'',c.hours_logged||'',c.checkin_dist_ft||''])])}
+    else if(type==='parts'){const d=await api('/report');csv=toCSV([['Part','Job','Status','Qty','Staged By','Overage'],...[...d.staged,...d.signedOut,...d.installed,...d.overages].map(p=>[p.part_name,p.job_id,p.status,p.assigned_qty,p.staged_by||'',p.over?'YES':''])])}
+    else if(type==='jobs'){csv=toCSV([['Name','Address','Phase','Due','Completion','Contract','GC'],...allJobs.map(j=>[j.name,j.address||'',j.phase,j.due_date||'',j.completion_date||'',j.contract_value||'',j.gc_company||''])])}
+    else if(type==='fin'){const d=await api('/financials/overview');csv=toCSV([['Job','Phase','Contract','Material','Labor','Total','Profit','Margin'],...(d.jobs||[]).map(j=>[j.job_name,j.phase,j.contract_value,j.material_cost,j.labor_cost,j.total_cost,j.gross_profit,j.profit_margin||''])])}
+    else if(type==='audit'){const d=await api('/log');csv=toCSV([['Time','User','Action','Job','Detail'],...(d||[]).map(l=>[l.created_at,l.username,l.type,l.job_id||'',l.extra||''])])}
+    else if(type==='inventory'){csv=toCSV([['ID','Name','Qty','Min Qty','Status'],...allInv.map(i=>[i.id,i.name,i.qty,i.min_qty||0,i.qty<=(i.min_qty||0)?'LOW':'OK'])])}
+    if(csv){dlCSV(csv,fn);toast('Downloading…')}
+  }catch(e){toast('Export error: '+e.message,'error')}
+}
+function importJobsCSV(input){
+  const file=input.files[0];if(!file)return
+  file.text().then(async txt=>{
+    const lines=txt.split('\n').filter(l=>l.trim());const hdrs=lines[0].split(',').map(h=>h.trim().replace(/"/g,''))
+    const jobs=lines.slice(1).map(line=>{const vals=line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));const obj={};hdrs.forEach((h,i)=>obj[h]=vals[i]||'');return obj}).filter(j=>j.name)
+    try{const res=await api('/jobs/import','POST',{jobs});toast(`Imported ${res.created?.length||0}, errors: ${res.errors?.length||0}`);loadJobsPage()}
+    catch(e){toast(e.message,'error')}
+  })
+}
+function exportJobsCSV(){dlCSV(toCSV([['Name','Address','Phase','GC','Due','Completion','Contract'],...allJobs.map(j=>[j.name,j.address||'',j.phase,j.gc_company||'',j.due_date||'',j.completion_date||'',j.contract_value||''])]),`jobs-${new Date().toISOString().split('T')[0]}.csv`);toast('Exporting…')}
+
+// ── COMPLIANCE PAGE ───────────────────────────────
+async function loadComplyPage(){
+  const [c1R,invR]=await Promise.all([sb.from('change_orders').select('*,jobs(name)').eq('status','pending_sub'),sb.from('inventory').select('*').gt('min_qty',0)])
+  const low=(invR.data||[]).filter(i=>i.qty<=i.min_qty)
+  const {data:expIns}=await sb.from('companies').select('name,ins_expiry').not('ins_expiry','is',null).lt('ins_expiry',new Date(Date.now()+30*864e5).toISOString().split('T')[0])
+  const tc=(c1R.data||[]).length+low.length+(expIns||[]).length
+  const badge=document.getElementById('nb-comply');badge.textContent=tc;badge.style.display=tc>0?'inline-block':'none'
+  document.getElementById('comply-content').innerHTML=`<div class="two">
+    <div>
+      <div class="card"><div class="card-hdr">Unsigned Change Orders (${(c1R.data||[]).length})</div>${(c1R.data||[]).map(co=>`<div class="a-row"><div class="a-dot" style="background:var(--amber)"></div><div><div style="font-size:12px;font-weight:500">${co.jobs?.name||co.job_id}</div><div style="font-size:11px;color:var(--text3)">${co.title} · ${fmtCurrency(co.value)}</div></div></div>`).join('')||'<div style="font-size:12px;color:var(--green)">✓ All signed</div>'}</div>
+      <div class="card"><div class="card-hdr">Low Stock (${low.length})</div>${low.map(i=>`<div class="a-row"><div class="a-dot" style="background:var(--red)"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">${i.name}</div><div style="font-size:11px;color:var(--text3)">Qty: ${i.qty} / Min: ${i.min_qty}</div></div><button class="btn btn-sm btn-a" onclick="openAdjModal('${i.id}','${(i.name||'').replace(/'/g,"\\'")}',${i.qty},${i.min_qty})">Restock</button></div>`).join('')||'<div style="font-size:12px;color:var(--green)">✓ All OK</div>'}</div>
+    </div>
+    <div>
+      <div class="card"><div class="card-hdr">Insurance Expiring (${(expIns||[]).length})</div>${(expIns||[]).map(c=>`<div class="a-row"><div class="a-dot" style="background:var(--amber)"></div><div><div style="font-size:12px;font-weight:500">${c.name}</div><div style="font-size:11px;color:var(--text3)">Expires ${fmtDate(c.ins_expiry)}</div></div></div>`).join('')||'<div style="font-size:12px;color:var(--green)">✓ All current</div>'}</div>
+    </div>
+  </div>`
+}
+
+// ── AUDIT LOG PAGE ────────────────────────────────
+async function loadLogPage(){
+  try{const d=await api('/log');document.getElementById('log-tbl').innerHTML=d.length?`<table class="tbl"><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Job</th><th>Detail</th></tr></thead><tbody>${d.map(l=>`<tr><td style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3)">${new Date(l.created_at).toLocaleString()}</td><td>${l.username||'?'}</td><td>${sBadge(l.type||'action')}</td><td style="font-size:11px">${l.job_id||'—'}</td><td style="font-size:11px;color:var(--text2)">${l.extra||''}</td></tr>`).join('')}</tbody></table>`:es('📋','No entries','')}
+  catch(e){document.getElementById('log-tbl').innerHTML=es('⚠','Error',e.message)}
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────
+async function loadNotifPage(){
+  const n=await api('/notifications').catch(()=>[])
+  document.getElementById('notif-list').innerHTML=n.length?n.map(x=>`<div class="notif-item"><div class="ndot ${x.read?'read':''}"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">${x.title}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${x.message}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">${fmtDateTime(x.created_at)}</div></div></div>`).join(''):es('🔔','No notifications','')
+}
+async function loadNotifBadge(){
+  try{const d=await api('/notifications');const u=(d||[]).filter(n=>!n.read).length;document.getElementById('nb-notif').textContent=u;document.getElementById('nb-notif').style.display=u>0?'inline-block':'none';const ob=(d||[]).filter(n=>n.type==='new_order').length;document.getElementById('nb-orders').textContent=ob;document.getElementById('nb-orders').style.display=ob>0?'inline-block':'none'}catch{}
+}
+async function markAllRead(){await api('/notifications/read-all','POST',{});document.getElementById('nb-notif').style.display='none';loadNotifPage();toast('All read')}
+
+// ── USERS PAGE ────────────────────────────────────
+async function loadAdminPage(){
+  const {data}=await sb.from('profiles').select('*,companies(name)').order('created_at')
+  document.getElementById('users-tbl').innerHTML=(data||[]).length?`<table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Company</th><th>Status</th><th></th></tr></thead><tbody>${data.map(u=>`<tr><td style="font-weight:500">${u.full_name}</td><td style="font-size:11px;color:var(--text3)">${u.email||'—'}</td><td>${rBadge(u.role)}</td><td style="font-size:11px">${u.companies?.name||'Internal'}</td><td><span class="badge ${u.is_active?'b-green':'b-gray'}">${u.is_active?'Active':'Inactive'}</span></td><td><button class="btn btn-sm btn-ghost" onclick="editUserModal('${u.id}','${u.role}','${u.is_active}')">Edit</button></td></tr>`).join('')}</tbody></table>`:es('👥','No users','')
+}
+function openAddUserModal(){
+  openModal('Add User',`<div class="fg"><label class="fl">Full Name *</label><input class="fi" id="au-nm"></div><div class="fg"><label class="fl">Email *</label><input class="fi" id="au-em" type="email"></div><div class="two"><div class="fg"><label class="fl">Role *</label><select class="fs" id="au-rl"><option value="sub_worker">Sub Worker</option><option value="sub_lead">Sub Lead</option><option value="technician">Technician</option><option value="stager">Stager</option><option value="foreman">Foreman</option><option value="pm">PM</option><option value="admin">Admin</option></select></div><div class="fg"><label class="fl">Company</label><select class="fs" id="au-co"><option value="">— Internal —</option></select></div></div>`,
+    async()=>{const nm=v('au-nm').trim(),em=v('au-em').trim();if(!nm||!em){toast('Name+email required','error');return};try{await sb.from('profiles').insert({id:crypto.randomUUID(),full_name:nm,email:em,role:v('au-rl'),company_id:v('au-co')||null,is_active:true,created_at:new Date().toISOString()});closeModal();toast('User added — send Supabase invite to set password');loadAdminPage()}catch(e){toast(e.message,'error')}})
+  loadCompanySelect('au-co')
+}
+function editUserModal(id,role,active){
+  openModal('Edit User',`<div class="fg"><label class="fl">Role</label><select class="fs" id="eu-rl"><option value="sub_worker">Sub Worker</option><option value="sub_lead">Sub Lead</option><option value="technician">Technician</option><option value="stager">Stager</option><option value="foreman">Foreman</option><option value="pm">PM</option><option value="admin">Admin</option></select></div><div class="fg"><label class="fl">Status</label><select class="fs" id="eu-act"><option value="true">Active</option><option value="false">Inactive</option></select></div>`,
+    async()=>{await sb.from('profiles').update({role:v('eu-rl'),is_active:v('eu-act')==='true'}).eq('id',id);closeModal();toast('Updated');loadAdminPage()})
+  setTimeout(()=>{document.getElementById('eu-rl').value=role;document.getElementById('eu-act').value=String(active)},50)
+}
+
+// ── NEW JOB HELPERS ───────────────────────────────
+async function loadCompanySelect(selId='nj-company'){
+  const {data}=await sb.from('companies').select('id,name').eq('is_active',true).order('name')
+  const el=document.getElementById(selId);if(!el)return
+  const def=selId==='nj-company'?'<option value="">— None / Internal —</option>':'<option value="">— Internal —</option>'
+  el.innerHTML=def+(data||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('')
+}
+async function loadWorkerCBs(){
+  const coId=v('nj-company');const wrap=document.getElementById('nj-workers-wrap')
+  if(!coId){wrap.innerHTML='<div style="font-size:11px;color:var(--text3)">Select a company first</div>';return}
+  const {data}=await sb.from('profiles').select('id,full_name,is_lead').eq('company_id',coId).eq('is_active',true)
+  wrap.innerHTML=(data||[]).map(w=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><input type="checkbox" id="w-${w.id}" value="${w.id}" ${w.is_lead?'checked':''}><label for="w-${w.id}" style="font-size:12px;color:var(--text2)">${w.full_name}${w.is_lead?' (Lead)':''}</label></div>`).join('')||'<div style="font-size:11px;color:var(--text3)">No workers for this company</div>'
+}
+function previewNjPlans(){const files=document.getElementById('nj-plans').files;document.getElementById('nj-plan-prev').innerHTML=Array.from(files).map(f=>`<div class="file-chip">📄 ${f.name}</div>`).join('')}
+let njDeb=null
+function njAddrInput(val){
+  clearTimeout(njDeb);const dd=document.getElementById('nj-addr-dd')
+  if(val.length<4){dd.style.display='none';return}
+  njDeb=setTimeout(async()=>{const r=await addrSuggest(val);if(!r.length){dd.style.display='none';return};dd.innerHTML=r.map(x=>`<div class="addr-item" onclick="njSel('${x.label.replace(/'/g,"\\'")}',${x.lat},${x.lng})">${x.label}</div>`).join('');dd.style.display='block'},320)
+}
+function njSel(label,lat,lng){
+  document.getElementById('nj-addr').value=label;document.getElementById('nj-lat').value=lat;document.getElementById('nj-lng').value=lng;document.getElementById('nj-addr-dd').style.display='none'
+  const ok=document.getElementById('nj-geo-ok');ok.style.display='block';document.getElementById('nj-coords').textContent=parseFloat(lat).toFixed(5)+', '+parseFloat(lng).toFixed(5);toast('GPS set ✓')
+}
+document.addEventListener('click',e=>{const dd=document.getElementById('nj-addr-dd');const inp=document.getElementById('nj-addr');if(dd&&inp&&!dd.contains(e.target)&&!inp.contains(e.target))dd.style.display='none'})
+async function submitNewJob(){
+  const name=v('nj-name').trim();if(!name){toast('Job name required','error');return}
+  const btn=document.getElementById('nj-btn');btn.disabled=true;btn.textContent='Creating…'
+  let lat=parseFloat(v('nj-lat'))||null,lng=parseFloat(v('nj-lng'))||null
+  if(!lat&&v('nj-addr')){const g=await geocodeAddr(v('nj-addr'));if(g){lat=g.lat;lng=g.lng}}
+  try{
+    const job=await api('/jobs','POST',{name,address:v('nj-addr'),gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-radius'))||250,date_start:v('nj-start')||null,due_date:v('nj-due')||null,contract_value:parseFloat(v('nj-cv'))||null,labor_budget:parseFloat(v('nj-lb'))||null,labor_rate:parseFloat(v('nj-lr'))||null,gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),pm_review_required:v('nj-pmr')!=='none',pm_review_type:v('nj-pmr'),company_id:v('nj-company')||null,date_contract:v('nj-dc')||null,date_permit:v('nj-dp')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_closeout:v('nj-dco')||null})
+    document.querySelectorAll('#nj-workers-wrap input[type=checkbox]:checked').forEach(async cb=>await api('/jobs/'+job.id+'/workers','POST',{worker_id:cb.value}))
+    toast('Job created!'); allJobs.unshift(job); openJob(job.id)
+  }catch(e){toast('Error: '+e.message,'error')}
+  btn.disabled=false;btn.textContent='Create Job'
+}
+async function loadJobsSelect(selId='sc-job'){
+  try{if(!allJobs.length)allJobs=await api('/jobs')}catch{}
+  const el=document.getElementById(selId);if(!el)return
+  el.innerHTML='<option value="">— Select job —</option>'+allJobs.map(j=>`<option value="${j.id}">${j.name}</option>`).join('')
+}
+</script>
+</body>
+</html>
