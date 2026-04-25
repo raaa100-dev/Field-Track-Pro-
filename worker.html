@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>FieldAxisHQ — Field Worker</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#060a10;--bg2:#0c1220;--bg3:#131c2e;--bg4:#1a2540;--border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);--text:#e8edf5;--text2:#8a96ab;--text3:#414e63;--accent:#2563eb;--green:#16a34a;--gbg:rgba(22,163,74,.12);--gb:rgba(22,163,74,.22);--amber:#d97706;--abg:rgba(217,119,6,.12);--ab:rgba(217,119,6,.22);--red:#dc2626;--rbg:rgba(220,38,38,.12);--rb:rgba(220,38,38,.22);--r:12px;--rs:8px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overscroll-behavior:none}
+body{display:flex;flex-direction:column}
+::-webkit-scrollbar{display:none}
+
+/* APP HEADER */
+.hdr{display:flex;align-items:center;gap:10px;padding:max(14px,env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+.hdr-logo{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;letter-spacing:-.5px;background:linear-gradient(135deg,#e8edf5,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hdr-sub{font-size:10px;color:var(--text3);margin-top:1px}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.icon-btn{width:32px;height:32px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+
+/* GPS STATUS BAR */
+.gps-bar{padding:7px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-size:11px;flex-shrink:0}
+.gps-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:500}
+.gps-on{background:var(--gbg);color:var(--green);border:1px solid var(--gb)}
+.gps-off{background:var(--bg4);color:var(--text3);border:1px solid var(--border2)}
+.pulse{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.4s infinite;display:inline-block}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
+
+/* BOTTOM NAV */
+.bot-nav{display:flex;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+.bnav-item{flex:1;padding:9px 4px 6px;text-align:center;cursor:pointer;color:var(--text3);transition:.15s}
+.bnav-item.active{color:var(--accent)}
+.bnav-icon{font-size:20px;margin-bottom:2px}
+.bnav-lbl{font-size:9px;font-weight:500}
+
+/* SCREENS */
+.screens{flex:1;overflow:hidden;position:relative}
+.sc{display:none;position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px max(80px,env(safe-area-inset-bottom))}
+.sc.active{display:block}
+
+/* BUTTONS */
+.btn{width:100%;padding:13px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:'DM Sans',sans-serif;transition:.15s;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn:active{opacity:.75}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-p{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-g{background:var(--gbg);color:var(--green);border-color:var(--gb)}
+.btn-r{background:var(--rbg);color:var(--red);border-color:var(--rb)}
+.btn-a{background:var(--abg);color:var(--amber);border-color:var(--ab)}
+.btn-sm{padding:8px 14px;font-size:13px;width:auto}
+.row{display:flex;gap:9px}
+
+/* FORMS */
+.fg{margin-bottom:13px}
+.fl{font-size:10px;font-weight:500;color:var(--text3);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.06em}
+.fi,.fs,.ft{width:100%;padding:10px 12px;font-size:15px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg2);color:var(--text);font-family:'DM Sans',sans-serif}
+.fi:focus,.fs:focus,.ft:focus{outline:none;border-color:var(--accent)}
+.ft{resize:vertical;min-height:70px;line-height:1.5}
+.fi::placeholder{color:var(--text3)}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.card-ttl{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:11px}
+
+/* JOB CARD */
+.job-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:13px 14px;margin-bottom:10px;cursor:pointer;transition:.15s}
+.job-card:active{opacity:.8;background:var(--bg3)}
+.job-card.open{border-color:var(--accent);background:rgba(37,99,235,.04)}
+.jc-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:3px}
+.jc-addr{font-size:11px;color:var(--text3);margin-bottom:7px}
+.jc-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500}
+.b-green{background:var(--gbg);color:var(--green)}.b-amber{background:var(--abg);color:var(--amber)}
+.b-blue{background:rgba(37,99,235,.12);color:#60a5fa}.b-red{background:var(--rbg);color:var(--red)}
+.b-gray{background:var(--bg4);color:var(--text2)}.b-teal{background:rgba(13,148,136,.12);color:#2dd4bf}
+
+/* GPS INDICATOR */
+.gps-block{border-radius:var(--r);padding:13px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.gps-on-block{background:var(--gbg);border:1px solid var(--gb)}
+.gps-off-block{background:var(--bg3);border:1px solid var(--border2)}
+
+/* CHECK-IN CARD */
+.ci-card{border-radius:var(--r);padding:14px 16px;text-align:center;margin-bottom:13px}
+.ci-active{background:var(--gbg);border:1.5px solid var(--gb)}
+.ci-inactive{background:var(--bg2);border:1px solid var(--border2)}
+.ci-status{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:3px}
+.ci-meta{font-size:12px;color:var(--text2)}
+.ci-timer{font-size:28px;font-weight:300;color:var(--green);font-family:'DM Sans',monospace;margin:8px 0}
+
+/* PARTS LIST */
+.part-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.part-row:last-child{border-bottom:none}
+.pr-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.pr-info{flex:1;min-width:0}
+.pr-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-bc{font-size:10px;color:var(--text3);margin-top:1px}
+.pr-act select{font-size:11px;padding:3px 8px;border-radius:var(--rs);border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer}
+
+/* CHECKLIST */
+.chk-item{display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)}
+.chk-item:last-child{border-bottom:none}
+.chk-box{width:22px;height:22px;border-radius:6px;border:2px solid var(--border2);cursor:pointer;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.chk-box.ck{background:var(--green);border-color:var(--green)}.chk-box.ck::after{content:'✓';color:#fff;font-size:12px;font-weight:700}
+.chk-lbl{font-size:14px;color:var(--text);line-height:1.4}.chk-lbl.done{text-decoration:line-through;color:var(--text3)}
+
+/* PHOTO GRID */
+.photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.photo-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;aspect-ratio:4/3;cursor:pointer}
+.photo-thumb{width:100%;height:100%;object-fit:cover;display:block}
+.photo-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--text3)}
+
+/* MISC */
+.sec-hdr{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:14px 0 8px}
+.pbar{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.pb{height:100%;border-radius:3px;background:var(--accent);transition:width .4s}
+.pb.g{background:var(--green)}
+.empty{text-align:center;padding:28px 14px;color:var(--text3);font-size:13px}
+.av{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:'Syne',sans-serif}
+.spin{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast-wrap{position:fixed;bottom:max(90px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none}
+.toast-el{background:var(--bg2);border:1px solid var(--border2);border-radius:99px;padding:9px 18px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px;box-shadow:0 6px 24px rgba(0,0,0,.7);animation:fadeUp .2s ease}
+@keyframes fadeUp{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+.inset-top{padding-top:max(0px,env(safe-area-inset-top))}
+.upload-zone{border:1.5px dashed var(--border2);border-radius:var(--r);padding:18px;text-align:center;cursor:pointer}
+.upload-zone:hover{border-color:var(--accent)}
+.upload-zone input{display:none}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div>
+    <div class="hdr-logo">FieldAxisHQ</div>
+    <div class="hdr-sub">Field Worker Portal</div>
+  </div>
+  <div class="hdr-right">
+    <div class="icon-btn" id="notif-btn" onclick="showScreen('notif')">🔔<span id="notif-dot" style="display:none;position:absolute;top:0;right:0;width:8px;height:8px;border-radius:50%;background:var(--red)"></span></div>
+    <div id="user-av" class="av" style="width:32px;height:32px;font-size:12px;cursor:pointer" onclick="confirmSignOut()"></div>
+  </div>
+</div>
+
+<!-- GPS BAR -->
+<div class="gps-bar">
+  <div class="gps-pill gps-off" id="gps-pill"><span class="pulse"></span><span id="gps-status-txt">Locating…</span></div>
+  <span id="gps-coords-txt" style="color:var(--text3);font-size:9px;font-family:'DM Mono',monospace"></span>
+  <span id="checkin-indicator" style="margin-left:auto;font-size:11px;color:var(--green);display:none">✓ Checked in</span>
+</div>
+
+<!-- SCREENS -->
+<div class="screens">
+
+<!-- ── JOBS SCREEN ── -->
+<div id="sc-jobs" class="sc active">
+  <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:13px">My Assigned Jobs</div>
+  <div id="jobs-list"><div class="empty">Loading…</div></div>
+</div>
+
+<!-- ── JOB DETAIL SCREEN ── -->
+<div id="sc-jobdetail" class="sc">
+  <button class="btn" style="margin-bottom:12px" onclick="showScreen('jobs')">← Back to Jobs</button>
+  <div id="jd-content"></div>
+</div>
+
+<!-- ── SCAN SCREEN (quick parts lookup) ── -->
+<div id="sc-scan" class="sc">
+  <div class="sec-hdr">Quick Part Lookup</div>
+  <div class="fg"><label class="fl">Barcode</label><input class="fi" id="wk-bc" placeholder="Scan or type barcode…" oninput="wkLookup(this.value)"></div>
+  <div id="wk-resolve" style="margin-bottom:8px"></div>
+  <div class="fg"><label class="fl">My Current Job</label><select class="fs" id="wk-job" onchange="wkLoadJobParts()"><option value="">— Select job —</option></select></div>
+  <div id="wk-parts-list"></div>
+</div>
+
+<!-- ── NOTIFICATIONS ── -->
+<div id="sc-notif" class="sc">
+  <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:13px">Notifications</div>
+  <div id="wk-notif-list"><div class="empty">No notifications</div></div>
+</div>
+
+<!-- ── PROFILE ── -->
+<div id="sc-profile" class="sc">
+  <div class="card" style="text-align:center;padding:22px">
+    <div id="pf-av" class="av" style="width:64px;height:64px;font-size:22px;margin:0 auto 12px"></div>
+    <div id="pf-name" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700"></div>
+    <div id="pf-role" style="font-size:12px;color:var(--text3);margin-top:3px"></div>
+    <div id="pf-company" style="font-size:12px;color:var(--text3);margin-top:2px"></div>
+  </div>
+  <div class="card">
+    <div class="card-ttl">Change Password</div>
+    <div class="fg"><label class="fl">Current Password</label><input class="fi" type="password" id="cp-cur" placeholder="Current password"></div>
+    <div class="fg"><label class="fl">New Password</label><input class="fi" type="password" id="cp-new" placeholder="New password (min 6)"></div>
+    <button class="btn btn-p" onclick="changePassword()">Update Password</button>
+  </div>
+  <button class="btn btn-r" style="margin-top:5px" onclick="confirmSignOut()">Sign Out</button>
+</div>
+
+</div><!-- end screens -->
+
+<!-- BOTTOM NAV -->
+<div class="bot-nav">
+  <div class="bnav-item active" id="bnav-jobs" onclick="showScreen('jobs')"><div class="bnav-icon">🏗</div><div class="bnav-lbl">Jobs</div></div>
+  <div class="bnav-item" id="bnav-scan" onclick="showScreen('scan')"><div class="bnav-icon">🔍</div><div class="bnav-lbl">Parts</div></div>
+  <div class="bnav-item" id="bnav-notif" onclick="showScreen('notif')"><div class="bnav-icon">🔔</div><div class="bnav-lbl">Alerts</div></div>
+  <div class="bnav-item" id="bnav-profile" onclick="showScreen('profile')"><div class="bnav-icon">👤</div><div class="bnav-lbl">Me</div></div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script src="fax-shared.js"></script>
+<script>
+// ════════════════════════════════════════
+// FieldAxisHQ  Worker Portal
+// ════════════════════════════════════════
+const sb = getSb()
+let MY = null
+let gpsPos = null
+let gpsWatchId = null
+let myJobs = []
+let currentJobId = null
+let currentJob = null
+let checkinTimer = null
+let checkinStart = null
+
+// ── BOOT ─────────────────────────────────
+window.addEventListener('load', async () => {
+  const session = await requireAuth(sb); if (!session) return
+  const { data: profile } = await sb.from('profiles').select('*,companies(name)').eq('id', session.user.id).single()
+  MY = profile
+  const name = profile?.full_name || session.user.email
+  const av = document.getElementById('user-av')
+  av.textContent = initials(name); av.style.cssText += ';' + avStyle(name)
+  const pfav = document.getElementById('pf-av')
+  pfav.textContent = initials(name); pfav.style.cssText += ';' + avStyle(name)
+  document.getElementById('pf-name').textContent = name
+  document.getElementById('pf-role').textContent = profile?.role || ''
+  document.getElementById('pf-company').textContent = profile?.companies?.name || 'Internal'
+  startGPS()
+  await loadJobs()
+  await checkActiveCheckins()
+  loadNotifBadge()
+})
+
+// ── GPS ──────────────────────────────────
+function startGPS() {
+  if (!navigator.geolocation) { updateGpsPill(false, 'GPS not available'); return }
+  gpsWatchId = navigator.geolocation.watchPosition(pos => {
+    gpsPos = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: Math.round(pos.coords.accuracy) }
+    updateGpsPill(true, '±' + gpsPos.acc + 'm')
+    document.getElementById('gps-coords-txt').textContent = gpsPos.lat.toFixed(5) + ', ' + gpsPos.lng.toFixed(5)
+  }, err => {
+    updateGpsPill(false, 'GPS unavailable')
+  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 })
+}
+function updateGpsPill(on, txt) {
+  const pill = document.getElementById('gps-pill')
+  pill.className = 'gps-pill ' + (on ? 'gps-on' : 'gps-off')
+  document.getElementById('gps-status-txt').textContent = txt
+}
+
+// ── NAVIGATION ────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.sc').forEach(s => s.classList.remove('active'))
+  document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'))
+  document.getElementById('sc-' + id)?.classList.add('active')
+  document.getElementById('bnav-' + id)?.classList.add('active')
+  if (id === 'notif') loadNotifs()
+  if (id === 'scan') loadJobsIntoWkSelect()
+}
+
+// ── JOBS ──────────────────────────────────
+async function loadJobs() {
+  try {
+    const { data: assignments } = await sb.from('job_workers').select('job_id,jobs(*)').eq('worker_id', MY.id).eq('is_active', true)
+    myJobs = (assignments || []).map(a => a.jobs).filter(Boolean).filter(j => !j.archived && j.phase !== 'complete')
+    if (!myJobs.length) { document.getElementById('jobs-list').innerHTML = '<div class="empty">No jobs assigned to you yet.</div>'; return }
+    // Check active check-ins
+    const { data: cis } = await sb.from('checkins').select('job_id').eq('worker_id', MY.id).is('checkout_at', null)
+    const activeJobIds = new Set((cis || []).map(c => c.job_id))
+    document.getElementById('jobs-list').innerHTML = myJobs.map(j => {
+      const isIn = activeJobIds.has(j.id)
+      return `<div class="job-card ${isIn ? 'open' : ''}" onclick="openJobDetail('${j.id}')">
+        ${isIn ? '<div class="gps-pill gps-on" style="margin-bottom:7px;font-size:10px"><span class="pulse"></span> Checked In</div>' : ''}
+        <div class="jc-name">${j.name}</div>
+        <div class="jc-addr">${j.address || ''}</div>
+        <div class="jc-meta">
+          <span class="badge ${phaseColor(j.phase)}">${j.phase.replace(/_/g,' ')}</span>
+          ${j.due_date ? `<span style="font-size:10px;color:var(--text3)">${isOverdue(j.due_date,j.phase)?'⚠ ':''}Due ${fmtDate(j.due_date)}</span>` : ''}
+          ${j.gc_company ? `<span style="font-size:10px;color:var(--text3)">${j.gc_company}</span>` : ''}
+        </div>
+      </div>`
+    }).join('')
+  } catch(e) { document.getElementById('jobs-list').innerHTML = '<div class="empty">Failed to load jobs</div>' }
+}
+function phaseColor(p) {
+  const m = { not_started:'b-gray', pre_construction:'b-blue', rough_in:'b-amber', trim_out:'b-teal', inspection:'b-blue', closeout:'b-green', complete:'b-green' }
+  return m[p] || 'b-gray'
+}
+
+// ── JOB DETAIL ────────────────────────────
+async function openJobDetail(jobId) {
+  currentJobId = jobId
+  currentJob = myJobs.find(j => j.id === jobId)
+  showScreen('jobdetail')
+  document.getElementById('jd-content').innerHTML = '<div class="empty">Loading…</div>'
+  await renderJobDetail()
+}
+
+async function renderJobDetail() {
+  const j = currentJob; if (!j) return
+  // Check if checked in
+  const { data: cis } = await sb.from('checkins').select('*').eq('job_id', j.id).eq('worker_id', MY.id).is('checkout_at', null)
+  const activeCI = cis?.[0]
+  // Load parts, checklist, photos
+  const [partsR, checkR, photosR, inspsR] = await Promise.all([
+    sb.from('job_parts').select('*').eq('job_id', j.id).order('created_at'),
+    sb.from('job_checklist_items').select('*').eq('job_id', j.id).order('sort_order'),
+    sb.from('job_photos').select('*').eq('job_id', j.id).order('created_at', { ascending: false }).limit(6),
+    sb.from('pm_inspections').select('*').eq('job_id', j.id).order('visited_at', { ascending: false }).limit(1)
+  ])
+  const parts = partsR.data || []
+  const items = checkR.data || []
+  const photos = photosR.data || []
+  const lastInsp = inspsR.data?.[0]
+  const doneItems = items.filter(i => i.is_checked).length
+  const total = items.length
+
+  let timerHtml = ''
+  if (activeCI) {
+    const elapsedMs = Date.now() - new Date(activeCI.checkin_at).getTime()
+    const hrs = Math.floor(elapsedMs / 3600000), mins = Math.floor((elapsedMs % 3600000) / 60000)
+    timerHtml = `<div class="ci-timer">${hrs}h ${String(mins).padStart(2,'0')}m</div>`
+  }
+
+  document.getElementById('jd-content').innerHTML = `
+  <!-- JOB HEADER -->
+  <div class="card">
+    <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:4px">${j.name}</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${j.address||''}</div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap">
+      <span class="badge ${phaseColor(j.phase)}">${j.phase.replace(/_/g,' ')}</span>
+      ${j.due_date?`<span style="font-size:11px;color:var(--text3)">Due ${fmtDate(j.due_date)}</span>`:''}
+      ${j.gc_company?`<span style="font-size:11px;color:var(--text3)">${j.gc_company}</span>`:''}
+    </div>
+    ${j.scope ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text2);line-height:1.6">${j.scope}</div>` : ''}
+    ${j.install_notes ? `<div style="margin-top:8px;background:var(--abg);border:1px solid var(--ab);border-radius:var(--rs);padding:9px 11px;font-size:12px;color:var(--amber);line-height:1.6">📋 ${j.install_notes}</div>` : ''}
+    ${lastInsp?.rejected_at ? `<div style="margin-top:8px;background:var(--rbg);border:1px solid var(--rb);border-radius:var(--rs);padding:9px 11px;font-size:12px;color:var(--red)">⚠ PM Rejected: ${lastInsp.rejection_reason||'See PM notes'}</div>` : ''}
+  </div>
+
+  <!-- GPS CHECK-IN / OUT -->
+  <div class="ci-card ${activeCI?'ci-active':'ci-inactive'}">
+    <div class="ci-status" style="color:${activeCI?'var(--green)':'var(--text2)'}">${activeCI?'✓ Checked In':'Not Checked In'}</div>
+    ${timerHtml}
+    <div class="ci-meta">${activeCI?'Since '+fmtTime(activeCI.checkin_at)+' · '+Math.round(activeCI.checkin_dist_ft||0)+'ft from site':'Check in to start logging hours'}</div>
+  </div>
+  ${activeCI
+    ? `<button class="btn btn-r" id="ci-btn" onclick="doCheckout()">Check Out</button>`
+    : `<button class="btn btn-g" id="ci-btn" onclick="doCheckin('${j.id}')">📍 GPS Check In</button>`
+  }
+
+  <!-- PARTS -->
+  <div class="sec-hdr">Parts on This Job (${parts.length})</div>
+  <div class="card">
+    ${parts.length ? parts.map(p => `<div class="part-row">
+      <div class="pr-dot" style="background:${p.status==='installed'?'var(--green)':p.status==='signed_out'?'#60a5fa':p.over?'var(--red)':'var(--amber)'}"></div>
+      <div class="pr-info"><div class="pr-name">${p.part_name}</div><div class="pr-bc">${p.part_id} · qty ${p.assigned_qty}</div></div>
+      <div class="pr-act"><select onchange="updateMyPartStatus('${p.id}',this.value)" ${!activeCI?'disabled':''}>
+        <option value="staged" ${p.status==='staged'?'selected':''}>Staged</option>
+        <option value="signed_out" ${p.status==='signed_out'?'selected':''}>Signed Out</option>
+        <option value="partial_install" ${p.status==='partial_install'?'selected':''}>Partial</option>
+        <option value="installed" ${p.status==='installed'?'selected':''}>Installed</option>
+      </select></div>
+    </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">No parts on this job yet</div>'}
+  </div>
+
+  <!-- CHECKLIST -->
+  ${items.length ? `
+  <div class="sec-hdr">Checklist (${doneItems}/${total})</div>
+  <div style="margin-bottom:8px"><div class="pbar"><div class="pb ${doneItems===total&&total>0?'g':''}" style="width:${total?Math.round(doneItems/total*100):0}%"></div></div></div>
+  <div class="card">
+    ${items.map(item => `<div class="chk-item">
+      <div class="chk-box ${item.is_checked?'ck':''}" onclick="toggleCheck('${item.id}',${!item.is_checked})"></div>
+      <div class="chk-lbl ${item.is_checked?'done':''}">${item.item_text}${item.section?`<div style="font-size:10px;color:var(--accent);margin-top:1px">§ ${item.section}</div>`:''}</div>
+    </div>`).join('')}
+  </div>` : ''}
+
+  <!-- PHOTOS -->
+  <div class="sec-hdr">Photos</div>
+  <label class="upload-zone">
+    <input type="file" multiple accept="image/*" capture="environment" onchange="uploadJobPhotos(this.files)">
+    <div style="font-size:22px;color:var(--text3)">📷</div>
+    <div style="font-size:12px;color:var(--text3);margin-top:5px">Take or upload photo</div>
+  </label>
+  ${photos.length ? `<div class="photo-grid">${photos.map(p=>`<div class="photo-card" onclick="window.open('${p.url}','_blank')"><img class="photo-thumb" src="${p.url}" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="photo-ph" style="display:none">🖼</div></div>`).join('')}</div>` : ''}
+
+  <!-- DAILY LOG / NOTES -->
+  <div class="sec-hdr">Field Notes</div>
+  <div class="card">
+    <div class="fg"><label class="fl">Log Type</label><select class="fs" id="wk-log-type" style="margin-bottom:8px"><option value="note">Note</option><option value="issue">Issue</option><option value="progress">Progress Update</option></select></div>
+    <textarea class="ft" id="wk-log-txt" placeholder="Enter field notes, issues, or progress updates…"></textarea>
+    <button class="btn btn-p" style="margin-top:9px" onclick="addFieldNote()">Submit Note</button>
+  </div>
+
+  <!-- CONTACT -->
+  ${j.gc_contact || j.super_name ? `
+  <div class="sec-hdr">Site Contacts</div>
+  <div class="card">
+    ${j.gc_contact?`<div style="padding:7px 0;border-bottom:1px solid var(--border)"><div style="font-size:12px;font-weight:500">${j.gc_contact}</div><div style="font-size:11px;color:var(--text3)">GC Contact${j.gc_phone?' · <a href="tel:'+j.gc_phone+'" style="color:var(--accent);text-decoration:none">'+j.gc_phone+'</a>':''}</div></div>`:''}
+    ${j.super_name?`<div style="padding:7px 0"><div style="font-size:12px;font-weight:500">${j.super_name}</div><div style="font-size:11px;color:var(--text3)">Superintendent${j.super_phone?' · <a href="tel:'+j.super_phone+'" style="color:var(--accent);text-decoration:none">'+j.super_phone+'</a>':''}</div></div>`:''}
+  </div>` : ''}
+  `
+}
+
+// ── GPS CHECK-IN ──────────────────────────
+async function doCheckin(jobId) {
+  const btn = document.getElementById('ci-btn'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Checking location…'
+  if (!gpsPos) {
+    toast('GPS not ready — wait for location fix', 'warn')
+    btn.disabled = false; btn.innerHTML = '📍 GPS Check In'; return
+  }
+  try {
+    const { data: { session } } = await sb.auth.getSession()
+    const res = await fetch('/api/checkins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+      body: JSON.stringify({ job_id: jobId, checkin_lat: gpsPos.lat, checkin_lng: gpsPos.lng, action: 'checkin' })
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      if (data.blocked) toast('Too far from site — ' + data.dist_ft + 'ft away (need within ' + (currentJob?.gps_radius_ft||250) + 'ft)', 'error')
+      else toast(data.error || 'Check-in failed', 'error')
+      btn.disabled = false; btn.innerHTML = '📍 GPS Check In'; return
+    }
+    toast('Checked in ✓', 'success')
+    document.getElementById('checkin-indicator').style.display = 'block'
+    await loadJobs(); await renderJobDetail()
+  } catch(e) { toast(e.message, 'error'); btn.disabled = false; btn.innerHTML = '📍 GPS Check In' }
+}
+
+async function doCheckout() {
+  const btn = document.getElementById('ci-btn'); btn.disabled = true; btn.textContent = 'Checking out…'
+  try {
+    const { data: { session } } = await sb.auth.getSession()
+    const res = await fetch('/api/checkins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+      body: JSON.stringify({ job_id: currentJobId, checkin_lat: gpsPos?.lat, checkin_lng: gpsPos?.lng, action: 'checkout' })
+    })
+    const data = await res.json()
+    if (!res.ok) { toast(data.error, 'error'); btn.disabled = false; btn.textContent = 'Check Out'; return }
+    toast('Checked out — ' + fmtHours(data.hours || 0) + ' logged', 'success')
+    document.getElementById('checkin-indicator').style.display = 'none'
+    await loadJobs(); await renderJobDetail()
+  } catch(e) { toast(e.message, 'error'); btn.disabled = false; btn.textContent = 'Check Out' }
+}
+
+async function checkActiveCheckins() {
+  const { data } = await sb.from('checkins').select('id').eq('worker_id', MY.id).is('checkout_at', null)
+  if ((data||[]).length) document.getElementById('checkin-indicator').style.display = 'block'
+}
+
+// ── PART STATUS UPDATE ────────────────────
+async function updateMyPartStatus(partId, status) {
+  try {
+    const { data: { session } } = await sb.auth.getSession()
+    await fetch('/api/jobs/' + currentJobId + '/parts/' + partId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+      body: JSON.stringify({ status })
+    })
+    toast('Status updated', 'success')
+  } catch(e) { toast(e.message, 'error') }
+}
+
+// ── CHECKLIST ─────────────────────────────
+async function toggleCheck(id, chk) {
+  const { data: { session } } = await sb.auth.getSession()
+  await sb.from('job_checklist_items').update({ is_checked: chk, checked_by: chk ? session?.user?.id : null, checked_at: chk ? new Date().toISOString() : null }).eq('id', id)
+  toast(chk ? 'Checked ✓' : 'Unchecked', 'success')
+  await renderJobDetail()
+}
+
+// ── PHOTOS ────────────────────────────────
+// Upload directly to Cloudinary (server signs the request — no API keys in browser)
+async function uploadToCloudinary(file, folder) {
+  const { data: { session } } = await sb.auth.getSession()
+  const sigR = await fetch('/api/upload-sign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+    body: JSON.stringify({ folder })
+  })
+  const sig = await sigR.json()
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('api_key', sig.api_key)
+  fd.append('timestamp', sig.timestamp)
+  fd.append('signature', sig.signature)
+  fd.append('folder', sig.folder)
+  if (sig.upload_preset) fd.append('upload_preset', sig.upload_preset)
+  const r = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloud_name}/auto/upload`, { method: 'POST', body: fd })
+  if (!r.ok) throw new Error('Cloudinary upload failed')
+  const d = await r.json()
+  return { url: d.secure_url, public_id: d.public_id }
+}
+
+async function uploadJobPhotos(files) {
+  for (const f of files) {
+    try {
+      const { url, public_id } = await uploadToCloudinary(f, `fieldaxishq/jobs/${currentJobId}/photos`)
+      const { data: { session } } = await sb.auth.getSession()
+      await fetch('/api/jobs/' + currentJobId + '/photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+        body: JSON.stringify({ url, public_id, type: 'progress', photo_lat: gpsPos?.lat, photo_lng: gpsPos?.lng })
+      })
+    } catch(e) { toast('Upload failed', 'error') }
+  }
+  toast('Photo uploaded', 'success')
+  await renderJobDetail()
+}
+
+// ── FIELD NOTES ───────────────────────────
+async function addFieldNote() {
+  const content = document.getElementById('wk-log-txt').value.trim()
+  if (!content) { toast('Write a note first', 'warn'); return }
+  const type = document.getElementById('wk-log-type').value
+  try {
+    const { data: { session } } = await sb.auth.getSession()
+    await fetch('/api/jobs/' + currentJobId + '/logs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+      body: JSON.stringify({ content, type })
+    })
+    document.getElementById('wk-log-txt').value = ''
+    toast('Note added ✓', 'success')
+  } catch(e) { toast(e.message, 'error') }
+}
+
+// ── SCAN / PARTS LOOKUP ───────────────────
+async function loadJobsIntoWkSelect() {
+  const el = document.getElementById('wk-job')
+  el.innerHTML = '<option value="">— Select job —</option>' + myJobs.map(j => `<option value="${j.id}">${j.name}</option>`).join('')
+}
+async function wkLoadJobParts() {
+  const jobId = document.getElementById('wk-job').value
+  if (!jobId) { document.getElementById('wk-parts-list').innerHTML = ''; return }
+  const { data } = await sb.from('job_parts').select('*').eq('job_id', jobId)
+  document.getElementById('wk-parts-list').innerHTML = (data||[]).length
+    ? (data||[]).map(p => `<div class="part-row"><div class="pr-dot" style="background:${p.status==='installed'?'var(--green)':p.status==='signed_out'?'#60a5fa':'var(--amber)'}"></div><div class="pr-info"><div class="pr-name">${p.part_name}</div><div class="pr-bc">${p.part_id} · qty ${p.assigned_qty}</div></div><span class="badge ${p.status==='installed'?'b-green':p.status==='signed_out'?'b-blue':'b-amber'}">${p.status.replace(/_/g,' ')}</span></div>`).join('')
+    : '<div style="font-size:12px;color:var(--text3)">No parts</div>'
+}
+let wkBcDeb = null
+async function wkLookup(val) {
+  clearTimeout(wkBcDeb)
+  if (!val || val.length < 3) { document.getElementById('wk-resolve').innerHTML = ''; return }
+  wkBcDeb = setTimeout(async () => {
+    const { data } = await sb.from('catalog').select('*').or(`barcode.eq.${val},name.ilike.%${val}%`).limit(4)
+    document.getElementById('wk-resolve').innerHTML = (data||[]).map(c => `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:9px 11px;margin-bottom:5px"><div style="font-size:13px;font-weight:500">${c.name}</div><div style="font-size:10px;color:var(--text3)">${c.barcode}${c.part_number?' · '+c.part_number:''}</div></div>`).join('') || '<div style="font-size:12px;color:var(--text3)">No match in catalog</div>'
+  }, 250)
+}
+
+// ── NOTIFICATIONS ─────────────────────────
+async function loadNotifs() {
+  const { data: { session } } = await sb.auth.getSession()
+  const res = await fetch('/api/notifications', { headers: { 'Authorization': 'Bearer ' + session?.access_token } })
+  const notifs = await res.json()
+  document.getElementById('wk-notif-list').innerHTML = (notifs||[]).length
+    ? notifs.map(n => `<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;gap:9px"><div style="width:7px;height:7px;border-radius:50%;background:${n.read?'var(--bg4)':'var(--accent)'};flex-shrink:0;margin-top:4px"></div><div><div style="font-size:13px;font-weight:500">${n.title}</div><div style="font-size:12px;color:var(--text3);margin-top:2px">${n.message}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">${fmtDateTime(n.created_at)}</div></div></div>`).join('')
+    : '<div class="empty">No notifications</div>'
+}
+async function loadNotifBadge() {
+  try {
+    const { data: { session } } = await sb.auth.getSession()
+    const res = await fetch('/api/notifications', { headers: { 'Authorization': 'Bearer ' + session?.access_token } })
+    const n = await res.json()
+    const u = (n||[]).filter(x => !x.read).length
+    document.getElementById('notif-dot').style.display = u > 0 ? 'block' : 'none'
+  } catch {}
+}
+
+// ── PROFILE / SETTINGS ────────────────────
+async function changePassword() {
+  const cur = document.getElementById('cp-cur').value
+  const nw = document.getElementById('cp-new').value
+  if (!cur || !nw) { toast('Both fields required', 'warn'); return }
+  if (nw.length < 6) { toast('Min 6 characters', 'warn'); return }
+  try {
+    const { data: { session } } = await sb.auth.getSession()
+    const res = await fetch('/api/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+      body: JSON.stringify({ current: cur, newpw: nw })
+    })
+    const d = await res.json()
+    if (!res.ok) { toast(d.error, 'error'); return }
+    toast('Password updated ✓', 'success')
+    document.getElementById('cp-cur').value = ''; document.getElementById('cp-new').value = ''
+  } catch(e) { toast(e.message, 'error') }
+}
+
+function confirmSignOut() {
+  if (confirm('Sign out?')) signOut(sb)
+}
+
+// ── TOAST ─────────────────────────────────
+function toast(msg, type = 'success') {
+  const colors = { success: 'var(--green)', error: 'var(--red)', info: 'var(--accent)', warn: 'var(--amber)' }
+  const icons = { success: '✓', error: '✗', info: 'ℹ', warn: '⚠' }
+  const wrap = document.getElementById('toast-wrap')
+  const el = document.createElement('div')
+  el.className = 'toast-el'
+  el.innerHTML = `<span style="color:${colors[type]}">${icons[type]}</span>${msg}`
+  wrap.appendChild(el)
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = '.3s' }, 2800)
+  setTimeout(() => el.remove(), 3100)
+}
+</script>
+</body>
+</html>

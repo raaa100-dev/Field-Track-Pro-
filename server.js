@@ -139,24 +139,27 @@ const server = http.createServer(async (req, res) => {
 
   if (method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
 
-  // Static files — try public/ first, then root
+  // Static files — serve from filesystem with multiple fallback paths
   if (method === 'GET' && !p.startsWith('/api/')) {
-    const ext = path.extname(p);
-    const ctMap = { '.html':'text/html', '.js':'application/javascript', '.css':'text/css', '.json':'application/json', '.png':'image/png', '.jpg':'image/jpeg', '.ico':'image/x-icon', '.svg':'image/svg+xml' };
-    const ct = ctMap[ext] || 'text/html';
-    // Normalize path — / or /index.html → index.html
-    const fileName = (p === '/' || p === '') ? 'index.html' : p.replace(/^\//, '');
-    // Try public/ first
-    const fromPublic = path.join(__dirname, 'public', fileName);
-    if (fs.existsSync(fromPublic)) return serveFile(res, fromPublic, ct);
-    // Fallback: root directory
-    const fromRoot = path.join(__dirname, fileName);
-    if (fs.existsSync(fromRoot)) return serveFile(res, fromRoot, ct);
-    // SPA fallback: serve index.html for unknown HTML requests
-    if (!ext || ext === '.html') {
-      const idx = path.join(__dirname, 'public', 'index.html');
-      if (fs.existsSync(idx)) return serveFile(res, idx, 'text/html');
+    const cleanPath = p === '/' ? 'index.html' : p.replace(/^\//, '')
+    const ctMap = {'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.ico':'image/x-icon','.svg':'image/svg+xml'}
+    const ct = ctMap[path.extname(cleanPath)] || 'text/html'
+    const attempts = [
+      path.join(__dirname, 'public', cleanPath),
+      path.join(__dirname, cleanPath),
+      path.join('/opt/render/project/src/public', cleanPath),
+      path.join('/opt/render/project/src', cleanPath)
+    ]
+    for (const fp of attempts) {
+      try { const d = fs.readFileSync(fp); res.writeHead(200, {'Content-Type': ct, ...CORS}); return res.end(d) } catch(e) {}
     }
+    // Last resort: return index.html
+    const idxPaths = [path.join(__dirname,'public','index.html'), path.join(__dirname,'index.html'), '/opt/render/project/src/public/index.html']
+    for (const fp of idxPaths) {
+      try { const d = fs.readFileSync(fp); res.writeHead(200, {'Content-Type': 'text/html', ...CORS}); return res.end(d) } catch(e) {}
+    }
+    res.writeHead(404); res.end('Page not found')
+    return
   }
 
   // ── AUTH ──────────────────────────────────────────────────────────────────
