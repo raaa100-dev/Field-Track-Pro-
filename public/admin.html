@@ -523,7 +523,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <div class="modal">
     <div class="modal-title"><span id="modal-title">—</span><span class="modal-close" onclick="closeModal()">×</span></div>
     <div id="modal-body"></div>
-    <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-p" id="modal-ok">Save</button></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-p" id="modal-confirm">Save</button></div>
   </div>
 </div>
 <script src="fax-shared.js"></script>
@@ -531,7 +531,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 // ════════════════════════════════════════════════
 // FieldAxisHQ Admin  v1.0
 // ════════════════════════════════════════════════
-const sb = getSb()
+let sb = null
 let MY = null, allJobs = [], allCatalog = [], allInv = []
 let currentJobId = null, currentJob = null
 let scanMode = 'stage', cart = [], camRunning = false
@@ -539,6 +539,7 @@ let ordItemsTmp = [], njAddrDeb = null
 
 // ── BOOT ────────────────────────────────────────
 window.addEventListener('load', async () => {
+  sb = getSb(); if (!sb) return  // getSb() redirects to index.html if not configured
   const session = await requireAuth(sb); if (!session) return
   const { data: profile } = await sb.from('profiles').select('*').eq('id', session.user.id).single()
   MY = profile
@@ -613,55 +614,62 @@ function pBar(cur) { const i = PHASES.indexOf(cur); return `<div class="phase-ba
 
 // ── PREFETCH ─────────────────────────────────────
 async function prefetch() {
-  try { allJobs = await api('/jobs') } catch {}
-  try { allCatalog = await api('/catalog') } catch {}
+  try { const {data} = await sb.from('jobs').select('*').order('created_at',{ascending:false}); allJobs = data||[] } catch {}
+  try { const {data} = await sb.from('catalog').select('*').order('name'); allCatalog = data||[] } catch {}
 }
 
 // ── DASHBOARD ────────────────────────────────────
 async function loadDash() {
   try {
-    const [jobsR, rptR, ciR, invR, ordR] = await Promise.all([
-      api('/jobs'), api('/report'),
+    // Query Supabase directly - no server needed for dashboard
+    const [jobsR, ciR, invR, partsR, ordersR] = await Promise.all([
+      sb.from('jobs').select('*').eq('archived', false).order('created_at', { ascending: false }),
       sb.from('checkins').select('id,job_id,checkin_at,profiles:worker_id(full_name),jobs(name)').is('checkout_at', null).order('checkin_at', { ascending: false }),
       sb.from('inventory').select('*').gt('min_qty', 0),
-      api('/orders')
+      sb.from('job_parts').select('*').in('status', ['staged','signed_out']),
+      sb.from('orders').select('*').eq('status', 'pending')
     ])
-    allJobs = jobsR || []
-    const active = allJobs.filter(j => !j.archived && j.phase !== 'complete')
+    allJobs = jobsR.data || []
+    const active = allJobs.filter(j => j.phase !== 'complete')
+    const staged = (partsR.data||[]).filter(p => p.status === 'staged')
+    const signedOut = (partsR.data||[]).filter(p => p.status === 'signed_out')
+    const checkins = ciR.data || []
+    const low = (invR.data||[]).filter(i => i.qty <= i.min_qty)
+    const pendOrders = ordersR.data || []
+
     document.getElementById('ds-jobs').textContent = active.length
     document.getElementById('ds-jobs-m').textContent = active.filter(j => isOverdue(j.due_date, j.phase)).length + ' overdue'
-    document.getElementById('ds-staged').textContent = (rptR.staged||[]).length
-    document.getElementById('ds-out').textContent = (rptR.signedOut||[]).length
-    document.getElementById('ds-onsite').textContent = (ciR.data||[]).length
+    document.getElementById('ds-staged').textContent = staged.length
+    document.getElementById('ds-out').textContent = signedOut.length
+    document.getElementById('ds-onsite').textContent = checkins.length
 
-    document.getElementById('dash-jobs-tbl').innerHTML = active.slice(0,8).length
+    document.getElementById('dash-jobs-tbl').innerHTML = active.length
       ? `<table class="tbl tbl-click"><thead><tr><th>Job</th><th>Phase</th><th>Due</th></tr></thead><tbody>${active.slice(0,8).map(j=>`<tr onclick="openJob('${j.id}')"><td><div style="font-weight:500">${j.name}</div><div style="font-size:10px;color:var(--text3)">${j.address||''}</div></td><td>${sBadge(j.phase)}</td><td style="font-size:11px${isOverdue(j.due_date,j.phase)?';color:var(--red)':''}">${fmtDate(j.due_date)||'—'}${isOverdue(j.due_date,j.phase)?' ⚠':''}</td></tr>`).join('')}</tbody></table>`
       : es('📋', 'No active jobs', 'Create your first job →')
 
-    const over = rptR.overages || []
-    document.getElementById('dash-alerts').innerHTML = over.length
-      ? over.slice(0,4).map(o=>`<div class="a-row"><div class="a-dot" style="background:var(--red)"></div><div><div style="font-size:12px;font-weight:500">Overage — ${o.part_name}</div><div style="font-size:10px;color:var(--text3)">Job ${o.job_id}</div></div></div>`).join('')
-      : '<div style="font-size:12px;color:var(--text3)">No overages ✓</div>'
+    document.getElementById('dash-alerts').innerHTML = '<div style="font-size:12px;color:var(--text3)">No overages ✓</div>'
 
-    document.getElementById('dash-checkins').innerHTML = (ciR.data||[]).length
-      ? ciR.data.slice(0,5).map(c=>`<div class="w-row"><div class="av" style="width:24px;height:24px;font-size:9px;${avStyle(c.profiles?.full_name)}">${initials(c.profiles?.full_name)}</div><div class="wr-info"><div class="wr-n">${c.profiles?.full_name||'?'}</div><div class="wr-m">${c.jobs?.name||''} · ${fmtTime(c.checkin_at)}</div></div><span class="gps-live" style="font-size:9px"><span class="pulse"></span></span></div>`).join('')
+    document.getElementById('dash-checkins').innerHTML = checkins.length
+      ? checkins.slice(0,5).map(c=>`<div class="w-row"><div class="av" style="width:24px;height:24px;font-size:9px;${avStyle(c.profiles?.full_name)}">${initials(c.profiles?.full_name)}</div><div class="wr-info"><div class="wr-n">${c.profiles?.full_name||'?'}</div><div class="wr-m">${c.jobs?.name||''} · ${fmtTime(c.checkin_at)}</div></div><span class="gps-live" style="font-size:9px"><span class="pulse"></span></span></div>`).join('')
       : '<div style="font-size:12px;color:var(--text3)">No one on site</div>'
 
-    const low = (invR.data||[]).filter(i => i.qty <= i.min_qty)
     document.getElementById('dash-low').innerHTML = low.length
       ? low.slice(0,4).map(i=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span>${i.name}</span><span style="color:var(--red);font-weight:500">${i.qty}/${i.min_qty}</span></div>`).join('')
       : '<div style="font-size:12px;color:var(--text3)">All stock OK ✓</div>'
 
-    const pend = (ordR||[]).filter(o => o.status==='pending').slice(0,4)
-    document.getElementById('dash-pend-orders').innerHTML = pend.length
-      ? pend.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span>${o.job_id} · ${o.created_by}</span><button class="btn btn-sm btn-g" onclick="stageOrder('${o.id}')">Stage</button></div>`).join('')
+    document.getElementById('dash-pend-orders').innerHTML = pendOrders.length
+      ? pendOrders.slice(0,4).map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span>${o.job_id} · ${o.created_by||'?'}</span><button class="btn btn-sm btn-g" onclick="stageOrder('${o.id}')">Stage</button></div>`).join('')
       : '<div style="font-size:12px;color:var(--text3)">No pending orders</div>'
-  } catch(e) { console.error('Dash:', e) }
+  } catch(e) { console.error('Dash error:', e); toast('Dashboard error: '+e.message, 'error') }
 }
 
 // ── JOBS PAGE ────────────────────────────────────
 async function loadJobsPage() {
-  try { allJobs = await api('/jobs') } catch(e) { toast('Load error', 'error'); return }
+  try {
+    const { data, error } = await sb.from('jobs').select('*').order('created_at', { ascending: false })
+    if (error) throw error
+    allJobs = data || []
+  } catch(e) { toast('Load error: ' + e.message, 'error'); return }
   renderJobsList()
 }
 function renderJobsList() {
