@@ -577,7 +577,9 @@ function jdTab(el, id) {
 
 // ── API ──────────────────────────────────────────
 async function api(path, method = 'GET', body) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } }
+  const { data: { session } } = await sb.auth.getSession()
+  const token = session?.access_token || ''
+  const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token } }
   if (body) opts.body = JSON.stringify(body)
   const r = await fetch('/api' + path, opts)
   const d = await r.json()
