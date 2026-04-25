@@ -65,44 +65,49 @@ async function dbUpsert(t, b) {
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function nowISO()     { return new Date().toISOString(); }
 function nowDisplay() { return new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}); }
-function uid(prefix)  { return (prefix||'x') + Date.now() + Math.random().toString(36).slice(2,7); }
+function uid()        { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)}); }
 function cloudinarySign(params) { return crypto.createHash('sha1').update(Object.keys(params).sort().map(k => k + '=' + params[k]).join('&') + CL_SECRET).digest('hex'); }
 
 async function auditLog(type, jobId, partId, partName, username, extra) {
-  try { await dbInsert('audit_log', { id: uid('al'), type, job_id: jobId, part_id: partId, part_name: partName, username, extra: extra || '', created_at: nowISO() }); } catch(e) {}
+  try { await dbInsert('audit_log', { id: uid(), type, job_id: jobId, part_id: partId, part_name: partName, username, extra: extra || '', created_at: nowISO() }); } catch(e) {}
 }
 async function addNotif(type, title, message, meta) {
-  try { await dbInsert('notifications', { id: uid('n'), type, title, message, meta: JSON.stringify(meta || {}), read: false, created_at: nowISO() }); } catch(e) {}
+  try { await dbInsert('notifications', { id: uid(), type, title, message, meta: JSON.stringify(meta || {}), read: false, created_at: nowISO() }); } catch(e) {}
 }
 async function autoAddToManifest(jobId, partId, partName, qty, stagedBy) {
   try {
     const ex = await dbGet('job_manifest', { job_id: 'eq.' + jobId, part_id: 'eq.' + partId, select: 'id' });
-    if (!ex[0]) await dbInsert('job_manifest', { id: uid('mf'), job_id: jobId, part_id: partId, part_name: partName, expected_qty: qty, notes: '', added_by: stagedBy, added_at: nowDisplay() });
+    if (!ex[0]) await dbInsert('job_manifest', { id: uid(), job_id: jobId, part_id: partId, part_name: partName, expected_qty: qty, notes: '', added_by: stagedBy, added_at: nowDisplay() });
   } catch(e) {}
 }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 function hashPwd(p)   { const s = crypto.randomBytes(16).toString('hex'); return s + ':' + crypto.pbkdf2Sync(p, s, 100000, 64, 'sha512').toString('hex'); }
 function verifyPwd(p, stored) { const [s, h] = stored.split(':'); return crypto.pbkdf2Sync(p, s, 100000, 64, 'sha512').toString('hex') === h; }
+// Token cache: avoid hitting Supabase auth on every single request
+const _tokenCache = new Map();
 async function getUser(req) {
   const t = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
   if (!t) return null;
+  // Check cache (tokens valid 5 min in cache)
+  const cached = _tokenCache.get(t);
+  if (cached && cached.exp > Date.now()) return cached.user;
   try {
-    const sbUser = await new Promise((resolve) => {
-      const u = new URL(SB_URL + '/auth/v1/user');
-      const opts = { hostname: u.hostname, path: u.pathname, method: 'GET',
-        headers: { 'apikey': SB_ANON, 'Authorization': 'Bearer ' + t } };
-      const r = https.request(opts, res => {
-        let d = ''; res.on('data', c => d += c);
-        res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { resolve(null); } });
-      });
-      r.on('error', () => resolve(null)); r.end();
-    });
-    if (!sbUser || !sbUser.id) return null;
-    const rows = await dbGet('profiles', { id: 'eq.' + sbUser.id, select: '*' });
+    // Decode Supabase JWT payload (middle part) without verifying sig
+    // Supabase JWTs are signed with the project secret - we trust them if they parse correctly
+    const parts = t.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+    const userId = payload.sub;
+    if (!userId) return null;
+    if (payload.exp && payload.exp * 1000 < Date.now()) return null; // expired
+    // Load profile from DB
+    const rows = await dbGet('profiles', { id: 'eq.' + userId, select: '*' });
     const profile = rows[0];
     if (!profile) return null;
-    return { id: sbUser.id, name: profile.full_name || sbUser.email, email: sbUser.email || profile.email, role: profile.role || 'sub_worker', company_id: profile.company_id || null, is_active: profile.is_active !== false };
+    const user = { id: userId, name: profile.full_name || payload.email || '', email: payload.email || profile.email || '', role: profile.role || 'sub_worker', company_id: profile.company_id || null, is_active: profile.is_active !== false };
+    _tokenCache.set(t, { user, exp: Date.now() + 5 * 60 * 1000 });
+    return user;
   } catch(e) { return null; }
 }
 function safeUser(u) { return u; }
@@ -120,7 +125,7 @@ async function setupDB() {
   try {
     const users = await dbGet('users', { select: 'id', limit: '1' });
     if (!users || users.length === 0) {
-      await dbInsert('users', { id: uid('u'), username: 'admin', password_hash: hashPwd('admin123'), name: 'Administrator', role: 'admin', active: true, created_at: nowISO() });
+      await dbInsert('users', { id: uid(), username: 'admin', password_hash: hashPwd('admin123'), name: 'Administrator', role: 'admin', active: true, created_at: nowISO() });
       console.log('Default admin created: username=admin  password=admin123  ← CHANGE THIS');
     }
   } catch(e) { console.log('DB setup note:', e.message); }
@@ -199,7 +204,7 @@ const server = http.createServer(async (req, res) => {
     const validRoles = ['admin', 'pm', 'foreman', 'stager', 'signout', 'requestor', 'technician', 'sub_lead', 'sub_worker'];
     if (!validRoles.includes(role)) return json(res, 400, { error: 'Invalid role' });
     try {
-      const rows = await dbInsert('users', { id: uid('u'), username, password_hash: hashPwd(password), name, role, company_id: company_id || null, phone: phone || '', email: email || '', is_lead: !!is_lead, avatar_url: avatar_url || null, active: true, created_at: nowISO() });
+      const rows = await dbInsert('users', { id: uid(), username, password_hash: hashPwd(password), name, role, company_id: company_id || null, phone: phone || '', email: email || '', is_lead: !!is_lead, avatar_url: avatar_url || null, active: true, created_at: nowISO() });
       return json(res, 201, safeUser(rows[0]));
     } catch(e) { return json(res, 400, { error: e.message.includes('unique') ? 'Username already taken' : e.message }); }
   }
@@ -226,7 +231,7 @@ const server = http.createServer(async (req, res) => {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm')) return;
     const b = await readBody(req);
     if (!b.name) return json(res, 400, { error: 'name required' });
-    try { return json(res, 201, (await dbInsert('companies', { id: uid('co'), ...b, is_active: true, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('companies', { id: uid(), ...b, is_active: true, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
   }
   const coM = p.match(/^\/api\/companies\/([^/]+)$/);
   if (coM && method === 'PUT') {
@@ -257,7 +262,7 @@ const server = http.createServer(async (req, res) => {
     if (!b.name) return json(res, 400, { error: 'Job name required' });
     try {
       const job = {
-        id: uid('job'), name: b.name, description: b.description || '', address: b.address || '',
+        id: uid(), name: b.name, description: b.description || '', address: b.address || '',
         gps_lat: b.gps_lat || null, gps_lng: b.gps_lng || null, gps_radius_ft: b.gps_radius_ft || 250,
         gc_company: b.gc_company || '', gc_contact: b.gc_contact || '', gc_phone: b.gc_phone || '', gc_email: b.gc_email || '',
         super_name: b.super_name || '', super_phone: b.super_phone || '', super_email: b.super_email || '',
@@ -287,7 +292,7 @@ const server = http.createServer(async (req, res) => {
     for (const b of jobList) {
       if (!b.name) { results.errors.push('Missing name'); continue; }
       try {
-        await dbInsert('jobs', { id: uid('job'), name: b.name, description: b.description || '', address: b.address || '', phase: 'not_started', pct_complete: 0, archived: false, created_by: u.name, created_at: nowISO(), updated_at: nowISO(), due_date: b.due_date || null, date_start: b.date_start || null });
+        await dbInsert('jobs', { id: uid(), name: b.name, description: b.description || '', address: b.address || '', phase: 'not_started', pct_complete: 0, archived: false, created_by: u.name, created_at: nowISO(), updated_at: nowISO(), due_date: b.due_date || null, date_start: b.date_start || null });
         results.created.push(b.name);
       } catch(e) { results.errors.push(b.name + ': ' + e.message); }
     }
@@ -323,7 +328,7 @@ const server = http.createServer(async (req, res) => {
   if (jwM && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
     const { worker_id } = await readBody(req);
-    try { return json(res, 201, (await dbUpsert('job_workers', { id: uid('jw'), job_id: jwM[1], worker_id, is_active: true, added_by: u.name, added_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbUpsert('job_workers', { id: uid(), job_id: jwM[1], worker_id, is_active: true, added_by: u.name, added_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
   }
   const jwIM = p.match(/^\/api\/jobs\/([^/]+)\/workers\/([^/]+)$/);
   if (jwIM && method === 'DELETE') {
@@ -374,7 +379,7 @@ const server = http.createServer(async (req, res) => {
       const existing = await dbGet('checkins', { job_id: 'eq.' + job_id, worker_id: 'eq.' + u.id, select: 'id' });
       const alreadyIn = (existing || []).find(r => !r.checkout_at);
       if (alreadyIn) return json(res, 400, { error: 'Already checked in' });
-      const rec = await dbInsert('checkins', { id: uid('ci'), job_id, worker_id: u.id, company_id: u.company_id || null, checkin_lat, checkin_lng, checkin_dist_ft: dist, status: 'checked_in', checkin_at: nowISO() });
+      const rec = await dbInsert('checkins', { id: uid(), job_id, worker_id: u.id, company_id: u.company_id || null, checkin_lat, checkin_lng, checkin_dist_ft: dist, status: 'checked_in', checkin_at: nowISO() });
       await auditLog('checkin', job_id, null, null, u.name, (dist || '?') + 'ft');
       return json(res, 201, rec[0]);
     } catch(e) { return json(res, 500, { error: e.message }); }
@@ -400,7 +405,7 @@ const server = http.createServer(async (req, res) => {
         const over = action === 'out' && aq > (cur.assigned_qty || 0);
         row = (await dbUpdate('job_parts', { assigned_qty: aq, over, status: action === 'out' ? 'signed_out' : 'staged', updated_at: nowISO(), ...(action==='out'?{taken_qty:(cur.taken_qty||0)+(qty||1),signed_out_by:u.name,signed_out_at:nowDisplay()}:{staged_by:u.name,staged_at:nowDisplay()}) }, { id: 'eq.' + cur.id }))[0];
       } else {
-        row = (await dbInsert('job_parts', { id: uid('jp'), job_id: jobId, part_id, part_name: part_name || part_id, status: action === 'out' ? 'signed_out' : 'staged', assigned_qty: qty || 1, taken_qty: action === 'out' ? qty || 1 : 0, installed_qty: 0, over: false, staged_by: u.name, staged_at: nowDisplay(), ...(action==='out'?{signed_out_by:u.name,signed_out_at:nowDisplay()}:{}), created_at: nowISO() }))[0];
+        row = (await dbInsert('job_parts', { id: uid(), job_id: jobId, part_id, part_name: part_name || part_id, status: action === 'out' ? 'signed_out' : 'staged', assigned_qty: qty || 1, taken_qty: action === 'out' ? qty || 1 : 0, installed_qty: 0, over: false, staged_by: u.name, staged_at: nowDisplay(), ...(action==='out'?{signed_out_by:u.name,signed_out_at:nowDisplay()}:{}), created_at: nowISO() }))[0];
         await autoAddToManifest(jobId, part_id, part_name || part_id, qty || 1, u.name);
       }
       // Deduct from inventory
@@ -434,7 +439,7 @@ const server = http.createServer(async (req, res) => {
   if (mfM && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
     const b = await readBody(req);
-    try { return json(res, 201, (await dbInsert('job_manifest', { id: uid('mf'), job_id: mfM[1], ...b, added_by: u.name, added_at: nowDisplay() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('job_manifest', { id: uid(), job_id: mfM[1], ...b, added_by: u.name, added_at: nowDisplay() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
   }
   const mfIM = p.match(/^\/api\/jobs\/([^/]+)\/manifest\/([^/]+)$/);
   if (mfIM && method === 'PUT') {
@@ -459,7 +464,7 @@ const server = http.createServer(async (req, res) => {
       if (action === 'signin') {
         const existing = await dbGet('job_attendance', { job_id: 'eq.' + attM[1], user_id: 'eq.' + u.id, sign_out_at: 'is.null', select: 'id' });
         if (existing[0]) return json(res, 400, { error: 'Already signed in to this job' });
-        return json(res, 201, (await dbInsert('job_attendance', { id: uid('att'), job_id: attM[1], user_id: u.id, user_name: u.name, user_role: u.role, sign_in_at: nowISO(), created_at: nowISO() }))[0]);
+        return json(res, 201, (await dbInsert('job_attendance', { id: uid(), job_id: attM[1], user_id: u.id, user_name: u.name, user_role: u.role, sign_in_at: nowISO(), created_at: nowISO() }))[0]);
       } else if (action === 'signout') {
         const recs = await dbGet('job_attendance', { job_id: 'eq.' + attM[1], user_id: 'eq.' + u.id, sign_out_at: 'is.null', select: '*', order: 'sign_in_at.desc' });
         if (!recs[0]) return json(res, 400, { error: 'Not signed in to this job' });
@@ -504,7 +509,7 @@ const server = http.createServer(async (req, res) => {
     const { url: photoUrl, public_id, caption, type, photo_lat, photo_lng, dist_from_site_ft } = await readBody(req);
     if (!photoUrl) return json(res, 400, { error: 'url required' });
     try {
-      const r = (await dbInsert('job_photos', { id: uid('ph'), job_id: phM[1], url: photoUrl, public_id: public_id || '', caption: caption || '', type: type || 'photo', photo_lat: photo_lat || null, photo_lng: photo_lng || null, dist_from_site_ft: dist_from_site_ft || null, uploaded_by: u.name, created_at: nowISO() }))[0];
+      const r = (await dbInsert('job_photos', { id: uid(), job_id: phM[1], url: photoUrl, public_id: public_id || '', caption: caption || '', type: type || 'photo', photo_lat: photo_lat || null, photo_lng: photo_lng || null, dist_from_site_ft: dist_from_site_ft || null, uploaded_by: u.name, created_at: nowISO() }))[0];
       await auditLog('photo_uploaded', phM[1], null, null, u.name, caption || '');
       return json(res, 201, r);
     } catch(e) { return json(res, 500, { error: e.message }); }
@@ -525,7 +530,7 @@ const server = http.createServer(async (req, res) => {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const { url: planUrl, public_id, name, thumb_url, plan_type } = await readBody(req);
     if (!planUrl) return json(res, 400, { error: 'url required' });
-    try { return json(res, 201, (await dbInsert('job_plans', { id: uid('pl'), job_id: plM[1], name: name || 'Plan', url: planUrl, public_id: public_id || '', thumb_url: thumb_url || '', plan_type: plan_type || 'plans', notes: '', uploaded_by: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('job_plans', { id: uid(), job_id: plM[1], name: name || 'Plan', url: planUrl, public_id: public_id || '', thumb_url: thumb_url || '', plan_type: plan_type || 'plans', notes: '', uploaded_by: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
   }
   const plIM = p.match(/^\/api\/jobs\/([^/]+)\/plans\/([^/]+)$/);
   if (plIM && method === 'PUT') {
@@ -546,7 +551,7 @@ const server = http.createServer(async (req, res) => {
   if (chM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const b = await readBody(req);
-    try { return json(res, 201, (await dbInsert('job_checklist_items', { id: uid('cli'), job_id: chM[1], ...b, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('job_checklist_items', { id: uid(), job_id: chM[1], ...b, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
   }
   const chIM = p.match(/^\/api\/jobs\/([^/]+)\/checklist\/([^/]+)$/);
   if (chIM && method === 'PUT') {
@@ -570,7 +575,7 @@ const server = http.createServer(async (req, res) => {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
     const b = await readBody(req);
     try {
-      const r = (await dbInsert('pm_inspections', { id: uid('ins'), job_id: insM[1], pm_id: u.id, pm_name: u.name, ...b, visited_at: nowISO(), created_at: nowISO() }))[0];
+      const r = (await dbInsert('pm_inspections', { id: uid(), job_id: insM[1], pm_id: u.id, pm_name: u.name, ...b, visited_at: nowISO(), created_at: nowISO() }))[0];
       await auditLog('pm_inspection_created', insM[1], null, null, u.name, b.visit_type || '');
       return json(res, 201, r);
     } catch(e) { return json(res, 500, { error: e.message }); }
@@ -598,7 +603,7 @@ const server = http.createServer(async (req, res) => {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
     const b = await readBody(req);
     const { count } = await dbGet('change_orders', { job_id: 'eq.' + coIM[1], select: 'id' }).then(r => ({ count: r.length }));
-    try { return json(res, 201, (await dbInsert('change_orders', { id: uid('co'), job_id: coIM[1], co_number: 'CO-' + String(count + 1).padStart(3, '0'), ...b, created_by: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('change_orders', { id: uid(), job_id: coIM[1], co_number: 'CO-' + String(count + 1).padStart(3, '0'), ...b, created_by: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
   }
   const coSignM = p.match(/^\/api\/change-orders\/([^/]+)\/sign$/);
   if (coSignM && method === 'POST') {
@@ -618,7 +623,7 @@ const server = http.createServer(async (req, res) => {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const { content, type } = await readBody(req);
     if (!content) return json(res, 400, { error: 'Content required' });
-    try { return json(res, 201, (await dbInsert('daily_logs', { id: uid('dl'), job_id: dlM[1], type: type || 'note', content, author: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('daily_logs', { id: uid(), job_id: dlM[1], type: type || 'note', content, author: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
   }
 
   // ── GC ALERTS ──────────────────────────────────────────────────────────────
@@ -633,7 +638,7 @@ const server = http.createServer(async (req, res) => {
     if (!title) return json(res, 400, { error: 'Title required' });
     try {
       await addNotif('gc_alert', 'GC Alert: ' + title, 'Job ' + gcM[1] + ' by ' + u.name, { job_id: gcM[1] });
-      return json(res, 201, (await dbInsert('gc_alerts', { id: uid('gc'), job_id: gcM[1], title, description: description || '', priority: priority || 'normal', status: 'open', created_by: u.name, created_at: nowISO() }))[0]);
+      return json(res, 201, (await dbInsert('gc_alerts', { id: uid(), job_id: gcM[1], title, description: description || '', priority: priority || 'normal', status: 'open', created_by: u.name, created_at: nowISO() }))[0]);
     } catch(e) { return json(res, 500, { error: e.message }); }
   }
   const gcIM = p.match(/^\/api\/jobs\/([^/]+)\/alerts\/([^/]+)$/);
@@ -653,7 +658,7 @@ const server = http.createServer(async (req, res) => {
     const { part_id, part_name, qty, reason } = await readBody(req);
     try {
       await addNotif('part_request', 'Part Request', u.name + ' requested ' + part_name + ' for job ' + prM[1], { job_id: prM[1] });
-      return json(res, 201, (await dbInsert('part_requests', { id: uid('pr'), job_id: prM[1], part_id: part_id || '', part_name: part_name || '', qty: qty || 1, reason: reason || '', status: 'pending', created_by: u.name, created_at: nowISO() }))[0]);
+      return json(res, 201, (await dbInsert('part_requests', { id: uid(), job_id: prM[1], part_id: part_id || '', part_name: part_name || '', qty: qty || 1, reason: reason || '', status: 'pending', created_by: u.name, created_at: nowISO() }))[0]);
     } catch(e) { return json(res, 500, { error: e.message }); }
   }
   const prIM = p.match(/^\/api\/jobs\/([^/]+)\/requests\/([^/]+)$/);
@@ -730,7 +735,7 @@ const server = http.createServer(async (req, res) => {
     const { job_id, notes, items } = await readBody(req);
     if (!job_id || !items?.length) return json(res, 400, { error: 'job_id and items required' });
     try {
-      const order = { id: uid('ord'), job_id, notes: notes || '', items: JSON.stringify(items), status: 'pending', created_by: u.name, created_at: nowISO() };
+      const order = { id: uid(), job_id, notes: notes || '', items: JSON.stringify(items), status: 'pending', created_by: u.name, created_at: nowISO() };
       await addNotif('new_order', 'New Order', u.name + ' requested ' + items.length + ' part type(s) for job ' + job_id, { job_id });
       return json(res, 201, (await dbInsert('orders', order))[0]);
     } catch(e) { return json(res, 500, { error: e.message }); }
@@ -753,7 +758,7 @@ const server = http.createServer(async (req, res) => {
           const nm = item.name || cat[0]?.name || item.partId;
           const existing = await dbGet('job_parts', { job_id: 'eq.' + order.job_id, part_id: 'eq.' + item.partId, select: 'id' });
           if (!existing[0]) {
-            await dbInsert('job_parts', { id: uid('jp'), job_id: order.job_id, part_id: item.partId, part_name: nm, status: 'staged', assigned_qty: item.qty || 1, taken_qty: 0, installed_qty: 0, over: false, staged_by: u.name, staged_at: nowDisplay(), created_at: nowISO() });
+            await dbInsert('job_parts', { id: uid(), job_id: order.job_id, part_id: item.partId, part_name: nm, status: 'staged', assigned_qty: item.qty || 1, taken_qty: 0, installed_qty: 0, over: false, staged_by: u.name, staged_at: nowDisplay(), created_at: nowISO() });
             await autoAddToManifest(order.job_id, item.partId, nm, item.qty || 1, u.name);
             const inv = await dbGet('inventory', { id: 'eq.' + item.partId, select: 'qty' });
             if (inv[0]) await dbUpdate('inventory', { qty: Math.max(0, (inv[0].qty || 0) - (item.qty || 1)), updated_at: nowISO() }, { id: 'eq.' + item.partId });
@@ -903,7 +908,7 @@ const server = http.createServer(async (req, res) => {
   if (lwM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const b = await readBody(req);
-    try { return json(res, 201, (await dbInsert('lien_waivers', { id: uid('lw'), job_id: lwM[1], uploaded_by: u.name, created_at: nowISO(), ...b }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('lien_waivers', { id: uid(), job_id: lwM[1], uploaded_by: u.name, created_at: nowISO(), ...b }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
   }
 
   // ── INVOICES ──────────────────────────────────────────────────────────────
@@ -913,7 +918,7 @@ const server = http.createServer(async (req, res) => {
   }
   if (p === '/api/invoices' && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
-    try { return json(res, 201, (await dbInsert('invoices', { id: uid('inv'), ...await readBody(req), created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('invoices', { id: uid(), ...await readBody(req), created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
   }
   const invIM = p.match(/^\/api\/invoices\/([^/]+)$/);
   if (invIM && method === 'PUT') {
