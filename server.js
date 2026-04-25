@@ -84,14 +84,28 @@ async function autoAddToManifest(jobId, partId, partName, qty, stagedBy) {
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 function hashPwd(p)   { const s = crypto.randomBytes(16).toString('hex'); return s + ':' + crypto.pbkdf2Sync(p, s, 100000, 64, 'sha512').toString('hex'); }
 function verifyPwd(p, stored) { const [s, h] = stored.split(':'); return crypto.pbkdf2Sync(p, s, 100000, 64, 'sha512').toString('hex') === h; }
-function makeToken(uid) { const d = Buffer.from(JSON.stringify({ uid, exp: Date.now() + SESSION_HOURS * 3600000 })).toString('base64'); return d + '.' + crypto.createHmac('sha256', JWT_SECRET).update(d).digest('hex'); }
-function verifyToken(t) { if (!t) return null; const [d, s] = t.split('.'); if (!d || !s) return null; if (crypto.createHmac('sha256', JWT_SECRET).update(d).digest('hex') !== s) return null; try { const p = JSON.parse(Buffer.from(d, 'base64').toString()); return p.exp > Date.now() ? p : null; } catch(e) { return null; } }
 async function getUser(req) {
-  const t = (req.headers['authorization'] || '').replace('Bearer ', '');
-  if (!t) return null; const p = verifyToken(t); if (!p) return null;
-  try { const r = await dbGet('users', { id: 'eq.' + p.uid, active: 'eq.true', select: '*' }); return r[0] || null; } catch(e) { return null; }
+  const t = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
+  if (!t) return null;
+  try {
+    const sbUser = await new Promise((resolve) => {
+      const u = new URL(SB_URL + '/auth/v1/user');
+      const opts = { hostname: u.hostname, path: u.pathname, method: 'GET',
+        headers: { 'apikey': SB_ANON, 'Authorization': 'Bearer ' + t } };
+      const r = https.request(opts, res => {
+        let d = ''; res.on('data', c => d += c);
+        res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { resolve(null); } });
+      });
+      r.on('error', () => resolve(null)); r.end();
+    });
+    if (!sbUser || !sbUser.id) return null;
+    const rows = await dbGet('profiles', { id: 'eq.' + sbUser.id, select: '*' });
+    const profile = rows[0];
+    if (!profile) return null;
+    return { id: sbUser.id, name: profile.full_name || sbUser.email, email: sbUser.email || profile.email, role: profile.role || 'sub_worker', company_id: profile.company_id || null, is_active: profile.is_active !== false };
+  } catch(e) { return null; }
 }
-function safeUser(u) { if (!u) return null; const { password_hash, ...s } = u; return s; }
+function safeUser(u) { return u; }
 function requireAuth(res, u)  { if (!u) { json(res, 401, { error: 'Not authenticated' }); return false; } return true; }
 function requireRole(res, u, ...roles) { if (!requireAuth(res, u)) return false; if (!roles.includes(u.role)) { json(res, 403, { error: 'Permission denied' }); return false; } return true; }
 
