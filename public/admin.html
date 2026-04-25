@@ -29,12 +29,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .u-pill{display:flex;align-items:center;gap:8px;padding:7px;background:var(--bg3);border-radius:var(--rs);cursor:pointer}
 .u-pill:hover{background:var(--bg4)}
 /* MAIN */
-.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0}
 .topbar{height:48px;padding:0 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);flex-shrink:0}
 .tb-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700}
 .tb-right{display:flex;gap:7px;align-items:center}
 .content{flex:1;overflow-y:auto;padding:16px}
-.page{display:none}.page.active{display:block}
+.page{display:none;flex:1;overflow:hidden;flex-direction:column}.page.active{display:flex;flex:1;overflow:hidden;flex-direction:column}
 /* BUTTONS */
 .btn{padding:6px 12px;border-radius:var(--rs);font-size:12px;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:'DM Sans',sans-serif;transition:.15s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
 .btn:hover{background:var(--bg4)}.btn:active{opacity:.8}.btn:disabled{opacity:.4;cursor:not-allowed}
@@ -131,7 +131,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .sec-hdr{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;padding:12px 0 7px;border-bottom:1px solid var(--border);margin-bottom:11px}
 .insp-card{border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);margin-bottom:9px;overflow:hidden}
 .insp-hd{padding:10px 13px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);background:var(--bg3)}
-.insp-body{padding:12px}
+.insp-
 .co-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:8px}
 .a-row{display:flex;gap:9px;padding:8px 10px;border-radius:var(--rs);border:1px solid var(--border);margin-bottom:5px;align-items:flex-start}
 .a-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
@@ -562,7 +562,6 @@ function nav(id, el) {
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'))
   const pg = document.getElementById('page-' + id)
   if (pg) { pg.classList.add('active'); pg.classList.add('anim') }
-  if (id === 'jobdetail') pg.style.display = 'flex'
   if (el) el.classList.add('active')
   stopCam()
   const loaders = { jobs: loadJobsPage, sched: loadSchedPage, gps: loadGpsPage, hours: loadHoursPage, subs: loadSubsPage, fin: loadFinPage, reports: loadReportsPage, comply: loadComplyPage, log: loadLogPage, orders: loadOrdersPage, catalog: loadCatalogPage, inv: loadInvPage, notif: loadNotifPage, admin: loadAdminPage, scan: () => loadJobsSelect('sc-job'), newjob: () => { loadJobsSelect(); loadCompanySelect() } }
