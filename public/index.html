@@ -2,164 +2,90 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>FieldAxisHQ</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FieldAxisHQ — Sign In</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#060a10;--bg2:#0c1220;--bg3:#131c2e;--bg4:#1a2540;
-  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
-  --text:#e8edf5;--text2:#8a96ab;--text3:#414e63;
-  --accent:#2563eb;--accent2:#1d4ed8;--accent-glow:rgba(37,99,235,.25);
-  --green:#16a34a;--green-bg:rgba(22,163,74,.1);--green-b:rgba(22,163,74,.2);
-  --amber:#d97706;--amber-bg:rgba(217,119,6,.1);--amber-b:rgba(217,119,6,.2);
-  --red:#dc2626;--red-bg:rgba(220,38,38,.1);--red-b:rgba(220,38,38,.2);
-  --teal:#0d9488;--teal-bg:rgba(13,148,136,.1);
-  --purple:#7c3aed;--purple-bg:rgba(124,58,237,.1);
-  --r:10px;--rs:7px;
-}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.bg-mesh{position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(37,99,235,.12),transparent),radial-gradient(ellipse 50% 40% at 80% 80%,rgba(13,148,136,.06),transparent);pointer-events:none}
-.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(37,99,235,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,.025) 1px,transparent 1px);background-size:48px 48px;pointer-events:none}
-
-.login-wrap{width:100%;max-width:420px;padding:20px;position:relative;z-index:1}
-.brand{text-align:center;margin-bottom:40px}
-.brand-logo{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,#e8edf5 0%,#60a5fa 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.brand-sub{font-size:11px;color:var(--text3);letter-spacing:.18em;text-transform:uppercase;margin-top:5px;font-family:'DM Mono',monospace}
-
-.role-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
-.role-btn{padding:16px 12px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg2);cursor:pointer;text-align:center;transition:.2s}
-.role-btn:hover{border-color:var(--border2);background:var(--bg3)}
-.role-btn.active{border-color:var(--accent);background:rgba(37,99,235,.08);box-shadow:0 0 0 1px var(--accent) inset}
-.role-icon{font-size:26px;margin-bottom:8px}
-.role-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
-.role-desc{font-size:10px;color:var(--text3);line-height:1.4}
-
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:26px}
-.card-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:600;margin-bottom:18px;display:flex;align-items:center;gap:8px}
-.form-group{margin-bottom:14px}
-.form-label{font-size:10px;font-weight:500;color:var(--text3);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.07em}
-.form-input{width:100%;padding:11px 14px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg3);color:var(--text);transition:.2s}
-.form-input:focus{outline:none;border-color:var(--accent);background:var(--bg4);box-shadow:0 0 0 3px var(--accent-glow)}
-.form-input::placeholder{color:var(--text3)}
-.btn{width:100%;padding:13px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:'Syne',sans-serif;letter-spacing:.02em;transition:.2s}
-.btn-primary{background:var(--accent);color:#fff}
-.btn-primary:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 6px 24px var(--accent-glow)}
-.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
-.err{background:var(--red-bg);border:1px solid var(--red-b);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:14px;display:none}
-.err.show{display:block}
-.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.config-btn{position:fixed;bottom:18px;right:18px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 13px;font-size:11px;color:var(--text3);cursor:pointer;font-family:'DM Mono',monospace;z-index:10}
-.config-btn:hover{color:var(--text);border-color:var(--accent)}
-.cfg-panel{position:fixed;bottom:55px;right:18px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:18px;width:310px;z-index:10;display:none;box-shadow:0 8px 32px rgba(0,0,0,.6)}
-.cfg-panel.show{display:block}
-.cfg-save{margin-top:10px;padding:8px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:12px;cursor:pointer;width:100%;font-family:'DM Sans',sans-serif;font-weight:500}
-.note{text-align:center;margin-top:16px;font-size:11px;color:var(--text3)}
-.note a{color:var(--accent);text-decoration:none}
+body{background:#060a10;color:#e8edf5;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.box{width:100%;max-width:380px;padding:20px}
+.logo{text-align:center;margin-bottom:32px}
+.logo-mark{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;background:linear-gradient(135deg,#e8edf5,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-sub{font-size:11px;color:#414e63;letter-spacing:.15em;text-transform:uppercase;margin-top:4px}
+.card{background:#0c1220;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:28px}
+.role-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:22px}
+.role-tab{padding:12px;border:1.5px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;text-align:center;transition:.15s}
+.role-tab:hover{border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.03)}
+.role-tab.active{border-color:#2563eb;background:rgba(37,99,235,.1)}
+.role-tab .icon{font-size:20px;margin-bottom:5px}
+.role-tab .lbl{font-size:13px;font-weight:500}
+.role-tab .sub{font-size:10px;color:#8a96ab;margin-top:2px}
+.fg{margin-bottom:14px}
+label{font-size:10px;font-weight:500;color:#414e63;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px}
+input{width:100%;padding:11px 13px;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#e8edf5;font-size:14px;font-family:'DM Sans',sans-serif;transition:.15s}
+input:focus{outline:none;border-color:#2563eb;background:#1a2540}
+.btn{width:100%;padding:13px;background:#2563eb;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:.15s;margin-top:6px}
+.btn:hover{background:#1d4ed8}.btn:disabled{opacity:.5;cursor:not-allowed}
+.err{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.25);border-radius:8px;padding:10px 13px;font-size:12px;color:#f87171;margin-bottom:14px;display:none}
 </style>
 </head>
 <body>
-<div class="bg-mesh"></div>
-<div class="bg-grid"></div>
-<div class="login-wrap">
-  <div class="brand">
-    <div class="brand-logo">FieldAxisHQ</div>
-    <div class="brand-sub">Field Operations Platform</div>
-  </div>
-  <div class="role-pick">
-    <div class="role-btn active" id="r-admin" onclick="setRole('admin')">
-      <div class="role-icon">🏗</div>
-      <div class="role-title">Admin / PM</div>
-      <div class="role-desc">Full platform access</div>
-    </div>
-    <div class="role-btn" id="r-sub" onclick="setRole('sub')">
-      <div class="role-icon">🔧</div>
-      <div class="role-title">Field Worker</div>
-      <div class="role-desc">Jobs & check-in</div>
-    </div>
+<div class="box">
+  <div class="logo">
+    <div class="logo-mark">FieldAxisHQ</div>
+    <div class="logo-sub">Field Operations Platform</div>
   </div>
   <div class="card">
-    <div class="card-title"><span id="li-icon">🔐</span><span id="li-title">Admin Login</span></div>
+    <div class="role-tabs">
+      <div class="role-tab active" id="tab-admin" onclick="setRole('admin')">
+        <div class="icon">🖥</div><div class="lbl">Admin / PM</div><div class="sub">Full access</div>
+      </div>
+      <div class="role-tab" id="tab-worker" onclick="setRole('worker')">
+        <div class="icon">🔧</div><div class="lbl">Field Worker</div><div class="sub">Jobs &amp; check-in</div>
+      </div>
+    </div>
     <div class="err" id="err"></div>
-    <div class="form-group">
-      <label class="form-label">Email</label>
-      <input class="form-input" id="email" type="email" placeholder="you@company.com" onkeydown="if(event.key==='Enter')document.getElementById('pw').focus()">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Password</label>
-      <input class="form-input" id="pw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
-    </div>
-    <button class="btn btn-primary" id="li-btn" onclick="doLogin()">Sign In</button>
+    <div class="fg"><label>Email</label><input type="email" id="email" placeholder="you@example.com" autocomplete="email"></div>
+    <div class="fg"><label>Password</label><input type="password" id="pw" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn" id="signin-btn" onclick="doSignIn()">Sign In</button>
   </div>
-  <div class="note">Need to configure? <a href="#" onclick="toggleCfg()">Setup ⚙</a></div>
 </div>
-
-<button class="config-btn" onclick="toggleCfg()">⚙ Configure</button>
-<div class="cfg-panel" id="cfg-panel">
-  <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:600;margin-bottom:12px">Supabase Connection</div>
-  <div class="form-group"><label class="form-label">Project URL</label><input class="form-input" id="cfg-url" placeholder="https://xyz.supabase.co" style="font-size:12px;font-family:'DM Mono',monospace"></div>
-  <div class="form-group"><label class="form-label">Anon Key</label><input class="form-input" id="cfg-key" placeholder="eyJhbGci..." style="font-size:11px;font-family:'DM Mono',monospace"></div>
-  <button class="cfg-save" onclick="saveCfg()">Save & Connect</button>
-  <div id="cfg-status" style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center"></div>
-</div>
-
 <script>
-let sb = null
+const sb = window.supabase.createClient('https://htkvgfmbcoozmkiairvt.supabase.co','sb_publishable_1U37N6iZ8Is4mF_aR9kThg_DS7wExWO')
 let role = 'admin'
-
-window.addEventListener('load', () => {
-  const url = localStorage.getItem('fax_url')
-  const key = localStorage.getItem('fax_key')
-  if (url) document.getElementById('cfg-url').value = url
-  if (key) document.getElementById('cfg-key').value = key
-  if (url && key) initSb(url, key)
-})
-
-function initSb(url, key) {
-  try { sb = window.supabase.createClient(url, key); document.getElementById('cfg-status').textContent = '✓ Connected'; document.getElementById('cfg-status').style.color = '#16a34a'; return true } catch { return false }
-}
-function saveCfg() {
-  const url = document.getElementById('cfg-url').value.trim()
-  const key = document.getElementById('cfg-key').value.trim()
-  if (!url || !key) return
-  localStorage.setItem('fax_url', url); localStorage.setItem('fax_key', key)
-  if (initSb(url, key)) setTimeout(() => document.getElementById('cfg-panel').classList.remove('show'), 1200)
-}
-function toggleCfg() { document.getElementById('cfg-panel').classList.toggle('show') }
 function setRole(r) {
   role = r
-  document.getElementById('r-admin').classList.toggle('active', r === 'admin')
-  document.getElementById('r-sub').classList.toggle('active', r === 'sub')
-  document.getElementById('li-icon').textContent = r === 'admin' ? '🔐' : '🔧'
-  document.getElementById('li-title').textContent = r === 'admin' ? 'Admin Login' : 'Field Worker Login'
+  document.getElementById('tab-admin').classList.toggle('active', r==='admin')
+  document.getElementById('tab-worker').classList.toggle('active', r==='worker')
 }
-function showErr(m) { const e = document.getElementById('err'); e.textContent = m; e.classList.add('show') }
-async function doLogin() {
-  if (!sb) { showErr('Supabase not configured. Click "Setup ⚙" to connect.'); return }
+document.getElementById('pw').addEventListener('keydown', e => { if(e.key==='Enter') doSignIn() })
+async function doSignIn() {
   const email = document.getElementById('email').value.trim()
   const pw = document.getElementById('pw').value
-  if (!email || !pw) { showErr('Email and password required'); return }
-  const btn = document.getElementById('li-btn')
-  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Signing in…'
-  document.getElementById('err').classList.remove('show')
-  try {
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: pw })
-    if (error) throw error
-    const { data: profile } = await sb.from('profiles').select('role,full_name,company_id').eq('id', data.user.id).single()
-    const r = profile?.role || 'sub_worker'
-    sessionStorage.setItem('fax_role', r)
-    sessionStorage.setItem('fax_name', profile?.full_name || email)
-    sessionStorage.setItem('fax_company', profile?.company_id || '')
-    if (['admin','pm','stager','foreman'].includes(r)) window.location.href = 'admin.html'
-    else window.location.href = 'worker.html'
-  } catch(e) {
-    showErr(e.message || 'Login failed')
-    btn.disabled = false; btn.innerHTML = 'Sign In'
+  const errEl = document.getElementById('err')
+  const btn = document.getElementById('signin-btn')
+  errEl.style.display = 'none'
+  if (!email || !pw) { errEl.textContent='Enter email and password'; errEl.style.display='block'; return }
+  btn.disabled = true; btn.textContent = 'Signing in…'
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw })
+  if (error) { errEl.textContent = error.message; errEl.style.display='block'; btn.disabled=false; btn.textContent='Sign In'; return }
+  // Check role from profile
+  const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single()
+  const userRole = profile?.role || 'sub_worker'
+  if (role === 'admin' && !['admin','pm','foreman','stager','signout','requestor','technician'].includes(userRole)) {
+    errEl.textContent = 'You do not have admin access. Use Field Worker login.'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Sign In'; return
   }
+  window.location.href = ['admin','pm','foreman','stager','signout','requestor','technician'].includes(userRole) ? 'admin.html' : 'worker.html'
 }
+// Auto-redirect if already logged in
+sb.auth.getSession().then(({data:{session}}) => {
+  if (!session) return
+  sb.from('profiles').select('role').eq('id',session.user.id).single().then(({data:p}) => {
+    const r = p?.role||'sub_worker'
+    window.location.href = ['admin','pm','foreman','stager','signout','requestor','technician'].includes(r) ? 'admin.html' : 'worker.html'
+  })
+})
 </script>
 </body>
 </html>
