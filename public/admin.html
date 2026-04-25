@@ -150,6 +150,7 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
     <div class="nav-item" onclick="P('jobs',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>All Jobs</div>
     <div class="nav-item" onclick="P('newjob',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/></svg>New Job</div>
     <div class="nav-item" onclick="P('schedule',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>Schedule</div>
+    <div class="nav-item" onclick="pgJobMap()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 3l4 1.5L9 3l6 2v8l-6-2-4 1.5L1 11V3z"/><path d="M5 4.5v9M9 3v9"/></svg>Job Map</div>
     <div class="nav-section">Daily Ops</div>
     <div class="nav-item" onclick="P('daily',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v10H3z"/><path d="M3 7h10M7 3v10"/></svg>Daily Reports</div>
     <div class="nav-item" onclick="P('jobwalks',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13L8 3l6 10H2z"/><path d="M8 8v3M8 12.5v.5"/></svg>Job Walks</div>
@@ -349,7 +350,7 @@ function renderJobsTable(q){
     <select class="fs" style="width:160px" onchange="filterJobsByStage(this.value)"><option value="">All Stages</option>${STAGES.map(s=>`<option value="${s}">${STAGE_LABELS[s]}</option>`).join('')}</select>
   </div>
   <div class="card" style="padding:0;overflow:hidden">
-  ${rows.length?`<table class="tbl"><thead><tr><th>Job</th><th>GC</th><th>Stage</th><th>Due Date</th><th>Next Visit</th><th>Contract</th><th>Progress</th></tr></thead><tbody>${rows.map(j=>`<tr onclick="openJob('${j.id}')"><td><div style="font-weight:500">${j.name}</div><div style="font-size:10px;color:#414e63">${j.address||''}</div></td><td style="font-size:11px;color:#8a96ab">${j.gc_company||'—'}</td><td>${stageBadge(j.phase)}</td><td style="font-size:11px;color:${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">${fd(j.due_date)}</td><td style="font-size:11px;color:${daysAway(j.next_visit_date)!=null&&daysAway(j.next_visit_date)<=7?'#d97706':'#8a96ab'}">${fd(j.next_visit_date)}</td><td style="font-size:11px">${j.contract_value?fm(j.contract_value):'—'}</td><td><div class="pbar" style="width:70px"><div class="pb g" style="width:${j.pct_complete||0}%"></div></div><div style="font-size:9px;color:#414e63;margin-top:2px">${j.pct_complete||0}%</div></td></tr>`).join('')}</tbody></table>`:empty('📋','No jobs found')}
+  ${rows.length?`<table class="tbl"><thead><tr><th>Job</th><th>GC</th><th>Stage</th><th>Due Date</th><th>Next Visit</th><th>Project Manager</th><th>Contract</th><th>Progress</th></tr></thead><tbody>${rows.map(j=>`<tr onclick="openJob('${j.id}')"><td><div style="font-weight:500">${j.name}</div><div style="font-size:10px;color:#414e63">${j.address||''}</div></td><td style="font-size:11px;color:#8a96ab">${j.gc_company||'—'}</td><td>${stageBadge(j.phase)}</td><td style="font-size:11px;color:${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">${fd(j.due_date)}</td><td style="font-size:11px;color:${daysAway(j.next_visit_date)!=null&&daysAway(j.next_visit_date)<=7?'#d97706':'#8a96ab'}">${fd(j.next_visit_date)}</td><td style="font-size:11px">${j.project_manager||'—'}</td><td style="font-size:11px">${j.contract_value?fm(j.contract_value):'—'}</td><td><div class="pbar" style="width:70px"><div class="pb g" style="width:${j.pct_complete||0}%"></div></div><div style="font-size:9px;color:#414e63;margin-top:2px">${j.pct_complete||0}%</div></td></tr>`).join('')}</tbody></table>`:empty('📋','No jobs found')}
   </div>`
 }
 function filterJobsByStage(stage){
@@ -424,6 +425,9 @@ function renderJobDetail(){
     <div class="tab" onclick="JT(this,'jt-pm')">PM Review</div>
     <div class="tab" onclick="JT(this,'jt-co')">Change Orders</div>
     <div class="tab" onclick="JT(this,'jt-fin')">Financials</div>
+    <div class="tab" onclick="JT(this,'jt-subs')">Sub Assignments</div>
+    <div class="tab" onclick="JT(this,'jt-asbuilts')">Plans &amp; As-builts</div>
+    <div class="tab" onclick="JT(this,'jt-pmvisits')">PM Visits</div>
     <div class="tab" onclick="JT(this,'jt-docs')">Documents</div>
     <div class="tab" onclick="JT(this,'jt-log')">Daily Log</div>
   </div>
@@ -451,6 +455,9 @@ async function loadJT(id){
   else if(id==='jt-pm') await renderPmTab(el)
   else if(id==='jt-co') await renderCOTab(el)
   else if(id==='jt-fin') await renderJobFinTab(el)
+  else if(id==='jt-subs') await renderSubAssignTab(el)
+  else if(id==='jt-asbuilts') await renderAsbuiltsTab(el)
+  else if(id==='jt-pmvisits') await renderPmVisitsTab(el)
   else if(id==='jt-docs') await renderDocsTab(el)
   else if(id==='jt-log') await renderLogTab(el)
 }
@@ -462,12 +469,14 @@ function renderInfoTab(el,j){
   el.innerHTML=`<div class="two">
   <div>
     <div class="fg"><label class="fl">Job Name</label><input class="fi" id="ed-name" value="${j.name||''}"></div>
-    <div class="fg" style="position:relative"><label class="fl">Address</label><input class="fi" id="ed-addr" value="${j.address||''}" oninput="addrAC(this.value,'ed-addr-dd')"><div id="ed-addr-dd" class="addr-dd"></div></div>
+    <div class="fg" style="position:relative"><label class="fl">Project Address</label><input class="fi" id="ed-addr" value="${j.address||''}" oninput="addrAC(this.value,'ed-addr-dd')"><div id="ed-addr-dd" class="addr-dd"></div></div>
     <div class="two"><div class="fg"><label class="fl">GPS Lat</label><input class="fi" id="ed-lat" value="${j.gps_lat||''}" style="font-family:'DM Mono',monospace;font-size:11px"></div><div class="fg"><label class="fl">GPS Lng</label><input class="fi" id="ed-lng" value="${j.gps_lng||''}" style="font-family:'DM Mono',monospace;font-size:11px"></div></div>
-    <div class="fg"><label class="fl">Check-in Radius</label><select class="fs" id="ed-rad"><option value="100">100ft</option><option value="250">250ft</option><option value="500">500ft</option><option value="1000">1000ft</option></select></div>
+    <div class="fg"><label class="fl">Check-in Radius</label><select class="fs" id="ed-rad"><option value="100">100ft</option><option value="250">250ft</option><option value="500">500ft</option><option value="750">750ft</option><option value="1000">1000ft</option></select></div>
     <div class="fg"><label class="fl">GC Company</label><input class="fi" id="ed-gc" value="${j.gc_company||''}"></div>
     <div class="two"><div class="fg"><label class="fl">GC Contact</label><input class="fi" id="ed-gcc" value="${j.gc_contact||''}"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="ed-gcp" value="${j.gc_phone||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="ed-sup" value="${j.super_name||''}"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="ed-supp" value="${j.super_phone||''}"></div></div>
+    <div class="fg"><label class="fl">Project Manager (Internal)</label><input class="fi" id="ed-pm" value="${j.project_manager||''}"></div>
+    <div class="two"><div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="ed-pmschedule"><option value="none">No visits</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">Milestones only</option></select></div><div class="fg"><label class="fl">Next PM Visit Due</label><input class="fi" type="date" id="ed-pmvisit" value="${j.next_pm_visit||''}"></div></div>
   </div>
   <div>
     <div class="sec-hdr">Key Dates</div>
@@ -485,10 +494,10 @@ function renderInfoTab(el,j){
     <button class="btn btn-p" onclick="saveInfoTab()">Save Changes</button>
     <button class="btn btn-a" onclick="archiveJob()">Archive Job</button>
   </div>`
-  setTimeout(()=>document.getElementById('ed-rad').value=j.gps_radius_ft||250,50)
+  setTimeout(()=>{document.getElementById('ed-rad').value=j.gps_radius_ft||250;if(document.getElementById('ed-pmschedule'))document.getElementById('ed-pmschedule').value=j.pm_visit_schedule||'none'},50)
 }
 async function saveInfoTab(){
-  const u={name:v('ed-name'),address:v('ed-addr'),gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),super_name:v('ed-sup'),super_phone:v('ed-supp'),date_start:v('ed-start')||null,due_date:v('ed-due')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
+  const u={name:v('ed-name'),address:v('ed-addr'),gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,date_start:v('ed-start')||null,due_date:v('ed-due')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
   const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
   if(error){toast(error.message,'error');return}
   currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved ✓')
@@ -832,14 +841,14 @@ async function addLog(){const c=v('log-txt').trim();if(!c)return;await sb.from('
 // NEW JOB PAGE
 // ══════════════════════════════════════════
 async function pgNewJob(){
-  const{data:companies}=await sb.from('companies').select('id,name').eq('is_active',true).order('name')
+  const[{data:companies},{data:pmUsers}]=await Promise.all([sb.from('companies').select('id,name').eq('is_active',true).order('name'),sb.from('profiles').select('id,full_name').in('role',['admin','pm','foreman']).eq('is_active',true).order('full_name')])
   document.getElementById('page-area').innerHTML=`<div class="two">
   <div>
     <div class="card">
       <div class="fg"><label class="fl">Job Name *</label><input class="fi" id="nj-name" placeholder="Project name"></div>
-      <div class="fg" style="position:relative"><label class="fl">Address *</label><input class="fi" id="nj-addr" placeholder="Start typing…" autocomplete="off" oninput="addrAC(this.value,'nj-addr-dd')"><div id="nj-addr-dd" class="addr-dd"></div>
+      <div class="fg" style="position:relative"><label class="fl">Project Address *</label><input class="fi" id="nj-addr" placeholder="Start typing…" autocomplete="off" oninput="addrAC(this.value,'nj-addr-dd')"><div id="nj-addr-dd" class="addr-dd"></div>
       <div id="nj-gps-ok" style="display:none;font-size:10px;color:#16a34a;margin-top:4px">✓ GPS: <span id="nj-coords"></span></div><input type="hidden" id="nj-lat"><input type="hidden" id="nj-lng"></div>
-      <div class="three"><div class="fg"><label class="fl">Radius</label><select class="fs" id="nj-rad"><option value="100">100ft</option><option value="250" selected>250ft</option><option value="500">500ft</option><option value="1000">1000ft</option></select></div>
+      <div class="three"><div class="fg"><label class="fl">Radius</label><select class="fs" id="nj-rad"><option value="100">100ft</option><option value="250" selected>250ft</option><option value="500">500ft</option><option value="750">750ft</option><option value="1000">1000ft</option></select></div>
       <div class="fg"><label class="fl">Start</label><input class="fi" type="date" id="nj-start"></div>
       <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="nj-due"></div></div>
       <div class="three"><div class="fg"><label class="fl">Expected On Site</label><input class="fi" type="date" id="nj-eos"></div>
@@ -851,6 +860,9 @@ async function pgNewJob(){
       <div class="fg"><label class="fl">GC Company</label><input class="fi" id="nj-gc"></div>
       <div class="two"><div class="fg"><label class="fl">GC Contact</label><input class="fi" id="nj-gcc"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="nj-gcp"></div></div>
       <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="nj-sup"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="nj-supp"></div></div>
+      <div class="fg"><label class="fl">Project Manager (Internal)</label><select class="fs" id="nj-pm"><option value="">— Assign PM —</option></select></div>
+      <div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="nj-pmschedule"><option value="none">No scheduled visits</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">At milestones only</option></select></div>
+      <div class="fg"><label class="fl">Next PM Visit Due</label><input class="fi" type="date" id="nj-pmvisit"></div>
     </div>
   </div>
   <div>
@@ -869,13 +881,17 @@ async function pgNewJob(){
     <button class="btn btn-p btn-full" id="nj-btn" onclick="submitNewJob()">Create Job</button>
   </div></div>`
 }
+async function populateNjPM(pmUsers){
+  const sel=document.getElementById('nj-pm');if(!sel)return
+  sel.innerHTML='<option value="">— Assign PM —</option>'+(pmUsers||[]).map(p=>`<option value="${p.full_name}">${p.full_name}</option>`).join('')
+}
 async function loadNjWorkers(){const coId=v('nj-co');const wrap=document.getElementById('nj-workers');if(!wrap)return;if(!coId){wrap.innerHTML='<div style="font-size:11px;color:#414e63">Select a company first</div>';return};const{data}=await sb.from('profiles').select('id,full_name,is_lead').eq('company_id',coId).eq('is_active',true);wrap.innerHTML=(data||[]).map(w=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><input type="checkbox" id="w-${w.id}" value="${w.id}" ${w.is_lead?'checked':''}><label for="w-${w.id}" style="font-size:12px;color:#8a96ab">${w.full_name}${w.is_lead?' (Lead)':''}</label></div>`).join('')||'<div style="font-size:11px;color:#414e63">No workers</div>'}
 async function submitNewJob(){
   const name=v('nj-name').trim();if(!name){toast('Job name required','error');return}
   const btn=document.getElementById('nj-btn');btn.disabled=true;btn.textContent='Creating…'
   let lat=parseFloat(v('nj-lat'))||null,lng=parseFloat(v('nj-lng'))||null
   if(!lat&&v('nj-addr')){try{const r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(v('nj-addr'))+'&format=json&limit=1',{headers:{'User-Agent':'FieldAxisHQ/1.0'}});const j=await r.json();if(j[0]){lat=parseFloat(j[0].lat);lng=parseFloat(j[0].lon)}}catch{}}
-  const job={id:uuid(),name,address:v('nj-addr'),gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:v('nj-start')||null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
+  const job={id:uuid(),name,address:v('nj-addr'),gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:v('nj-start')||null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),project_manager:v('nj-pm')||null,pm_visit_schedule:v('nj-pmschedule')||'none',next_pm_visit:v('nj-pmvisit')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
   const{data:created,error}=await sb.from('jobs').insert(job).select().single()
   if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Create Job';return}
   document.querySelectorAll('#nj-workers input[type=checkbox]:checked').forEach(async cb=>await sb.from('job_workers').insert({id:uuid(),job_id:created.id,worker_id:cb.value,is_active:true,added_by:ME?.full_name,added_at:new Date().toISOString()}))
@@ -1740,3 +1756,425 @@ function editUserModal(id,role,active,name){
 </script>
 </body>
 </html>
+<script>
+// ══════════════════════════════════════════
+// JOB MAP PAGE
+// ══════════════════════════════════════════
+async function pgJobMap(){
+  document.getElementById('page-title').textContent='Job Map'
+  document.getElementById('topbar-actions').innerHTML=`
+    <select class="fs" id="map-filter-pm" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All PMs</option></select>
+    <select class="fs" id="map-filter-gc" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All GC Companies</option></select>
+    <select class="fs" id="map-filter-stage" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All Stages</option>${STAGES.map(s=>`<option value="${s}">${STAGE_LABELS[s]}</option>`).join('')}</select>
+    <select class="fs" id="map-filter-sub" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All Subs</option></select>`
+
+  const{data:jobs}=await sb.from('jobs').select('*').eq('archived',false)
+  window._mapJobs=jobs||[]
+
+  // Populate filter dropdowns
+  const pms=[...new Set((jobs||[]).map(j=>j.project_manager).filter(Boolean))]
+  const gcs=[...new Set((jobs||[]).map(j=>j.gc_company).filter(Boolean))]
+  const subs=[...new Set((jobs||[]).map(j=>j.company_id).filter(Boolean))]
+  const{data:companies}=await sb.from('companies').select('id,name')
+  const coMap={}; (companies||[]).forEach(c=>coMap[c.id]=c.name)
+  document.getElementById('map-filter-pm').innerHTML='<option value="">All PMs</option>'+pms.map(p=>`<option value="${p}">${p}</option>`).join('')
+  document.getElementById('map-filter-gc').innerHTML='<option value="">All GC Companies</option>'+gcs.map(g=>`<option value="${g}">${g}</option>`).join('')
+  document.getElementById('map-filter-sub').innerHTML='<option value="">All Subs</option>'+subs.map(s=>`<option value="${s}">${coMap[s]||s}</option>`).join('')
+
+  document.getElementById('page-area').innerHTML=`
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:13px;height:calc(100vh - 120px)">
+    <div style="position:relative;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">
+      <div id="map-container" style="width:100%;height:100%;background:#0c1220;display:flex;align-items:center;justify-content:center">
+        <div style="text-align:center;color:#414e63">
+          <div style="font-size:32px;margin-bottom:8px">🗺</div>
+          <div style="font-size:13px;font-weight:500;color:#8a96ab">Interactive Map</div>
+          <div style="font-size:11px;margin-top:4px">Loading OpenStreetMap…</div>
+        </div>
+      </div>
+      <div id="map-legend" style="position:absolute;bottom:12px;left:12px;background:rgba(6,10,16,.92);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 12px;font-size:11px"></div>
+    </div>
+    <div style="overflow-y:auto">
+      <div class="card" style="margin-bottom:10px"><div class="card-title">Jobs on Map</div><div id="map-job-list"></div></div>
+    </div>
+  </div>`
+
+  // Load Leaflet map
+  if(!document.getElementById('leaflet-css')){
+    const link=document.createElement('link');link.id='leaflet-css';link.rel='stylesheet';link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(link)
+    const script=document.createElement('script');script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';script.onload=()=>initMap(jobs||[]);document.head.appendChild(script)
+  } else {
+    initMap(jobs||[])
+  }
+}
+
+function initMap(jobs){
+  const container=document.getElementById('map-container')
+  if(!container||!window.L)return
+  container.innerHTML='<div id="leaflet-map" style="width:100%;height:100%"></div>'
+  const map=window.L.map('leaflet-map').setView([33.4484,-112.0740],10)
+  window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(map)
+  window._leafletMap=map
+  window._mapMarkers=[]
+  addMapPins(jobs,map)
+  renderMapJobList(jobs)
+}
+
+const MAP_COLORS={not_started:'#8a96ab',in_progress:'#60a5fa',pre_test:'#d97706',pre_tested:'#2dd4bf',ready_for_final:'#a78bfa',complete:'#16a34a'}
+
+function addMapPins(jobs,map){
+  if(!window.L)return
+  // Clear existing
+  ;(window._mapMarkers||[]).forEach(m=>m.remove())
+  window._mapMarkers=[]
+  const withGPS=jobs.filter(j=>j.gps_lat&&j.gps_lng)
+  withGPS.forEach(j=>{
+    const color=MAP_COLORS[j.phase]||'#8a96ab'
+    const icon=window.L.divIcon({html:`<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>`,className:'',iconSize:[14,14],iconAnchor:[7,7]})
+    const marker=window.L.marker([j.gps_lat,j.gps_lng],{icon}).addTo(map)
+    marker.bindPopup(`<div style="font-family:'DM Sans',sans-serif;min-width:200px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">${j.name}</div><div style="font-size:11px;color:#666;margin-bottom:5px">${j.address||''}</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px"><span style="background:${color}22;color:${color};padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600">${STAGE_LABELS[j.phase]||j.phase}</span></div>${j.project_manager?`<div style="font-size:11px"><strong>PM:</strong> ${j.project_manager}</div>`:''}${j.gc_company?`<div style="font-size:11px"><strong>GC:</strong> ${j.gc_company}</div>`:''}${j.due_date?`<div style="font-size:11px"><strong>Due:</strong> ${fd(j.due_date)}</div>`:''}<div style="margin-top:7px"><a href="javascript:openJob('${j.id}')" style="color:#2563eb;font-size:11px;font-weight:600">Open Job →</a></div></div>`)
+    window._mapMarkers.push(marker)
+  })
+  // Fit bounds
+  if(withGPS.length>0){const bounds=window.L.latLngBounds(withGPS.map(j=>[j.gps_lat,j.gps_lng]));map.fitBounds(bounds,{padding:[30,30]})}
+  // Legend
+  const el=document.getElementById('map-legend')
+  if(el)el.innerHTML=Object.entries(MAP_COLORS).map(([stage,color])=>`<div style="display:flex;align-items:center;gap:6px;padding:2px 0"><div style="width:10px;height:10px;border-radius:50%;background:${color}"></div><span style="color:#e8edf5">${STAGE_LABELS[stage]}</span></div>`).join('')+'<div style="margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.1);color:#414e63">'+withGPS.length+' of '+(window._mapJobs||jobs).length+' jobs have GPS</div>'
+}
+
+function renderMapJobList(jobs){
+  const el=document.getElementById('map-job-list');if(!el)return
+  el.innerHTML=jobs.map(j=>`<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onclick="mapFlyTo('${j.id}')">
+    <div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:${MAP_COLORS[j.phase]||'#8a96ab'};flex-shrink:0"></div><div style="font-size:12px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.name}</div></div>
+    <div style="font-size:10px;color:#414e63;margin-top:1px;padding-left:15px">${j.project_manager?j.project_manager+' · ':''} ${j.gc_company||''}</div>
+  </div>`).join('')||'<div style="font-size:12px;color:#414e63">No jobs match filters</div>'
+}
+
+function mapFlyTo(jobId){
+  const j=(window._mapJobs||[]).find(x=>x.id===jobId);if(!j||!j.gps_lat)return
+  if(window._leafletMap)window._leafletMap.flyTo([j.gps_lat,j.gps_lng],16)
+}
+
+function filterMapPins(){
+  const pm=document.getElementById('map-filter-pm')?.value||''
+  const gc=document.getElementById('map-filter-gc')?.value||''
+  const stage=document.getElementById('map-filter-stage')?.value||''
+  const sub=document.getElementById('map-filter-sub')?.value||''
+  const filtered=(window._mapJobs||[]).filter(j=>
+    (!pm||j.project_manager===pm)&&
+    (!gc||j.gc_company===gc)&&
+    (!stage||j.phase===stage)&&
+    (!sub||j.company_id===sub)
+  )
+  if(window._leafletMap)addMapPins(filtered,window._leafletMap)
+  renderMapJobList(filtered)
+}
+
+// ══════════════════════════════════════════
+// SUB WORK ASSIGNMENT TAB (per job)
+// ══════════════════════════════════════════
+async function renderSubAssignTab(el){
+  const[{data:companies},{data:existing}]=await Promise.all([
+    sb.from('companies').select('*').eq('is_active',true).order('name'),
+    sb.from('job_sub_assignments').select('*,companies:company_id(name)').eq('job_id',currentJobId).order('created_at')
+  ])
+  el.innerHTML=`
+  <div class="sec-hdr">Subcontractor Work Assignments <button class="btn btn-p btn-sm" onclick="addSubAssignModal()">+ Assign Sub</button></div>
+  ${(existing||[]).map(a=>`<div style="background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px;margin-bottom:8px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div><div style="font-weight:600;font-size:13px">${a.companies?.name||'—'}</div><div style="font-size:11px;color:#414e63;margin-top:2px">${a.scope_of_work||'All work'}</div></div>
+      <span class="badge ${a.status==='complete'?'bg-green':a.status==='in_progress'?'bg-blue':'bg-amber'}">${a.status||'assigned'}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:9px">
+      <div><div style="font-size:10px;color:#414e63">CONTRACT VALUE</div><div style="font-size:13px;font-weight:500">${a.contract_value?fm(a.contract_value):'Not set'}</div></div>
+      <div><div style="font-size:10px;color:#414e63">START</div><div style="font-size:13px">${fd(a.start_date)}</div></div>
+      <div><div style="font-size:10px;color:#414e63">DUE</div><div style="font-size:13px;color:${isOD(a.due_date,a.status)?'#dc2626':'#e8edf5'}">${fd(a.due_date)}</div></div>
+    </div>
+    ${a.notes?`<div style="font-size:12px;color:#8a96ab;margin-bottom:8px">${a.notes}</div>`:''}
+    <div style="display:flex;gap:7px">
+      <button class="btn btn-sm btn-g" onclick="updateSubAssign('${a.id}','in_progress')">In Progress</button>
+      <button class="btn btn-sm" onclick="updateSubAssign('${a.id}','complete')">✓ Complete</button>
+      <button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="deleteSubAssign('${a.id}')">Remove</button>
+    </div>
+  </div>`).join('')||'<div style="font-size:12px;color:#414e63;padding:10px 0">No sub assignments yet</div>'}`
+}
+async function addSubAssignModal(){
+  const{data:companies}=await sb.from('companies').select('id,name').eq('is_active',true).order('name')
+  modal('Assign Subcontractor',`
+  <div class="fg"><label class="fl">Subcontractor *</label><select class="fs" id="sa-co"><option value="">— Select —</option>${(companies||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div>
+  <div class="fg"><label class="fl">Scope of Work *</label><textarea class="ft" id="sa-scope" placeholder="Describe the portion of work assigned to this sub…"></textarea></div>
+  <div class="two"><div class="fg"><label class="fl">Contract Value</label><input class="fi" type="number" id="sa-cv" step="0.01"></div><div class="fg"><label class="fl">Status</label><select class="fs" id="sa-status"><option value="assigned">Assigned</option><option value="in_progress">In Progress</option><option value="complete">Complete</option></select></div></div>
+  <div class="two"><div class="fg"><label class="fl">Start Date</label><input class="fi" type="date" id="sa-start"></div><div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="sa-due"></div></div>
+  <div class="fg"><label class="fl">Notes</label><textarea class="ft" id="sa-notes" style="min-height:55px"></textarea></div>`,
+  async()=>{
+    const coId=v('sa-co');if(!coId){toast('Select a sub','error');return}
+    const scope=v('sa-scope').trim();if(!scope){toast('Scope required','error');return}
+    const{error}=await sb.from('job_sub_assignments').insert({id:uuid(),job_id:currentJobId,company_id:coId,scope_of_work:scope,contract_value:parseFloat(v('sa-cv'))||null,status:v('sa-status'),start_date:v('sa-start')||null,due_date:v('sa-due')||null,notes:v('sa-notes'),created_by:ME?.full_name,created_at:new Date().toISOString()})
+    if(error)toast(error.message,'error');else{closeModal();toast('Sub assigned');renderSubAssignTab(document.getElementById('jt-subs'))}
+  })
+}
+async function updateSubAssign(id,status){await sb.from('job_sub_assignments').update({status}).eq('id',id);toast('Updated');renderSubAssignTab(document.getElementById('jt-subs'))}
+async function deleteSubAssign(id){if(!confirm('Remove this assignment?'))return;await sb.from('job_sub_assignments').delete().eq('id',id);renderSubAssignTab(document.getElementById('jt-subs'))}
+
+// ══════════════════════════════════════════
+// PLAN MARKUP (enhanced — used for job walks AND job asbuilts)
+// markupType: 'walk' | 'job'
+// ══════════════════════════════════════════
+let _markupPlanId=null,_markupReturnFn=null
+
+function openPlanMarkup(planId,planUrl,fileName,returnFn){
+  _markupPlanId=planId;_markupReturnFn=returnFn
+  document.getElementById('page-title').textContent='Plan Markup — '+fileName
+  document.getElementById('topbar-actions').innerHTML=`
+    <button class="btn btn-sm" onclick="if(_markupReturnFn)_markupReturnFn()">← Back</button>
+    <button class="btn btn-sm btn-p" onclick="saveMarkupData()">💾 Save</button>
+    <button class="btn btn-sm btn-g" onclick="downloadMarkupPNG()">⬇ Download PNG</button>`
+
+  document.getElementById('page-area').innerHTML=`
+  <div style="display:grid;grid-template-columns:1fr 260px;gap:13px;height:calc(100vh - 130px)">
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <!-- TOOLBAR -->
+      <div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:10px;color:#414e63;font-weight:600">MODE</span>
+        <button class="mt-btn active" id="mmt-dot" onclick="setMarkupMode('dot',this)">● Dot</button>
+        <button class="mt-btn" id="mmt-text" onclick="setMarkupMode('text',this)">T Text</button>
+        <button class="mt-btn" id="mmt-del" onclick="setMarkupMode('delete',this)">🗑 Delete</button>
+        <div style="width:1px;height:20px;background:rgba(255,255,255,.1);margin:0 4px"></div>
+        <span style="font-size:10px;color:#414e63;font-weight:600">COLOR</span>
+        <div id="color-swatches" style="display:flex;gap:5px">
+          ${['#dc2626','#d97706','#16a34a','#2563eb','#7c3aed','#0d9488','#ec4899','#f97316','#ffffff','#000000'].map((clr,i)=>`<div onclick="setMarkupColor('${clr}',this)" style="width:18px;height:18px;border-radius:50%;background:${clr};cursor:pointer;border:2px solid ${i===0?'#fff':'transparent'};flex-shrink:0" data-color="${clr}"></div>`).join('')}
+        </div>
+        <div style="width:1px;height:20px;background:rgba(255,255,255,.1);margin:0 4px"></div>
+        <span style="font-size:10px;color:#414e63;font-weight:600">SIZE</span>
+        <select class="fi" id="dot-size" style="width:60px;padding:3px 6px;font-size:11px">
+          <option value="6">XS</option><option value="9">S</option><option value="13" selected>M</option><option value="18">L</option><option value="24">XL</option>
+        </select>
+        <button class="mt-btn" onclick="clearAllMarkup()" style="margin-left:auto;color:#dc2626">🗑 Clear All</button>
+      </div>
+      <!-- CANVAS -->
+      <div style="flex:1;overflow:auto;background:#1a2540;border-radius:9px;border:1px solid rgba(255,255,255,.07);cursor:crosshair;position:relative" id="canvas-scroll-wrap">
+        <canvas id="markup-canvas" style="display:block;max-width:100%"></canvas>
+        <div id="canvas-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#414e63;font-size:13px">Loading plan…</div>
+      </div>
+      <div style="font-size:10px;color:#414e63">Tip: Click to place dot/text • Click existing element in Delete mode to remove • Save often</div>
+    </div>
+    <!-- SIDEBAR -->
+    <div style="overflow-y:auto;display:flex;flex-direction:column;gap:10px">
+      <div class="card">
+        <div class="card-title">Legend <button class="btn btn-sm btn-p" onclick="addLegendEntry()" style="font-size:10px;padding:3px 8px">+</button></div>
+        <div id="legend-entries"></div>
+        <div style="font-size:10px;color:#414e63;margin-top:6px">Add entries to explain what your colored dots mean</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Text Boxes</div>
+        <div id="textbox-entries"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Dots (${0})</div>
+        <div id="dot-count-display" style="font-size:11px;color:#414e63">0 dots placed</div>
+      </div>
+    </div>
+  </div>`
+
+  loadMarkupData(planId,planUrl)
+}
+
+let _mMode='dot',_mColor='#dc2626',_mCanvas=null,_mCtx=null,_mImg=null,_mData={dots:[],textboxes:[],legend:[]}
+
+function setMarkupMode(m,btn){
+  _mMode=m
+  document.querySelectorAll('.mt-btn').forEach(b=>b.classList.remove('active'))
+  if(btn)btn.classList.add('active')
+  const canvas=document.getElementById('markup-canvas')
+  if(canvas)canvas.style.cursor=m==='delete'?'crosshair':m==='text'?'text':'crosshair'
+}
+function setMarkupColor(c,el){
+  _mColor=c
+  document.querySelectorAll('#color-swatches div').forEach(d=>d.style.border='2px solid transparent')
+  if(el)el.style.border='2px solid #fff'
+}
+
+async function loadMarkupData(planId,planUrl){
+  const{data:plan}=await sb.from('job_walk_plans').select('markup_json').eq('id',planId).single()
+  _mData=plan?.markup_json||{dots:[],textboxes:[],legend:[]}
+  // Load image
+  const canvas=document.getElementById('markup-canvas')
+  const ctx=canvas.getContext('2d')
+  _mCanvas=canvas;_mCtx=ctx
+  const img=new Image();img.crossOrigin='anonymous'
+  img.onload=()=>{
+    canvas.width=img.naturalWidth||1200;canvas.height=img.naturalHeight||800
+    canvas.style.width='100%'
+    _mImg=img
+    document.getElementById('canvas-loading').style.display='none'
+    redrawMarkup()
+    renderLegendEntries();renderTextboxEntries();updateDotCount()
+    // Attach click handler
+    canvas.onclick=handleMarkupClick
+  }
+  img.onerror=()=>{
+    canvas.width=1200;canvas.height=800;canvas.style.width='100%'
+    ctx.fillStyle='#1a2540';ctx.fillRect(0,0,1200,800)
+    ctx.fillStyle='#414e63';ctx.font='16px DM Sans,sans-serif';ctx.textAlign='center'
+    ctx.fillText('PDF/image preview not available',600,400)
+    ctx.fillText('Markup will still be saved. Use Download to view with annotations.',600,430)
+    _mImg=null
+    document.getElementById('canvas-loading').style.display='none'
+    redrawMarkup();canvas.onclick=handleMarkupClick
+  }
+  img.src=planUrl
+}
+
+function handleMarkupClick(e){
+  const canvas=document.getElementById('markup-canvas');if(!canvas)return
+  const rect=canvas.getBoundingClientRect()
+  const sx=canvas.width/rect.width,sy=canvas.height/rect.height
+  const cx=(e.clientX-rect.left)*sx,cy=(e.clientY-rect.top)*sy
+  if(_mMode==='dot'){
+    const sz=parseInt(document.getElementById('dot-size')?.value||13)
+    const id=uuid()
+    _mData.dots.push({id,x:cx,y:cy,color:_mColor,size:sz,label:''})
+    redrawMarkup();updateDotCount();beep()
+  } else if(_mMode==='text'){
+    const txt=prompt('Enter text to place on plan:');if(!txt)return
+    _mData.textboxes.push({id:uuid(),x:cx,y:cy,text:txt,color:_mColor,fontSize:14})
+    redrawMarkup();renderTextboxEntries()
+  } else if(_mMode==='delete'){
+    const hit=findMarkupHit(cx,cy)
+    if(hit){
+      if(hit.type==='dot')_mData.dots=_mData.dots.filter(d=>d.id!==hit.id)
+      else _mData.textboxes=_mData.textboxes.filter(t=>t.id!==hit.id)
+      redrawMarkup();renderLegendEntries();renderTextboxEntries();updateDotCount()
+      toast('Removed','info')
+    }
+  }
+}
+function findMarkupHit(cx,cy){
+  for(const d of _mData.dots){if(Math.sqrt((cx-d.x)**2+(cy-d.y)**2)<=d.size+5)return{...d,type:'dot'}}
+  for(const t of _mData.textboxes){if(cx>=t.x-5&&cx<=t.x+200&&cy>=t.y-t.fontSize-2&&cy<=t.y+5)return{...t,type:'text'}}
+  return null
+}
+function redrawMarkup(){
+  if(!_mCtx||!_mCanvas)return
+  _mCtx.clearRect(0,0,_mCanvas.width,_mCanvas.height)
+  if(_mImg)_mCtx.drawImage(_mImg,0,0)
+  else{_mCtx.fillStyle='#1a2540';_mCtx.fillRect(0,0,_mCanvas.width,_mCanvas.height)}
+  // Draw dots
+  for(const d of _mData.dots){
+    _mCtx.beginPath();_mCtx.arc(d.x,d.y,d.size/2,0,Math.PI*2)
+    _mCtx.fillStyle=d.color;_mCtx.fill()
+    _mCtx.strokeStyle='rgba(255,255,255,.75)';_mCtx.lineWidth=1.5;_mCtx.stroke()
+    if(d.label){_mCtx.fillStyle=d.color;_mCtx.font='bold 11px DM Sans,sans-serif';_mCtx.fillText(d.label,d.x+d.size/2+4,d.y+4)}
+  }
+  // Draw textboxes
+  for(const t of _mData.textboxes){
+    _mCtx.font=`${t.fontSize}px DM Sans,sans-serif`
+    const w=_mCtx.measureText(t.text).width
+    _mCtx.fillStyle='rgba(0,0,0,.65)';_mCtx.fillRect(t.x-3,t.y-t.fontSize,w+6,t.fontSize+6)
+    _mCtx.fillStyle=t.color;_mCtx.fillText(t.text,t.x,t.y)
+  }
+}
+function updateDotCount(){const el=document.getElementById('dot-count-display');if(el)el.textContent=(_mData.dots||[]).length+' dots placed'}
+function renderLegendEntries(){
+  const el=document.getElementById('legend-entries');if(!el)return
+  const colorCounts={}
+  ;(_mData.dots||[]).forEach(d=>{colorCounts[d.color]=(colorCounts[d.color]||0)+1})
+  el.innerHTML=(_mData.legend||[]).map((l,i)=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><div style="width:14px;height:14px;border-radius:50%;background:${l.color};flex-shrink:0;border:1.5px solid rgba(255,255,255,.3)"></div><div style="font-size:10px;color:#414e63;flex-shrink:0">${colorCounts[l.color]||0}×</div><input style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:5px;color:#e8edf5;font-size:11px;padding:3px 7px;font-family:inherit" value="${l.label||''}" placeholder="What this color means…" oninput="_mData.legend[${i}].label=this.value"><button onclick="_mData.legend.splice(${i},1);renderLegendEntries()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:16px;flex-shrink:0">×</button></div>`).join('')||'<div style="font-size:11px;color:#414e63">No legend entries — click + to add</div>'
+}
+function addLegendEntry(){_mData.legend.push({id:uuid(),color:_mColor,label:''});renderLegendEntries()}
+function renderTextboxEntries(){
+  const el=document.getElementById('textbox-entries');if(!el)return
+  el.innerHTML=(_mData.textboxes||[]).map((t,i)=>`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="width:8px;height:8px;border-radius:50%;background:${t.color};flex-shrink:0"></div><div style="font-size:11px;flex:1;color:#8a96ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.text}</div><button onclick="_mData.textboxes.splice(${i},1);renderTextboxEntries();redrawMarkup()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">×</button></div>`).join('')||'<div style="font-size:11px;color:#414e63">No text boxes</div>'
+}
+function clearAllMarkup(){if(!confirm('Clear all dots and text boxes?'))return;_mData.dots=[];_mData.textboxes=[];redrawMarkup();renderLegendEntries();renderTextboxEntries();updateDotCount();toast('Cleared','warn')}
+async function saveMarkupData(){
+  if(!_markupPlanId)return
+  const{error}=await sb.from('job_walk_plans').update({markup_json:_mData}).eq('id',_markupPlanId)
+  if(error)toast(error.message,'error');else toast('Markup saved ✓')
+}
+function downloadMarkupPNG(){
+  const canvas=document.getElementById('markup-canvas');if(!canvas)return
+  const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='plan-markup-'+new Date().toISOString().split('T')[0]+'.png';a.click();toast('Downloading PNG…')
+}
+
+// Upload plans to job (as-builts)
+async function uploadJobAsbuilt(files){
+  for(const f of files){
+    const path=`jobs/${currentJobId}/asbuilts/${Date.now()}_${f.name}`
+    const{error}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true})
+    if(!error){
+      const{data:{publicUrl}}=sb.storage.from('fieldtrack-plans').getPublicUrl(path)
+      await sb.from('job_walk_plans').insert({id:uuid(),job_walk_id:null,job_id:currentJobId,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],legend:[]},created_at:new Date().toISOString()})
+    }
+  }
+  toast('Plan uploaded ✓');loadJT('jt-asbuilts')
+}
+
+async function renderAsbuiltsTab(el){
+  const{data:plans}=await sb.from('job_walk_plans').select('*').eq('job_id',currentJobId).is('job_walk_id',null).order('created_at',{ascending:false})
+  el.innerHTML=`
+  <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+    <label class="btn btn-p btn-sm" style="cursor:pointer">+ Upload Plan / As-built<input type="file" style="display:none" multiple accept=".pdf,.png,.jpg,.jpeg,.dwg" onchange="uploadJobAsbuilt(this.files)"></label>
+    <span style="font-size:11px;color:#414e63">Upload plans, then click Markup to annotate with colored dots, text, and legend</span>
+  </div>
+  ${(plans||[]).length?plans.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:7px">
+    <div style="font-size:22px">${p.file_name?.match(/\.pdf$/i)?'📄':'🖼'}</div>
+    <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.file_name}</div>
+    <div style="font-size:10px;color:#414e63;margin-top:1px">${fd(p.created_at)} · ${(p.markup_json?.dots||[]).length} dots · ${(p.markup_json?.textboxes||[]).length} text boxes</div></div>
+    <button class="btn btn-sm btn-p" onclick="openPlanMarkup('${p.id}','${p.url}','${p.file_name}',()=>loadJT('jt-asbuilts'))">✏ Markup</button>
+    <a href="${p.url}" target="_blank" class="btn btn-sm">View</a>
+    <button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="deleteJobPlan('${p.id}','${p.storage_path||''}')">Del</button>
+  </div>`).join(''):empty('📐','No plans uploaded yet — upload PDF or image files to begin markup')}` 
+}
+async function deleteJobPlan(planId,storagePath){
+  if(!confirm('Delete this plan?'))return
+  if(storagePath)await sb.storage.from('fieldtrack-plans').remove([storagePath]).catch(()=>{})
+  await sb.from('job_walk_plans').delete().eq('id',planId)
+  toast('Deleted');loadJT('jt-asbuilts')
+}
+
+// ══════════════════════════════════════════
+// PM VISIT TRACKING
+// ══════════════════════════════════════════
+async function renderPmVisitsTab(el){
+  const{data:visits}=await sb.from('pm_visits').select('*').eq('job_id',currentJobId).order('visit_date',{ascending:false})
+  const j=currentJob
+  el.innerHTML=`
+  <div style="margin-bottom:13px;display:flex;gap:9px;align-items:flex-start">
+    <div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">
+      <div style="font-size:10px;color:#414e63;margin-bottom:3px">NEXT PM VISIT DUE</div>
+      <div style="font-size:18px;font-weight:300;color:${j.next_pm_visit&&daysAway(j.next_pm_visit)<=0?'#dc2626':j.next_pm_visit&&daysAway(j.next_pm_visit)<=7?'#d97706':'#e8edf5'}">${j.next_pm_visit?fd(j.next_pm_visit):'Not scheduled'}</div>
+      ${j.next_pm_visit?`<div style="font-size:11px;color:#414e63;margin-top:2px">${daysAway(j.next_pm_visit)===0?'Today':daysAway(j.next_pm_visit)<0?Math.abs(daysAway(j.next_pm_visit))+'d overdue':daysAway(j.next_pm_visit)+'d away'}</div>`:''}
+    </div>
+    <div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">
+      <div style="font-size:10px;color:#414e63;margin-bottom:3px">PM ASSIGNED</div>
+      <div style="font-size:14px;font-weight:500">${j.project_manager||'Not assigned'}</div>
+      <div style="font-size:11px;color:#414e63;margin-top:2px">${j.pm_visit_schedule||'No schedule set'}</div>
+    </div>
+    <button class="btn btn-p btn-sm" onclick="logPmVisitModal()">+ Log Visit</button>
+  </div>
+  <div class="sec-hdr">Visit History</div>
+  ${(visits||[]).map(vis=>`<div style="padding:10px 12px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:7px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">
+      <div><div style="font-weight:500;font-size:13px">PM Visit — ${fd(vis.visit_date)}</div><div style="font-size:11px;color:#414e63;margin-top:1px">${vis.pm_name||'—'}</div></div>
+      <span class="badge ${vis.outcome==='approved'?'bg-green':vis.outcome==='issues_found'?'bg-amber':'bg-gray'}">${vis.outcome||'visited'}</span>
+    </div>
+    ${vis.observations?`<div style="font-size:12px;color:#8a96ab;margin-bottom:6px">${vis.observations}</div>`:''}
+    ${vis.issues?`<div style="font-size:12px;color:#d97706;margin-bottom:6px">⚠ ${vis.issues}</div>`:''}
+    ${vis.next_visit_date?`<div style="font-size:11px;color:#414e63">Next visit scheduled: ${fd(vis.next_visit_date)}</div>`:''}
+  </div>`).join('')||empty('📋','No PM visits logged yet')}` 
+}
+async function logPmVisitModal(){
+  modal('Log PM Visit',`
+  <div class="two"><div class="fg"><label class="fl">Visit Date *</label><input class="fi" type="date" id="pmv-date" value="${new Date().toISOString().split('T')[0]}"></div><div class="fg"><label class="fl">PM Name</label><input class="fi" id="pmv-pm" value="${currentJob?.project_manager||ME?.full_name||''}"></div></div>
+  <div class="fg"><label class="fl">Observations</label><textarea class="ft" id="pmv-obs" placeholder="What was observed on site…"></textarea></div>
+  <div class="fg"><label class="fl">Issues Found</label><textarea class="ft" id="pmv-iss" placeholder="Any problems or items requiring attention…"></textarea></div>
+  <div class="two"><div class="fg"><label class="fl">Outcome</label><select class="fs" id="pmv-out"><option value="visited">Visited</option><option value="approved">Approved</option><option value="issues_found">Issues Found</option><option value="reinspection_needed">Reinspection Needed</option></select></div><div class="fg"><label class="fl">Next Visit Date</label><input class="fi" type="date" id="pmv-next"></div></div>`,
+  async()=>{
+    const{error}=await sb.from('pm_visits').insert({id:uuid(),job_id:currentJobId,visit_date:v('pmv-date'),pm_name:v('pmv-pm'),observations:v('pmv-obs'),issues:v('pmv-iss'),outcome:v('pmv-out'),next_visit_date:v('pmv-next')||null,created_at:new Date().toISOString()})
+    if(error){toast(error.message,'error');return}
+    // Update next PM visit on job
+    if(v('pmv-next'))await sb.from('jobs').update({next_pm_visit:v('pmv-next'),updated_at:new Date().toISOString()}).eq('id',currentJobId)
+    closeModal();toast('Visit logged ✓');loadJT('jt-pmvisits')
+  })
+}
+</script>

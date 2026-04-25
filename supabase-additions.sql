@@ -189,3 +189,54 @@ create policy "jd_all" on job_documents for all using (auth.role()='authenticate
 create policy "se_all" on scan_events for all using (auth.role()='authenticated');
 
 select 'v2 schema additions complete' as status;
+
+-- ── v2.1 ADDITIONS ────────────────────────────────────────────
+-- Run these in Supabase SQL Editor
+
+-- PM fields on jobs
+alter table jobs add column if not exists project_manager text not null default '';
+alter table jobs add column if not exists pm_visit_schedule text not null default 'none';
+alter table jobs add column if not exists next_pm_visit date;
+
+-- Sub contractor work assignments per job
+create table if not exists job_sub_assignments (
+  id            uuid primary key default gen_random_uuid(),
+  job_id        uuid not null references jobs(id) on delete cascade,
+  company_id    uuid not null references companies(id) on delete cascade,
+  scope_of_work text not null default '',
+  contract_value numeric(12,2),
+  status        text not null default 'assigned',
+  start_date    date,
+  due_date      date,
+  notes         text not null default '',
+  created_by    text,
+  created_at    timestamptz not null default now()
+);
+
+-- PM visits log (separate from PM inspections)
+create table if not exists pm_visits (
+  id              uuid primary key default gen_random_uuid(),
+  job_id          uuid not null references jobs(id) on delete cascade,
+  visit_date      date not null default current_date,
+  pm_name         text not null default '',
+  observations    text not null default '',
+  issues          text not null default '',
+  outcome         text not null default 'visited',
+  next_visit_date date,
+  created_at      timestamptz not null default now()
+);
+
+-- job_walk_plans: allow null job_walk_id for job-level as-builts
+alter table job_walk_plans alter column job_walk_id drop not null;
+
+-- Indexes
+create index if not exists idx_job_sub_job on job_sub_assignments(job_id);
+create index if not exists idx_pm_visits_job on pm_visits(job_id);
+
+-- RLS
+alter table job_sub_assignments enable row level security;
+alter table pm_visits enable row level security;
+create policy "jsa_all" on job_sub_assignments for all using (auth.role()='authenticated');
+create policy "pmv_all" on pm_visits for all using (auth.role()='authenticated');
+
+select 'v2.1 additions complete' as status;

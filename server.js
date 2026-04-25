@@ -268,7 +268,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const job = {
         id: uid(), name: b.name, description: b.description || '', address: b.address || '',
-        gps_lat: b.gps_lat || null, gps_lng: b.gps_lng || null, gps_radius_ft: b.gps_radius_ft || 250,
+        gps_lat: b.gps_lat || null, gps_lng: b.gps_lng || null, gps_radius_ft: b.gps_radius_ft || 750,
         gc_company: b.gc_company || '', gc_contact: b.gc_contact || '', gc_phone: b.gc_phone || '', gc_email: b.gc_email || '',
         super_name: b.super_name || '', super_phone: b.super_phone || '', super_email: b.super_email || '',
         scope: b.scope || '', notes: b.notes || '', install_notes: b.install_notes || '',
@@ -315,7 +315,7 @@ const server = http.createServer(async (req, res) => {
   if (jM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager', 'technician')) return;
     const b = await readBody(req);
-    const allowed = ['name','description','address','gps_lat','gps_lng','gps_radius_ft','gc_company','gc_contact','gc_phone','gc_email','super_name','super_phone','super_email','scope','notes','install_notes','job_walk_by','job_walk_date','job_walk_notes','phase','pct_complete','archived','budget','contract_value','labor_budget','material_budget','labor_rate','site_contact_name','site_contact_phone','company_id','pm_review_required','pm_review_type','date_contract','date_permit','date_start','due_date','date_roughin','date_trimout','date_inspection','date_next_visit','date_closeout','date_co','completion_date'];
+    const allowed = ['name','description','address','gps_lat','gps_lng','gps_radius_ft','gc_company','gc_contact','gc_phone','gc_email','super_name','super_phone','super_email','scope','notes','install_notes','job_walk_by','job_walk_date','job_walk_notes','phase','pct_complete','archived','budget','contract_value','labor_budget','material_budget','labor_rate','site_contact_name','site_contact_phone','company_id','pm_review_required','pm_review_type','date_contract','date_permit','date_start','due_date','date_roughin','date_trimout','date_inspection','date_next_visit','date_closeout','date_co','completion_date','project_manager','pm_visit_schedule','next_pm_visit','expected_onsite_date','next_visit_date'];
     const upd = { updated_at: nowISO() };
     allowed.forEach(k => { if (b[k] !== undefined) upd[k] = b[k]; });
     try {
@@ -375,7 +375,7 @@ const server = http.createServer(async (req, res) => {
         const dLng = (job.gps_lng - checkin_lng) * Math.PI / 180;
         const a = Math.sin(dLat/2)**2 + Math.cos(checkin_lat*Math.PI/180)*Math.cos(job.gps_lat*Math.PI/180)*Math.sin(dLng/2)**2;
         dist = Math.round(R * 2 * Math.asin(Math.sqrt(a)));
-        const radius = job.gps_radius_ft || 250;
+        const radius = job.gps_radius_ft || 750;
         if (dist > radius) {
           await auditLog('gps_blocked', job_id, null, null, u.name, dist + 'ft from site');
           return json(res, 400, { error: 'Too far from site (' + dist + 'ft). Must be within ' + radius + 'ft.', dist_ft: dist, blocked: true });
