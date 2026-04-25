@@ -139,22 +139,24 @@ const server = http.createServer(async (req, res) => {
 
   if (method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
 
-  // Static files
-  if (method === 'GET' && (p === '/' || p === '/index.html'))
-    return serveFile(res, path.join(__dirname, 'public', 'index.html'), 'text/html');
-  if (method === 'GET' && p === '/admin.html')
-    return serveFile(res, path.join(__dirname, 'public', 'admin.html'), 'text/html');
-  if (method === 'GET' && p === '/worker.html')
-    return serveFile(res, path.join(__dirname, 'public', 'worker.html'), 'text/html');
-  if (method === 'GET' && p === '/fax-shared.js')
-    return serveFile(res, path.join(__dirname, 'public', 'fax-shared.js'), 'application/javascript');
-  // Serve any file from /public/ by path
+  // Static files — try public/ first, then root
   if (method === 'GET' && !p.startsWith('/api/')) {
     const ext = path.extname(p);
     const ctMap = { '.html':'text/html', '.js':'application/javascript', '.css':'text/css', '.json':'application/json', '.png':'image/png', '.jpg':'image/jpeg', '.ico':'image/x-icon', '.svg':'image/svg+xml' };
-    const ct = ctMap[ext] || 'application/octet-stream';
-    const fp = path.join(__dirname, 'public', p);
-    if (fs.existsSync(fp)) return serveFile(res, fp, ct);
+    const ct = ctMap[ext] || 'text/html';
+    // Normalize path — / or /index.html → index.html
+    const fileName = (p === '/' || p === '') ? 'index.html' : p.replace(/^\//, '');
+    // Try public/ first
+    const fromPublic = path.join(__dirname, 'public', fileName);
+    if (fs.existsSync(fromPublic)) return serveFile(res, fromPublic, ct);
+    // Fallback: root directory
+    const fromRoot = path.join(__dirname, fileName);
+    if (fs.existsSync(fromRoot)) return serveFile(res, fromRoot, ct);
+    // SPA fallback: serve index.html for unknown HTML requests
+    if (!ext || ext === '.html') {
+      const idx = path.join(__dirname, 'public', 'index.html');
+      if (fs.existsSync(idx)) return serveFile(res, idx, 'text/html');
+    }
   }
 
   // ── AUTH ──────────────────────────────────────────────────────────────────
