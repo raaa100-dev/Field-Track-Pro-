@@ -636,6 +636,7 @@ function renderInfoTab(el,j){
   <div style="display:flex;gap:8px;margin-top:4px">
     <button class="btn btn-p" onclick="saveInfoTab()">Save Changes</button>
     <button class="btn btn-a" onclick="archiveJob()">Archive Job</button>
+    \${ME?.role==='admin'?'<button class="btn" style="background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.3);color:#dc2626" onclick="deleteJobConfirm()">🗑 Delete Job</button>':''}
   </div>\`
   setTimeout(async()=>{
     document.getElementById('ed-rad').value=j.gps_radius_ft||250
@@ -658,6 +659,52 @@ async function saveInfoTab(){
   currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved')
 }
 async function archiveJob(){if(!confirm('Archive this job?'))return;await sb.from('jobs').update({archived:true}).eq('id',currentJobId);toast('Archived');P('jobs',null)}
+
+async function deleteJobConfirm(){
+  // Guard: admin only
+  if(ME?.role!=='admin'){toast('Only admins can delete jobs','error');return}
+  const jobName=currentJob?.name||'this job'
+  // Step 1: First confirmation
+  const step1=confirm('DELETE JOB — Step 1 of 2\\n\\nYou are about to permanently delete:\\n"'+jobName+'"\\n\\nThis will also delete ALL associated data including:\\n• Daily reports\\n• Parts & materials\\n• Photos\\n• Checklists & punch lists\\n• Job walks & plans\\n• Hours & check-ins\\n\\nThis CANNOT be undone.\\n\\nClick OK to continue to step 2.')
+  if(!step1)return
+  // Step 2: Type job name to confirm
+  const typed=prompt('DELETE JOB — Step 2 of 2\\n\\nTo confirm deletion, type the job name exactly as shown below:\\n\\n'+jobName)
+  if(typed===null)return // cancelled
+  if(typed.trim()!==jobName.trim()){
+    toast('Job name did not match — deletion cancelled','error')
+    return
+  }
+  // Perform delete
+  const btn=event?.target
+  if(btn){btn.disabled=true;btn.textContent='Deleting…'}
+  try{
+    // Delete in correct order to respect foreign keys
+    await sb.from('dispatch_assignments').delete().eq('job_id',currentJobId)
+    await sb.from('daily_reports').delete().eq('job_id',currentJobId)
+    await sb.from('job_parts').delete().eq('job_id',currentJobId)
+    await sb.from('job_photos').delete().eq('job_id',currentJobId)
+    await sb.from('job_checklist_items').delete().eq('job_id',currentJobId)
+    await sb.from('punch_list').delete().eq('job_id',currentJobId)
+    await sb.from('job_walks').delete().eq('job_id',currentJobId)
+    await sb.from('job_walk_plans').delete().eq('job_id',currentJobId)
+    await sb.from('pm_visits').delete().eq('job_id',currentJobId)
+    await sb.from('pm_inspections').delete().eq('job_id',currentJobId)
+    await sb.from('change_orders').delete().eq('job_id',currentJobId)
+    await sb.from('job_sub_assignments').delete().eq('job_id',currentJobId)
+    await sb.from('job_workers').delete().eq('job_id',currentJobId)
+    await sb.from('checkins').delete().eq('job_id',currentJobId)
+    await sb.from('job_documents').delete().eq('job_id',currentJobId)
+    await sb.from('notifications').delete().eq('meta->>job_id',currentJobId)
+    // Finally delete the job itself
+    const{error}=await sb.from('jobs').delete().eq('id',currentJobId)
+    if(error)throw error
+    toast('"'+jobName+'" permanently deleted')
+    P('jobs',null)
+  }catch(e){
+    toast('Delete failed: '+e.message,'error')
+    if(btn){btn.disabled=false;btn.textContent='🗑 Delete Job'}
+  }
+}
 function renderScopeTab(el,j){
   el.innerHTML=\`
   <div class="fg"><label class="fl">Scope of Work</label><textarea class="ft" id="sc-scope" style="min-height:120px">\${j.scope||''}</textarea></div>
