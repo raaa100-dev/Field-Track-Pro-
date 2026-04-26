@@ -46,6 +46,31 @@ function sbReq(method, table, body, params, svc) {
     req.end();
   });
 }
+async function sbFetch(method, endpoint, body, key) {
+  const k = key || SB_ANON;
+  const opts = {
+    method,
+    headers: {
+      'apikey': k,
+      'Authorization': 'Bearer ' + k,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    }
+  };
+  if (body && method !== 'GET') opts.body = JSON.stringify(body);
+  return new Promise((resolve) => {
+    const urlObj = new URL(SB_URL + endpoint);
+    const reqFn = urlObj.protocol === 'https:' ? https.request : http.request;
+    const req = reqFn({ hostname: urlObj.hostname, path: urlObj.pathname + urlObj.search, method, headers: opts.headers }, res => {
+      let d = '';
+      res.on('data', chunk => d += chunk);
+      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({}); } });
+    });
+    req.on('error', e => resolve({ error: e.message }));
+    if (opts.body) req.write(opts.body);
+    req.end();
+  });
+}
 async function dbGet(t, p)     { return await sbReq('GET',    t, null,  p)    || []; }
 async function dbInsert(t, b)  { return await sbReq('POST',   t, b,     null,  true); }
 async function dbUpdate(t, b, p){ return await sbReq('PATCH', t, b,     p,     true); }
@@ -931,7 +956,54 @@ const server = http.createServer(async (req, res) => {
     try { return json(res, 200, (await dbUpdate('invoices', await readBody(req), { id: 'eq.' + invIM[1] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
   }
 
-  json(res, 404, { error: 'Not found: ' + p });
+  // ── INVITE / CREATE USER ─────────────────────────────────────
+  if (p === '/api/invite-user' && method === 'POST') {
+    const u = await requireAuth(req, res); if (!u) return;
+    const body = await readBody(req);
+    const { email, full_name, role, phone, company_id, hire_date, emergency_contact, emergency_phone } = body;
+    if (!email || !full_name) return json(res, 400, { error: 'email and full_name required' });
+
+    // Use service role key to create the auth user
+    const serviceKey = SB_SERVICE || SB_ANON;
+    const inviteRes = await sbFetch('POST', '/auth/v1/admin/users', {
+      email,
+      password: Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2).toUpperCase() + '!1',
+      email_confirm: true,
+      user_metadata: { full_name, role: role || 'sub_worker' }
+    }, serviceKey);
+
+    if (inviteRes.error && !inviteRes.id) {
+      // User might already exist in auth - just create profile
+      console.log('Auth user creation note:', inviteRes.error?.message || inviteRes.msg);
+    }
+
+    const authUserId = inviteRes.id;
+    if (!authUserId) return json(res, 400, { error: inviteRes.error?.message || 'Could not create auth user. Add SUPABASE_SERVICE_KEY to Render environment variables.' });
+
+    // Create profile
+    const profileRes = await sbFetch('POST', '/rest/v1/profiles', {
+      id: authUserId,
+      full_name,
+      email,
+      phone: phone || '',
+      role: role || 'sub_worker',
+      company_id: company_id || null,
+      hire_date: hire_date || null,
+      emergency_contact: emergency_contact || '',
+      emergency_phone: emergency_phone || '',
+      is_active: true,
+      created_at: new Date().toISOString()
+    });
+
+    // Send password reset email so they can set their own password
+    await sbFetch('POST', '/auth/v1/admin/users/' + authUserId + '/send-email', {
+      type: 'recovery'
+    }, serviceKey);
+
+    return json(res, 200, { success: true, user_id: authUserId, message: 'Employee created. Password reset email sent to ' + email });
+  }
+
+    json(res, 404, { error: 'Not found: ' + p });
 });
 
 server.listen(PORT, '0.0.0.0', async () => {

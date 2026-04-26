@@ -2173,10 +2173,10 @@ async function viewEmployeeModal(id){
 }
 
 function addUserModal(){
-  const coOpts=(window._empCos||[]).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')
+  const coOpts=(window._empCos||[]).map(co=>'<option value="'+co.id+'">'+co.name+'</option>').join('')
   const html=
     '<div class="two"><div class="fg"><label class="fl">Full Name *</label><input class="fi" id="au-nm"></div>'+
-    '<div class="fg"><label class="fl">Email *</label><input class="fi" id="au-em" type="email"></div></div>'+
+    '<div class="fg"><label class="fl">Email *</label><input class="fi" id="au-em" type="email" placeholder="They will get a password setup email"></div></div>'+
     '<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="au-ph"></div>'+
     '<div class="fg"><label class="fl">Role *</label><select class="fs" id="au-rl">'+
     '<option value="sub_worker">Field Worker</option><option value="sub_lead">Lead</option>'+
@@ -2188,14 +2188,43 @@ function addUserModal(){
     '<div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="au-hire"></div></div>'+
     '<div class="two"><div class="fg"><label class="fl">Emergency Contact</label><input class="fi" id="au-ec"></div>'+
     '<div class="fg"><label class="fl">Emergency Phone</label><input class="fi" id="au-ep"></div></div>'+
-    '<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="au-notes" style="min-height:50px"></textarea></div>'+
-    '<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:7px;padding:9px 12px;font-size:11px;color:#8a96ab">'+
-    'ℹ After adding, go to Supabase Dashboard → Authentication → Invite User to send a login link.</div>'
+    '<div id="au-status" style="display:none;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:7px;padding:9px 12px;font-size:12px;color:#16a34a;margin-top:4px"></div>'
   modal('Add Employee', html, async()=>{
     const nm=v('au-nm').trim(),em=v('au-em').trim()
     if(!nm||!em){toast('Name and email required','error');return}
-    const{error}=await sb.from('profiles').insert({id:uuid(),full_name:nm,email:em,phone:v('au-ph'),role:v('au-rl'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep'),notes:v('au-notes'),is_active:true,created_at:new Date().toISOString()})
-    if(error)toast(error.message,'error');else{closeModal();toast('Employee added');pgUsers()}
+    const btn=document.getElementById('modal-ok')
+    btn.disabled=true;btn.textContent='Adding…'
+    try{
+      // Try server route first (creates auth account + profile + sends password email)
+      const{data:{session}}=await sb.auth.getSession()
+      const res=await fetch('/api/invite-user',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+        body:JSON.stringify({email:em,full_name:nm,role:v('au-rl'),phone:v('au-ph'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep')})
+      })
+      const result=await res.json()
+      if(res.ok&&result.success){
+        closeModal()
+        toast('Employee added! Password setup email sent to '+em)
+        pgUsers()
+        return
+      }
+      // If service key not set, fall back to profile-only (no auth account)
+      console.warn('Invite route result:',result)
+      if(result.error?.includes('SUPABASE_SERVICE_KEY')||result.error?.includes('service')){
+        // Fallback: just create the profile, show instructions
+        const{error}=await sb.from('profiles').insert({id:uuid(),full_name:nm,email:em,phone:v('au-ph'),role:v('au-rl'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep'),is_active:true,created_at:new Date().toISOString()})
+        if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Save';return}
+        closeModal()
+        toast('Profile created. To enable login: add SUPABASE_SERVICE_KEY to Render env vars','warn')
+        pgUsers()
+        return
+      }
+      throw new Error(result.error||'Failed to create employee')
+    }catch(e){
+      toast(e.message,'error')
+      btn.disabled=false;btn.textContent='Save'
+    }
   })
 }
 
