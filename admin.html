@@ -503,7 +503,7 @@ function renderInfoTab(el,j){
     <div class="fg"><label class="fl">GC Company</label><input class="fi" id="ed-gc" value="${j.gc_company||''}"></div>
     <div class="two"><div class="fg"><label class="fl">GC Contact</label><input class="fi" id="ed-gcc" value="${j.gc_contact||''}"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="ed-gcp" value="${j.gc_phone||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="ed-sup" value="${j.super_name||''}"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="ed-supp" value="${j.super_phone||''}"></div></div>
-    <div class="fg"><label class="fl">Project Manager (Internal)</label><input class="fi" id="ed-pm" value="${j.project_manager||''}"></div>
+    <div class="fg"><label class="fl">Project Manager (Internal)</label><select class="fs" id="ed-pm"><option value="">— Unassigned —</option></select></div>
     <div class="two"><div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="ed-pmschedule"><option value="none">No visits</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">Milestones only</option></select></div><div class="fg"><label class="fl">Next PM Visit Due</label><input class="fi" type="date" id="ed-pmvisit" value="${j.next_pm_visit||''}"></div></div>
   </div>
   <div>
@@ -522,7 +522,19 @@ function renderInfoTab(el,j){
     <button class="btn btn-p" onclick="saveInfoTab()">Save Changes</button>
     <button class="btn btn-a" onclick="archiveJob()">Archive Job</button>
   </div>`
-  setTimeout(()=>{document.getElementById('ed-rad').value=j.gps_radius_ft||250;if(document.getElementById('ed-pmschedule'))document.getElementById('ed-pmschedule').value=j.pm_visit_schedule||'none'},50)
+  setTimeout(async()=>{
+    document.getElementById('ed-rad').value=j.gps_radius_ft||250
+    if(document.getElementById('ed-pmschedule'))document.getElementById('ed-pmschedule').value=j.pm_visit_schedule||'none'
+    // Populate PM dropdown from employee list
+    const{data:pmUsers}=await sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','foreman','technician']).eq('is_active',true).order('full_name')
+    const sel=document.getElementById('ed-pm')
+    if(sel&&pmUsers){
+      sel.innerHTML='<option value="">— Unassigned —</option>'+(pmUsers||[]).map(p=>'<option value="'+p.full_name+'"'+( j.project_manager===p.full_name?' selected':'')+'>'+p.full_name+' ('+p.role+')</option>').join('')
+      if(j.project_manager&&!(pmUsers||[]).find(p=>p.full_name===j.project_manager)){
+        sel.innerHTML+='<option value="'+j.project_manager+'" selected>'+j.project_manager+' (not in system)</option>'
+      }
+    }
+  },50)
 }
 async function saveInfoTab(){
   const u={name:v('ed-name'),address:v('ed-addr'),gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,date_start:v('ed-start')||null,due_date:v('ed-due')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
@@ -929,10 +941,17 @@ async function pgNewJob(){
     </div>
     <button class="btn btn-p btn-full" id="nj-btn" onclick="submitNewJob()">Create Job</button>
   </div></div>`
+  setTimeout(()=>populateNjPM(),50)
 }
 async function populateNjPM(pmUsers){
   const sel=document.getElementById('nj-pm');if(!sel)return
-  sel.innerHTML='<option value="">— Assign PM —</option>'+(pmUsers||[]).map(p=>`<option value="${p.full_name}">${p.full_name}</option>`).join('')
+  // If pmUsers passed, use them. Otherwise fetch fresh
+  let users=pmUsers
+  if(!users||!users.length){
+    const{data}=await sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','foreman','technician']).eq('is_active',true).order('full_name')
+    users=data||[]
+  }
+  sel.innerHTML='<option value="">— Unassigned —</option>'+(users||[]).map(p=>'<option value="'+p.full_name+'">'+p.full_name+' ('+p.role+')</option>').join('')
 }
 async function loadNjWorkers(){const coId=v('nj-co');const wrap=document.getElementById('nj-workers');if(!wrap)return;if(!coId){wrap.innerHTML='<div style="font-size:11px;color:#414e63">Select a company first</div>';return};const{data}=await sb.from('profiles').select('id,full_name,is_lead').eq('company_id',coId).eq('is_active',true);wrap.innerHTML=(data||[]).map(w=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><input type="checkbox" id="w-${w.id}" value="${w.id}" ${w.is_lead?'checked':''}><label for="w-${w.id}" style="font-size:12px;color:#8a96ab">${w.full_name}${w.is_lead?' (Lead)':''}</label></div>`).join('')||'<div style="font-size:11px;color:#414e63">No workers</div>'}
 async function submitNewJob(){
