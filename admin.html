@@ -273,19 +273,32 @@ function ld(){return'<div class="loading"><div class="spin"></div> Loading…</d
 async function pgDash(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="P(\'newjob\',null)">+ New Job</button>'
   try {
-  const[{data:jobs},{data:ci},{data:parts},{data:low},{data:safety}]=await Promise.all([
-    sb.from('jobs').select('*').order('created_at',{ascending:false}),
-    sb.from('checkins').select('*,profiles:worker_id(full_name),jobs(name)').is('checkout_at',null).order('checkin_at',{ascending:false}),
-    sb.from('job_parts').select('*').in('status',['staged','signed_out']),
-    sb.from('inventory').select('*').gt('min_qty',0),
-    sb.from('safety_assignments').select('*,safety_topics(title,week_of)').is('acknowledged_at',null).limit(5)
-  ])
+  // Run queries individually so one failure doesn't break everything
+  const {data:jobs,error:jobsError} = await sb.from('jobs').select('*').order('created_at',{ascending:false})
+  if(jobsError) throw new Error('Jobs: '+jobsError.message)
+  const {data:ci} = await sb.from('checkins').select('id,job_id,worker_id,checkin_at,checkout_at').is('checkout_at',null).order('checkin_at',{ascending:false}).limit(20).catch(()=>({data:[]}))
+  const {data:parts} = await sb.from('job_parts').select('id,job_id,status,assigned_qty').in('status',['staged','signed_out']).catch(()=>({data:[]}))
+  const {data:low} = await sb.from('inventory').select('id,name,qty,min_qty').gt('min_qty',0).catch(()=>({data:[]}))
+  const {data:safety} = await sb.from('safety_topics').select('id,title,week_of').order('created_at',{ascending:false}).limit(5).catch(()=>({data:[]}))
+  // Load worker names for check-ins separately (avoid join issues)
+  let ciWithNames = ci||[]
+  if(ciWithNames.length){
+    const workerIds=[...new Set(ciWithNames.map(c=>c.worker_id).filter(Boolean))]
+    const jobIds=[...new Set(ciWithNames.map(c=>c.job_id).filter(Boolean))]
+    const [{data:wProfiles},{data:ciJobs}]=await Promise.all([
+      sb.from('profiles').select('id,full_name').in('id',workerIds),
+      sb.from('jobs').select('id,name').in('id',jobIds)
+    ]).catch(()=>[{data:[]},{data:[]}])
+    const wMap={}; (wProfiles||[]).forEach(p=>wMap[p.id]=p.full_name)
+    const jMap={}; (ciJobs||[]).forEach(j=>jMap[j.id]=j.name)
+    ciWithNames=ciWithNames.map(c=>({...c,workerName:wMap[c.worker_id]||'?',jobName:jMap[c.job_id]||''}))
+  }
   allJobs=jobs||[]
   const active=allJobs.filter(j=>j.phase!=='complete')
   const staged=(parts||[]).filter(p=>p.status==='staged')
   const out=(parts||[]).filter(p=>p.status==='signed_out')
   const lowStock=(low||[]).filter(i=>i.qty<=i.min_qty)
-  const checkins=ci||[]
+  const checkins=ciWithNames
   // Upcoming milestones in next 14 days
   const soon=[]
   allJobs.forEach(j=>{
@@ -318,7 +331,7 @@ async function pgDash(){
       </div>
       <div class="card">
         <div class="card-title">Live Check-ins</div>
-        ${checkins.length?checkins.slice(0,5).map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div class="av" style="width:22px;height:22px;font-size:8px;${Object.entries(avS(c.profiles?.full_name)).map(([k,v])=>k+':'+v).join(';')}">${ini(c.profiles?.full_name)}</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.profiles?.full_name||'?'}</div><div style="font-size:10px;color:#414e63">${c.jobs?.name||''} · ${ft(c.checkin_at)}</div></div><span class="gps-live" style="font-size:9px"><span class="pulse"></span></span></div>`).join(''):'<div style="font-size:12px;color:#414e63">No one on site</div>'}
+        ${checkins.length?checkins.slice(0,5).map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div class="av" style="width:22px;height:22px;font-size:8px;${Object.entries(avS(c.workerName)).map(([k,v])=>k+':'+v).join(';')}">${ini(c.workerName)}</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.workerName||'?'}</div><div style="font-size:10px;color:#414e63">${c.jobName||''} · ${ft(c.checkin_at)}</div></div><span class="gps-live" style="font-size:9px"><span class="pulse"></span></span></div>`).join(''):'<div style="font-size:12px;color:#414e63">No one on site</div>'}
       </div>
     </div>
     <div>
@@ -348,7 +361,8 @@ async function pgJobs(){
     allJobs=jobs||[]
     renderJobsTable('')
   } catch(e) {
-    document.getElementById('page-area').innerHTML=`<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:18px"><div style="font-weight:600;color:#dc2626;margin-bottom:6px">⚠ Failed to load jobs</div><div style="font-size:12px;color:#f87171;font-family:'DM Mono',monospace">${e.message}</div><div style="font-size:11px;color:#8a96ab;margin-top:8px">Run <strong>supabase-fix.sql</strong> in your Supabase SQL Editor to set up the database.</div></div>`
+    const errMsg=e.message||String(e)
+    document.getElementById('page-area').innerHTML='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:18px;margin:0"><div style="font-weight:600;color:#dc2626;margin-bottom:6px">Failed to load jobs</div><div style="font-size:12px;color:#f87171;font-family:monospace;word-break:break-all;margin-bottom:8px">'+errMsg+'</div><div style="font-size:11px;color:#8a96ab">To fix: go to Supabase Dashboard → SQL Editor → run <strong>supabase-fix.sql</strong> from the zip, then refresh this page.</div></div>'
   }
 }
 function renderJobsTable(q){
@@ -538,15 +552,17 @@ document.addEventListener('click',e=>{document.querySelectorAll('.addr-dd').forE
 // WORKERS TAB
 async function renderWorkersTab(el){
   const[{data:workers},{data:ci}]=await Promise.all([
-    sb.from('job_workers').select('*,profiles:worker_id(id,full_name,email,is_lead)').eq('job_id',currentJobId).eq('is_active',true),
-    sb.from('checkins').select('*,profiles:worker_id(full_name)').eq('job_id',currentJobId).order('checkin_at',{ascending:false})
+    sb.from('job_workers').select('id,worker_id,is_active').eq('job_id',currentJobId).eq('is_active',true),
+    sb.from('checkins').select('*').eq('job_id',currentJobId).order('checkin_at',{ascending:false})
   ])
+  const wIds2=(workers||[]).map(w=>w.worker_id).filter(Boolean)
+  const{data:wProfiles}=wIds2.length?await sb.from('profiles').select('id,full_name,email,is_lead').in('id',wIds2):{data:[]}
   const totalHrs=(ci||[]).reduce((s,c)=>s+(c.hours_logged||0),0)
   el.innerHTML=`
   <div class="sec-hdr">Assigned Workers <button class="btn btn-sm btn-p" onclick="addWorkerModal()">+ Add</button></div>
-  ${(workers||[]).map(w=>`<div style="display:flex;align-items:center;gap:9px;padding:8px 10px;background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:7px;margin-bottom:6px"><div class="av" style="width:28px;height:28px;font-size:10px;${Object.entries(avS(w.profiles?.full_name)).map(([k,val])=>k+':'+val).join(';')}">${ini(w.profiles?.full_name)}</div><div style="flex:1"><div style="font-size:12px;font-weight:500">${w.profiles?.full_name||'?'}${w.profiles?.is_lead?' <span style="font-size:9px;color:#d97706">LEAD</span>':''}</div><div style="font-size:10px;color:#414e63">${w.profiles?.email||''}</div></div><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="removeWorker('${w.id}')">Remove</button></div>`).join('')||'<div style="font-size:12px;color:#414e63;margin-bottom:12px">No workers assigned</div>'}
+  ${(workers||[]).map(w=>{const p=wProfiles.find(x=>x.id===w.worker_id)||{};return`<div style="display:flex;align-items:center;gap:9px;padding:8px 10px;background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:7px;margin-bottom:6px"><div class="av" style="width:28px;height:28px;font-size:10px;${Object.entries(avS(p.full_name)).map(([k,val])=>k+':'+val).join(';')}">${ini(p.full_name)}</div><div style="flex:1"><div style="font-size:12px;font-weight:500">${p.full_name||'?'}${p.is_lead?' <span style="font-size:9px;color:#d97706">LEAD</span>':''}</div><div style="font-size:10px;color:#414e63">${p.email||''}</div></div><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="removeWorker('${w.id}')">Remove</button></div>`}).join('')||'<div style="font-size:12px;color:#414e63;margin-bottom:12px">No workers assigned</div>'}
   <div class="sec-hdr" style="margin-top:14px">GPS Check-in Log</div>
-  ${(ci||[]).length?`<table class="tbl"><thead><tr><th>Worker</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Distance</th></tr></thead><tbody>${(ci||[]).map(c=>`<tr><td>${c.profiles?.full_name||'?'}</td><td style="font-size:11px;color:#8a96ab">${fd(c.checkin_at)}</td><td style="font-size:11px">${ft(c.checkin_at)}</td><td style="font-size:11px">${c.checkout_at?ft(c.checkout_at):'<span class="gps-live" style="font-size:9px"><span class="pulse"></span>Active</span>'}</td><td style="font-weight:500">${c.hours_logged?fh(c.hours_logged):'—'}</td><td>${c.checkin_dist_ft!=null?`<span class="badge bg-green">${c.checkin_dist_ft}ft</span>`:'—'}</td></tr>`).join('')}</tbody></table>`:'<div style="font-size:12px;color:#414e63">No check-ins yet</div>'}
+  ${(ci||[]).length?`<table class="tbl"><thead><tr><th>Worker</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Distance</th></tr></thead><tbody>${(ci||[]).map(c=>`<tr><td>${c.workerName||'?'}</td><td style="font-size:11px;color:#8a96ab">${fd(c.checkin_at)}</td><td style="font-size:11px">${ft(c.checkin_at)}</td><td style="font-size:11px">${c.checkout_at?ft(c.checkout_at):'<span class="gps-live" style="font-size:9px"><span class="pulse"></span>Active</span>'}</td><td style="font-weight:500">${c.hours_logged?fh(c.hours_logged):'—'}</td><td>${c.checkin_dist_ft!=null?`<span class="badge bg-green">${c.checkin_dist_ft}ft</span>`:'—'}</td></tr>`).join('')}</tbody></table>`:'<div style="font-size:12px;color:#414e63">No check-ins yet</div>'}
   <div style="margin-top:11px;background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:10px 13px;display:flex;gap:20px">
     <div><div style="font-size:10px;color:#414e63">TOTAL HOURS</div><div style="font-size:20px;font-weight:300;margin-top:2px">${fh(totalHrs)}</div></div>
     <div><div style="font-size:10px;color:#414e63">EST LABOR COST</div><div style="font-size:20px;font-weight:300;margin-top:2px;color:#60a5fa">${fm(totalHrs*(currentJob?.labor_rate||0))}</div></div>
@@ -947,17 +963,17 @@ async function pgSchedule(){
 // ══════════════════════════════════════════
 async function pgDaily(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="newDailyModal()">+ New Report</button>'
-  const{data:reports}=await sb.from('daily_reports').select('*,jobs(name)').order('report_date',{ascending:false}).limit(50)
+  const{data:reports}=await sb.from('daily_reports').select('*').order('report_date',{ascending:false}).limit(50)
   document.getElementById('page-area').innerHTML=`
   <div class="card" style="padding:0;overflow:hidden">
-  ${(reports||[]).length?`<table class="tbl"><thead><tr><th>Date</th><th>Job</th><th>Crew</th><th>Hours</th><th>Weather</th><th>Submitted By</th><th></th></tr></thead><tbody>${(reports||[]).map(r=>`<tr onclick="viewDailyReport('${r.id}')"><td style="font-weight:500">${fd(r.report_date)}</td><td>${r.jobs?.name||'—'}</td><td>${r.crew_count}</td><td>${fh(r.hours_worked)}</td><td style="font-size:11px">${r.weather||'—'} ${r.temp_high?r.temp_high+'°':''}</td><td style="font-size:11px;color:#8a96ab">${r.submitted_by||'—'}</td><td><button class="btn btn-sm" onclick="event.stopPropagation();dlDailyReportById('${r.id}')">⬇</button></td></tr>`).join('')}</tbody></table>`:empty('📋','No daily reports yet')}
+  ${(reports||[]).length?`<table class="tbl"><thead><tr><th>Date</th><th>Job</th><th>Crew</th><th>Hours</th><th>Weather</th><th>Submitted By</th><th></th></tr></thead><tbody>${(reports||[]).map(r=>`<tr onclick="viewDailyReport('${r.id}')"><td style="font-weight:500">${fd(r.report_date)}</td><td>${r.job_id||'—'}</td><td>${r.crew_count}</td><td>${fh(r.hours_worked)}</td><td style="font-size:11px">${r.weather||'—'} ${r.temp_high?r.temp_high+'°':''}</td><td style="font-size:11px;color:#8a96ab">${r.submitted_by||'—'}</td><td><button class="btn btn-sm" onclick="event.stopPropagation();dlDailyReportById('${r.id}')">⬇</button></td></tr>`).join('')}</tbody></table>`:empty('📋','No daily reports yet')}
   </div>`
 }
 async function viewDailyReport(id){
-  const{data:r}=await sb.from('daily_reports').select('*,jobs(name)').eq('id',id).single()
+  const{data:r}=await sb.from('daily_reports').select('*').eq('id',id).single()
   modal('Daily Report — '+fd(r.report_date),`
   <div class="two" style="margin-bottom:12px">
-    <div><div class="fl">JOB</div><div style="font-weight:500">${r.jobs?.name||'—'}</div></div>
+    <div><div class="fl">JOB</div><div style="font-weight:500">${r.job_id||'—'}</div></div>
     <div><div class="fl">DATE</div><div style="font-weight:500">${fd(r.report_date)}</div></div>
   </div>
   <div class="four" style="margin-bottom:12px">
@@ -974,7 +990,7 @@ async function viewDailyReport(id){
   ()=>closeModal(),'Close',false)
   document.getElementById('modal-footer').innerHTML='<button class="btn" onclick="closeModal()">Close</button><button class="btn btn-sm" onclick="dlDailyReportById(\''+id+'\')">⬇ Download</button>'
 }
-async function dlDailyReportById(id){const{data:r}=await sb.from('daily_reports').select('*,jobs(name)').eq('id',id).single();dlDailyReport({...r,jobs:r.jobs})}
+async function dlDailyReportById(id){const{data:r}=await sb.from('daily_reports').select('*').eq('id',id).single();dlDailyReport({...r,jobs:r.jobs})}
 function newDailyModal(jobIdOverride){
   let jobSel=''
   if(allJobs.length>0&&!jobIdOverride)jobSel=`<div class="fg"><label class="fl">Job *</label><select class="fs" id="dr-job"><option value="">— Select —</option>${allJobs.map(j=>`<option value="${j.id}">${j.name}</option>`).join('')}</select></div>`
@@ -1007,10 +1023,10 @@ function newDailyModal(jobIdOverride){
 // ══════════════════════════════════════════
 async function pgJobWalks(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="newWalkModal()">+ New Job Walk</button>'
-  const{data:walks}=await sb.from('job_walks').select('*,jobs(name)').order('walk_date',{ascending:false}).limit(40)
+  const{data:walks}=await sb.from('job_walks').select('*').order('walk_date',{ascending:false}).limit(40)
   document.getElementById('page-area').innerHTML=`
   <div class="card" style="padding:0;overflow:hidden">
-  ${(walks||[]).length?`<table class="tbl"><thead><tr><th>Date</th><th>Job</th><th>Walked By</th><th>Attendees</th><th>Status</th><th>Issues</th></tr></thead><tbody>${(walks||[]).map(w=>`<tr onclick="openJobWalk('${w.id}')"><td style="font-weight:500">${fd(w.walk_date)}</td><td>${w.jobs?.name||'—'}</td><td style="font-size:11px">${w.walked_by||'—'}</td><td style="font-size:11px;color:#8a96ab">${w.attendees||'—'}</td><td><span class="badge ${w.status==='complete'?'bg-green':'bg-amber'}">${w.status}</span></td><td style="font-size:11px;color:${w.issues_found?'#d97706':'#414e63'}">${w.issues_found?'Yes':'None'}</td></tr>`).join('')}</tbody></table>`:empty('🚶','No job walks recorded')}
+  ${(walks||[]).length?`<table class="tbl"><thead><tr><th>Date</th><th>Job</th><th>Walked By</th><th>Attendees</th><th>Status</th><th>Issues</th></tr></thead><tbody>${(walks||[]).map(w=>`<tr onclick="openJobWalk('${w.id}')"><td style="font-weight:500">${fd(w.walk_date)}</td><td>${w.job_id||'—'}</td><td style="font-size:11px">${w.walked_by||'—'}</td><td style="font-size:11px;color:#8a96ab">${w.attendees||'—'}</td><td><span class="badge ${w.status==='complete'?'bg-green':'bg-amber'}">${w.status}</span></td><td style="font-size:11px;color:${w.issues_found?'#d97706':'#414e63'}">${w.issues_found?'Yes':'None'}</td></tr>`).join('')}</tbody></table>`:empty('🚶','No job walks recorded')}
   </div>`
 }
 function newWalkModal(jobIdOverride){
@@ -1040,10 +1056,10 @@ function newWalkModal(jobIdOverride){
 // ══════════════════════════════════════════
 async function pgPunch(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="addPunchItem()">+ Add Item</button>'
-  const{data:items}=await sb.from('punch_list').select('*,jobs(name)').order('created_at',{ascending:false})
+  const{data:items}=await sb.from('punch_list').select('*').order('created_at',{ascending:false})
   document.getElementById('page-area').innerHTML=`
   <div class="card" style="padding:0;overflow:hidden">
-  ${(items||[]).length?`<table class="tbl"><thead><tr><th>Item</th><th>Job</th><th>Location</th><th>Assigned</th><th>Priority</th><th>Status</th><th>Due</th><th></th></tr></thead><tbody>${(items||[]).map(i=>`<tr><td style="font-weight:500">${i.item}</td><td style="font-size:11px">${i.jobs?.name||'—'}</td><td style="font-size:11px;color:#8a96ab">${i.location||'—'}</td><td style="font-size:11px">${i.assigned_to||'—'}</td><td><span class="badge ${i.priority==='urgent'?'bg-red':i.priority==='high'?'bg-amber':'bg-gray'}">${i.priority}</span></td><td><span class="badge ${i.status==='complete'?'bg-green':'bg-amber'}">${i.status}</span></td><td style="font-size:11px">${fd(i.due_date)}</td><td>${i.status!=='complete'?`<button class="btn btn-sm btn-g" onclick="completePunchGlobal('${i.id}')">Done</button>`:''}</td></tr>`).join('')}</tbody></table>`:empty('✅','No punch list items')}
+  ${(items||[]).length?`<table class="tbl"><thead><tr><th>Item</th><th>Job</th><th>Location</th><th>Assigned</th><th>Priority</th><th>Status</th><th>Due</th><th></th></tr></thead><tbody>${(items||[]).map(i=>`<tr><td style="font-weight:500">${i.item}</td><td style="font-size:11px">${i.job_id||'—'}</td><td style="font-size:11px;color:#8a96ab">${i.location||'—'}</td><td style="font-size:11px">${i.assigned_to||'—'}</td><td><span class="badge ${i.priority==='urgent'?'bg-red':i.priority==='high'?'bg-amber':'bg-gray'}">${i.priority}</span></td><td><span class="badge ${i.status==='complete'?'bg-green':'bg-amber'}">${i.status}</span></td><td style="font-size:11px">${fd(i.due_date)}</td><td>${i.status!=='complete'?`<button class="btn btn-sm btn-g" onclick="completePunchGlobal('${i.id}')">Done</button>`:''}</td></tr>`).join('')}</tbody></table>`:empty('✅','No punch list items')}
   </div>`
 }
 function addPunchItem(jobIdOverride,reloadTab){
@@ -1222,7 +1238,7 @@ async function loadJobPartsPanel(){
 async function loadScanEvents(){
   const el=document.getElementById('scan-events-panel');if(!el)return
   const{data:events}=await sb.from('scan_events').select('*').order('scanned_at',{ascending:false}).limit(15)
-  el.innerHTML=(events||[]).length?events.map(e=>`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span class="badge ${e.action==='stage_in'?'bg-amber':e.action==='check_out'?'bg-blue':'bg-green'}" style="flex-shrink:0">${e.action.replace('_',' ')}</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.part_name} ×${e.qty}</div><div style="font-size:10px;color:#414e63">${e.scanned_by} · ${fdt(e.scanned_at)}</div></div></div>`).join(''):'<div style="font-size:12px;color:#414e63">No recent scans</div>'
+  el.innerHTML=(events||[]).length?events.map(e=>`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span class="badge ${e.action==='stage_in'?'bg-amber':e.action==='check_out'?'bg-blue':'bg-green'}" style="flex-shrink:0">${e.action.replace('_',' ')}</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.part_name} ×${e.qty}</div><div style="font-size:10px;color:#414e63">${e.scanned_by||'?'} · ${fdt(e.scanned_at)}</div></div></div>`).join(''):'<div style="font-size:12px;color:#414e63">No recent scans</div>'
 }
 
 // CAMERA SCANNING
@@ -1423,7 +1439,16 @@ async function rejectOrder(id){const n=prompt('Reason for rejection:');if(n===nu
 async function pgGPS(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="pgGPS()">↻ Refresh</button>'
   const today=new Date().toISOString().split('T')[0]
-  const{data:ci}=await sb.from('checkins').select('*,jobs(name),profiles:worker_id(full_name,companies(name))').gte('checkin_at',today+'T00:00:00').order('checkin_at',{ascending:false})
+  const{data:ciRaw}=await sb.from('checkins').select('*').gte('checkin_at',today+'T00:00:00').order('checkin_at',{ascending:false})
+  const wIds=[...new Set((ciRaw||[]).map(c=>c.worker_id).filter(Boolean))]
+  const jIds=[...new Set((ciRaw||[]).map(c=>c.job_id).filter(Boolean))]
+  const[{data:gpsProf},{data:gpsJobs}]=await Promise.all([
+    wIds.length?sb.from('profiles').select('id,full_name,companies(name)').in('id',wIds):Promise.resolve({data:[]}),
+    jIds.length?sb.from('jobs').select('id,name').in('id',jIds):Promise.resolve({data:[]})
+  ])
+  const gpsWMap={}; (gpsProf||[]).forEach(p=>{gpsWMap[p.id]={name:p.full_name,company:p.companies?.name||'—'}})
+  const gpsJMap={}; (gpsJobs||[]).forEach(j=>gpsJMap[j.id]=j.name)
+  const ci=(ciRaw||[]).map(c=>({...c,workerName:gpsWMap[c.worker_id]?.name||'?',companyName:gpsWMap[c.worker_id]?.company||'—',jobName:gpsJMap[c.job_id]||'—'}))
   document.getElementById('page-area').innerHTML=`
   <div class="stats" style="grid-template-columns:repeat(3,1fr)">
     <div class="stat"><div class="stat-label">Currently On Site</div><div class="stat-value" style="color:#16a34a">${(ci||[]).filter(c=>!c.checkout_at).length}</div></div>
@@ -1432,9 +1457,9 @@ async function pgGPS(){
   </div>
   <div class="card" style="padding:0;overflow:hidden">
   ${(ci||[]).length?`<table class="tbl"><thead><tr><th>Worker</th><th>Company</th><th>Job</th><th>In</th><th>Out</th><th>Hours</th><th>Distance</th><th>GPS</th></tr></thead><tbody>${(ci||[]).map(c=>`<tr>
-    <td><div style="display:flex;align-items:center;gap:7px"><div class="av" style="width:22px;height:22px;font-size:8px;${Object.entries(avS(c.profiles?.full_name)).map(([k,val])=>k+':'+val).join(';')}">${ini(c.profiles?.full_name)}</div>${c.profiles?.full_name||'?'}</div></td>
-    <td style="font-size:11px;color:#8a96ab">${c.profiles?.companies?.name||'—'}</td>
-    <td>${c.jobs?.name||'—'}</td>
+    <td><div style="display:flex;align-items:center;gap:7px"><div class="av" style="width:22px;height:22px;font-size:8px;${Object.entries(avS(c.profiles?.full_name)).map(([k,val])=>k+':'+val).join(';')}">${ini(c.profiles?.full_name)}</div>${c.workerName||'?'}</div></td>
+    <td style="font-size:11px;color:#8a96ab">${c.companyName||'—'}</td>
+    <td>${c.jobName||'—'}</td>
     <td style="font-size:11px">${ft(c.checkin_at)}</td>
     <td style="font-size:11px">${c.checkout_at?ft(c.checkout_at):'<span class="gps-live" style="font-size:9px"><span class="pulse"></span>On Site</span>'}</td>
     <td style="font-weight:500">${c.hours_logged?fh(c.hours_logged):'—'}</td>
@@ -1449,15 +1474,15 @@ async function pgGPS(){
 // ══════════════════════════════════════════
 async function pgHours(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="exportHoursExcel()">⬆ Export Excel</button>'
-  const[{data:ci},{data:profiles}]=await Promise.all([
-    sb.from('checkins').select('*,jobs(name),profiles:worker_id(full_name,role,companies(name))').not('hours_logged','is',null).order('checkin_at',{ascending:false}),
+  const[{data:ciHoursRaw},{data:profiles}]=await Promise.all([
+    sb.from('checkins').select('*').not('hours_logged','is',null).order('checkin_at',{ascending:false}).limit(200),
     sb.from('profiles').select('id,full_name,role,companies(name)').eq('is_active',true)
   ])
   const byTech={},byJob={}
   ;(ci||[]).forEach(c=>{
-    const n=c.profiles?.full_name||'?'
-    const j=c.jobs?.name||c.job_id
-    if(!byTech[n])byTech[n]={name:n,role:c.profiles?.role||'—',company:c.profiles?.companies?.name||'Internal',hours:0,days:new Set()}
+    const n=c.workerName||'?'
+    const j=c.jobName||c.job_id
+    if(!byTech[n])byTech[n]={name:n,role:c.workerRole||'—',company:c.workerCompany,hours:0,days:new Set()}
     byTech[n].hours+=(c.hours_logged||0)
     byTech[n].days.add(c.checkin_at?.split('T')[0])
     if(!byJob[j])byJob[j]={name:j,hours:0,checkins:0}
@@ -1477,12 +1502,12 @@ async function pgHours(){
   </div>
   <div class="card">
     <div class="card-title">All Check-in Records</div>
-    ${(ci||[]).length?`<table class="tbl"><thead><tr><th>Worker</th><th>Job</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Dist</th></tr></thead><tbody>${(ci||[]).slice(0,50).map(c=>`<tr><td style="font-weight:500">${c.profiles?.full_name||'?'}</td><td>${c.jobs?.name||'—'}</td><td style="font-size:11px">${fd(c.checkin_at)}</td><td style="font-size:11px">${ft(c.checkin_at)}</td><td style="font-size:11px">${c.checkout_at?ft(c.checkout_at):'Active'}</td><td style="font-weight:500">${fh(c.hours_logged)}</td><td>${c.checkin_dist_ft!=null?c.checkin_dist_ft+'ft':'—'}</td></tr>`).join('')}</tbody></table>`:empty('⏱','No check-in records')}
+    ${(ci||[]).length?`<table class="tbl"><thead><tr><th>Worker</th><th>Job</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Dist</th></tr></thead><tbody>${(ci||[]).slice(0,50).map(c=>`<tr><td style="font-weight:500">${c.workerName||'?'}</td><td>${c.jobName||'—'}</td><td style="font-size:11px">${fd(c.checkin_at)}</td><td style="font-size:11px">${ft(c.checkin_at)}</td><td style="font-size:11px">${c.checkout_at?ft(c.checkout_at):'Active'}</td><td style="font-weight:500">${fh(c.hours_logged)}</td><td>${c.checkin_dist_ft!=null?c.checkin_dist_ft+'ft':'—'}</td></tr>`).join('')}</tbody></table>`:empty('⏱','No check-in records')}
   </div>`
 }
 async function exportHoursExcel(){
-  const{data:ci}=await sb.from('checkins').select('*,jobs(name),profiles:worker_id(full_name,role,companies(name))').not('hours_logged','is',null).order('checkin_at',{ascending:false})
-  const rows=(ci||[]).map(c=>({'Worker':c.profiles?.full_name||'?','Role':c.profiles?.role||'—','Company':c.profiles?.companies?.name||'Internal','Job':c.jobs?.name||'—','Date':c.checkin_at?.split('T')[0],'Check-in':ft(c.checkin_at),'Check-out':c.checkout_at?ft(c.checkout_at):'—','Hours':c.hours_logged||0,'Distance (ft)':c.checkin_dist_ft||'—'}))
+  const{data:ci}=await sb.from('checkins').select('*').not('hours_logged','is',null).order('checkin_at',{ascending:false})
+  const rows=(ci||[]).map(c=>({'Worker':c.workerName||'?','Role':c.workerRole||'—','Company':c.workerCompany,'Job':c.jobName||'—','Date':c.checkin_at?.split('T')[0],'Check-in':ft(c.checkin_at),'Check-out':c.checkout_at?ft(c.checkout_at):'—','Hours':c.hours_logged||0,'Distance (ft)':c.checkin_dist_ft||'—'}))
   const ws=XLSX.utils.json_to_sheet(rows)
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Hours')
   XLSX.writeFile(wb,'FieldAxisHQ-Hours-'+new Date().toISOString().split('T')[0]+'.xlsx')
@@ -1630,10 +1655,10 @@ async function pgFinancials(){
   const[{data:jobs},{data:ci},{data:parts}]=await Promise.all([
     sb.from('jobs').select('*').eq('archived',false).order('name'),
     sb.from('checkins').select('job_id,hours_logged').not('hours_logged','is',null),
-    sb.from('job_parts').select('*,catalog:part_id(unit_cost)').in('status',['signed_out','installed','staged'])
+    sb.from('job_parts').select('*').in('status',['signed_out','installed','staged'])
   ])
   const hrsByJob={};(ci||[]).forEach(c=>{hrsByJob[c.job_id]=(hrsByJob[c.job_id]||0)+(c.hours_logged||0)})
-  const matByJob={};(parts||[]).forEach(p=>{matByJob[p.job_id]=(matByJob[p.job_id]||0)+(p.catalog?.unit_cost||0)*p.assigned_qty})
+  const matByJob={} // Material cost from parts catalog not available without join
   let totC=0,totCost=0,totP=0
   const rows=(jobs||[]).map(j=>{
     const hrs=hrsByJob[j.id]||0
@@ -1699,12 +1724,12 @@ async function exportReport(type){
   }
   // CSV exports
   let csv='',fn=type+'.csv'
-  if(type==='labor'){const{data}=await sb.from('checkins').select('*,jobs(name),profiles:worker_id(full_name,role,companies(name))').order('checkin_at',{ascending:false});csv='Worker,Role,Company,Job,Date,In,Out,Hours,Distance(ft)\n'+(data||[]).map(c=>`"${c.profiles?.full_name||''}","${c.profiles?.role||''}","${c.profiles?.companies?.name||''}","${c.jobs?.name||''}","${c.checkin_at?.split('T')[0]||''}","${ft(c.checkin_at)}","${c.checkout_at?ft(c.checkout_at):''}",${c.hours_logged||0},${c.checkin_dist_ft||''}`).join('\n');fn='Labor-Report.csv'}
+  if(type==='labor'){const{data}=await sb.from('checkins').select('*').order('checkin_at',{ascending:false});csv='Worker,Role,Company,Job,Date,In,Out,Hours,Distance(ft)\n'+(data||[]).map(c=>`"${c.worker_name||''}","${c.workerRole||''}","${c.company_name||''}","${c.job_name||''}","${c.checkin_at?.split('T')[0]||''}","${ft(c.checkin_at)}","${c.checkout_at?ft(c.checkout_at):''}",${c.hours_logged||0},${c.checkin_dist_ft||''}`).join('\n');fn='Labor-Report.csv'}
   else if(type==='parts'){const{data}=await sb.from('job_parts').select('*,jobs(name)').order('created_at',{ascending:false});csv='Part Name,Barcode,Job,Status,Qty,Staged By,Staged At,Checked Out By,Checked Out At\n'+(data||[]).map(p=>`"${p.part_name}","${p.part_id}","${p.jobs?.name||''}","${p.status}",${p.assigned_qty},"${p.staged_by||''}","${p.staged_at||''}","${p.checked_out_by||''}","${p.checked_out_at||''}"`).join('\n');fn='Parts-Report.csv'}
-  else if(type==='gps_csv'){const{data}=await sb.from('checkins').select('*,profiles:worker_id(full_name)').order('checkin_at',{ascending:false});csv='Worker,Job ID,Date,In,Out,Hours,Lat,Lng,Dist(ft)\n'+(data||[]).map(c=>`"${c.profiles?.full_name||''}","${c.job_id}","${c.checkin_at?.split('T')[0]}","${ft(c.checkin_at)}","${c.checkout_at?ft(c.checkout_at):''}",${c.hours_logged||0},${c.checkin_lat||''},${c.checkin_lng||''},${c.checkin_dist_ft||''}`).join('\n');fn='GPS-Log.csv'}
+  else if(type==='gps_csv'){const{data}=await sb.from('checkins').select('*').order('checkin_at',{ascending:false});csv='Worker,Job ID,Date,In,Out,Hours,Lat,Lng,Dist(ft)\n'+(data||[]).map(c=>`"${c.worker_name||''}","${c.job_id}","${c.checkin_at?.split('T')[0]}","${ft(c.checkin_at)}","${c.checkout_at?ft(c.checkout_at):''}",${c.hours_logged||0},${c.checkin_lat||''},${c.checkin_lng||''},${c.checkin_dist_ft||''}`).join('\n');fn='GPS-Log.csv'}
   else if(type==='inv_csv'){const{data}=await sb.from('inventory').select('*').order('name');csv='ID,Name,Qty,Min Qty,Status\n'+(data||[]).map(i=>`"${i.id}","${i.name}",${i.qty},${i.min_qty||0},"${i.qty<=(i.min_qty||0)&&i.min_qty>0?'LOW STOCK':'OK'}"`).join('\n');fn='Inventory-Report.csv'}
-  else if(type==='daily_csv'){const{data}=await sb.from('daily_reports').select('*,jobs(name)').order('report_date',{ascending:false});csv='Date,Job,Crew,Hours,Weather,Work Performed,Issues,Submitted By\n'+(data||[]).map(r=>`"${r.report_date}","${r.jobs?.name||''}",${r.crew_count},${r.hours_worked||0},"${r.weather||''}","${(r.work_performed||'').replace(/"/g,'""')}","${(r.issues||'').replace(/"/g,'""')}","${r.submitted_by||''}"`).join('\n');fn='Daily-Reports.csv'}
-  else if(type==='scan_csv'){const{data}=await sb.from('scan_events').select('*').order('scanned_at',{ascending:false});csv='Action,Part Name,Barcode,Qty,Job,Scanned By,Date/Time\n'+(data||[]).map(e=>`"${e.action}","${e.part_name}","${e.part_id}",${e.qty},"${e.job_id}","${e.scanned_by}","${fdt(e.scanned_at)}"`).join('\n');fn='Scan-Events.csv'}
+  else if(type==='daily_csv'){const{data}=await sb.from('daily_reports').select('*').order('report_date',{ascending:false});csv='Date,Job,Crew,Hours,Weather,Work Performed,Issues,Submitted By\n'+(data||[]).map(r=>`"${r.report_date}","${r.jobs?.name||''}",${r.crew_count},${r.hours_worked||0},"${r.weather||''}","${(r.work_performed||'').replace(/"/g,'""')}","${(r.issues||'').replace(/"/g,'""')}","${r.submitted_by||''}"`).join('\n');fn='Daily-Reports.csv'}
+  else if(type==='scan_csv'){const{data}=await sb.from('scan_events').select('*').order('scanned_at',{ascending:false});csv='Action,Part Name,Barcode,Qty,Job,Scanned By,Date/Time\n'+(data||[]).map(e=>`"${e.action}","${e.part_name}","${e.part_id}",${e.qty},"${e.job_id}","${e.scanned_by||'?'}","${fdt(e.scanned_at)}"`).join('\n');fn='Scan-Events.csv'}
   else if(type==='safety_csv'){const{data:topics}=await sb.from('safety_topics').select('*').order('week_of',{ascending:false});const{data:acks}=await sb.from('safety_acks').select('*');const{data:assigns}=await sb.from('safety_assignments').select('*');csv='Topic,Week Of,Person,Assigned Date,Acknowledged,Ack Date\n'+(assigns||[]).map(a=>{const ack=(acks||[]).find(x=>x.topic_id===a.topic_id&&x.user_name===a.assigned_name);const topic=(topics||[]).find(t=>t.id===a.topic_id);return`"${topic?.title||''}","${fd(topic?.week_of)}","${a.assigned_name}","${fd(a.assigned_at)}","${ack?'YES':'NO'}","${ack?fdt(ack.acknowledged_at):''}"`}).join('\n');fn='Safety-Report.csv'}
   if(csv){const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=fn;a.click();toast('Downloading…')}
 }
@@ -1880,13 +1905,13 @@ function filterMapPins(){
 async function renderSubAssignTab(el){
   const[{data:companies},{data:existing}]=await Promise.all([
     sb.from('companies').select('*').eq('is_active',true).order('name'),
-    sb.from('job_sub_assignments').select('*,companies:company_id(name)').eq('job_id',currentJobId).order('created_at')
+    sb.from('job_sub_assignments').select('*').eq('job_id',currentJobId).order('created_at')
   ])
   el.innerHTML=`
   <div class="sec-hdr">Subcontractor Work Assignments <button class="btn btn-p btn-sm" onclick="addSubAssignModal()">+ Assign Sub</button></div>
   ${(existing||[]).map(a=>`<div style="background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px;margin-bottom:8px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div><div style="font-weight:600;font-size:13px">${a.companies?.name||'—'}</div><div style="font-size:11px;color:#414e63;margin-top:2px">${a.scope_of_work||'All work'}</div></div>
+      <div><div style="font-weight:600;font-size:13px">${a.company_name||a.company_id||'—'}</div><div style="font-size:11px;color:#414e63;margin-top:2px">${a.scope_of_work||'All work'}</div></div>
       <span class="badge ${a.status==='complete'?'bg-green':a.status==='in_progress'?'bg-blue':'bg-amber'}">${a.status||'assigned'}</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:9px">
