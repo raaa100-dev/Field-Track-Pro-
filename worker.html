@@ -227,8 +227,19 @@ let checkinStart = null
 // ── BOOT ─────────────────────────────────
 window.addEventListener('load', async () => {
   const session = await requireAuth(sb); if (!session) return
-  const { data: profile } = await sb.from('profiles').select('*,companies(name)').eq('id', session.user.id).single()
-  MY = profile || { id: session.user.id, full_name: session.user.email, role: 'sub_worker', company_id: null }
+  // Try to get profile, handle 406/404 gracefully
+  let profile = null
+  try {
+    const { data, error } = await sb.from('profiles').select('*,companies(name)').eq('id', session.user.id).maybeSingle()
+    if (!error) profile = data
+  } catch(e) { console.warn('Profile fetch failed:', e.message) }
+  // If no profile exists, create one automatically
+  if (!profile) {
+    const newProfile = { id: session.user.id, full_name: session.user.email.split('@')[0], email: session.user.email, role: 'sub_worker', is_active: true }
+    try { await sb.from('profiles').insert(newProfile) } catch(e) {}
+    profile = newProfile
+  }
+  MY = profile
   const name = MY.full_name || session.user.email
   const av = document.getElementById('user-av')
   av.textContent = initials(name); av.style.cssText += ';' + avStyle(name)
