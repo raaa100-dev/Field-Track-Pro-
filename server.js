@@ -546,6 +546,7 @@ function renderJobDetail(){
     <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">\${j.name}</div>
     <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${j.address||''}</div>
     <div style="display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap">
+      \${j.urgent_pm_visit?'<div style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);border-radius:7px;padding:4px 10px;font-size:12px;font-weight:600;color:#ef4444">🔥 Urgent PM Visit Required</div>':''}
       \${stageBadge(j.phase)}
       <select class="fs" style="width:180px;padding:5px 9px;font-size:12px" onchange="updateJobStage(this.value)">\${STAGES.map(s=>\`<option value="\${s}" \${j.phase===s?'selected':''}>\${STAGE_LABELS[s]}</option>\`).join('')}</select>
       <input type="number" class="fi" style="width:70px;padding:5px 8px;font-size:12px" value="\${j.pct_complete||0}" min="0" max="100" title="% Complete" onchange="updateJobPct(this.value)">%
@@ -618,6 +619,7 @@ function renderInfoTab(el,j){
     <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="ed-sup" value="\${j.super_name||''}"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="ed-supp" value="\${j.super_phone||''}"></div></div>
     <div class="fg"><label class="fl">Project Manager (Internal)</label><select class="fs" id="ed-pm"><option value="">— Unassigned —</option></select></div>
     <div class="two"><div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="ed-pmschedule"><option value="none">No visits</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">Milestones only</option></select></div><div class="fg"><label class="fl">Next PM Visit Due</label><input class="fi" type="date" id="ed-pmvisit" value="\${j.next_pm_visit||''}"></div></div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="ed-urgent-pm" \${j.urgent_pm_visit?'checked':''} style="width:16px;height:16px;accent-color:#ef4444"><span style="font-size:13px">🔥 <strong>Urgent PM Visit Required</strong> — flags this job on the map with a fire icon</span></label></div>
   </div>
   <div>
     <div class="sec-hdr">Key Dates</div>
@@ -650,7 +652,7 @@ function renderInfoTab(el,j){
   },50)
 }
 async function saveInfoTab(){
-  const u={name:v('ed-name'),address:v('ed-addr'),gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,date_start:v('ed-start')||null,due_date:v('ed-due')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
+  const u={name:v('ed-name'),address:v('ed-addr'),gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,urgent_pm_visit:document.getElementById('ed-urgent-pm')?.checked||false,date_start:v('ed-start')||null,due_date:v('ed-due')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
   const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
   if(error){toast(error.message,'error');return}
   currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved')
@@ -2388,43 +2390,105 @@ function editUserModal(id,role,active,name){
 // ══════════════════════════════════════════
 // JOB MAP PAGE
 // ══════════════════════════════════════════
+// ── JOB MAP ───────────────────────────────────────────────────────
+// Colors: brighter for active, gray for complete, 🔥 for urgent PM visit
+const MAP_COLORS={
+  not_started:  '#94a3b8',  // slate gray
+  parts_ordered:'#f97316',  // orange
+  parts_staged: '#eab308',  // yellow
+  in_progress:  '#3b82f6',  // bright blue
+  pre_test:     '#f59e0b',  // amber
+  pre_tested:   '#06b6d4',  // cyan
+  ready_for_final:'#a855f7',// purple
+  complete:     '#4b5563',  // dark gray (completed)
+  pm_needed:    '#22c55e',  // green — PM visit due
+  urgent_pm:    '🔥'        // special fire marker
+}
+const MAP_LEGEND_ITEMS=[
+  {key:'not_started',  color:'#94a3b8', label:'Not Started'},
+  {key:'parts_ordered',color:'#f97316', label:'Parts Ordered'},
+  {key:'parts_staged', color:'#eab308', label:'Parts Staged'},
+  {key:'in_progress',  color:'#3b82f6', label:'In Progress'},
+  {key:'pre_test',     color:'#f59e0b', label:'Ready for Pre-test'},
+  {key:'pre_tested',   color:'#06b6d4', label:'Pre-Tested'},
+  {key:'ready_for_final','color':'#a855f7',label:'Ready for Final'},
+  {key:'complete',     color:'#4b5563', label:'Completed'},
+  {key:'pm_needed',    color:'#22c55e', label:'PM Visit Due'},
+  {key:'urgent_pm',    color:'🔥',       label:'Urgent PM Visit'}
+]
+
+function getMapColor(j){
+  if(j.urgent_pm_visit) return {color:'🔥',isUrgent:true}
+  if(j.pm_visit_due)    return {color:'#22c55e',isUrgent:false}
+  return {color:MAP_COLORS[j.phase]||'#94a3b8',isUrgent:false}
+}
+
 async function pgJobMap(){
   document.getElementById('page-title').textContent='Job Map'
-  document.getElementById('topbar-actions').innerHTML=\`
-    <select class="fs" id="map-filter-pm" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All PMs</option></select>
-    <select class="fs" id="map-filter-gc" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All GC Companies</option></select>
-    <select class="fs" id="map-filter-stage" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All Stages</option>\${STAGES.map(s=>\`<option value="\${s}">\${STAGE_LABELS[s]}</option>\`).join('')}</select>
-    <select class="fs" id="map-filter-sub" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All Subs</option></select>\`
+  document.getElementById('topbar-actions').innerHTML=''
 
-  const{data:jobs}=await sb.from('jobs').select('*').eq('archived',false)
+  const[{data:jobs},{data:companies}]=await Promise.all([
+    sb.from('jobs').select('*').eq('archived',false),
+    sb.from('companies').select('id,name')
+  ])
   window._mapJobs=jobs||[]
+  const coMap={}; (companies||[]).forEach(co=>coMap[co.id]=co.name)
 
-  // Populate filter dropdowns
-  const pms=[...new Set((jobs||[]).map(j=>j.project_manager).filter(Boolean))]
-  const gcs=[...new Set((jobs||[]).map(j=>j.gc_company).filter(Boolean))]
-  const subs=[...new Set((jobs||[]).map(j=>j.company_id).filter(Boolean))]
-  const{data:companies}=await sb.from('companies').select('id,name')
-  const coMap={}; (companies||[]).forEach(c=>coMap[c.id]=c.name)
-  document.getElementById('map-filter-pm').innerHTML='<option value="">All PMs</option>'+pms.map(p=>\`<option value="\${p}">\${p}</option>\`).join('')
-  document.getElementById('map-filter-gc').innerHTML='<option value="">All GC Companies</option>'+gcs.map(g=>\`<option value="\${g}">\${g}</option>\`).join('')
-  document.getElementById('map-filter-sub').innerHTML='<option value="">All Subs</option>'+subs.map(s=>\`<option value="\${s}">\${coMap[s]||s}</option>\`).join('')
+  // Enrich jobs with pm_visit_due flag
+  const today=new Date().toISOString().split('T')[0]
+  ;(window._mapJobs||[]).forEach(j=>{
+    j.pm_visit_due = j.next_pm_visit && j.next_pm_visit <= today && j.phase!=='complete'
+  })
 
-  document.getElementById('page-area').innerHTML=\`
-  <div style="display:grid;grid-template-columns:1fr 280px;gap:13px;height:calc(100vh - 120px)">
-    <div style="position:relative;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">
-      <div id="map-container" style="width:100%;height:100%;background:#0c1220;display:flex;align-items:center;justify-content:center">
-        <div style="text-align:center;color:#414e63">
-          <div style="font-size:32px;margin-bottom:8px">🗺</div>
-          <div style="font-size:13px;font-weight:500;color:#8a96ab">Interactive Map</div>
-          <div style="font-size:11px;margin-top:4px">Loading OpenStreetMap…</div>
-        </div>
-      </div>
-      <div id="map-legend" style="position:absolute;bottom:12px;left:12px;background:rgba(6,10,16,.92);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 12px;font-size:11px"></div>
-    </div>
-    <div style="overflow-y:auto">
-      <div class="card" style="margin-bottom:10px"><div class="card-title">Jobs on Map</div><div id="map-job-list"></div></div>
-    </div>
-  </div>\`
+  // Build filter option lists
+  const pms=[...new Set((jobs||[]).map(j=>j.project_manager).filter(Boolean))].sort()
+  const gcs=[...new Set((jobs||[]).map(j=>j.gc_company).filter(Boolean))].sort()
+  const assignees=[...new Set((jobs||[]).map(j=>j.company_id).filter(Boolean))]
+
+  document.getElementById('page-area').innerHTML=
+    '<div style="display:grid;grid-template-columns:1fr 300px;gap:0;height:calc(100vh - 90px)">'+
+    // MAP AREA
+    '<div style="position:relative;border-radius:10px 0 0 10px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">'+
+    '<div id="map-container" style="width:100%;height:100%;background:#0c1220;display:flex;align-items:center;justify-content:center">'+
+    '<div style="text-align:center;color:#414e63"><div style="font-size:32px;margin-bottom:8px">🗺</div><div style="font-size:13px;color:#8a96ab">Loading map…</div></div>'+
+    '</div>'+
+    '</div>'+
+    // SIDEBAR
+    '<div style="background:#0c1220;border:1px solid rgba(255,255,255,.08);border-left:none;border-radius:0 10px 10px 0;display:flex;flex-direction:column;overflow:hidden">'+
+    // LEGEND (always visible at top)
+    '<div id="map-legend" style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0"></div>'+
+    // FILTERS
+    '<div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0">'+
+    '<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Filters</div>'+
+    '<select class="fs" id="map-filter-stage" style="width:100%;margin-bottom:6px;padding:5px 8px;font-size:11px" onchange="filterMapPins()">'+
+    '<option value="">All Stages</option>'+
+    STAGES.map(s=>'<option value="'+s+'">'+STAGE_LABELS[s]+'</option>').join('')+
+    '<option value="pm_needed">PM Visit Due</option>'+
+    '<option value="urgent_pm">Urgent PM Visit 🔥</option>'+
+    '<option value="overdue">Overdue Due Date</option>'+
+    '</select>'+
+    '<select class="fs" id="map-filter-pm" style="width:100%;margin-bottom:6px;padding:5px 8px;font-size:11px" onchange="filterMapPins()">'+
+    '<option value="">All Project Managers</option>'+pms.map(p=>'<option value="'+p+'">'+p+'</option>').join('')+
+    '</select>'+
+    '<select class="fs" id="map-filter-gc" style="width:100%;margin-bottom:6px;padding:5px 8px;font-size:11px" onchange="filterMapPins()">'+
+    '<option value="">All GC Companies</option>'+gcs.map(g=>'<option value="'+g+'">'+g+'</option>').join('')+
+    '</select>'+
+    '<select class="fs" id="map-filter-due" style="width:100%;margin-bottom:6px;padding:5px 8px;font-size:11px" onchange="filterMapPins()">'+
+    '<option value="">Any Due Date</option>'+
+    '<option value="today">Due Today</option>'+
+    '<option value="week">Due This Week</option>'+
+    '<option value="month">Due This Month</option>'+
+    '<option value="overdue">Overdue</option>'+
+    '</select>'+
+    '<button class="btn btn-sm" style="width:100%;justify-content:center" onclick="clearMapFilters()">Clear Filters</button>'+
+    '</div>'+
+    // JOB LIST
+    '<div style="flex:1;overflow-y:auto;padding:10px 14px">'+
+    '<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Jobs</div>'+
+    '<div id="map-job-list"></div>'+
+    '</div>'+
+    '</div>'+
+    '</div>'
 
   // Load Leaflet map
   if(!document.getElementById('leaflet-css')){
@@ -2435,46 +2499,124 @@ async function pgJobMap(){
   }
 }
 
+function clearMapFilters(){
+  ['map-filter-stage','map-filter-pm','map-filter-gc','map-filter-due'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value=''
+  })
+  filterMapPins()
+}
+
 function initMap(jobs){
   const container=document.getElementById('map-container')
   if(!container||!window.L)return
   container.innerHTML='<div id="leaflet-map" style="width:100%;height:100%"></div>'
-  const map=window.L.map('leaflet-map').setView([33.4484,-112.0740],10)
+  const map=window.L.map('leaflet-map',{zoomControl:true}).setView([33.4484,-112.0740],10)
   window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(map)
   window._leafletMap=map
   window._mapMarkers=[]
+  renderMapLegend()
   addMapPins(jobs,map)
   renderMapJobList(jobs)
 }
 
-const MAP_COLORS={not_started:'#8a96ab',in_progress:'#60a5fa',pre_test:'#d97706',pre_tested:'#2dd4bf',ready_for_final:'#a78bfa',complete:'#16a34a'}
+function renderMapLegend(){
+  const el=document.getElementById('map-legend');if(!el)return
+  el.innerHTML=
+    '<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Legend</div>'+
+    MAP_LEGEND_ITEMS.map(item=>{
+      const dot = item.color==='🔥'
+        ? '<span style="font-size:14px;line-height:1">🔥</span>'
+        : '<div style="width:11px;height:11px;border-radius:50%;background:'+item.color+';flex-shrink:0;box-shadow:0 0 4px '+item.color+'88"></div>'
+      return '<div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer" data-key="'+item.key+'" onclick="quickFilterByLegend(this.dataset.key)" title="Filter by this status">'+dot+'<span style="font-size:11px;color:#e8edf5">'+item.label+'</span></div>'
+    }).join('')
+}
+
+function quickFilterByLegend(key){
+  const sel=document.getElementById('map-filter-stage');if(!sel)return
+  sel.value=key==='pm_needed'?'pm_needed':key==='urgent_pm'?'urgent_pm':key
+  filterMapPins()
+  // Highlight the selected legend item
+  document.querySelectorAll('#map-legend [onclick]').forEach(el=>el.style.background='')
+}
+
+function makeMapPin(j){
+  const {color,isUrgent}=getMapColor(j)
+  if(isUrgent){
+    return window.L.divIcon({
+      html:'<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.7));cursor:pointer">🔥</div>',
+      className:'',iconSize:[22,22],iconAnchor:[11,22]
+    })
+  }
+  const isComplete=j.phase==='complete'
+  const size=isComplete?12:16
+  const pulse=j.pm_visit_due&&!isUrgent?'animation:mapPulse 1.5s infinite;':'';
+  return window.L.divIcon({
+    html:'<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+color+';border:2px solid rgba(255,255,255,'+(isComplete?.4:.9)+');box-shadow:0 2px 8px '+color+'99;'+pulse+'cursor:pointer"></div>',
+    className:'',iconSize:[size,size],iconAnchor:[size/2,size/2]
+  })
+}
+
+// Add pulse animation for PM-due jobs
+if(!document.getElementById('map-pulse-css')){
+  const s=document.createElement('style');s.id='map-pulse-css'
+  s.textContent='@keyframes mapPulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.7)}50%{box-shadow:0 0 0 6px rgba(34,197,94,0)}}'
+  document.head.appendChild(s)
+}
 
 function addMapPins(jobs,map){
   if(!window.L)return
-  // Clear existing
   ;(window._mapMarkers||[]).forEach(m=>m.remove())
   window._mapMarkers=[]
   const withGPS=jobs.filter(j=>j.gps_lat&&j.gps_lng)
   withGPS.forEach(j=>{
-    const color=MAP_COLORS[j.phase]||'#8a96ab'
-    const icon=window.L.divIcon({html:\`<div style="width:14px;height:14px;border-radius:50%;background:\${color};border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>\`,className:'',iconSize:[14,14],iconAnchor:[7,7]})
+    const{color,isUrgent}=getMapColor(j)
+    const icon=makeMapPin(j)
     const marker=window.L.marker([j.gps_lat,j.gps_lng],{icon}).addTo(map)
-    marker.bindPopup(\`<div style="font-family:'DM Sans',sans-serif;min-width:200px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">\${j.name}</div><div style="font-size:11px;color:#666;margin-bottom:5px">\${j.address||''}</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px"><span style="background:\${color}22;color:\${color};padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600">\${STAGE_LABELS[j.phase]||j.phase}</span></div>\${j.project_manager?\`<div style="font-size:11px"><strong>PM:</strong> \${j.project_manager}</div>\`:''}\${j.gc_company?\`<div style="font-size:11px"><strong>GC:</strong> \${j.gc_company}</div>\`:''}\${j.due_date?\`<div style="font-size:11px"><strong>Due:</strong> \${fd(j.due_date)}</div>\`:''}<div style="margin-top:7px"><a href="javascript:openJob('\${j.id}')" style="color:#2563eb;font-size:11px;font-weight:600">Open Job →</a></div></div>\`)
+    const colorLabel=isUrgent?'🔥 URGENT PM VISIT':j.pm_visit_due?'⚡ PM Visit Overdue':''
+    const daysUntilDue=j.due_date?Math.round((new Date(j.due_date)-new Date())/86400000):null
+    const dueColor=daysUntilDue!=null&&daysUntilDue<0?'#dc2626':daysUntilDue!=null&&daysUntilDue<=7?'#d97706':'#666'
+    marker.bindPopup(
+      '<div style="font-family:DM Sans,sans-serif;min-width:220px">'+
+      (colorLabel?'<div style="font-size:11px;font-weight:700;color:'+(isUrgent?'#ef4444':'#22c55e')+';margin-bottom:6px">'+colorLabel+'</div>':'')+
+      '<div style="font-weight:700;font-size:14px;margin-bottom:3px">'+j.name+'</div>'+
+      '<div style="font-size:11px;color:#666;margin-bottom:6px">'+( j.address||'')+'</div>'+
+      '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px">'+
+      '<span style="background:'+color+( isUrgent?'':'')+';color:'+(j.phase==='complete'?'#9ca3af':'#fff')+';padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">'+( STAGE_LABELS[j.phase]||j.phase)+'</span>'+
+      '</div>'+
+      (j.project_manager?'<div style="font-size:11px;margin-bottom:2px"><strong>PM:</strong> '+j.project_manager+'</div>':'')+
+      (j.gc_company?'<div style="font-size:11px;margin-bottom:2px"><strong>GC:</strong> '+j.gc_company+'</div>':'')+
+      (j.due_date?'<div style="font-size:11px;color:'+dueColor+'"><strong>Due:</strong> '+fd(j.due_date)+(daysUntilDue!=null?' ('+( daysUntilDue<0?Math.abs(daysUntilDue)+'d overdue':daysUntilDue+'d away')+')':'')+'</div>':'')+
+      (j.next_pm_visit?'<div style="font-size:11px;color:'+(j.pm_visit_due?'#22c55e':'#666')+'"><strong>PM Visit:</strong> '+fd(j.next_pm_visit)+'</div>':'')+
+      '<div style="margin-top:8px;display:flex;gap:6px">'+
+      '<a href="javascript:void(0)" data-jid="'+j.id+'" onclick="openJob(this.dataset.jid)" style="color:#3b82f6;font-size:11px;font-weight:600">Open Job →</a>'+
+      (isUrgent?'':' <a href="javascript:void(0)" data-jid="'+j.id+'" onclick="setUrgentPM(this.dataset.jid,true)" style="color:#ef4444;font-size:11px">🔥 Mark Urgent</a>')+
+      '</div>'+
+      '</div>'
+    )
     window._mapMarkers.push(marker)
   })
-  // Fit bounds
-  if(withGPS.length>0){const bounds=window.L.latLngBounds(withGPS.map(j=>[j.gps_lat,j.gps_lng]));map.fitBounds(bounds,{padding:[30,30]})}
-  // Legend
-  const el=document.getElementById('map-legend')
-  if(el)el.innerHTML=Object.entries(MAP_COLORS).map(([stage,color])=>\`<div style="display:flex;align-items:center;gap:6px;padding:2px 0"><div style="width:10px;height:10px;border-radius:50%;background:\${color}"></div><span style="color:#e8edf5">\${STAGE_LABELS[stage]}</span></div>\`).join('')+'<div style="margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.1);color:#414e63">'+withGPS.length+' of '+(window._mapJobs||jobs).length+' jobs have GPS</div>'
+  if(withGPS.length>0){
+    const bounds=window.L.latLngBounds(withGPS.map(j=>[j.gps_lat,j.gps_lng]))
+    map.fitBounds(bounds,{padding:[30,30]})
+  }
 }
 
 function renderMapJobList(jobs){
   const el=document.getElementById('map-job-list');if(!el)return
-  el.innerHTML=jobs.map(j=>\`<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onclick="mapFlyTo('\${j.id}')">
-    <div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:\${MAP_COLORS[j.phase]||'#8a96ab'};flex-shrink:0"></div><div style="font-size:12px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${j.name}</div></div>
-    <div style="font-size:10px;color:#414e63;margin-top:1px;padding-left:15px">\${j.project_manager?j.project_manager+' · ':''} \${j.gc_company||''}</div>
-  </div>\`).join('')||'<div style="font-size:12px;color:#414e63">No jobs match filters</div>'
+  if(!jobs.length){el.innerHTML='<div style="font-size:12px;color:#414e63">No jobs match filters</div>';return}
+  el.innerHTML=jobs.map(j=>{
+    const{color,isUrgent}=getMapColor(j)
+    const dot=isUrgent?'🔥':'<div style="width:9px;height:9px;border-radius:50%;background:'+color+';flex-shrink:0;box-shadow:0 0 4px '+color+'66"></div>'
+    const daysUntilDue=j.due_date?Math.round((new Date(j.due_date)-new Date())/86400000):null
+    const dueText=daysUntilDue!=null?(daysUntilDue<0?'<span style="color:#dc2626;font-size:9px">'+Math.abs(daysUntilDue)+'d overdue</span>':daysUntilDue===0?'<span style="color:#d97706;font-size:9px">Due today</span>':daysUntilDue<=7?'<span style="color:#d97706;font-size:9px">'+daysUntilDue+'d</span>':''):''
+    return '<div style="display:flex;align-items:flex-start;gap:7px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" data-jid="'+j.id+'" onclick="mapFlyTo(this.dataset.jid)">'
+      '<div style="margin-top:3px;font-size:12px">'+dot+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+j.name+'</div>'+
+      '<div style="font-size:10px;color:#414e63;margin-top:1px">'+( j.project_manager||'')+(j.gc_company?' · '+j.gc_company:'')+' '+dueText+'</div>'+
+      '</div>'+
+      '</div>'
+  }).join('')
 }
 
 function mapFlyTo(jobId){
@@ -2483,18 +2625,41 @@ function mapFlyTo(jobId){
 }
 
 function filterMapPins(){
+  const stage=document.getElementById('map-filter-stage')?.value||''
   const pm=document.getElementById('map-filter-pm')?.value||''
   const gc=document.getElementById('map-filter-gc')?.value||''
-  const stage=document.getElementById('map-filter-stage')?.value||''
-  const sub=document.getElementById('map-filter-sub')?.value||''
-  const filtered=(window._mapJobs||[]).filter(j=>
-    (!pm||j.project_manager===pm)&&
-    (!gc||j.gc_company===gc)&&
-    (!stage||j.phase===stage)&&
-    (!sub||j.company_id===sub)
-  )
+  const due=document.getElementById('map-filter-due')?.value||''
+  const today=new Date();today.setHours(0,0,0,0)
+  const filtered=(window._mapJobs||[]).filter(j=>{
+    if(pm&&j.project_manager!==pm)return false
+    if(gc&&j.gc_company!==gc)return false
+    if(stage==='pm_needed'&&!j.pm_visit_due)return false
+    if(stage==='urgent_pm'&&!j.urgent_pm_visit)return false
+    if(stage==='overdue'){const d=j.due_date?new Date(j.due_date):null;if(!d||d>=today||j.phase==='complete')return false}
+    else if(stage&&stage!=='pm_needed'&&stage!=='urgent_pm'&&stage!=='overdue'&&j.phase!==stage)return false
+    if(due){
+      const d=j.due_date?new Date(j.due_date):null
+      if(!d)return false
+      if(due==='overdue'&&d>=today)return false
+      if(due==='today'){const t=new Date(today);t.setDate(t.getDate()+1);if(d<today||d>=t)return false}
+      if(due==='week'){const w=new Date(today);w.setDate(w.getDate()+7);if(d<today||d>w)return false}
+      if(due==='month'){const m=new Date(today);m.setDate(m.getDate()+30);if(d<today||d>m)return false}
+    }
+    return true
+  })
   if(window._leafletMap)addMapPins(filtered,window._leafletMap)
   renderMapJobList(filtered)
+}
+
+async function setUrgentPM(jobId, urgent){
+  const{error}=await sb.from('jobs').update({urgent_pm_visit:urgent,updated_at:new Date().toISOString()}).eq('id',jobId)
+  if(error){toast(error.message,'error');return}
+  // Update local data
+  const j=(window._mapJobs||[]).find(x=>x.id===jobId)
+  if(j)j.urgent_pm_visit=urgent
+  if(window._leafletMap)addMapPins(window._mapJobs||[],window._leafletMap)
+  renderMapJobList(window._mapJobs||[])
+  toast(urgent?'🔥 Urgent PM visit flagged':'Urgent flag removed')
 }
 
 // ══════════════════════════════════════════
