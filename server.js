@@ -3667,27 +3667,61 @@ function showScreen(id) {
 }
 
 // ── JOBS ──────────────────────────────────
+let myDispatchMap = {}  // job_id -> dispatch assignment for today
+
 async function loadJobs() {
   try {
-    // Get job IDs assigned to this worker
+    const today = new Date().toISOString().split('T')[0]
+    // Get job IDs assigned to this worker (from job_workers)
     const { data: assignments, error: aErr } = await sb.from('job_workers').select('job_id').eq('worker_id', MY.id).eq('is_active', true)
     if (aErr) throw aErr
     const jobIds = (assignments || []).map(a => a.job_id).filter(Boolean)
+
+    // Also get dispatch assignments for this worker (today + next 7 days)
+    const { data: dispatched } = await sb.from('dispatch_assignments')
+      .select('*,jobs(id,name,address,phase,due_date,gc_company,gc_contact,gc_phone,super_name,super_phone,scope,install_notes,project_manager,gps_lat,gps_lng,gps_radius_ft)')
+      .eq('profile_id', MY.id)
+      .gte('dispatch_date', today)
+      .order('dispatch_date').order('start_time')
+    // Build dispatch map by job_id (keep earliest upcoming)
+    myDispatchMap = {}
+    ;(dispatched || []).forEach(d => { if(d.jobs&&!myDispatchMap[d.job_id]) myDispatchMap[d.job_id] = d })
+
+    // Merge: all job_worker jobs + dispatch jobs
+    const dispatchJobIds = (dispatched||[]).map(d=>d.job_id).filter(Boolean)
+    const allJobIds = [...new Set([...jobIds, ...dispatchJobIds])]
+
     let allMyJobs = []
-    if (jobIds.length) {
-      const { data: jobData, error: jErr } = await sb.from('jobs').select('*').in('id', jobIds)
+    if (allJobIds.length) {
+      const { data: jobData, error: jErr } = await sb.from('jobs').select('*').in('id', allJobIds)
       if (jErr) throw jErr
       allMyJobs = jobData || []
     }
     myJobs = allMyJobs.filter(j => !j.archived && j.phase !== 'complete')
     if (!myJobs.length) { document.getElementById('jobs-list').innerHTML = '<div class="empty">No jobs assigned to you yet.</div>'; return }
+
     // Check active check-ins
     const { data: cis } = await sb.from('checkins').select('job_id').eq('worker_id', MY.id).is('checkout_at', null)
     const activeJobIds = new Set((cis || []).map(c => c.job_id))
+
+    // Sort: dispatched today first, then by name
+    myJobs.sort((a,b) => {
+      const da = myDispatchMap[a.id], db = myDispatchMap[b.id]
+      if(da && !db) return -1; if(!da && db) return 1
+      if(da && db) return da.dispatch_date.localeCompare(db.dispatch_date) || (da.start_time||'').localeCompare(db.start_time||'')
+      return a.name.localeCompare(b.name)
+    })
+
     document.getElementById('jobs-list').innerHTML = myJobs.map(j => {
       const isIn = activeJobIds.has(j.id)
+      const disp = myDispatchMap[j.id]
+      const dispBadge = disp
+        ? '<div style="background:rgba(37,99,235,.15);border:1px solid rgba(37,99,235,.3);border-radius:5px;padding:3px 8px;font-size:10px;color:#60a5fa;margin-bottom:7px;display:flex;align-items:center;gap:5px">'
+          + '📅 '+disp.dispatch_date+(disp.start_time?' · '+fmtDispatchTime(disp.start_time):'')+(disp.end_time?' – '+fmtDispatchTime(disp.end_time):'')+'</div>'
+        : ''
       return \`<div class="job-card \${isIn ? 'open' : ''}" onclick="openJobDetail('\${j.id}')">
         \${isIn ? '<div class="gps-pill gps-on" style="margin-bottom:7px;font-size:10px"><span class="pulse"></span> Checked In</div>' : ''}
+        \${dispBadge}
         <div class="jc-name">\${j.name}</div>
         <div class="jc-addr">\${j.address || ''}</div>
         <div class="jc-meta">
@@ -3698,6 +3732,13 @@ async function loadJobs() {
       </div>\`
     }).join('')
   } catch(e) { document.getElementById('jobs-list').innerHTML = '<div class="empty">Failed to load jobs</div>' }
+}
+
+function fmtDispatchTime(t){
+  if(!t) return ''
+  const [h,m] = t.split(':').map(Number)
+  const ap = h>=12?'pm':'am', h12 = h%12||12
+  return h12+(m?':'+String(m).padStart(2,'0'):'')+ap
 }
 function phaseColor(p) {
   const m = { not_started:'b-gray', pre_construction:'b-blue', rough_in:'b-amber', trim_out:'b-teal', inspection:'b-blue', closeout:'b-green', complete:'b-green' }
@@ -3739,19 +3780,55 @@ async function renderJobDetail() {
     timerHtml = \`<div class="ci-timer">\${hrs}h \${String(mins).padStart(2,'0')}m</div>\`
   }
 
+  // Get dispatch info for this job
+  const disp = myDispatchMap[j.id]
+  // Get crew on same dispatch
+  let crewHtml = ''
+  if(disp){
+    const { data: crew } = await sb.from('dispatch_assignments')
+      .select('profiles:profile_id(full_name,phone,role)')
+      .eq('job_id', j.id).eq('dispatch_date', disp.dispatch_date)
+      .neq('profile_id', MY.id)
+    if(crew&&crew.length){
+      crewHtml = '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
+        +'<div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Your Crew Today</div>'
+        +crew.map(x=>'<div style="display:flex;align-items:center;gap:9px;padding:5px 0;border-bottom:1px solid var(--border)">'
+          +'<div style="width:32px;height:32px;border-radius:50%;background:#1a2e50;color:#60a5fa;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">'
+          +(x.profiles?.full_name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)+'</div>'
+          +'<div><div style="font-size:13px;font-weight:500">'+(x.profiles?.full_name||'?')+'</div>'
+          +(x.profiles?.phone?'<div style="font-size:11px;color:var(--text3)"><a href="tel:'+x.profiles.phone+'" style="color:var(--accent)">'+x.profiles.phone+'</a></div>':'')
+          +'</div></div>').join('')
+        +'</div>'
+    }
+  }
+
   document.getElementById('jd-content').innerHTML = \`
+  <!-- DISPATCH SCHEDULE CARD (shown if dispatched) -->
+  \${disp ? \`<div style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.3);border-radius:var(--r);padding:13px 14px;margin-bottom:12px">
+    <div style="font-size:10px;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">📅 Your Schedule</div>
+    <div style="font-size:16px;font-weight:600;color:#e8edf5">\${disp.dispatch_date}</div>
+    \${disp.start_time ? \`<div style="font-size:13px;color:#60a5fa;margin-top:3px">⏱ \${fmtDispatchTime(disp.start_time)}\${disp.end_time?' – '+fmtDispatchTime(disp.end_time):''}</div>\` : ''}
+    \${disp.notes ? \`<div style="font-size:12px;color:var(--text2);margin-top:6px;padding:7px 9px;background:rgba(0,0,0,.2);border-radius:5px">📝 \${disp.notes}</div>\` : ''}
+    <div style="font-size:11px;color:var(--text3);margin-top:5px">Status: \${disp.status||'scheduled'}</div>
+  </div>\` : ''}
+
   <!-- JOB HEADER -->
   <div class="card">
     <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:4px">\${j.name}</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">\${j.address||''}</div>
-    <div style="display:flex;gap:7px;flex-wrap:wrap">
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px">\${j.address||''}</div>
+    \${j.address ? \`<a href="https://maps.google.com/?q=\${encodeURIComponent(j.address)}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--accent);margin-bottom:10px">🗺 Open in Maps</a>\` : ''}
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px">
       <span class="badge \${phaseColor(j.phase)}">\${j.phase.replace(/_/g,' ')}</span>
       \${j.due_date?\`<span style="font-size:11px;color:var(--text3)">Due \${fmtDate(j.due_date)}</span>\`:''}
-      \${j.gc_company?\`<span style="font-size:11px;color:var(--text3)">\${j.gc_company}</span>\`:''}
     </div>
-    \${j.scope ? \`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text2);line-height:1.6">\${j.scope}</div>\` : ''}
-    \${j.install_notes ? \`<div style="margin-top:8px;background:var(--abg);border:1px solid var(--ab);border-radius:var(--rs);padding:9px 11px;font-size:12px;color:var(--amber);line-height:1.6">📋 \${j.install_notes}</div>\` : ''}
+    \${j.project_manager ? \`<div style="font-size:12px;color:var(--text2);margin-bottom:4px">👷 PM: <strong>\${j.project_manager}</strong></div>\` : ''}
+    \${j.gc_company ? \`<div style="font-size:12px;color:var(--text2);margin-bottom:2px">🏢 GC: \${j.gc_company}</div>\` : ''}
+    \${j.gc_contact ? \`<div style="font-size:11px;color:var(--text3)">GC Contact: \${j.gc_contact}\${j.gc_phone?\` · <a href="tel:\${j.gc_phone}" style="color:var(--accent)">\${j.gc_phone}</a>\`:''}</div>\` : ''}
+    \${j.super_name ? \`<div style="font-size:11px;color:var(--text3);margin-top:2px">Super: \${j.super_name}\${j.super_phone?\` · <a href="tel:\${j.super_phone}" style="color:var(--accent)">\${j.super_phone}</a>\`:''}</div>\` : ''}
+    \${j.scope ? \`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text2);line-height:1.6"><div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Scope of Work</div>\${j.scope}</div>\` : ''}
+    \${j.install_notes ? \`<div style="margin-top:8px;background:var(--abg);border:1px solid var(--ab);border-radius:var(--rs);padding:9px 11px;font-size:12px;color:var(--amber);line-height:1.6">📋 Install Notes: \${j.install_notes}</div>\` : ''}
     \${lastInsp?.rejected_at ? \`<div style="margin-top:8px;background:var(--rbg);border:1px solid var(--rb);border-radius:var(--rs);padding:9px 11px;font-size:12px;color:var(--red)">⚠ PM Rejected: \${lastInsp.rejection_reason||'See PM notes'}</div>\` : ''}
+    \${crewHtml}
   </div>
 
   <!-- GPS CHECK-IN / OUT -->
@@ -3895,7 +3972,7 @@ async function loadSafetyTopics(){
             '<input type="checkbox" id="ack-'+t.id+'" style="width:18px;height:18px;margin-top:1px;accent-color:#16a34a;flex-shrink:0">'+
             '<div><div style="font-size:13px;font-weight:600;color:#16a34a">I have read and understand this safety topic</div>'+
             '<div style="font-size:11px;color:#8a96ab;margin-top:2px">Check this box to confirm you have reviewed the above content</div></div></label>'+
-            '<button class="btn btn-p" style="width:100%;justify-content:center;margin-top:9px" onclick="acknowledgeSafety(''+t.id+'',''+a.id+'')">Submit Acknowledgement</button>'+
+            '<button class="btn btn-p" style="width:100%;justify-content:center;margin-top:9px" data-tid="'+t.id+'" data-aid="'+a.id+'" onclick="acknowledgeSafety(this.dataset.tid,this.dataset.aid)">Submit Acknowledgement</button>'+
             '</div>'
         }).join('')
     } else {
