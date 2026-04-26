@@ -2212,11 +2212,17 @@ function addUserModal(){
       // If service key not set, fall back to profile-only (no auth account)
       console.warn('Invite route result:',result)
       if(result.error?.includes('SUPABASE_SERVICE_KEY')||result.error?.includes('service')){
-        // Fallback: just create the profile, show instructions
-        const{error}=await sb.from('profiles').insert({id:uuid(),full_name:nm,email:em,phone:v('au-ph'),role:v('au-rl'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep'),is_active:true,created_at:new Date().toISOString()})
-        if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Save';return}
+        // Fallback: create auth user via signUp then insert profile
+        const tempPw=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2).toUpperCase()+'!9'
+        const{data:signUpData,error:signUpErr}=await sb.auth.signUp({email:em,password:tempPw,options:{data:{full_name:nm,role:v('au-rl')}}})
+        const authId=signUpData?.user?.id
+        if(signUpErr&&!authId){toast(signUpErr.message,'error');btn.disabled=false;btn.textContent='Save';return}
+        // Wait a moment then insert profile
+        await new Promise(r=>setTimeout(r,500))
+        const{error:profErr}=await sb.from('profiles').upsert({id:authId,full_name:nm,email:em,phone:v('au-ph'),role:v('au-rl'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep'),is_active:true,created_at:new Date().toISOString()},{onConflict:'id'})
+        if(profErr){toast(profErr.message,'error');btn.disabled=false;btn.textContent='Save';return}
         closeModal()
-        toast('Profile created. To enable login: add SUPABASE_SERVICE_KEY to Render env vars','warn')
+        toast('Employee added. They will get a confirmation email to set their password.','info')
         pgUsers()
         return
       }
