@@ -2929,7 +2929,7 @@ async function loadDispatchData(){
 
   const[{data:jobs},{data:employees},{data:companies},{data:assignments}]=await Promise.all([
     sb.from('jobs').select('id,name,address,phase,gc_company,project_manager,due_date').eq('archived',false).neq('phase','complete').order('name'),
-    sb.from('profiles').select('id,full_name,role,phone,company_id,companies(name)').eq('is_active',true).in('role',['technician','foreman','sub_worker','sub_lead','stager']).order('full_name'),
+    sb.from('profiles').select('id,full_name,role,phone,company_id,companies(name)').eq('is_active',true).order('full_name'),
     sb.from('companies').select('id,name,trade').eq('is_active',true).order('name'),
     sb.from('dispatch_assignments').select('*,jobs(name,address),profiles:profile_id(full_name,role),companies:company_id(name)').eq('dispatch_date',_dispatchDate)
   ])
@@ -3073,7 +3073,8 @@ function dispatchAssignmentCard(a){
     '<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.jobs?.name||'Job')+'</div>'+
     (a.jobs?.address?'<div style="font-size:10px;color:#414e63;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.jobs.address+'</div>':'')+
     '<div style="display:flex;align-items:center;gap:8px;margin-top:4px">'+
-    (a.start_time?'<span style="font-size:10px;color:#60a5fa">⏱ '+fmtDispatchTime(a.start_time)+(a.end_time?' – '+fmtDispatchTime(a.end_time):'')+'</span>':'')+
+    '<span style="font-size:10px;color:#414e63">'+a.dispatch_date+'</span>'+
+    (a.start_time?' <span style="font-size:10px;color:#60a5fa">⏱ '+fmtDispatchTime(a.start_time)+(a.end_time?' – '+fmtDispatchTime(a.end_time):'')+'</span>':'')+'  '+
     '<span class="badge bg-gray" style="font-size:9px">'+a.status+'</span>'+
     '</div>'+
     (a.notes?'<div style="font-size:10px;color:#8a96ab;margin-top:3px">'+a.notes+'</div>':'')+
@@ -3144,6 +3145,7 @@ function openAssignModal(jobId, jobName, profileId, profileName){
     '<div style="font-size:14px;font-weight:600;margin-top:2px">'+jobName+'</div>'+
     '<div style="font-size:12px;color:#8a96ab;margin-top:2px">→ '+profileName+'</div>'+
     '</div>'+
+    '<div class="fg"><label class="fl">Scheduled Date</label><input class="fi" type="date" id="da-date" value="'+_dispatchDate+'"></div>'+
     '<div class="two">'+
     '<div class="fg"><label class="fl">Start Time</label><input class="fi" type="time" id="da-start" value="'+defStart+'"></div>'+
     '<div class="fg"><label class="fl">Projected End</label><input class="fi" type="time" id="da-end" value="'+defEnd+'"></div>'+
@@ -3157,9 +3159,10 @@ function openAssignModal(jobId, jobName, profileId, profileName){
     '</select></div>'
 
   modal('Assign to Schedule', html, async()=>{
+    const assignDate=document.getElementById('da-date')?.value||_dispatchDate
     const{error}=await sb.from('dispatch_assignments').insert({
       id:uuid(), job_id:jobId, profile_id:profileId,
-      dispatch_date:_dispatchDate,
+      dispatch_date:assignDate,
       start_time:v('da-start')||null,
       end_time:v('da-end')||null,
       notes:v('da-notes'),
@@ -3180,6 +3183,7 @@ async function editDispatchAssignment(id){
   if(!a)return
   const html=
     '<div style="font-size:13px;font-weight:600;margin-bottom:12px">'+a.jobs?.name+'</div>'+
+    '<div class="fg"><label class="fl">Scheduled Date</label><input class="fi" type="date" id="ea-date" value="'+(a.dispatch_date||_dispatchDate)+'"></div>'+
     '<div class="two">'+
     '<div class="fg"><label class="fl">Start Time</label><input class="fi" type="time" id="ea-start" value="'+(a.start_time||'')+'"></div>'+
     '<div class="fg"><label class="fl">Projected End</label><input class="fi" type="time" id="ea-end" value="'+(a.end_time||'')+'"></div>'+
@@ -3194,6 +3198,7 @@ async function editDispatchAssignment(id){
 
   modal('Edit Assignment', html, async()=>{
     const{error}=await sb.from('dispatch_assignments').update({
+      dispatch_date:v('ea-date')||_dispatchDate,
       start_time:v('ea-start')||null,
       end_time:v('ea-end')||null,
       notes:v('ea-notes'),
