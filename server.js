@@ -394,10 +394,10 @@ async function pgDash(){
   // Run queries individually so one failure doesn't break everything
   const {data:jobs,error:jobsError} = await sb.from('jobs').select('*').order('created_at',{ascending:false})
   if(jobsError) throw new Error('Jobs: '+jobsError.message)
-  const {data:ci} = await sb.from('checkins').select('id,job_id,worker_id,checkin_at,checkout_at').is('checkout_at',null).order('checkin_at',{ascending:false}).limit(20).catch(()=>({data:[]}))
-  const {data:parts} = await sb.from('job_parts').select('id,job_id,status,assigned_qty').in('status',['staged','signed_out']).catch(()=>({data:[]}))
-  const {data:low} = await sb.from('inventory').select('id,name,qty,min_qty').gt('min_qty',0).catch(()=>({data:[]}))
-  const {data:safety} = await sb.from('safety_topics').select('id,title,week_of').order('created_at',{ascending:false}).limit(5).catch(()=>({data:[]}))
+  const {data:ci=[]} = await sb.from('checkins').select('id,job_id,worker_id,checkin_at,checkout_at,profiles:worker_id(full_name),jobs(name)').is('checkout_at',null).order('checkin_at',{ascending:false}).limit(20).then(r=>r).catch(()=>({data:[]}))
+  const {data:parts=[]} = await sb.from('job_parts').select('id,job_id,status,assigned_qty').in('status',['staged','signed_out']).then(r=>r).catch(()=>({data:[]}))
+  const {data:low=[]} = await sb.from('inventory').select('id,name,qty,min_qty').gt('min_qty',0).then(r=>r).catch(()=>({data:[]}))
+  const {data:safety=[]} = await sb.from('safety_topics').select('id,title,week_of').order('created_at',{ascending:false}).limit(5).then(r=>r).catch(()=>({data:[]}))
   // Load worker names for check-ins separately (avoid join issues)
   let ciWithNames = ci||[]
   if(ciWithNames.length){
