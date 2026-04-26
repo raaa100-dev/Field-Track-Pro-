@@ -527,7 +527,7 @@ function renderInfoTab(el,j){
     document.getElementById('ed-rad').value=j.gps_radius_ft||250
     if(document.getElementById('ed-pmschedule'))document.getElementById('ed-pmschedule').value=j.pm_visit_schedule||'none'
     // Populate PM dropdown from employee list
-    const{data:pmUsers}=await sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','foreman','technician']).eq('is_active',true).order('full_name')
+    const{data:pmUsers}=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
     const sel=document.getElementById('ed-pm')
     if(sel&&pmUsers){
       sel.innerHTML='<option value="">— Unassigned —</option>'+(pmUsers||[]).map(p=>'<option value="'+p.full_name+'"'+( j.project_manager===p.full_name?' selected':'')+'>'+p.full_name+' ('+p.role+')</option>').join('')
@@ -903,7 +903,7 @@ async function addLog(){const c=v('log-txt').trim();if(!c)return;await sb.from('
 // NEW JOB PAGE
 // ══════════════════════════════════════════
 async function pgNewJob(){
-  const[{data:companies},{data:pmUsers}]=await Promise.all([sb.from('companies').select('id,name').eq('is_active',true).order('name'),sb.from('profiles').select('id,full_name').in('role',['admin','pm','foreman']).eq('is_active',true).order('full_name')])
+  const[{data:companies},{data:pmUsers}]=await Promise.all([sb.from('companies').select('id,name').eq('is_active',true).order('name'),sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')])
   document.getElementById('page-area').innerHTML=`<div class="two">
   <div>
     <div class="card">
@@ -942,17 +942,22 @@ async function pgNewJob(){
     </div>
     <button class="btn btn-p btn-full" id="nj-btn" onclick="submitNewJob()">Create Job</button>
   </div></div>`
-  setTimeout(()=>populateNjPM(),50)
+  populateNjPM(pmUsers)
 }
 async function populateNjPM(pmUsers){
   const sel=document.getElementById('nj-pm');if(!sel)return
-  // If pmUsers passed, use them. Otherwise fetch fresh
   let users=pmUsers
   if(!users||!users.length){
-    const{data}=await sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','foreman','technician']).eq('is_active',true).order('full_name')
-    users=data||[]
+    const{data,error}=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
+    if(error){console.error('PM fetch error:',error);users=[]}
+    else users=data||[]
   }
-  sel.innerHTML='<option value="">— Unassigned —</option>'+(users||[]).map(p=>'<option value="'+p.full_name+'">'+p.full_name+' ('+p.role+')</option>').join('')
+  if(!users.length){
+    sel.innerHTML='<option value="">— No employees found —</option>'
+    console.warn('populateNjPM: no users returned. Add employees in the Users section.')
+    return
+  }
+  sel.innerHTML='<option value="">— Unassigned —</option>'+(users||[]).map(p=>'<option value="'+p.full_name+'">'+p.full_name+(p.role?' ('+p.role+')':'')+'</option>').join('')
 }
 async function loadNjWorkers(){const coId=v('nj-co');const wrap=document.getElementById('nj-workers');if(!wrap)return;if(!coId){wrap.innerHTML='<div style="font-size:11px;color:#414e63">Select a company first</div>';return};const{data}=await sb.from('profiles').select('id,full_name,is_lead').eq('company_id',coId).eq('is_active',true);wrap.innerHTML=(data||[]).map(w=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><input type="checkbox" id="w-${w.id}" value="${w.id}" ${w.is_lead?'checked':''}><label for="w-${w.id}" style="font-size:12px;color:#8a96ab">${w.full_name}${w.is_lead?' (Lead)':''}</label></div>`).join('')||'<div style="font-size:11px;color:#414e63">No workers</div>'}
 async function submitNewJob(){
