@@ -184,7 +184,12 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 <div id="main">
   <div class="topbar">
     <div class="topbar-title" id="page-title">Dashboard</div>
-    <div class="tb-right" id="topbar-actions"></div>
+    <div class="tb-right" id="topbar-actions">
+      <div style="position:relative;cursor:pointer" onclick="P('notifications',null)" title="Notifications">
+        <div style="font-size:18px;line-height:1;padding:4px 6px">🔔</div>
+        <div id="notif-badge" style="display:none;position:absolute;top:0;right:0;background:#dc2626;color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:99px;min-width:16px;text-align:center">0</div>
+      </div>
+    </div>
   </div>
   <div id="page-area"><div class="loading"><div class="spin"></div> Loading…</div></div>
 </div>
@@ -221,7 +226,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
 function doSignOut(){sb.auth.signOut();location.href='index.html'}
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const PAGE_TITLES={dashboard:'Dashboard',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
+const PAGE_TITLES={dashboard:'Dashboard',notifications:'Notifications',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
 function P(page,navEl){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
   if(navEl)navEl.classList.add('active')
@@ -229,7 +234,7 @@ function P(page,navEl){
   document.getElementById('topbar-actions').innerHTML=''
   const a=document.getElementById('page-area')
   a.innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
-  const map={dashboard:pgDash,jobs:pgJobs,newjob:pgNewJob,schedule:pgSchedule,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers}
+  const map={dashboard:pgDash,jobs:pgJobs,newjob:pgNewJob,schedule:pgSchedule,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications}
   if(map[page])map[page]()
   else a.innerHTML='<div class="empty">Coming soon</div>'
 }
@@ -259,9 +264,9 @@ function fm(n,d=0){if(n==null)return'—';return'$'+Number(n).toLocaleString('en
 function isOD(due,phase){return due&&phase!=='complete'&&new Date(due)<new Date()}
 function daysAway(d){if(!d)return null;return Math.round((new Date(d)-new Date())/86400000)}
 
-const STAGES=['not_started','in_progress','pre_test','pre_tested','ready_for_final','complete']
-const STAGE_LABELS={not_started:'Not Started',in_progress:'In Progress',pre_test:'Ready for Pre-test',pre_tested:'Pre-Tested',ready_for_final:'Ready for Final',complete:'Complete'}
-const STAGE_COLORS={not_started:'bg-gray',in_progress:'bg-blue',pre_test:'bg-amber',pre_tested:'bg-teal',ready_for_final:'bg-purple',complete:'bg-green'}
+const STAGES=['not_started','parts_ordered','parts_staged','in_progress','pre_test','pre_tested','ready_for_final','complete']
+const STAGE_LABELS={not_started:'Not Started',parts_ordered:'Parts Ordered',parts_staged:'Parts Staged',in_progress:'In Progress',pre_test:'Ready for Pre-test',pre_tested:'Pre-Tested',ready_for_final:'Ready for Final',complete:'Complete'}
+const STAGE_COLORS={not_started:'bg-gray',parts_ordered:'bg-orange',parts_staged:'bg-amber',in_progress:'bg-blue',pre_test:'bg-amber',pre_tested:'bg-teal',ready_for_final:'bg-purple',complete:'bg-green'}
 function stageBadge(p){return`<span class="badge ${STAGE_COLORS[p]||'bg-gray'}">${STAGE_LABELS[p]||p||'—'}</span>`}
 function roleBadge(r){const m={admin:'bg-purple',pm:'bg-blue',stager:'bg-amber',foreman:'bg-teal',technician:'bg-green',sub_lead:'bg-amber',sub_worker:'bg-gray'};return`<span class="badge ${m[r]||'bg-gray'}">${r||'—'}</span>`}
 function empty(icon,txt){return`<div class="empty"><div class="empty-icon">${icon}</div><div style="color:#414e63;font-size:12px">${txt}</div></div>`}
@@ -580,10 +585,27 @@ async function removeWorker(id){await sb.from('job_workers').update({is_active:f
 
 function buildPartsTable(parts){
   if(!parts||!parts.length) return empty('📦','No parts on this job yet — use Scan Parts to add')
-  return '<table class="tbl"><thead><tr><th>Part Name</th><th>Barcode</th><th>Qty</th><th>Status</th><th>Staged By</th><th>Staged At</th><th>Checked Out By</th><th>Checked Out At</th></tr></thead><tbody>'+
+  // Check for variance
+  const overParts=parts.filter(p=>(p.installed_qty||0)>p.assigned_qty)
+  const underParts=parts.filter(p=>p.status==='installed'&&(p.installed_qty||0)<p.assigned_qty)
+  let varHtml=''
+  if(overParts.length) varHtml+='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:9px 12px;margin-bottom:9px;font-size:12px;color:#dc2626">⚠ Over-issued: '+overParts.map(p=>p.part_name+' (assigned '+p.assigned_qty+', installed '+(p.installed_qty||0)+')').join(', ')+'</div>'
+  if(underParts.length) varHtml+='<div style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.2);border-radius:7px;padding:9px 12px;margin-bottom:9px;font-size:12px;color:#d97706">⚠ Under-installed: '+underParts.map(p=>p.part_name+' (assigned '+p.assigned_qty+', installed '+(p.installed_qty||0)+')').join(', ')+'</div>'
+  return varHtml+'<table class="tbl"><thead><tr><th>Part Name</th><th>Barcode</th><th>Assigned</th><th>Installed</th><th>Remaining</th><th>Status</th><th>Staged By</th><th>Checked Out By</th></tr></thead><tbody>'+
     parts.map(p=>{
-      const bc=p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-blue':p.status==='installed'?'bg-green':'bg-gray'
-      return '<tr><td style="font-weight:500">'+p.part_name+'</td><td style="font-size:10px;color:#414e63">'+p.part_id+'</td><td style="font-weight:500">'+p.assigned_qty+'</td><td><span class="badge '+bc+'">'+p.status.replace(/_/g,' ')+'</span></td><td style="font-size:11px;color:#8a96ab">'+(p.staged_by||'—')+'</td><td style="font-size:10px;color:#414e63">'+(p.staged_at?fdt(p.staged_at):'—')+'</td><td style="font-size:11px;color:#8a96ab">'+(p.checked_out_by||'—')+'</td><td style="font-size:10px;color:#414e63">'+(p.checked_out_at?fdt(p.checked_out_at):'—')+'</td></tr>'
+      const installed=p.installed_qty||0
+      const remaining=p.assigned_qty-installed
+      const pct=p.assigned_qty>0?Math.round(installed/p.assigned_qty*100):0
+      const bc=p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-blue':p.status==='installed'?'bg-green':p.status==='partial_install'?'bg-teal':'bg-gray'
+      const varColor=installed>p.assigned_qty?'color:#dc2626':remaining===0?'color:#16a34a':'color:#8a96ab'
+      return '<tr><td style="font-weight:500">'+p.part_name+'</td>'+
+        '<td style="font-size:10px;color:#414e63">'+p.part_id+'</td>'+
+        '<td style="font-weight:500">'+p.assigned_qty+'</td>'+
+        '<td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:50px"><div class="pb g" style="width:'+Math.min(100,pct)+'%"></div></div><span style="font-size:11px;'+varColor+'">'+installed+'</span></div></td>'+
+        '<td style="font-size:12px;'+varColor+'">'+remaining+'</td>'+
+        '<td><span class="badge '+bc+'">'+p.status.replace(/_/g,' ')+'</span></td>'+
+        '<td style="font-size:11px;color:#8a96ab">'+(p.staged_by||'—')+'</td>'+
+        '<td style="font-size:11px;color:#8a96ab">'+(p.checked_out_by||'—')+'</td></tr>'
     }).join('')+'</tbody></table>'
 }
 
@@ -593,7 +615,8 @@ async function renderPartsTab(el){
   el.innerHTML=`
   <div style="display:flex;gap:8px;margin-bottom:13px">
     <button class="btn btn-p btn-sm" onclick="P('scan',null)">📷 Go to Scanner</button>
-    <button class="btn btn-sm" onclick="loadJT('jt-parts')">Refresh</button>
+    <button class="btn btn-sm" onclick="loadJT('jt-parts')">↻ Refresh</button>
+    <button class="btn btn-a btn-sm" onclick="checkPartsVariance('${currentJobId}').then(()=>loadJT('jt-parts'))">⚠ Check Variance</button>
   </div>
   <div class="stats" style="grid-template-columns:repeat(4,1fr)">
     <div class="stat"><div class="stat-label">Staged</div><div class="stat-value" style="color:#d97706">${(parts||[]).filter(p=>p.status==='staged').length}</div></div>
@@ -1051,7 +1074,7 @@ async function viewDailyReport(id){
     <div><div class="fl">TEMP</div><div style="font-weight:500">${r.temp_high?r.temp_high+'°/'+r.temp_low+'°':'—'}</div></div>
   </div>
   ${r.work_performed?`<div class="fg"><div class="fl">Work Performed</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap;background:#131c2e;padding:9px;border-radius:7px">${r.work_performed}</div></div>`:''}
-  ${r.materials_used?`<div class="fg"><div class="fl">Materials Used</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap;background:#131c2e;padding:9px;border-radius:7px">${r.materials_used}</div></div>`:''}
+  ${(r.installed_parts&&r.installed_parts.length)?`<div class="fg"><div class="fl" style="margin-bottom:7px">Parts Installed Today</div><div style="background:#131c2e;border-radius:7px;overflow:hidden">${r.installed_parts.map(p=>'<div style="display:flex;justify-content:space-between;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px">'+p.part_name+'</span><span style="font-size:12px;font-weight:600;color:#16a34a">'+p.installed_qty+' installed</span></div>').join('')}</div></div>`:''}
   ${r.equipment_used?`<div class="fg"><div class="fl">Equipment</div><div style="font-size:12px;color:#8a96ab">${r.equipment_used}</div></div>`:''}
   ${r.issues?`<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);border-radius:7px;padding:10px 12px;margin-bottom:9px"><div class="fl" style="color:#dc2626">Issues</div><div style="font-size:12px;color:#dc2626;white-space:pre-wrap">${r.issues}</div></div>`:''}
   ${r.visitors?`<div class="fg"><div class="fl">Visitors</div><div style="font-size:12px;color:#8a96ab">${r.visitors}</div></div>`:''}`,
@@ -1060,30 +1083,102 @@ async function viewDailyReport(id){
 }
 async function dlDailyReportById(id){const{data:r}=await sb.from('daily_reports').select('*').eq('id',id).single();dlDailyReport({...r,jobs:r.jobs})}
 function newDailyModal(jobIdOverride){
-  let jobSel=''
-  if(allJobs.length>0&&!jobIdOverride)jobSel=`<div class="fg"><label class="fl">Job *</label><select class="fs" id="dr-job"><option value="">— Select —</option>${allJobs.map(j=>`<option value="${j.id}">${j.name}</option>`).join('')}</select></div>`
-  modal('New Daily Report',`
-  ${jobIdOverride?`<input type="hidden" id="dr-job" value="${jobIdOverride}">`:jobSel}
-  <div class="two">
-    <div class="fg"><label class="fl">Report Date</label><input class="fi" type="date" id="dr-date" value="${new Date().toISOString().split('T')[0]}"></div>
-    <div class="fg"><label class="fl">Crew Count</label><input class="fi" type="number" id="dr-crew" value="1" min="0"></div>
-  </div>
-  <div class="three">
-    <div class="fg"><label class="fl">Hours Worked</label><input class="fi" type="number" id="dr-hrs" step="0.5" min="0"></div>
-    <div class="fg"><label class="fl">Weather</label><input class="fi" id="dr-wx" placeholder="Sunny, Rainy…"></div>
-    <div class="fg"><label class="fl">Temp Hi/Lo (°F)</label><div style="display:flex;gap:5px"><input class="fi" type="number" id="dr-th" placeholder="Hi"><input class="fi" type="number" id="dr-tl" placeholder="Lo"></div></div>
-  </div>
-  <div class="fg"><label class="fl">Work Performed *</label><textarea class="ft" id="dr-work" style="min-height:90px" placeholder="Describe work completed today…"></textarea></div>
-  <div class="fg"><label class="fl">Materials Used</label><textarea class="ft" id="dr-mat"></textarea></div>
-  <div class="fg"><label class="fl">Equipment Used</label><input class="fi" id="dr-eq"></div>
-  <div class="fg"><label class="fl">Issues / Delays</label><textarea class="ft" id="dr-iss" placeholder="Any problems, delays, safety issues?"></textarea></div>
-  <div class="fg"><label class="fl">Visitors</label><input class="fi" id="dr-vis" placeholder="Inspectors, owner reps…"></div>`,
-  async()=>{
+  const jobSel=(!jobIdOverride&&allJobs.length)?
+    '<div class="fg"><label class="fl">Job *</label><select class="fs" id="dr-job" onchange="drLoadParts(this.value)"><option value="">— Select —</option>'+allJobs.map(j=>'<option value="'+j.id+'">'+j.name+'</option>').join('')+'</select></div>':
+    (jobIdOverride?'<input type="hidden" id="dr-job" value="'+jobIdOverride+'">':'')
+  const html=jobSel+
+    '<div class="two">'+
+    '<div class="fg"><label class="fl">Report Date</label><input class="fi" type="date" id="dr-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '<div class="fg"><label class="fl">Crew Count</label><input class="fi" type="number" id="dr-crew" value="1" min="0"></div>'+
+    '</div>'+
+    '<div class="three">'+
+    '<div class="fg"><label class="fl">Hours Worked</label><input class="fi" type="number" id="dr-hrs" step="0.5" min="0"></div>'+
+    '<div class="fg"><label class="fl">Weather</label><input class="fi" id="dr-wx" placeholder="Sunny, Rainy…"></div>'+
+    '<div class="fg"><label class="fl">Temp Hi/Lo (°F)</label><div style="display:flex;gap:5px"><input class="fi" type="number" id="dr-th" placeholder="Hi"><input class="fi" type="number" id="dr-tl" placeholder="Lo"></div></div>'+
+    '</div>'+
+    '<div class="fg"><label class="fl">Work Performed *</label><textarea class="ft" id="dr-work" style="min-height:80px" placeholder="Describe work completed today…"></textarea></div>'+
+    '<div id="dr-parts-section" style="margin-bottom:12px">'+
+    (jobIdOverride?'<div id="dr-parts-wrap"><div style="font-size:11px;color:#414e63">Loading parts…</div></div>':
+    '<div id="dr-parts-wrap"><div style="font-size:11px;color:#414e63">Select a job to see staged parts</div></div>')+
+    '</div>'+
+    '<div class="fg"><label class="fl">Equipment Used</label><input class="fi" id="dr-eq"></div>'+
+    '<div class="fg"><label class="fl">Issues / Delays</label><textarea class="ft" id="dr-iss" placeholder="Any problems, delays, safety issues?"></textarea></div>'+
+    '<div class="fg"><label class="fl">Visitors</label><input class="fi" id="dr-vis" placeholder="Inspectors, owner reps…"></div>'
+  modal('New Daily Report', html, async()=>{
     const jobId=v('dr-job');if(!jobId){toast('Select a job','error');return}
     const work=v('dr-work').trim();if(!work){toast('Work performed required','error');return}
-    const{error}=await sb.from('daily_reports').insert({id:uuid(),job_id:jobId,report_date:v('dr-date'),crew_count:parseInt(v('dr-crew'))||0,hours_worked:parseFloat(v('dr-hrs'))||0,weather:v('dr-wx'),temp_high:fN('dr-th'),temp_low:fN('dr-tl'),work_performed:work,materials_used:v('dr-mat'),equipment_used:v('dr-eq'),issues:v('dr-iss'),visitors:v('dr-vis'),submitted_by:ME?.full_name,submitted_at:new Date().toISOString(),created_at:new Date().toISOString()})
-    if(error)toast(error.message,'error');else{closeModal();toast('Report saved OK');if(jobIdOverride)loadJT('jt-daily');else pgDaily()}
+    // Collect installed parts from the form
+    const installedParts=[]
+    document.querySelectorAll('.dr-part-row').forEach(row=>{
+      const partId=row.dataset.partId
+      const partName=row.dataset.partName
+      const available=parseInt(row.dataset.available)||0
+      const installed=parseInt(row.querySelector('.dr-part-qty')?.value)||0
+      if(installed>0) installedParts.push({part_id:partId,part_name:partName,installed_qty:installed,available_qty:available})
+    })
+    const{error}=await sb.from('daily_reports').insert({id:uuid(),job_id:jobId,report_date:v('dr-date'),crew_count:parseInt(v('dr-crew'))||0,hours_worked:parseFloat(v('dr-hrs'))||0,weather:v('dr-wx'),temp_high:fN('dr-th'),temp_low:fN('dr-tl'),work_performed:work,equipment_used:v('dr-eq'),issues:v('dr-iss'),visitors:v('dr-vis'),installed_parts:installedParts,submitted_by:ME?.full_name,submitted_at:new Date().toISOString(),created_at:new Date().toISOString()})
+    if(error){toast(error.message,'error');return}
+    // Update job_parts installed_qty and subtract from available
+    for(const ip of installedParts){
+      const{data:part}=await sb.from('job_parts').select('id,installed_qty,assigned_qty').eq('job_id',jobId).eq('part_id',ip.part_id).single()
+      if(part){
+        const newInstalled=(part.installed_qty||0)+ip.installed_qty
+        const newStatus=newInstalled>=part.assigned_qty?'installed':'partial_install'
+        await sb.from('job_parts').update({installed_qty:newInstalled,status:newStatus,updated_at:new Date().toISOString()}).eq('id',part.id)
+      }
+    }
+    // Check if job is complete - run over/under check
+    if(installedParts.length) await checkPartsVariance(jobId)
+    closeModal();toast('Report saved OK');if(jobIdOverride)loadJT('jt-daily');else pgDaily()
   })
+  // Load parts if job is pre-selected
+  if(jobIdOverride) setTimeout(()=>drLoadParts(jobIdOverride),100)
+}
+
+async function drLoadParts(jobId){
+  const wrap=document.getElementById('dr-parts-wrap');if(!wrap)return
+  if(!jobId){wrap.innerHTML='<div style="font-size:11px;color:#414e63">Select a job to see staged parts</div>';return}
+  wrap.innerHTML='<div style="font-size:11px;color:#414e63">Loading parts…</div>'
+  const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',jobId).in('status',['staged','signed_out','partial_install'])
+  if(!parts?.length){wrap.innerHTML='<div style="font-size:11px;color:#414e63;padding:8px 0">No staged parts on this job yet</div>';return}
+  let html='<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Parts Staged on Job — Enter Qty Installed Today</div>'
+  html+='<div style="background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;overflow:hidden">'
+  for(const p of parts){
+    const available=p.assigned_qty-(p.installed_qty||0)
+    if(available<=0) continue
+    html+='<div class="dr-part-row" data-part-id="'+p.part_id+'" data-part-name="'+p.part_name+'" data-available="'+available+'" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04)">'
+    html+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.part_name+'</div>'
+    html+='<div style="font-size:10px;color:#414e63">'+p.part_id+' · '+available+' available ('+( p.installed_qty||0)+' already installed)</div></div>'
+    html+='<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
+    html+='<button onclick="this.nextElementSibling.value=Math.max(0,parseInt(this.nextElementSibling.value||0)-1)" style="width:24px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:14px">−</button>'
+    html+='<input type="number" class="dr-part-qty fi" value="0" min="0" max="'+available+'" style="width:60px;text-align:center;padding:4px 6px">'
+    html+='<button onclick="this.previousElementSibling.value=Math.min('+available+',parseInt(this.previousElementSibling.value||0)+1)" style="width:24px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:14px">+</button>'
+    html+='</div></div>'
+  }
+  html+='</div>'
+  wrap.innerHTML=html
+}
+
+async function checkPartsVariance(jobId){
+  const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',jobId)
+  if(!parts?.length) return
+  const{data:job}=await sb.from('jobs').select('name,phase').eq('id',jobId).single()
+  const overParts=[],underParts=[]
+  for(const p of parts){
+    const installed=p.installed_qty||0
+    const assigned=p.assigned_qty||0
+    if(installed>assigned) overParts.push({name:p.part_name,over:installed-assigned,id:p.part_id})
+    else if(installed<assigned&&(job?.phase==='complete'||p.status==='installed'))
+      underParts.push({name:p.part_name,under:assigned-installed,id:p.part_id})
+  }
+  if(overParts.length||underParts.length){
+    const msg=[]
+    if(overParts.length) msg.push('OVER on: '+overParts.map(p=>p.name+' (+'+p.over+')').join(', '))
+    if(underParts.length) msg.push('UNDER on: '+underParts.map(p=>p.name+' (−'+p.under+')').join(', '))
+    // Save notification
+    await sb.from('notifications').insert({id:uuid(),type:'parts_variance',title:'Parts Variance — '+(job?.name||jobId),message:msg.join(' | '),meta:{job_id:jobId,over:overParts,under:underParts},read:false,created_at:new Date().toISOString()})
+    toast('Parts variance detected — check notifications','warn')
+  }
 }
 
 // ══════════════════════════════════════════
@@ -2293,3 +2388,63 @@ async function logPmVisitModal(){
 </script>
 </body>
 </html>
+<script>
+// ══════════════════════════════════════════
+// NOTIFICATIONS PAGE + BADGE
+// ══════════════════════════════════════════
+async function loadNotifBadge(){
+  try{
+    const{count}=await sb.from('notifications').select('id',{count:'exact',head:true}).eq('read',false)
+    const el=document.getElementById('notif-badge')
+    if(el){el.textContent=count||0;el.style.display=(count||0)>0?'block':'none'}
+  }catch(e){}
+}
+
+async function pgNotifications(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm btn-ghost" onclick="markAllNotifsRead()">Mark all read</button>'
+  const{data:notifs}=await sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(100)
+  const el=document.getElementById('page-area')
+  if(!(notifs||[]).length){el.innerHTML=empty('🔔','No notifications');return}
+  const groups={parts_variance:[],safety:[],general:[]}
+  ;(notifs||[]).forEach(n=>{
+    if(n.type==='parts_variance')groups.parts_variance.push(n)
+    else if(n.type?.includes('safety'))groups.safety.push(n)
+    else groups.general.push(n)
+  })
+  let html=''
+  const renderGroup=(title,icon,items)=>{
+    if(!items.length)return''
+    return '<div class="card" style="margin-bottom:13px"><div class="card-title">'+icon+' '+title+' ('+items.length+')</div>'+
+      items.map(n=>'<div style="display:flex;gap:11px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start;opacity:'+(n.read?.7:1)+'">'+'<div style="flex-shrink:0;margin-top:2px"><div style="width:8px;height:8px;border-radius:50%;background:'+(n.read?'#414e63':'#dc2626')+'"></div></div>'+
+        '<div style="flex:1"><div style="font-size:13px;font-weight:'+(n.read?400:600)+'">'+n.title+'</div>'+
+        '<div style="font-size:12px;color:#8a96ab;margin-top:3px">'+n.message+'</div>'+
+        '<div style="font-size:10px;color:#414e63;margin-top:4px">'+fdt(n.created_at)+'</div>'+
+        (n.meta?.job_id?'<button class="btn btn-sm" style="margin-top:6px" onclick="openJob(\''+n.meta.job_id+'\')">View Job →</button>':'')+
+        '</div>'+
+        (!n.read?'<button class="btn btn-sm btn-ghost" onclick="markNotifRead(\''+n.id+'\')" style="flex-shrink:0">✓</button>':'')+
+        '</div>').join('')+
+      '</div>'
+  }
+  html+=renderGroup('Parts Variance','⚠',groups.parts_variance)
+  html+=renderGroup('Safety','🛡',groups.safety)
+  html+=renderGroup('General','🔔',groups.general)
+  el.innerHTML=html||empty('🔔','No notifications')
+  // Mark all as read after viewing
+  await sb.from('notifications').update({read:true}).eq('read',false)
+  loadNotifBadge()
+}
+
+async function markNotifRead(id){
+  await sb.from('notifications').update({read:true}).eq('id',id)
+  pgNotifications()
+}
+async function markAllNotifsRead(){
+  await sb.from('notifications').update({read:true}).eq('read',false)
+  toast('All marked read')
+  pgNotifications()
+}
+
+// Load badge on boot (called from DOMContentLoaded in main script)
+setTimeout(loadNotifBadge, 2000)
+setInterval(loadNotifBadge, 60000)
+</script>
