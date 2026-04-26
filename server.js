@@ -2891,12 +2891,105 @@ let _dispatchDate = new Date().toISOString().split('T')[0]
 let _dispatchData = { jobs:[], employees:[], companies:[], assignments:[] }
 let _dragJob = null
 
+// ══════════════════════════════════════════
+// ICS CALENDAR EXPORT
+// ══════════════════════════════════════════
+function fmtICSDate(dateStr, timeStr){
+  // Returns YYYYMMDDTHHMMSS format
+  const d = new Date(dateStr + (timeStr ? 'T' + timeStr : 'T00:00:00'))
+  const pad = n => String(n).padStart(2,'0')
+  return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'T'+pad(d.getHours())+pad(d.getMinutes())+'00'
+}
+
+function buildICSEvent(a, empName){
+  const uid = a.id + '@fieldaxishq'
+  const jobName = a.jobs?.name || 'Job Assignment'
+  const jobAddr = a.jobs?.address || ''
+  const dateStr = a.dispatch_date
+  const startDt = fmtICSDate(dateStr, a.start_time)
+  const endDt   = a.end_time ? fmtICSDate(dateStr, a.end_time) : fmtICSDate(dateStr, (a.start_time ? a.start_time.split(':')[0]+':00' : '08:00'))
+  const now     = fmtICSDate(new Date().toISOString().split('T')[0], new Date().toTimeString().slice(0,5))
+  const notes   = a.notes ? '\\nNotes: ' + a.notes : ''
+  const pm      = a.jobs?.project_manager ? '\\nPM: ' + a.jobs.project_manager : ''
+
+  return [
+    'BEGIN:VEVENT',
+    'UID:' + uid,
+    'DTSTAMP:' + now,
+    'DTSTART:' + startDt,
+    'DTEND:' + endDt,
+    'SUMMARY:' + jobName + (empName ? ' — ' + empName : ''),
+    jobAddr ? 'LOCATION:' + jobAddr.replace(/,/g, '\\,') : '',
+    'DESCRIPTION:Job: ' + jobName + pm + notes + '\\nStatus: ' + (a.status||'scheduled'),
+    'STATUS:CONFIRMED',
+    'END:VEVENT'
+  ].filter(Boolean).join('\\r\\n')
+}
+
+function buildICSFile(events, calName){
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//FieldAxisHQ//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:' + calName,
+    ...events,
+    'END:VCALENDAR'
+  ].join('\\r\\n')
+}
+
+function downloadICS(content, filename){
+  const blob = new Blob([content], {type:'text/calendar;charset=utf-8'})
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(a.href)
+  toast('Calendar file downloaded — open it to add to Outlook, Google, or Apple Calendar')
+}
+
+async function exportDayICS(){
+  const{data:assignments}=await sb.from('dispatch_assignments')
+    .select('*,jobs(name,address,project_manager),profiles:profile_id(full_name,email)')
+    .eq('dispatch_date',_dispatchDate)
+  if(!(assignments||[]).length){toast('No assignments on this date','warn');return}
+  const events = assignments.map(a=>buildICSEvent(a, a.profiles?.full_name))
+  const ics = buildICSFile(events, 'FieldAxisHQ — '+_dispatchDate)
+  downloadICS(ics, 'Schedule-'+_dispatchDate+'.ics')
+}
+
+async function exportEmployeeICS(profileId, profileName){
+  // Get all future assignments for this employee
+  const today = new Date().toISOString().split('T')[0]
+  const{data:assignments}=await sb.from('dispatch_assignments')
+    .select('*,jobs(name,address,project_manager)')
+    .eq('profile_id', profileId)
+    .gte('dispatch_date', today)
+    .order('dispatch_date')
+  if(!(assignments||[]).length){toast('No upcoming assignments for '+profileName,'warn');return}
+  const events = assignments.map(a=>buildICSEvent(a, profileName))
+  const ics = buildICSFile(events, 'Schedule — '+profileName)
+  downloadICS(ics, 'Schedule-'+profileName.replace(/\\s+/g,'-')+'.ics')
+  toast('Exported '+assignments.length+' assignment'+(assignments.length!==1?'s':'')+' for '+profileName)
+}
+
+async function exportSingleAssignmentICS(assignmentId){
+  const{data:a}=await sb.from('dispatch_assignments')
+    .select('*,jobs(name,address,project_manager),profiles:profile_id(full_name,email)')
+    .eq('id',assignmentId).single()
+  if(!a){toast('Assignment not found','error');return}
+  const ics = buildICSFile([buildICSEvent(a, a.profiles?.full_name)], a.jobs?.name||'Assignment')
+  downloadICS(ics, 'Assignment-'+a.dispatch_date+'.ics')
+}
+
 async function pgDispatch(){
   document.getElementById('topbar-actions').innerHTML =
     '<button class="btn btn-sm" onclick="dispatchPrevDay()">← Prev</button>'+
     '<input type="date" class="fi" id="dispatch-date" value="'+_dispatchDate+'" style="width:150px;padding:5px 10px" onchange="_dispatchDate=this.value;loadDispatchData()">'+
     '<button class="btn btn-sm" onclick="dispatchNextDay()">Next →</button>'+
-    '<button class="btn btn-p btn-sm" onclick="loadDispatchData()">↻ Refresh</button>'
+    '<button class="btn btn-p btn-sm" onclick="loadDispatchData()">↻ Refresh</button>'+
+    '<button class="btn btn-sm btn-g" onclick="exportDayICS()">📅 Export Day to Calendar</button>'
 
   document.getElementById('page-area').innerHTML =
     '<div style="display:grid;grid-template-columns:280px 1fr;gap:0;height:calc(100vh - 100px);overflow:hidden">' +
@@ -3042,7 +3135,9 @@ function renderDispatchRight(el, employees, companies, assignments, jobs, assign
     html+='<div style="display:flex;align-items:center;gap:8px">'
     html+='<div class="av" style="width:28px;height:28px;font-size:10px;flex-shrink:0;'+avCss+'">'+ini(emp.full_name)+'</div>'
     html+='<div><div style="font-size:12px;font-weight:500">'+emp.full_name+'</div>'
-    html+='<div style="font-size:10px;color:#414e63">'+emp.role+'</div></div></div>'
+    html+='<div style="font-size:10px;color:#414e63">'+emp.role+'</div>'
+    html+='<button data-eid="'+emp.id+'" data-ename="'+emp.full_name.replace(/"/g,'&quot;')+'" onclick="exportEmployeeICS(this.dataset.eid,this.dataset.ename)" style="background:none;border:none;padding:2px 0;cursor:pointer;font-size:10px;color:#414e63;text-decoration:underline;margin-top:3px">📅 Export</button>'
+    html+='</div></div>'
     html+='</td>'
     // Schedule cell — drop zone + assigned jobs
     html+='<td class="dispatch-drop-zone" data-profile-id="'+emp.id+'" data-profile-name="'+emp.full_name.replace(/"/g,'&quot;')+'" '+
@@ -3051,7 +3146,7 @@ function renderDispatchRight(el, employees, companies, assignments, jobs, assign
       'ondrop="handleDispatchDrop(event,this)" '+
       'style="padding:8px 10px;vertical-align:top;min-height:60px;transition:.15s">'
     if(empAssignments.length){
-      html+=empAssignments.map(a=>dispatchAssignmentCard(a)).join('')
+      html+=empAssignments.map(a=>dispatchAssignmentCard(a,assignments)).join('')
     } else {
       html+='<div class="dispatch-empty-zone" style="border:1.5px dashed rgba(255,255,255,.07);border-radius:7px;padding:10px;text-align:center;color:#1a2540;font-size:11px;min-height:44px;display:flex;align-items:center;justify-content:center">Drop job here</div>'
     }
@@ -3062,7 +3157,22 @@ function renderDispatchRight(el, employees, companies, assignments, jobs, assign
   el.innerHTML=html
 }
 
-function dispatchAssignmentCard(a){
+
+function buildCrewLine(a, allAssignments){
+  if(!allAssignments||!allAssignments.length) return ''
+  const crew=(allAssignments||[]).filter(x=>x.job_id===a.job_id&&x.dispatch_date===a.dispatch_date&&x.id!==a.id&&x.profile_id)
+  if(!crew.length) return ''
+  return '<div style="display:flex;align-items:center;gap:4px;margin-top:5px;flex-wrap:wrap">'+
+    '<span style="font-size:9px;color:#414e63">With:</span>'+
+    crew.map(x=>{
+      const avCss=Object.entries(avS(x.profiles?.full_name||'?')).map(([k,v])=>k+':'+v).join(';')
+      return '<div class="av" style="width:18px;height:18px;font-size:7px;'+avCss+'" title="'+(x.profiles?.full_name||'?')+'">'+ini(x.profiles?.full_name||'?')+'</div>'
+    }).join('')+
+    (crew.length>0?'<span style="font-size:9px;color:#8a96ab">'+crew.map(x=>x.profiles?.full_name||'?').join(', ')+'</span>':'')+
+    '</div>'
+}
+
+function dispatchAssignmentCard(a, allAssignments){
   const statusColors={scheduled:'rgba(37,99,235,.12)',in_progress:'rgba(22,163,74,.12)',complete:'rgba(22,163,74,.08)',cancelled:'rgba(220,38,38,.08)'}
   const statusBorder={scheduled:'rgba(37,99,235,.25)',in_progress:'rgba(22,163,74,.3)',complete:'rgba(22,163,74,.2)',cancelled:'rgba(220,38,38,.2)'}
   const bg=statusColors[a.status]||statusColors.scheduled
@@ -3078,9 +3188,11 @@ function dispatchAssignmentCard(a){
     '<span class="badge bg-gray" style="font-size:9px">'+a.status+'</span>'+
     '</div>'+
     (a.notes?'<div style="font-size:10px;color:#8a96ab;margin-top:3px">'+a.notes+'</div>':'')+
+    buildCrewLine(a, allAssignments)+
     '</div>'+
     '<div style="display:flex;flex-direction:column;gap:4px;margin-left:8px;flex-shrink:0">'+
     '<button onclick="editDispatchAssignment(\\''+a.id+'\\')" style="background:rgba(255,255,255,.08);border:none;border-radius:4px;padding:3px 7px;cursor:pointer;color:#8a96ab;font-size:10px">✏</button>'+
+    '<button onclick="exportSingleAssignmentICS(\\''+a.id+'\\')" style="background:rgba(22,163,74,.1);border:none;border-radius:4px;padding:3px 7px;cursor:pointer;color:#16a34a;font-size:10px">📅</button>'+
     '<button onclick="removeDispatchAssignment(\\''+a.id+'\\')" style="background:rgba(220,38,38,.1);border:none;border-radius:4px;padding:3px 7px;cursor:pointer;color:#dc2626;font-size:10px">✕</button>'+
     '</div></div></div>'
 }
@@ -3179,10 +3291,38 @@ function openAssignModal(jobId, jobName, profileId, profileName){
 }
 
 async function editDispatchAssignment(id){
-  const{data:a}=await sb.from('dispatch_assignments').select('*,jobs(name)').eq('id',id).single()
+  // Load the assignment plus all crew on the same job/date
+  const{data:a}=await sb.from('dispatch_assignments')
+    .select('*,jobs(name,address),profiles:profile_id(full_name)')
+    .eq('id',id).single()
   if(!a)return
+
+  // Get all other crew assigned to this same job on this same date
+  const{data:crew}=await sb.from('dispatch_assignments')
+    .select('id,profile_id,profiles:profile_id(full_name),start_time,end_time')
+    .eq('job_id',a.job_id).eq('dispatch_date',a.dispatch_date)
+    .neq('id',id)
+
+  const crewHtml=(crew&&crew.length)
+    ?'<div class="fg"><div class="fl">Also Assigned to This Job</div>'+
+      '<div style="background:#131c2e;border-radius:7px;padding:9px 11px">'+
+      (crew||[]).map(x=>{
+        const avCss=Object.entries(avS(x.profiles?.full_name||'?')).map(([k,v])=>k+':'+v).join(';')
+        return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)">'+
+          '<div class="av" style="width:22px;height:22px;font-size:8px;flex-shrink:0;'+avCss+'">'+ini(x.profiles?.full_name||'?')+'</div>'+
+          '<span style="font-size:12px;flex:1">'+(x.profiles?.full_name||'?')+'</span>'+
+          (x.start_time?'<span style="font-size:10px;color:#60a5fa">'+fmtDispatchTime(x.start_time)+(x.end_time?'–'+fmtDispatchTime(x.end_time):'')+'</span>':'')+
+          '</div>'
+      }).join('')+'</div></div>'
+    :'<div style="font-size:11px;color:#414e63;margin-bottom:10px">No other crew assigned to this job on this date</div>'
+
   const html=
-    '<div style="font-size:13px;font-weight:600;margin-bottom:12px">'+a.jobs?.name+'</div>'+
+    '<div style="background:#131c2e;border-radius:7px;padding:9px 12px;margin-bottom:13px">'+
+    '<div style="font-size:13px;font-weight:600">'+(a.jobs?.name||'Job')+'</div>'+
+    '<div style="font-size:11px;color:#414e63;margin-top:2px">'+(a.jobs?.address||'')+'</div>'+
+    '<div style="font-size:11px;color:#8a96ab;margin-top:3px">Assigned to: '+(a.profiles?.full_name||'?')+'</div>'+
+    '</div>'+
+    crewHtml+
     '<div class="fg"><label class="fl">Scheduled Date</label><input class="fi" type="date" id="ea-date" value="'+(a.dispatch_date||_dispatchDate)+'"></div>'+
     '<div class="two">'+
     '<div class="fg"><label class="fl">Start Time</label><input class="fi" type="time" id="ea-start" value="'+(a.start_time||'')+'"></div>'+
@@ -3194,19 +3334,35 @@ async function editDispatchAssignment(id){
     '<option value="in_progress"'+(a.status==='in_progress'?' selected':'')+'>In Progress</option>'+
     '<option value="complete"'+(a.status==='complete'?' selected':'')+'>Complete</option>'+
     '<option value="cancelled"'+(a.status==='cancelled'?' selected':'')+'>Cancelled</option>'+
+    '</select></div>'+
+    '<div class="fg"><label class="fl">Apply date/time change to</label>'+
+    '<select class="fs" id="ea-scope">'+
+    '<option value="this">This employee only</option>'+
+    '<option value="all">All crew on this job & date</option>'+
     '</select></div>'
 
   modal('Edit Assignment', html, async()=>{
-    const{error}=await sb.from('dispatch_assignments').update({
+    const scope=v('ea-scope')
+    const update={
       dispatch_date:v('ea-date')||_dispatchDate,
       start_time:v('ea-start')||null,
       end_time:v('ea-end')||null,
       notes:v('ea-notes'),
       status:v('ea-status'),
       updated_at:new Date().toISOString()
-    }).eq('id',id)
-    if(error){toast(error.message,'error');return}
-    closeModal();toast('Updated');await loadDispatchData()
+    }
+    if(scope==='all'){
+      // Update all crew on this job/date
+      const{error}=await sb.from('dispatch_assignments').update(update)
+        .eq('job_id',a.job_id).eq('dispatch_date',a.dispatch_date)
+      if(error){toast(error.message,'error');return}
+      toast('Updated all crew on this job')
+    } else {
+      const{error}=await sb.from('dispatch_assignments').update(update).eq('id',id)
+      if(error){toast(error.message,'error');return}
+      toast('Assignment updated')
+    }
+    closeModal();await loadDispatchData()
   }, 'Save')
 }
 
