@@ -228,8 +228,8 @@ let checkinStart = null
 window.addEventListener('load', async () => {
   const session = await requireAuth(sb); if (!session) return
   const { data: profile } = await sb.from('profiles').select('*,companies(name)').eq('id', session.user.id).single()
-  MY = profile
-  const name = profile?.full_name || session.user.email
+  MY = profile || { id: session.user.id, full_name: session.user.email, role: 'sub_worker', company_id: null }
+  const name = MY.full_name || session.user.email
   const av = document.getElementById('user-av')
   av.textContent = initials(name); av.style.cssText += ';' + avStyle(name)
   const pfav = document.getElementById('pf-av')
@@ -273,8 +273,17 @@ function showScreen(id) {
 // ── JOBS ──────────────────────────────────
 async function loadJobs() {
   try {
-    const { data: assignments } = await sb.from('job_workers').select('job_id,jobs(*)').eq('worker_id', MY.id).eq('is_active', true)
-    myJobs = (assignments || []).map(a => a.jobs).filter(Boolean).filter(j => !j.archived && j.phase !== 'complete')
+    // Get job IDs assigned to this worker
+    const { data: assignments, error: aErr } = await sb.from('job_workers').select('job_id').eq('worker_id', MY.id).eq('is_active', true)
+    if (aErr) throw aErr
+    const jobIds = (assignments || []).map(a => a.job_id).filter(Boolean)
+    let allMyJobs = []
+    if (jobIds.length) {
+      const { data: jobData, error: jErr } = await sb.from('jobs').select('*').in('id', jobIds)
+      if (jErr) throw jErr
+      allMyJobs = jobData || []
+    }
+    myJobs = allMyJobs.filter(j => !j.archived && j.phase !== 'complete')
     if (!myJobs.length) { document.getElementById('jobs-list').innerHTML = '<div class="empty">No jobs assigned to you yet.</div>'; return }
     // Check active check-ins
     const { data: cis } = await sb.from('checkins').select('job_id').eq('worker_id', MY.id).is('checkout_at', null)
@@ -457,19 +466,15 @@ async function doCheckout() {
 }
 
 async function checkActiveCheckins() {
+  if (!MY?.id) return
   const { data } = await sb.from('checkins').select('id').eq('worker_id', MY.id).is('checkout_at', null)
-  if ((data||[]).length) document.getElementById('checkin-indicator').style.display = 'block'
+  if ((data||[]).length) { const el = document.getElementById('checkin-indicator'); if(el) el.style.display = 'block' }
 }
 
 // ── PART STATUS UPDATE ────────────────────
 async function updateMyPartStatus(partId, status) {
   try {
-    const { data: { session } } = await sb.auth.getSession()
-    await fetch('/api/jobs/' + currentJobId + '/parts/' + partId, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
-      body: JSON.stringify({ status })
-    })
+    await sb.from('job_parts').update({ status, updated_at: new Date().toISOString() }).eq('id', partId)
     toast('Status updated', 'success')
   } catch(e) { toast(e.message, 'error') }
 }
@@ -563,21 +568,28 @@ async function wkLookup(val) {
 
 // ── NOTIFICATIONS ─────────────────────────
 async function loadNotifs() {
-  const { data: { session } } = await sb.auth.getSession()
-  const res = await fetch('/api/notifications', { headers: { 'Authorization': 'Bearer ' + session?.access_token } })
-  const notifs = await res.json()
-  document.getElementById('wk-notif-list').innerHTML = (notifs||[]).length
-    ? notifs.map(n => `<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;gap:9px"><div style="width:7px;height:7px;border-radius:50%;background:${n.read?'var(--bg4)':'var(--accent)'};flex-shrink:0;margin-top:4px"></div><div><div style="font-size:13px;font-weight:500">${n.title}</div><div style="font-size:12px;color:var(--text3);margin-top:2px">${n.message}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">${fmtDateTime(n.created_at)}</div></div></div>`).join('')
-    : '<div class="empty">No notifications</div>'
+  try {
+    const { data } = await sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(30)
+    const el = document.getElementById('notif-list')
+    if (!el) return
+    const notifs = data||[]
+    el.innerHTML = notifs.length ? notifs.map(n =>
+      `<div style="padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:9px;align-items:flex-start;${n.read?'opacity:.55':''}">
+        <div style="font-size:18px;flex-shrink:0">${n.type==='alert'?'⚠':n.type==='checkin'?'📍':'🔔'}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:${n.read?400:600}">${n.title}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${n.message||''}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">${fmtDate(n.created_at)}</div></div>
+      </div>`).join('') : '<div class="empty">No notifications</div>'
+    // Mark all as read
+    if (notifs.filter(n=>!n.read).length) await sb.from('notifications').update({read:true}).eq('read',false)
+  } catch(e) { console.error('notifs:', e) }
 }
 async function loadNotifBadge() {
   try {
-    const { data: { session } } = await sb.auth.getSession()
-    const res = await fetch('/api/notifications', { headers: { 'Authorization': 'Bearer ' + session?.access_token } })
-    const n = await res.json()
-    const u = (n||[]).filter(x => !x.read).length
-    document.getElementById('notif-dot').style.display = u > 0 ? 'block' : 'none'
-  } catch {}
+    const { count } = await sb.from('notifications').select('id',{count:'exact',head:true}).eq('read',false)
+    const el = document.getElementById('notif-badge')
+    if (el) { el.textContent = count||0; el.style.display = (count||0)>0 ? 'flex' : 'none' }
+  } catch(e) {}
 }
 
 // ── PROFILE / SETTINGS ────────────────────
