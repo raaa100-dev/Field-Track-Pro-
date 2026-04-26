@@ -272,8 +272,9 @@ function ld(){return'<div class="loading"><div class="spin"></div> Loading…</d
 // ══════════════════════════════════════════
 async function pgDash(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="P(\'newjob\',null)">+ New Job</button>'
+  try {
   const[{data:jobs},{data:ci},{data:parts},{data:low},{data:safety}]=await Promise.all([
-    sb.from('jobs').select('*').eq('archived',false).order('created_at',{ascending:false}),
+    sb.from('jobs').select('*').order('created_at',{ascending:false}),
     sb.from('checkins').select('*,profiles:worker_id(full_name),jobs(name)').is('checkout_at',null).order('checkin_at',{ascending:false}),
     sb.from('job_parts').select('*').in('status',['staged','signed_out']),
     sb.from('inventory').select('*').gt('min_qty',0),
@@ -328,8 +329,11 @@ async function pgDash(){
       </div>
     </div>
   </div>`
+  } catch(e) {
+    console.error('Dashboard:',e)
+    document.getElementById('page-area').innerHTML='<div style="padding:20px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px"><div style="color:#dc2626;font-weight:600;margin-bottom:6px">⚠ Failed to load — database not ready</div><div style="font-size:12px;color:#f87171;word-break:break-all">'+e.message+'</div><div style="font-size:11px;color:#8a96ab;margin-top:8px">Run <strong>supabase-fix.sql</strong> in Supabase SQL Editor, then refresh.</div></div>'
+  }
 }
-
 // ══════════════════════════════════════════
 // ALL JOBS
 // ══════════════════════════════════════════
@@ -338,9 +342,14 @@ async function pgJobs(){
     <label class="btn btn-sm" style="cursor:pointer">⬇ Import Excel<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importJobsExcel(this)"></label>
     <button class="btn btn-sm" onclick="exportJobsExcel()">⬆ Export</button>
     <button class="btn btn-p btn-sm" onclick="P('newjob',null)">+ New Job</button>`
-  const{data:jobs}=await sb.from('jobs').select('*').order('created_at',{ascending:false})
-  allJobs=jobs||[]
-  renderJobsTable('')
+  try {
+    const{data:jobs,error}=await sb.from('jobs').select('*').order('created_at',{ascending:false})
+    if(error) throw error
+    allJobs=jobs||[]
+    renderJobsTable('')
+  } catch(e) {
+    document.getElementById('page-area').innerHTML=`<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:18px"><div style="font-weight:600;color:#dc2626;margin-bottom:6px">⚠ Failed to load jobs</div><div style="font-size:12px;color:#f87171;font-family:'DM Mono',monospace">${e.message}</div><div style="font-size:11px;color:#8a96ab;margin-top:8px">Run <strong>supabase-fix.sql</strong> in your Supabase SQL Editor to set up the database.</div></div>`
+  }
 }
 function renderJobsTable(q){
   const rows=allJobs.filter(j=>!q||j.name.toLowerCase().includes(q.toLowerCase())||(j.address||'').toLowerCase().includes(q.toLowerCase()))
@@ -500,7 +509,7 @@ async function saveInfoTab(){
   const u={name:v('ed-name'),address:v('ed-addr'),gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,date_start:v('ed-start')||null,due_date:v('ed-due')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
   const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
   if(error){toast(error.message,'error');return}
-  currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved ✓')
+  currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved')
 }
 async function archiveJob(){if(!confirm('Archive this job?'))return;await sb.from('jobs').update({archived:true}).eq('id',currentJobId);toast('Archived');P('jobs',null)}
 function renderScopeTab(el,j){
@@ -511,7 +520,7 @@ function renderScopeTab(el,j){
   <div class="two"><div class="fg"><label class="fl">Job Walk By</label><input class="fi" id="sc-jwb" value="${j.job_walk_by||''}"></div><div class="fg"><label class="fl">Job Walk Date</label><input class="fi" type="date" id="sc-jwd" value="${j.job_walk_date||''}"></div></div>
   <button class="btn btn-p" onclick="saveScope()">Save</button>`
 }
-async function saveScope(){const{error}=await sb.from('jobs').update({scope:v('sc-scope'),install_notes:v('sc-notes'),job_walk_notes:v('sc-jwn'),job_walk_by:v('sc-jwb'),job_walk_date:v('sc-jwd')||null,updated_at:new Date().toISOString()}).eq('id',currentJobId);if(error)toast(error.message,'error');else toast('Saved ✓')}
+async function saveScope(){const{error}=await sb.from('jobs').update({scope:v('sc-scope'),install_notes:v('sc-notes'),job_walk_notes:v('sc-jwn'),job_walk_by:v('sc-jwb'),job_walk_date:v('sc-jwd')||null,updated_at:new Date().toISOString()}).eq('id',currentJobId);if(error)toast(error.message,'error');else toast('Saved')}
 
 // ADDRESS AUTOCOMPLETE
 let _addrDeb=null
@@ -522,8 +531,8 @@ async function addrAC(val,ddId){
 }
 function selAddr(label,lat,lng,ddId){
   const dd=document.getElementById(ddId);if(dd)dd.style.display='none'
-  if(ddId==='ed-addr-dd'){document.getElementById('ed-addr').value=label;document.getElementById('ed-lat').value=lat;document.getElementById('ed-lng').value=lng;toast('GPS set ✓')}
-  if(ddId==='nj-addr-dd'){document.getElementById('nj-addr').value=label;document.getElementById('nj-lat').value=lat;document.getElementById('nj-lng').value=lng;document.getElementById('nj-gps-ok').style.display='block';document.getElementById('nj-coords').textContent=parseFloat(lat).toFixed(5)+', '+parseFloat(lng).toFixed(5);toast('GPS set ✓')}
+  if(ddId==='ed-addr-dd'){document.getElementById('ed-addr').value=label;document.getElementById('ed-lat').value=lat;document.getElementById('ed-lng').value=lng;toast('GPS set')}
+  if(ddId==='nj-addr-dd'){document.getElementById('nj-addr').value=label;document.getElementById('nj-lat').value=lat;document.getElementById('nj-lng').value=lng;document.getElementById('nj-gps-ok').style.display='block';document.getElementById('nj-coords').textContent=parseFloat(lat).toFixed(5)+', '+parseFloat(lng).toFixed(5);toast('GPS set')}
 }
 document.addEventListener('click',e=>{document.querySelectorAll('.addr-dd').forEach(dd=>{if(!dd.contains(e.target))dd.style.display='none'})})
 // WORKERS TAB
@@ -732,7 +741,7 @@ function renderTextboxList(){
 }
 async function saveMarkup(planId){
   const{error}=await sb.from('job_walk_plans').update({markup_json:_markup}).eq('id',planId)
-  if(error)toast(error.message,'error');else toast('Markup saved ✓')
+  if(error)toast(error.message,'error');else toast('Markup saved')
 }
 async function downloadMarkup(){
   const canvas=document.getElementById('markup-canvas');if(!canvas)return
@@ -895,7 +904,7 @@ async function submitNewJob(){
   const{data:created,error}=await sb.from('jobs').insert(job).select().single()
   if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Create Job';return}
   document.querySelectorAll('#nj-workers input[type=checkbox]:checked').forEach(async cb=>await sb.from('job_workers').insert({id:uuid(),job_id:created.id,worker_id:cb.value,is_active:true,added_by:ME?.full_name,added_at:new Date().toISOString()}))
-  toast('Job created! ✓');allJobs.unshift(created);openJob(created.id)
+  toast('Job created!');allJobs.unshift(created);openJob(created.id)
 }
 
 // ══════════════════════════════════════════
@@ -989,7 +998,7 @@ function newDailyModal(jobIdOverride){
     const jobId=v('dr-job');if(!jobId){toast('Select a job','error');return}
     const work=v('dr-work').trim();if(!work){toast('Work performed required','error');return}
     const{error}=await sb.from('daily_reports').insert({id:uuid(),job_id:jobId,report_date:v('dr-date'),crew_count:parseInt(v('dr-crew'))||0,hours_worked:parseFloat(v('dr-hrs'))||0,weather:v('dr-wx'),temp_high:fN('dr-th'),temp_low:fN('dr-tl'),work_performed:work,materials_used:v('dr-mat'),equipment_used:v('dr-eq'),issues:v('dr-iss'),visitors:v('dr-vis'),submitted_by:ME?.full_name,submitted_at:new Date().toISOString(),created_at:new Date().toISOString()})
-    if(error)toast(error.message,'error');else{closeModal();toast('Report saved ✓');if(jobIdOverride)loadJT('jt-daily');else pgDaily()}
+    if(error)toast(error.message,'error');else{closeModal();toast('Report saved OK');if(jobIdOverride)loadJT('jt-daily');else pgDaily()}
   })
 }
 
@@ -1022,7 +1031,7 @@ function newWalkModal(jobIdOverride){
   async()=>{
     const jobId=v('wk-job');if(!jobId){toast('Select a job','error');return}
     const{data:walk,error}=await sb.from('job_walks').insert({id:uuid(),job_id:jobId,walk_date:v('wk-date'),walked_by:v('wk-by'),attendees:v('wk-att'),scope_notes:v('wk-scope'),measurements:v('wk-meas'),issues_found:v('wk-iss'),action_items:v('wk-act'),follow_up_date:v('wk-fup')||null,status:v('wk-status'),created_at:new Date().toISOString()}).select().single()
-    if(error)toast(error.message,'error');else{closeModal();toast('Job walk saved ✓');if(jobIdOverride)loadJT('jt-walks');else{openJobWalk(walk.id)}}
+    if(error)toast(error.message,'error');else{closeModal();toast('Job walk saved OK');if(jobIdOverride)loadJT('jt-walks');else{openJobWalk(walk.id)}}
   })
 }
 
@@ -1049,7 +1058,7 @@ function addPunchItem(jobIdOverride,reloadTab){
   <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="pl-due"></div></div>`,
   async()=>{const jobId=v('pl-job');if(!jobId){toast('Select a job','error');return};const item=v('pl-item').trim();if(!item)return;const{error}=await sb.from('punch_list').insert({id:uuid(),job_id:jobId,item,location:v('pl-loc'),assigned_to:v('pl-ass'),priority:v('pl-pri'),status:'open',due_date:v('pl-due')||null,created_by:ME?.full_name,created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();toast('Added');if(reloadTab)loadJT('jt-punch');else pgPunch()}})
 }
-async function completePunchGlobal(id){await sb.from('punch_list').update({status:'complete',completed_at:new Date().toISOString(),completed_by:ME?.full_name}).eq('id',id);toast('Done ✓');pgPunch()}
+async function completePunchGlobal(id){await sb.from('punch_list').update({status:'complete',completed_at:new Date().toISOString(),completed_by:ME?.full_name}).eq('id',id);toast('Done OK');pgPunch()}
 
 // ══════════════════════════════════════════
 // SCAN PARTS PAGE — Full barcode scanning
@@ -1358,7 +1367,7 @@ function adjStockModal(id='',name='',qty=0,min=0){
     const minQ=parseInt(v('iv-min'))||0
     if(isNew){const{error}=await sb.from('inventory').insert({id:iid,name:inm,qty:delta,min_qty:minQ,updated_at:new Date().toISOString()});if(error){toast(error.message,'error');return}}
     else{const{data:cur}=await sb.from('inventory').select('qty').eq('id',iid).single();const newQ=Math.max(0,(cur?.qty||0)+delta);await sb.from('inventory').update({qty:newQ,min_qty:minQ,updated_at:new Date().toISOString()}).eq('id',iid)}
-    closeModal();toast('Stock updated ✓');pgInventory()
+    closeModal();toast('Stock updated OK');pgInventory()
   })
   if(!isNew){setTimeout(()=>{const el=document.getElementById('iv-qty');if(el)el.addEventListener('input',()=>{const prev=document.getElementById('iv-preview');if(prev)prev.textContent=Math.max(0,qty+(parseInt(el.value)||0))})},50)}
 }
@@ -1405,7 +1414,7 @@ async function submitOrder(){
   const{error}=await sb.from('orders').insert({id:uuid(),job_id:job?.name||jobId,items:window._ordItems,notes:v('ord-notes'),status:'pending',created_by:ME?.full_name,created_at:new Date().toISOString()})
   if(error)toast(error.message,'error');else{toast('Order submitted');window._ordItems=[];pgOrders()}
 }
-async function approveOrder(id){await sb.from('orders').update({status:'staged',staged_by:ME?.full_name,staged_at:new Date().toISOString()}).eq('id',id);toast('Staged ✓');pgOrders()}
+async function approveOrder(id){await sb.from('orders').update({status:'staged',staged_by:ME?.full_name,staged_at:new Date().toISOString()}).eq('id',id);toast('Staged OK');pgOrders()}
 async function rejectOrder(id){const n=prompt('Reason for rejection:');if(n===null)return;await sb.from('orders').update({status:'rejected',rejected_by:ME?.full_name,rejection_note:n,rejected_at:new Date().toISOString()}).eq('id',id);toast('Rejected','warn');pgOrders()}
 
 // ══════════════════════════════════════════
@@ -1572,7 +1581,7 @@ async function assignSafetyModal(topicId,topicTitle){
     sb.from('profiles').select('id,full_name,role,companies(name)').eq('is_active',true).order('full_name'),
     sb.from('safety_assignments').select('assigned_to').eq('topic_id',topicId)
   ])
-  const assigned=new Set((already||[]).map(a=>a.assigned_to))
+  const assigned=new Set((already||[]).map(a=>a.profile_id))
   modal('Assign — '+topicTitle,`
   <div style="font-size:11px;color:#414e63;margin-bottom:10px">Select who must review this safety topic. Already assigned are pre-checked.</div>
   <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="sa-due"></div>
@@ -1590,7 +1599,7 @@ async function assignSafetyModal(topicId,topicTitle){
     let added=0
     for(const cb of selected){
       if(assigned.has(cb.value))continue // skip already assigned
-      await sb.from('safety_assignments').insert({id:uuid(),topic_id:topicId,assigned_to:cb.value,assigned_name:cb.dataset.name,due_date:due,assigned_at:new Date().toISOString()})
+      await sb.from('safety_assignments').insert({id:uuid(),topic_id:topicId,profile_id:cb.value,assigned_name:cb.dataset.name,due_date:due,assigned_at:new Date().toISOString()})
       added++
     }
     closeModal();toast(`Assigned to ${selected.length} person(s)${added<selected.length?' ('+(selected.length-added)+' already assigned)':''}`);pgSafety()
@@ -1747,16 +1756,12 @@ function addUserModal(){
   async()=>{const nm=v('au-nm').trim(),em=v('au-em').trim();if(!nm||!em){toast('Name and email required','error');return};const{error}=await sb.from('profiles').insert({id:uuid(),full_name:nm,email:em,role:v('au-rl'),is_active:true,created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();toast('User added');pgUsers()}})
 }
 function editUserModal(id,role,active,name){
-  modal('Edit User — '+name,`
-  <div class="fg"><label class="fl">Role</label><select class="fs" id="eu-rl"><option value="sub_worker">Sub Worker</option><option value="sub_lead">Sub Lead</option><option value="technician">Technician</option><option value="stager">Stager</option><option value="foreman">Foreman</option><option value="pm">Project Manager</option><option value="admin">Admin</option></select></div>
-  <div class="fg"><label class="fl">Status</label><select class="fs" id="eu-act"><option value="true">Active</option><option value="false">Inactive</option></select></div>`,
-  async()=>{await sb.from('profiles').update({role:v('eu-rl'),is_active:v('eu-act')==='true'}).eq('id',id);closeModal();toast('Updated');pgUsers()})
+  const euHtml='<div class="fg"><label class="fl">Role</label><select class="fs" id="eu-rl"><option value="sub_worker">Sub Worker</option><option value="sub_lead">Sub Lead</option><option value="technician">Technician</option><option value="stager">Stager</option><option value="foreman">Foreman</option><option value="pm">Project Manager</option><option value="admin">Admin</option></select></div><div class="fg"><label class="fl">Status</label><select class="fs" id="eu-act"><option value="true">Active</option><option value="false">Inactive</option></select></div>'
+  modal('Edit User — '+name, euHtml, async()=>{await sb.from('profiles').update({role:v('eu-rl'),is_active:v('eu-act')==='true'}).eq('id',id);closeModal();toast('Updated');pgUsers()})
   setTimeout(()=>{try{document.getElementById('eu-rl').value=role;document.getElementById('eu-act').value=String(active)}catch{}},50)
 }
-</script>
-</body>
-</html>
-<script>
+
+
 // ══════════════════════════════════════════
 // JOB MAP PAGE
 // ══════════════════════════════════════════
@@ -2089,7 +2094,7 @@ function clearAllMarkup(){if(!confirm('Clear all dots and text boxes?'))return;_
 async function saveMarkupData(){
   if(!_markupPlanId)return
   const{error}=await sb.from('job_walk_plans').update({markup_json:_mData}).eq('id',_markupPlanId)
-  if(error)toast(error.message,'error');else toast('Markup saved ✓')
+  if(error)toast(error.message,'error');else toast('Markup saved')
 }
 function downloadMarkupPNG(){
   const canvas=document.getElementById('markup-canvas');if(!canvas)return
@@ -2106,7 +2111,7 @@ async function uploadJobAsbuilt(files){
       await sb.from('job_walk_plans').insert({id:uuid(),job_walk_id:null,job_id:currentJobId,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],legend:[]},created_at:new Date().toISOString()})
     }
   }
-  toast('Plan uploaded ✓');loadJT('jt-asbuilts')
+  toast('Plan uploaded OK');loadJT('jt-asbuilts')
 }
 
 async function renderAsbuiltsTab(el){
@@ -2132,49 +2137,66 @@ async function deleteJobPlan(planId,storagePath){
   toast('Deleted');loadJT('jt-asbuilts')
 }
 
+
 // ══════════════════════════════════════════
 // PM VISIT TRACKING
 // ══════════════════════════════════════════
 async function renderPmVisitsTab(el){
   const{data:visits}=await sb.from('pm_visits').select('*').eq('job_id',currentJobId).order('visit_date',{ascending:false})
   const j=currentJob
-  el.innerHTML=`
-  <div style="margin-bottom:13px;display:flex;gap:9px;align-items:flex-start">
-    <div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">
-      <div style="font-size:10px;color:#414e63;margin-bottom:3px">NEXT PM VISIT DUE</div>
-      <div style="font-size:18px;font-weight:300;color:${j.next_pm_visit&&daysAway(j.next_pm_visit)<=0?'#dc2626':j.next_pm_visit&&daysAway(j.next_pm_visit)<=7?'#d97706':'#e8edf5'}">${j.next_pm_visit?fd(j.next_pm_visit):'Not scheduled'}</div>
-      ${j.next_pm_visit?`<div style="font-size:11px;color:#414e63;margin-top:2px">${daysAway(j.next_pm_visit)===0?'Today':daysAway(j.next_pm_visit)<0?Math.abs(daysAway(j.next_pm_visit))+'d overdue':daysAway(j.next_pm_visit)+'d away'}</div>`:''}
-    </div>
-    <div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">
-      <div style="font-size:10px;color:#414e63;margin-bottom:3px">PM ASSIGNED</div>
-      <div style="font-size:14px;font-weight:500">${j.project_manager||'Not assigned'}</div>
-      <div style="font-size:11px;color:#414e63;margin-top:2px">${j.pm_visit_schedule||'No schedule set'}</div>
-    </div>
-    <button class="btn btn-p btn-sm" onclick="logPmVisitModal()">+ Log Visit</button>
-  </div>
-  <div class="sec-hdr">Visit History</div>
-  ${(visits||[]).map(vis=>`<div style="padding:10px 12px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:7px">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">
-      <div><div style="font-weight:500;font-size:13px">PM Visit — ${fd(vis.visit_date)}</div><div style="font-size:11px;color:#414e63;margin-top:1px">${vis.pm_name||'—'}</div></div>
-      <span class="badge ${vis.outcome==='approved'?'bg-green':vis.outcome==='issues_found'?'bg-amber':'bg-gray'}">${vis.outcome||'visited'}</span>
-    </div>
-    ${vis.observations?`<div style="font-size:12px;color:#8a96ab;margin-bottom:6px">${vis.observations}</div>`:''}
-    ${vis.issues?`<div style="font-size:12px;color:#d97706;margin-bottom:6px">⚠ ${vis.issues}</div>`:''}
-    ${vis.next_visit_date?`<div style="font-size:11px;color:#414e63">Next visit scheduled: ${fd(vis.next_visit_date)}</div>`:''}
-  </div>`).join('')||empty('📋','No PM visits logged yet')}` 
+  const nextVisitColor=j.next_pm_visit&&daysAway(j.next_pm_visit)<=0?'#dc2626':j.next_pm_visit&&daysAway(j.next_pm_visit)<=7?'#d97706':'#e8edf5'
+  const nextVisitText=j.next_pm_visit?(daysAway(j.next_pm_visit)===0?'Today':daysAway(j.next_pm_visit)<0?Math.abs(daysAway(j.next_pm_visit))+'d overdue':daysAway(j.next_pm_visit)+'d away'):''
+  let visitsHtml=''
+  for(const vis of (visits||[])){
+    const outColor=vis.outcome==='approved'?'bg-green':vis.outcome==='issues_found'?'bg-amber':'bg-gray'
+    visitsHtml+='<div style="padding:10px 12px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:7px">'
+    visitsHtml+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">'
+    visitsHtml+='<div><div style="font-weight:500;font-size:13px">PM Visit — '+fd(vis.visit_date)+'</div>'
+    visitsHtml+='<div style="font-size:11px;color:#414e63;margin-top:1px">'+(vis.pm_name||'')+'</div></div>'
+    visitsHtml+='<span class="badge '+outColor+'">'+(vis.outcome||'visited')+'</span></div>'
+    if(vis.observations)visitsHtml+='<div style="font-size:12px;color:#8a96ab;margin-bottom:6px">'+vis.observations+'</div>'
+    if(vis.issues)visitsHtml+='<div style="font-size:12px;color:#d97706;margin-bottom:6px">'+vis.issues+'</div>'
+    if(vis.next_visit_date)visitsHtml+='<div style="font-size:11px;color:#414e63">Next visit: '+fd(vis.next_visit_date)+'</div>'
+    visitsHtml+='</div>'
+  }
+  el.innerHTML=
+    '<div style="margin-bottom:13px;display:flex;gap:9px;align-items:flex-start">'+
+    '<div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">'+
+    '<div style="font-size:10px;color:#414e63;margin-bottom:3px">NEXT PM VISIT DUE</div>'+
+    '<div style="font-size:18px;font-weight:300;color:'+nextVisitColor+'">'+(j.next_pm_visit?fd(j.next_pm_visit):'Not scheduled')+'</div>'+
+    (nextVisitText?'<div style="font-size:11px;color:#414e63;margin-top:2px">'+nextVisitText+'</div>':'')+
+    '</div>'+
+    '<div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">'+
+    '<div style="font-size:10px;color:#414e63;margin-bottom:3px">PM ASSIGNED</div>'+
+    '<div style="font-size:14px;font-weight:500">'+(j.project_manager||'Not assigned')+'</div>'+
+    '<div style="font-size:11px;color:#414e63;margin-top:2px">'+(j.pm_visit_schedule||'No schedule set')+'</div>'+
+    '</div>'+
+    '<button class="btn btn-p btn-sm" onclick="logPmVisitModal()">+ Log Visit</button>'+
+    '</div>'+
+    '<div class="sec-hdr">Visit History</div>'+
+    (visitsHtml||empty('📋','No PM visits logged yet'))
 }
+
 async function logPmVisitModal(){
-  modal('Log PM Visit',`
-  <div class="two"><div class="fg"><label class="fl">Visit Date *</label><input class="fi" type="date" id="pmv-date" value="${new Date().toISOString().split('T')[0]}"></div><div class="fg"><label class="fl">PM Name</label><input class="fi" id="pmv-pm" value="${currentJob?.project_manager||ME?.full_name||''}"></div></div>
-  <div class="fg"><label class="fl">Observations</label><textarea class="ft" id="pmv-obs" placeholder="What was observed on site…"></textarea></div>
-  <div class="fg"><label class="fl">Issues Found</label><textarea class="ft" id="pmv-iss" placeholder="Any problems or items requiring attention…"></textarea></div>
-  <div class="two"><div class="fg"><label class="fl">Outcome</label><select class="fs" id="pmv-out"><option value="visited">Visited</option><option value="approved">Approved</option><option value="issues_found">Issues Found</option><option value="reinspection_needed">Reinspection Needed</option></select></div><div class="fg"><label class="fl">Next Visit Date</label><input class="fi" type="date" id="pmv-next"></div></div>`,
-  async()=>{
-    const{error}=await sb.from('pm_visits').insert({id:uuid(),job_id:currentJobId,visit_date:v('pmv-date'),pm_name:v('pmv-pm'),observations:v('pmv-obs'),issues:v('pmv-iss'),outcome:v('pmv-out'),next_visit_date:v('pmv-next')||null,created_at:new Date().toISOString()})
-    if(error){toast(error.message,'error');return}
-    // Update next PM visit on job
-    if(v('pmv-next'))await sb.from('jobs').update({next_pm_visit:v('pmv-next'),updated_at:new Date().toISOString()}).eq('id',currentJobId)
-    closeModal();toast('Visit logged ✓');loadJT('jt-pmvisits')
-  })
+  const pvHtml=
+    '<div class="two"><div class="fg"><label class="fl">Visit Date *</label><input class="fi" type="date" id="pmv-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '<div class="fg"><label class="fl">PM Name</label><input class="fi" id="pmv-pm" value="'+(currentJob?.project_manager||ME?.full_name||'')+'"></div></div>'+
+    '<div class="fg"><label class="fl">Observations</label><textarea class="ft" id="pmv-obs" placeholder="What was observed on site…"></textarea></div>'+
+    '<div class="fg"><label class="fl">Issues Found</label><textarea class="ft" id="pmv-iss" placeholder="Any problems or items requiring attention…"></textarea></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Outcome</label>'+
+    '<select class="fs" id="pmv-out"><option value="visited">Visited</option><option value="approved">Approved</option>'+
+    '<option value="issues_found">Issues Found</option><option value="reinspection_needed">Reinspection Needed</option></select></div>'+
+    '<div class="fg"><label class="fl">Next Visit Date</label><input class="fi" type="date" id="pmv-next"></div></div>'
+  modal('Log PM Visit', pvHtml,
+    async()=>{
+      const{error}=await sb.from('pm_visits').insert({id:uuid(),job_id:currentJobId,visit_date:v('pmv-date'),pm_name:v('pmv-pm'),observations:v('pmv-obs'),issues:v('pmv-iss'),outcome:v('pmv-out'),next_visit_date:v('pmv-next')||null,created_at:new Date().toISOString()})
+      if(error){toast(error.message,'error');return}
+      if(v('pmv-next'))await sb.from('jobs').update({next_pm_visit:v('pmv-next'),updated_at:new Date().toISOString()}).eq('id',currentJobId)
+      closeModal();toast('Visit logged');loadJT('jt-pmvisits')
+    }
+  )
 }
+
 </script>
+</body>
+</html>
