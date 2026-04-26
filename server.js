@@ -637,6 +637,12 @@ function renderInfoTab(el,j){
     <button class="btn btn-p" onclick="saveInfoTab()">Save Changes</button>
     <button class="btn btn-a" onclick="archiveJob()">Archive Job</button>
     \${ME?.role==='admin'?'<button class="btn" style="background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.3);color:#dc2626" onclick="deleteJobConfirm()">🗑 Delete Job</button>':''}
+  </div>
+
+  <!-- PERMITS & APPROVED PLANS -->
+  <div class="sec-hdr" style="margin-top:18px">Permits & Approved Plans</div>
+  <div id="job-permits-section">
+    <div style="font-size:12px;color:#414e63">Loading…</div>
   </div>\`
   setTimeout(async()=>{
     document.getElementById('ed-rad').value=j.gps_radius_ft||250
@@ -652,6 +658,122 @@ function renderInfoTab(el,j){
     }
   },50)
 }
+
+// ══════════════════════════════════════════
+// PERMITS & APPROVED PLANS
+// ══════════════════════════════════════════
+const PERMIT_TYPES=['Permit','Approved Plan','Inspection Report','City Approval','Engineering Stamp','Other']
+
+async function loadJobPermits(){
+  const el=document.getElementById('job-permits-section')
+  if(!el||!currentJobId)return
+  const{data:permits}=await sb.from('job_documents')
+    .select('*').eq('job_id',currentJobId).eq('doc_category','permit')
+    .order('created_at',{ascending:false})
+  renderPermitsList(el, permits||[])
+}
+
+function renderPermitsList(el, permits){
+  let html=''
+  if(permits.length){
+    html+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;overflow:hidden;margin-bottom:10px">'
+    html+=permits.map(p=>{
+      const ext=(p.file_name||'').split('.').pop().toLowerCase()
+      const icon=ext==='pdf'?'📄':['png','jpg','jpeg','gif'].includes(ext)?'🖼':'📎'
+      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04)">'
+        +'<div style="font-size:18px;flex-shrink:0">'+icon+'</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.file_name+'</div>'
+        +'<div style="font-size:10px;color:#414e63;margin-top:1px">'+(p.doc_type||'Document')+' · Uploaded '+fd(p.created_at)+' by '+(p.uploaded_by||'—')+'</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:5px;flex-shrink:0">'
+        +(p.file_url?'<a href="'+p.file_url+'" target="_blank" class="btn btn-sm">⬇ View</a>':'')
+        +'<button class="btn btn-sm" style="color:#dc2626" data-pid="'+p.id+'" onclick="deletePermit(this.dataset.pid)">✕</button>'
+        +'</div>'
+        +'</div>'
+    }).join('')
+    html+='</div>'
+  }
+  // Upload form
+  html+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">'
+  html+='<div style="font-size:11px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Upload Permit or Approved Plan</div>'
+  html+='<div class="two" style="margin-bottom:9px">'
+  html+='<div class="fg"><label class="fl">Document Type</label>'
+  html+='<select class="fs" id="permit-type">'+PERMIT_TYPES.map(t=>'<option value="'+t+'">'+t+'</option>').join('')+'</select></div>'
+  html+='<div class="fg"><label class="fl">Description (optional)</label><input class="fi" id="permit-desc" placeholder="e.g. Electrical permit 2024-001"></div>'
+  html+='</div>'
+  html+='<div id="permit-drop-zone" style="border:2px dashed rgba(255,255,255,.12);border-radius:7px;padding:20px;text-align:center;cursor:pointer;transition:.2s" '
+  html+='ondragover="ondragover_permit(event)" '
+  html+='ondragleave="ondragleave_permit(event)" '
+  html+='ondrop="handlePermitDrop(event)" '
+  html+='onclick="document.getElementById(\\"permit-file-input\\").click()">'
+  html+='<div style="font-size:22px;margin-bottom:6px">📎</div>'
+  html+='<div style="font-size:12px;color:#8a96ab">Click or drag & drop</div>'
+  html+='<div style="font-size:10px;color:#414e63;margin-top:3px">PDF, PNG, JPG up to 20MB</div>'
+  html+='<input type="file" id="permit-file-input" style="display:none" accept=".pdf,.png,.jpg,.jpeg,.gif" onchange="uploadPermitFile(this.files[0])">'
+  html+='</div>'
+  html+='<div id="permit-upload-progress" style="display:none;margin-top:8px;font-size:11px;color:#414e63"></div>'
+  html+='</div>'
+  el.innerHTML=html
+}
+
+function ondragover_permit(e){e.preventDefault();e.currentTarget.style.borderColor='rgba(37,99,235,.6)'}
+function ondragleave_permit(e){e.currentTarget.style.borderColor='rgba(255,255,255,.12)'}
+function handlePermitDrop(e){
+  e.preventDefault()
+  document.getElementById('permit-drop-zone').style.borderColor='rgba(255,255,255,.12)'
+  const file=e.dataTransfer.files[0]
+  if(file)uploadPermitFile(file)
+}
+
+async function uploadPermitFile(file){
+  if(!file)return
+  const maxMB=20
+  if(file.size>maxMB*1024*1024){toast('File too large — max '+maxMB+'MB','error');return}
+  const prog=document.getElementById('permit-upload-progress')
+  if(prog){prog.style.display='block';prog.textContent='Uploading…'}
+  try{
+    const docType=document.getElementById('permit-type')?.value||'Permit'
+    const desc=document.getElementById('permit-desc')?.value||''
+    const ext=file.name.split('.').pop()
+    const path='permits/'+currentJobId+'/'+uuid()+'.'+ext
+    // Try Supabase storage
+    let fileUrl=null
+    const{data:upData,error:upErr}=await sb.storage.from('fieldtrack-plans').upload(path,file,{contentType:file.type,upsert:false})
+    if(!upErr){
+      const{data:urlData}=sb.storage.from('fieldtrack-plans').getPublicUrl(path)
+      fileUrl=urlData?.publicUrl
+    }
+    // Store record
+    const{error}=await sb.from('job_documents').insert({
+      id:uuid(),job_id:currentJobId,
+      doc_category:'permit',
+      doc_type:docType,
+      file_name:desc||file.name,
+      file_url:fileUrl,
+      storage_path:path,
+      uploaded_by:ME?.full_name,
+      created_at:new Date().toISOString()
+    })
+    if(error)throw error
+    if(prog)prog.style.display='none'
+    toast(docType+' uploaded')
+    loadJobPermits()
+  }catch(e){
+    if(prog){prog.textContent='Upload failed: '+e.message;prog.style.color='#dc2626'}
+    toast('Upload failed: '+e.message,'error')
+  }
+}
+
+async function deletePermit(id){
+  if(!confirm('Delete this document?'))return
+  const{data:doc}=await sb.from('job_documents').select('storage_path').eq('id',id).single()
+  if(doc?.storage_path)await sb.storage.from('fieldtrack-plans').remove([doc.storage_path]).catch(()=>{})
+  await sb.from('job_documents').delete().eq('id',id)
+  toast('Deleted','warn')
+  loadJobPermits()
+}
+
 async function saveInfoTab(){
   const u={name:v('ed-name'),address:v('ed-addr'),gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,urgent_pm_visit:document.getElementById('ed-urgent-pm')?.checked||false,date_start:v('ed-start')||null,due_date:v('ed-due')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
   const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
@@ -2431,6 +2553,7 @@ function editUserModal(id,role,active,name){
       }catch(e){}
     },80)
   })
+  loadJobPermits()
 }
 
 
