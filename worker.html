@@ -200,9 +200,17 @@ body{display:flex;flex-direction:column}
 </div><!-- end screens -->
 
 <!-- BOTTOM NAV -->
+<!-- SAFETY SCREEN -->
+<div class="sc" id="sc-safety" style="padding:14px;overflow-y:auto;flex:1">
+  <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:13px">🛡 Safety Training</div>
+  <div id="safety-pending" style="margin-bottom:16px"></div>
+  <div id="safety-completed"></div>
+</div>
+
 <div class="bot-nav">
   <div class="bnav-item active" id="bnav-jobs" onclick="showScreen('jobs')"><div class="bnav-icon">🏗</div><div class="bnav-lbl">Jobs</div></div>
   <div class="bnav-item" id="bnav-scan" onclick="showScreen('scan')"><div class="bnav-icon">🔍</div><div class="bnav-lbl">Parts</div></div>
+  <div class="bnav-item" id="bnav-safety" onclick="showScreen('safety')" style="position:relative"><div class="bnav-icon">🛡</div><div class="bnav-lbl">Safety</div><div id="safety-badge" style="display:none;position:absolute;top:4px;right:8px;background:#dc2626;color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:99px">!</div></div>
   <div class="bnav-item" id="bnav-notif" onclick="showScreen('notif')"><div class="bnav-icon">🔔</div><div class="bnav-lbl">Alerts</div></div>
   <div class="bnav-item" id="bnav-profile" onclick="showScreen('profile')"><div class="bnav-icon">👤</div><div class="bnav-lbl">Me</div></div>
 </div>
@@ -252,6 +260,7 @@ window.addEventListener('load', async () => {
   await loadJobs()
   await checkActiveCheckins()
   loadNotifBadge()
+  loadSafetyBadge()
 })
 
 // ── GPS ──────────────────────────────────
@@ -279,6 +288,7 @@ function showScreen(id) {
   document.getElementById('bnav-' + id)?.classList.add('active')
   if (id === 'notif') loadNotifs()
   if (id === 'scan') loadJobsIntoWkSelect()
+  if (id === 'safety') loadSafetyTopics()
 }
 
 // ── JOBS ──────────────────────────────────
@@ -482,6 +492,74 @@ async function checkActiveCheckins() {
   if ((data||[]).length) { const el = document.getElementById('checkin-indicator'); if(el) el.style.display = 'block' }
 }
 
+// ── SAFETY TRAINING ──────────────────────
+async function loadSafetyTopics(){
+  if(!MY?.id) return
+  const[{data:assigns},{data:acks}]=await Promise.all([
+    sb.from('safety_assignments').select('*,safety_topics(id,title,content,category,week_of)').eq('profile_id',MY.id).order('assigned_at',{ascending:false}),
+    sb.from('safety_acks').select('topic_id,acknowledged_at').eq('profile_id',MY.id)
+  ])
+  const ackedIds=new Set((acks||[]).map(a=>a.topic_id))
+  const pending=(assigns||[]).filter(a=>a.safety_topics&&!ackedIds.has(a.topic_id))
+  const completed=(assigns||[]).filter(a=>a.safety_topics&&ackedIds.has(a.topic_id))
+  // Update badge
+  const badge=document.getElementById('safety-badge')
+  if(badge){badge.style.display=pending.length?'block':'none'}
+  // Render pending
+  const pendEl=document.getElementById('safety-pending')
+  if(pendEl){
+    if(pending.length){
+      pendEl.innerHTML='<div style="font-size:11px;font-weight:600;color:#dc2626;margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">'+pending.length+' Required — Action Needed</div>'+
+        pending.map(a=>{
+          const t=a.safety_topics
+          return '<div style="background:#0c1220;border:1px solid rgba(220,38,38,.25);border-radius:10px;padding:14px;margin-bottom:9px">'+
+            '<div style="font-weight:600;font-size:14px;margin-bottom:4px">'+t.title+'</div>'+
+            '<div style="font-size:11px;color:#414e63;margin-bottom:9px">'+t.category+' · Week of '+fmtDate(t.week_of)+(a.due_date?' · Due '+fmtDate(a.due_date):'')+'</div>'+
+            '<div style="font-size:13px;color:#8a96ab;line-height:1.6;margin-bottom:12px;background:#131c2e;padding:11px;border-radius:7px;white-space:pre-wrap">'+t.content+'</div>'+
+            '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:12px">'+
+            '<input type="checkbox" id="ack-'+t.id+'" style="width:18px;height:18px;margin-top:1px;accent-color:#16a34a;flex-shrink:0">'+
+            '<div><div style="font-size:13px;font-weight:600;color:#16a34a">I have read and understand this safety topic</div>'+
+            '<div style="font-size:11px;color:#8a96ab;margin-top:2px">Check this box to confirm you have reviewed the above content</div></div></label>'+
+            '<button class="btn btn-p" style="width:100%;justify-content:center;margin-top:9px" onclick="acknowledgeSafety(''+t.id+'',''+a.id+'')">Submit Acknowledgement</button>'+
+            '</div>'
+        }).join('')
+    } else {
+      pendEl.innerHTML='<div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:10px;padding:14px;text-align:center"><div style="font-size:22px;margin-bottom:6px">✅</div><div style="font-weight:600;color:#16a34a">All safety training complete!</div></div>'
+    }
+  }
+  // Render completed
+  const compEl=document.getElementById('safety-completed')
+  if(compEl&&completed.length){
+    const ackByTopic={}
+    ;(acks||[]).forEach(a=>{ackByTopic[a.topic_id]=a})
+    compEl.innerHTML='<div style="font-size:11px;font-weight:600;color:#414e63;margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Completed ('+completed.length+')</div>'+
+      completed.map(a=>{
+        const t=a.safety_topics
+        const ack=ackByTopic[t.id]
+        return '<div style="background:#0c1220;border:1px solid rgba(22,163,74,.15);border-radius:10px;padding:12px;margin-bottom:7px;display:flex;align-items:center;gap:11px">'+
+          '<div style="font-size:22px;flex-shrink:0">✅</div>'+
+          '<div style="flex:1;min-width:0"><div style="font-weight:500;font-size:13px">'+t.title+'</div>'+
+          '<div style="font-size:11px;color:#414e63;margin-top:2px">'+t.category+' · Completed '+fmtDateTime(ack?.acknowledged_at)+'</div></div>'+
+          '</div>'
+      }).join('')
+  }
+}
+
+async function acknowledgeSafety(topicId, assignmentId){
+  const cb=document.getElementById('ack-'+topicId)
+  if(!cb?.checked){toast('Please check the box to confirm you have read the content','warn');return}
+  const btn=event.target
+  btn.disabled=true;btn.textContent='Saving…'
+  try{
+    // Insert ack record
+    const{error}=await sb.from('safety_acks').insert({id:uuid(),topic_id:topicId,profile_id:MY.id,user_name:MY.full_name,acknowledged_at:new Date().toISOString()})
+    if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Submit Acknowledgement';return}
+    toast('Safety topic acknowledged ✓','success')
+    // Reload the screen
+    await loadSafetyTopics()
+  }catch(e){toast(e.message,'error');btn.disabled=false;btn.textContent='Submit Acknowledgement'}
+}
+
 // ── PART STATUS UPDATE ────────────────────
 async function updateMyPartStatus(partId, status) {
   try {
@@ -594,6 +672,19 @@ async function loadNotifs() {
     // Mark all as read
     if (notifs.filter(n=>!n.read).length) await sb.from('notifications').update({read:true}).eq('read',false)
   } catch(e) { console.error('notifs:', e) }
+}
+async function loadSafetyBadge(){
+  if(!MY?.id) return
+  try{
+    const[{data:assigns},{data:acks}]=await Promise.all([
+      sb.from('safety_assignments').select('topic_id').eq('profile_id',MY.id),
+      sb.from('safety_acks').select('topic_id').eq('profile_id',MY.id)
+    ])
+    const ackedIds=new Set((acks||[]).map(a=>a.topic_id))
+    const pending=(assigns||[]).filter(a=>!ackedIds.has(a.topic_id)).length
+    const badge=document.getElementById('safety-badge')
+    if(badge){badge.style.display=pending?'block':'none';badge.textContent=pending}
+  }catch(e){}
 }
 async function loadNotifBadge() {
   try {

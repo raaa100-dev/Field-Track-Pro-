@@ -15,7 +15,7 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 ::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:#1a2540;border-radius:2px}
 #sidebar{width:215px;min-width:215px;background:#0c1220;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;height:100vh;overflow-y:auto}
 .logo{padding:15px 14px 11px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
-.logo-mark{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;background:linear-gradient(135deg,#e8edf5,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-mark{font-family:Syne,sans-serif;font-size:15px;font-weight:800;background:linear-gradient(135deg,#e8edf5,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .logo-sub{font-size:9px;color:#414e63;letter-spacing:.12em;text-transform:uppercase;margin-top:1px}
 .nav-section{padding:9px 12px 2px;font-size:9px;font-weight:600;color:#414e63;letter-spacing:.1em;text-transform:uppercase}
 .nav-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer;color:#8a96ab;font-size:12px;margin:1px 5px;transition:.15s;user-select:none;white-space:nowrap}
@@ -25,10 +25,10 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .sidebar-foot{margin-top:auto;padding:9px;border-top:1px solid rgba(255,255,255,.06)}
 .user-pill{display:flex;align-items:center;gap:8px;padding:7px;background:#131c2e;border-radius:7px;cursor:pointer}
 .user-pill:hover{background:#1a2540}
-.av{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:'Syne',sans-serif;flex-shrink:0}
+.av{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:Syne,sans-serif;flex-shrink:0}
 #main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;min-width:0}
 .topbar{height:48px;padding:0 18px;background:#0c1220;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.topbar-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+.topbar-title{font-family:Syne,sans-serif;font-size:14px;font-weight:700}
 .tb-right{display:flex;gap:7px;align-items:center}
 #page-area{flex:1;overflow-y:auto;padding:18px}
 .btn{padding:7px 13px;border-radius:7px;font-size:12px;cursor:pointer;border:1px solid rgba(255,255,255,.1);background:#131c2e;color:#e8edf5;font-family:'DM Sans',sans-serif;transition:.15s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
@@ -69,7 +69,7 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .tab:hover{color:#8a96ab}.tab.active{color:#2563eb;border-bottom-color:#2563eb;font-weight:500}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .modal-box{background:#0c1220;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:22px;width:100%;max-width:580px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.9)}
-.modal-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.modal-title{font-family:Syne,sans-serif;font-size:15px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
 .modal-close{cursor:pointer;color:#414e63;font-size:20px;line-height:1;padding:2px 6px;border-radius:4px}.modal-close:hover{color:#e8edf5;background:#131c2e}
 .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:13px;border-top:1px solid rgba(255,255,255,.06)}
 .loading{padding:40px;text-align:center;color:#414e63;font-size:12px;display:flex;align-items:center;justify-content:center;gap:9px}
@@ -430,7 +430,7 @@ function renderJobDetail(){
   const si=STAGES.indexOf(j.phase)
   document.getElementById('page-area').innerHTML=`
   <div style="margin-bottom:14px">
-    <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700">${j.name}</div>
+    <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">${j.name}</div>
     <div style="font-size:12px;color:#8a96ab;margin-top:3px">${j.address||''}</div>
     <div style="display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap">
       ${stageBadge(j.phase)}
@@ -1693,7 +1693,7 @@ async function pgCompanies(){
     const insStatus=insExp===null?'unknown':insExp<0?'expired':insExp<30?'expiring':'ok'
     return`<div class="card" style="margin-bottom:13px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-      <div><div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700">${co.name}</div><div style="font-size:11px;color:#414e63;margin-top:2px">${co.trade||''} ${co.license_num?'· Lic: '+co.license_num:''} ${co.email?'· '+co.email:''}</div></div>
+      <div><div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700">${co.name}</div><div style="font-size:11px;color:#414e63;margin-top:2px">${co.trade||''} ${co.license_num?'· Lic: '+co.license_num:''} ${co.email?'· '+co.email:''}</div></div>
       <div style="display:flex;gap:7px;align-items:center">
         <span class="badge ${insStatus==='ok'?'bg-green':insStatus==='expiring'?'bg-amber':'bg-red'}">${insStatus==='ok'?'GL Insurance OK':insStatus==='expiring'?'Ins Expiring Soon':'Ins Expired/Unknown'}</span>
         ${co.ins_expiry?`<span style="font-size:10px;color:#414e63">Exp: ${fd(co.ins_expiry)}</span>`:''}
@@ -1735,35 +1735,124 @@ async function checkSafetyBadge(){
   try{const{count}=await sb.from('safety_assignments').select('id',{count:'exact',head:true}).is('acknowledged_at',null);const b=document.getElementById('nb-safety');if(b){b.textContent=count||0;b.style.display=count>0?'inline-block':'none'}}catch{}
 }
 async function pgSafety(){
-  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="newSafetyTopicModal()">+ New Safety Topic</button>'
-  const{data:topics}=await sb.from('safety_topics').select('*').order('week_of',{ascending:false,nullsFirst:false})
-  document.getElementById('page-area').innerHTML=`
-  ${(topics||[]).map(t=>`<div class="safety-card">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px">
-      <div><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700">${t.title}</div><div style="font-size:11px;color:#414e63;margin-top:2px">${t.category||'General'} · Week of ${fd(t.week_of)} · By ${t.created_by||'—'}</div></div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-sm" onclick="viewSafetyAcks('${t.id}')">View Acks</button>
-        <button class="btn btn-sm btn-p" onclick="assignSafetyModal('${t.id}','${t.title.replace(/'/g,"\\'")}')">Assign</button>
-      </div>
-    </div>
-    <div style="font-size:12px;color:#8a96ab;line-height:1.6;margin-bottom:9px">${t.content.substring(0,300)}${t.content.length>300?'…':''}</div>
-    <div id="ack-summary-${t.id}"></div>
-  </div>`).join('')||empty('🛡','No safety topics yet — create your first one')}` 
-  // Load ack summaries
-  for(const t of topics||[]){
-    const{count:ackCount}=await sb.from('safety_acks').select('id',{count:'exact',head:true}).eq('topic_id',t.id)
-    const{count:assigned}=await sb.from('safety_assignments').select('id',{count:'exact',head:true}).eq('topic_id',t.id)
-    const el=document.getElementById('ack-summary-'+t.id)
-    if(el)el.innerHTML=`<div style="display:flex;gap:10px;font-size:11px"><span style="color:#16a34a">✓ ${ackCount||0} acknowledged</span><span style="color:#414e63">/ ${assigned||0} assigned</span>${(assigned||0)>(ackCount||0)?`<span style="color:#d97706">⚠ ${(assigned||0)-(ackCount||0)} pending</span>`:''}</div>`
+  document.getElementById('topbar-actions').innerHTML=
+    '<button class="btn btn-sm" onclick="exportSafetyCSV()">⬆ Export Report</button>'+
+    '<button class="btn btn-p btn-sm" onclick="newSafetyTopicModal()">+ New Topic</button>'
+  const[{data:topics},{data:allAcks},{data:allAssigns}]=await Promise.all([
+    sb.from('safety_topics').select('*').order('week_of',{ascending:false,nullsFirst:false}),
+    sb.from('safety_acks').select('*,profiles:profile_id(full_name,role,companies(name))').order('acknowledged_at',{ascending:false}),
+    sb.from('safety_assignments').select('*,profiles:profile_id(full_name,role,companies(name))').order('assigned_at',{ascending:false})
+  ])
+  // Stats
+  const totalTopics=(topics||[]).length
+  const totalAssigned=new Set((allAssigns||[]).map(a=>a.profile_id)).size
+  const totalAcked=new Set((allAcks||[]).map(a=>a.profile_id)).size
+  const pendingCount=(allAssigns||[]).filter(a=>{
+    return !((allAcks||[]).find(ak=>ak.topic_id===a.topic_id&&ak.profile_id===a.profile_id))
+  }).length
+  const pa=document.getElementById('page-area')
+  let html=
+    '<div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">'+
+    '<div class="stat"><div class="stat-label">Topics</div><div class="stat-value">'+totalTopics+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Assigned To</div><div class="stat-value">'+totalAssigned+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Completed</div><div class="stat-value" style="color:#16a34a">'+totalAcked+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Pending</div><div class="stat-value" style="color:'+(pendingCount?'#dc2626':'#16a34a')+'">'+pendingCount+'</div></div>'+
+    '</div>'
+  // Tab bar: Topics | Compliance Report
+  const svTopicCls=window._safetyView!=='report'?'btn-p':''
+  const svReportCls=window._safetyView==='report'?'btn-p':''
+  html+='<div style="display:flex;gap:8px;margin-bottom:13px">'+
+    '<button class="btn '+svTopicCls+'" onclick="window._safetyView=\'topics\';pgSafety()">Topics</button>'+
+    '<button class="btn '+svReportCls+'" onclick="window._safetyView=\'report\';pgSafety()">Compliance Report</button>'+
+    '</div>'
+  if(window._safetyView==='report'){
+    // Full compliance grid: employees vs topics
+    const{data:allProfiles}=await sb.from('profiles').select('id,full_name,role,companies(name)').eq('is_active',true).order('full_name')
+    const profiles=allProfiles||[]
+    const ackMap={} // ackMap[profile_id+topic_id] = ack record
+    ;(allAcks||[]).forEach(a=>{ackMap[a.profile_id+'_'+a.topic_id]=a})
+    const assignMap={}
+    ;(allAssigns||[]).forEach(a=>{assignMap[a.profile_id+'_'+a.topic_id]=a})
+    html+='<div class="card" style="padding:0;overflow:hidden;overflow-x:auto"><table class="tbl"><thead><tr>'
+    html+='<th style="min-width:150px;position:sticky;left:0;background:#131c2e;z-index:1">Employee</th>'
+    html+='<th>Role</th>'
+    ;(topics||[]).forEach(t=>{
+      html+='<th style="min-width:120px;font-size:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+t.title+'">'+t.title.substring(0,20)+(t.title.length>20?'…':'')+'</th>'
+    })
+    html+='</tr></thead><tbody>'
+    profiles.forEach(p=>{
+      const assignedTopics=(allAssigns||[]).filter(a=>a.profile_id===p.id)
+      if(!assignedTopics.length) return // skip unassigned employees
+      html+='<tr onclick="viewEmployeeModal(\"'+p.id+'\")" style="cursor:pointer">'
+      html+='<td style="position:sticky;left:0;background:#0c1220;font-weight:500">'+p.full_name+'<div style="font-size:9px;color:#414e63">'+(p.companies?.name||'Internal')+'</div></td>'
+      html+='<td>'+roleBadge(p.role)+'</td>'
+      ;(topics||[]).forEach(t=>{
+        const ack=ackMap[p.id+'_'+t.id]
+        const assigned=assignMap[p.id+'_'+t.id]
+        if(ack){
+          html+='<td title="Completed '+fdt(ack.acknowledged_at)+'"><span class="badge bg-green" style="font-size:9px">✓ '+fd(ack.acknowledged_at)+'</span></td>'
+        }else if(assigned){
+          const overdue=assigned.due_date&&new Date(assigned.due_date)<new Date()
+          html+='<td><span class="badge '+(overdue?'bg-red':'bg-amber')+'" style="font-size:9px">'+(overdue?'Overdue':'Pending')+'</span></td>'
+        }else{
+          html+='<td><span style="font-size:10px;color:#1a2540">—</span></td>'
+        }
+      })
+      html+='</tr>'
+    })
+    html+='</tbody></table></div>'
+  } else {
+    // Topics list view
+    html+=(topics||[]).map(t=>safetyTopicCard(t,allAcks||[],allAssigns||[])).join('')||empty('🛡','No safety topics yet')
   }
+  pa.innerHTML=html
 }
-function newSafetyTopicModal(){
-  modal('New Safety Topic',`
-  <div class="fg"><label class="fl">Title *</label><input class="fi" id="st-title" placeholder="e.g. Fall Protection Refresher"></div>
-  <div class="two"><div class="fg"><label class="fl">Category</label><select class="fs" id="st-cat"><option value="general">General Safety</option><option value="ppe">PPE</option><option value="fall_protection">Fall Protection</option><option value="electrical">Electrical Safety</option><option value="tool_safety">Tool Safety</option><option value="hazmat">Hazmat / Chemical</option><option value="emergency">Emergency Procedures</option><option value="vehicle">Vehicle / Driving</option></select></div><div class="fg"><label class="fl">Week Of</label><input class="fi" type="date" id="st-week"></div></div>
-  <div class="fg"><label class="fl">Content *</label><textarea class="ft" id="st-content" style="min-height:140px" placeholder="Safety topic content, instructions, requirements…"></textarea></div>`,
-  async()=>{const t=v('st-title').trim(),c=v('st-content').trim();if(!t||!c){toast('Title and content required','error');return};const{error}=await sb.from('safety_topics').insert({id:uuid(),title:t,content:c,category:v('st-cat'),week_of:v('st-week')||null,created_by:ME?.full_name,created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();toast('Safety topic created');pgSafety()}})
+
+
+function safetyTopicCard(t, allAcks, allAssigns){
+  const tAcks=allAcks.filter(a=>a.topic_id===t.id)
+  const tAssigns=allAssigns.filter(a=>a.topic_id===t.id)
+  const tPending=tAssigns.filter(a=>!tAcks.find(ak=>ak.profile_id===a.profile_id))
+  const safeTitle=t.title.replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+  return '<div class="card" style="margin-bottom:10px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px">'+
+    '<div><div style="font-family:Syne,sans-serif;font-size:14px;font-weight:700">'+t.title+'</div>'+
+    '<div style="font-size:11px;color:#414e63;margin-top:2px">'+t.category+' · Week of '+fd(t.week_of)+' · By '+(t.created_by||'—')+'</div></div>'+
+    '<div style="display:flex;gap:6px">'+
+    '<button class="btn btn-sm" onclick="viewSafetyAcks(this.dataset.id)" data-id="'+t.id+'">View Acks</button>'+
+    '<button class="btn btn-sm btn-p" onclick="assignSafetyModal(this.dataset.id,this.dataset.title)" data-id="'+t.id+'" data-title="'+safeTitle+'">Assign</button>'+
+    '</div></div>'+
+    '<div style="font-size:12px;color:#8a96ab;line-height:1.6;margin-bottom:9px">'+t.content.substring(0,200)+(t.content.length>200?'…':'')+'</div>'+
+    '<div style="display:flex;gap:12px;font-size:11px">'+
+    '<span style="color:#16a34a">✓ '+tAcks.length+' completed</span>'+
+    '<span style="color:#414e63">/ '+tAssigns.length+' assigned</span>'+
+    (tPending.length?'<span style="color:#dc2626">⚠ '+tPending.length+' pending</span>':'')+
+    '</div></div>'
 }
+async function exportSafetyCSV(){
+  const[{data:topics},{data:acks},{data:assigns}]=await Promise.all([
+    sb.from('safety_topics').select('*').order('week_of',{ascending:false}),
+    sb.from('safety_acks').select('*,profiles:profile_id(full_name,role,companies(name))'),
+    sb.from('safety_assignments').select('*,profiles:profile_id(full_name,role)')
+  ])
+  const ackMap={}
+  ;(acks||[]).forEach(a=>{ackMap[a.profile_id+'_'+a.topic_id]=a})
+  const rows=[['Topic','Category','Week Of','Employee','Role','Assigned Date','Due Date','Status','Completed At']]
+  ;(assigns||[]).forEach(a=>{
+    const topic=(topics||[]).find(t=>t.id===a.topic_id)
+    const ack=ackMap[a.profile_id+'_'+a.topic_id]
+    rows.push([
+      topic?.title||'',topic?.category||'',fd(topic?.week_of),
+      a.profiles?.full_name||'',a.profiles?.role||'',
+      fd(a.assigned_at),fd(a.due_date),
+      ack?'Completed':'Pending',
+      ack?fdt(ack.acknowledged_at):''
+    ])
+  })
+  const csv=rows.map(r=>r.map(x=>'"'+String(x||'').replace(/"/g,'""')+'"').join(',')).join('\n')
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='Safety-Training-Report-'+new Date().toISOString().split('T')[0]+'.csv';a.click();toast('Report exported')
+}
+
 async function assignSafetyModal(topicId,topicTitle){
   const[{data:profiles},{data:already}]=await Promise.all([
     sb.from('profiles').select('id,full_name,role,companies(name)').eq('is_active',true).order('full_name'),
@@ -1929,24 +2018,197 @@ async function uploadGlobalDoc(files){
 // USERS PAGE
 // ══════════════════════════════════════════
 async function pgUsers(){
-  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="addUserModal()">+ Add User</button>'
-  const{data}=await sb.from('profiles').select('*,companies(name)').order('created_at')
-  document.getElementById('page-area').innerHTML=`<div class="card" style="padding:0;overflow:hidden">
-  ${(data||[]).length?`<table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Company</th><th>Status</th><th></th></tr></thead><tbody>${(data||[]).map(u=>`<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:24px;height:24px;font-size:9px;${Object.entries(avS(u.full_name)).map(([k,val])=>k+':'+val).join(';')}">${ini(u.full_name)}</div><span style="font-weight:500">${u.full_name}</span></div></td><td style="font-size:11px;color:#8a96ab">${u.email||'—'}</td><td>${roleBadge(u.role)}</td><td style="font-size:11px">${u.companies?.name||'Internal'}</td><td><span class="badge ${u.is_active?'bg-green':'bg-gray'}">${u.is_active?'Active':'Inactive'}</span></td><td><button class="btn btn-sm" onclick="editUserModal('${u.id}','${u.role}','${u.is_active}','${u.full_name}')">Edit</button></td></tr>`).join('')}</tbody></table>`:empty('👥','No users')}
-  </div>`
+  document.getElementById('topbar-actions').innerHTML=
+    '<button class="btn btn-sm" onclick="exportEmployeesCSV()">⬆ Export</button>'+
+    '<button class="btn btn-p btn-sm" onclick="addUserModal()">+ Add Employee</button>'
+  const[{data:users},{data:companies}]=await Promise.all([
+    sb.from('profiles').select('*,companies(name)').order('full_name'),
+    sb.from('companies').select('id,name').eq('is_active',true).order('name')
+  ])
+  const all=users||[]
+  const roles=[...new Set(all.map(u=>u.role).filter(Boolean))].sort()
+  const pa=document.getElementById('page-area')
+  pa.innerHTML=
+    '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'+
+    '<input class="fi" id="emp-search" placeholder="Search name or email…" style="max-width:220px" oninput="filterEmployees()">'+
+    '<select class="fs" id="emp-role" style="width:150px" onchange="filterEmployees()"><option value="">All Roles</option>'+roles.map(r=>'<option value="'+r+'">'+r.replace(/_/g,' ')+'</option>').join('')+'</select>'+
+    '<select class="fs" id="emp-co" style="width:160px" onchange="filterEmployees()"><option value="">All Companies</option>'+
+    (companies||[]).map(co=>'<option value="'+co.id+'">'+co.name+'</option>').join('')+
+    '<option value="internal">Internal</option></select>'+
+    '<select class="fs" id="emp-status" style="width:120px" onchange="filterEmployees()"><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select>'+
+    '</div>'+
+    '<div id="emp-table"></div>'+
+    '<div style="margin-top:11px;font-size:11px;color:#414e63" id="emp-count"></div>'
+  window._empAll=all
+  window._empCos=companies||[]
+  filterEmployees()
 }
+
+function filterEmployees(){
+  const q=(document.getElementById('emp-search')?.value||'').toLowerCase()
+  const role=document.getElementById('emp-role')?.value||''
+  const co=document.getElementById('emp-co')?.value||''
+  const status=document.getElementById('emp-status')?.value||''
+  const all=window._empAll||[]
+  const rows=all.filter(u=>{
+    if(q&&!u.full_name.toLowerCase().includes(q)&&!(u.email||'').toLowerCase().includes(q))return false
+    if(role&&u.role!==role)return false
+    if(co==='internal'&&u.company_id)return false
+    if(co&&co!=='internal'&&u.company_id!==co)return false
+    if(status==='active'&&!u.is_active)return false
+    if(status==='inactive'&&u.is_active)return false
+    return true
+  })
+  const el=document.getElementById('emp-table')
+  const cnt=document.getElementById('emp-count')
+  if(cnt)cnt.textContent=rows.length+' employee'+(rows.length!==1?'s':'')
+  if(!rows.length){if(el)el.innerHTML=empty('👥','No employees match filters');return}
+  let html='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr>'
+  html+='<th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Company</th><th>Emergency Contact</th><th>Status</th><th></th>'
+  html+='</tr></thead><tbody>'
+  for(const u of rows){
+    const avCss=Object.entries(avS(u.full_name)).map(([k,val])=>k+':'+val).join(';')
+    html+='<tr>'
+    html+='<td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:26px;height:26px;font-size:9px;'+avCss+'">'+ini(u.full_name)+'</div><div><div style="font-weight:500">'+u.full_name+'</div>'+(u.hire_date?'<div style="font-size:9px;color:#414e63">Hired '+fd(u.hire_date)+'</div>':'')+'</div></div></td>'
+    html+='<td style="font-size:11px;color:#8a96ab">'+(u.email||'—')+'</td>'
+    html+='<td style="font-size:11px;color:#8a96ab">'+(u.phone||'—')+'</td>'
+    html+='<td>'+roleBadge(u.role)+'</td>'
+    html+='<td style="font-size:11px">'+(u.companies?.name||'Internal')+'</td>'
+    html+='<td style="font-size:10px;color:#8a96ab">'+(u.emergency_contact||'—')+'<br>'+(u.emergency_phone?'<span style="color:#414e63">'+u.emergency_phone+'</span>':'')+'</td>'
+    html+='<td><span class="badge '+(u.is_active?'bg-green':'bg-gray')+'">'+(u.is_active?'Active':'Inactive')+'</span></td>'
+    html+='<td style="display:flex;gap:4px"><button class="btn btn-sm" data-id="'+u.id+'" onclick="viewEmployeeModal(this.dataset.id)">View</button><button class="btn btn-sm" data-id="'+u.id+'" data-role="'+u.role+'" data-active="'+u.is_active+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="editUserModal(this.dataset.id,this.dataset.role,this.dataset.active,this.dataset.name)">Edit</button></td>'
+    html+='</tr>'
+  }
+  html+='</tbody></table></div>'
+  if(el)el.innerHTML=html
+}
+
+async function exportEmployeesCSV(){
+  const all=window._empAll||[]
+  const rows=[['Name','Email','Phone','Role','Company','Hire Date','Emergency Contact','Emergency Phone','Status']]
+  all.forEach(u=>rows.push([u.full_name,u.email||'',u.phone||'',u.role,u.companies?.name||'Internal',u.hire_date||'',u.emergency_contact||'',u.emergency_phone||'',u.is_active?'Active':'Inactive']))
+  const csv=rows.map(r=>r.map(x=>'"'+String(x||'').replace(/"/g,'""')+'"').join(',')).join('\n')
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='Employees-'+new Date().toISOString().split('T')[0]+'.csv';a.click();toast('Exported')
+}
+
+async function viewEmployeeModal(id){
+  const{data:u}=await sb.from('profiles').select('*,companies(name)').eq('id',id).single()
+  if(!u)return
+  // Get safety training history
+  const[{data:acks},{data:assigns}]=await Promise.all([
+    sb.from('safety_acks').select('*,safety_topics(title,week_of,category)').eq('profile_id',id).order('acknowledged_at',{ascending:false}),
+    sb.from('safety_assignments').select('*,safety_topics(title,week_of)').eq('profile_id',id).order('assigned_at',{ascending:false})
+  ])
+  const ackedIds=new Set((acks||[]).map(a=>a.topic_id))
+  const pending=(assigns||[]).filter(a=>!ackedIds.has(a.topic_id))
+  const avCss=Object.entries(avS(u.full_name)).map(([k,val])=>k+':'+val).join(';')
+  let html=
+    '<div style="display:flex;align-items:center;gap:13px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.07)">'+
+    '<div class="av" style="width:52px;height:52px;font-size:18px;flex-shrink:0;'+avCss+'">'+ini(u.full_name)+'</div>'+
+    '<div><div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700">'+u.full_name+'</div>'+
+    '<div style="margin-top:3px">'+roleBadge(u.role)+'</div>'+
+    '<div style="font-size:11px;color:#414e63;margin-top:3px">'+(u.companies?.name||'Internal')+(u.hire_date?' · Hired '+fd(u.hire_date):'')+'</div></div></div>'+
+    '<div class="two" style="margin-bottom:13px">'+
+    '<div><div class="fl">EMAIL</div><div style="font-size:13px">'+(u.email||'—')+'</div></div>'+
+    '<div><div class="fl">PHONE</div><div style="font-size:13px">'+(u.phone||'—')+'</div></div>'+
+    '</div>'+
+    '<div class="two" style="margin-bottom:13px">'+
+    '<div><div class="fl">EMERGENCY CONTACT</div><div style="font-size:13px">'+(u.emergency_contact||'—')+'</div></div>'+
+    '<div><div class="fl">EMERGENCY PHONE</div><div style="font-size:13px">'+(u.emergency_phone||'—')+'</div></div>'+
+    '</div>'+
+    '<div class="sec-hdr" style="margin-bottom:10px">Safety Training — '+
+    '<span style="color:#16a34a">'+(acks||[]).length+' completed</span> · '+
+    '<span style="color:'+(pending.length?'#dc2626':'#414e63')+'">'+pending.length+' pending</span></div>'
+  if(pending.length){
+    html+='<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);border-radius:7px;padding:9px 12px;margin-bottom:10px">'
+    html+='<div style="font-size:10px;color:#dc2626;font-weight:600;margin-bottom:6px">PENDING — NOT YET COMPLETED</div>'
+    html+=pending.map(a=>'<div style="font-size:12px;color:#f87171;padding:3px 0">⏳ '+a.safety_topics?.title+(a.due_date?' · Due '+fd(a.due_date):'')+'</div>').join('')
+    html+='</div>'
+  }
+  if((acks||[]).length){
+    html+='<div style="background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.15);border-radius:7px;padding:9px 12px">'
+    html+='<div style="font-size:10px;color:#16a34a;font-weight:600;margin-bottom:6px">COMPLETED</div>'
+    html+=(acks||[]).map(a=>'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px">✓ '+a.safety_topics?.title+'</span><span style="font-size:10px;color:#414e63">'+fdt(a.acknowledged_at)+'</span></div>').join('')
+    html+='</div>'
+  }
+  if(!(acks||[]).length&&!pending.length) html+='<div style="font-size:12px;color:#414e63">No safety training assigned yet</div>'
+  modal(u.full_name, html, ()=>closeModal(), 'Close', false)
+  const editBtn=document.createElement('button')
+  editBtn.className='btn btn-p btn-sm'
+  editBtn.textContent='Edit'
+  editBtn.onclick=()=>{closeModal();editUserModal(id,u.role,u.is_active,u.full_name)}
+  const closeBtn=document.createElement('button')
+  closeBtn.className='btn'
+  closeBtn.textContent='Close'
+  closeBtn.onclick=closeModal
+  const ft=document.getElementById('modal-footer')
+  ft.innerHTML=''
+  ft.appendChild(closeBtn)
+  ft.appendChild(editBtn)
+}
+
 function addUserModal(){
-  modal('Add User',`
-  <div class="fg"><label class="fl">Full Name *</label><input class="fi" id="au-nm"></div>
-  <div class="fg"><label class="fl">Email *</label><input class="fi" id="au-em" type="email"></div>
-  <div class="fg"><label class="fl">Role *</label><select class="fs" id="au-rl"><option value="sub_worker">Sub Worker</option><option value="sub_lead">Sub Lead</option><option value="technician">Technician</option><option value="stager">Stager</option><option value="foreman">Foreman</option><option value="pm">Project Manager</option><option value="admin">Admin</option></select></div>
-  <div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:7px;padding:10px 12px;font-size:11px;color:#8a96ab;margin-top:8px">ℹ After adding, go to your Supabase Dashboard → Authentication → Users → Invite User to send them a login link.</div>`,
-  async()=>{const nm=v('au-nm').trim(),em=v('au-em').trim();if(!nm||!em){toast('Name and email required','error');return};const{error}=await sb.from('profiles').insert({id:uuid(),full_name:nm,email:em,role:v('au-rl'),is_active:true,created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();toast('User added');pgUsers()}})
+  const coOpts=(window._empCos||[]).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')
+  const html=
+    '<div class="two"><div class="fg"><label class="fl">Full Name *</label><input class="fi" id="au-nm"></div>'+
+    '<div class="fg"><label class="fl">Email *</label><input class="fi" id="au-em" type="email"></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="au-ph"></div>'+
+    '<div class="fg"><label class="fl">Role *</label><select class="fs" id="au-rl">'+
+    '<option value="sub_worker">Field Worker</option><option value="sub_lead">Lead</option>'+
+    '<option value="technician">Technician</option><option value="stager">Stager</option>'+
+    '<option value="foreman">Foreman</option><option value="pm">Project Manager</option>'+
+    '<option value="admin">Admin</option></select></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Company</label><select class="fs" id="au-co">'+
+    '<option value="">Internal</option>'+coOpts+'</select></div>'+
+    '<div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="au-hire"></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Emergency Contact</label><input class="fi" id="au-ec"></div>'+
+    '<div class="fg"><label class="fl">Emergency Phone</label><input class="fi" id="au-ep"></div></div>'+
+    '<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="au-notes" style="min-height:50px"></textarea></div>'+
+    '<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:7px;padding:9px 12px;font-size:11px;color:#8a96ab">'+
+    'ℹ After adding, go to Supabase Dashboard → Authentication → Invite User to send a login link.</div>'
+  modal('Add Employee', html, async()=>{
+    const nm=v('au-nm').trim(),em=v('au-em').trim()
+    if(!nm||!em){toast('Name and email required','error');return}
+    const{error}=await sb.from('profiles').insert({id:uuid(),full_name:nm,email:em,phone:v('au-ph'),role:v('au-rl'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep'),notes:v('au-notes'),is_active:true,created_at:new Date().toISOString()})
+    if(error)toast(error.message,'error');else{closeModal();toast('Employee added');pgUsers()}
+  })
 }
+
 function editUserModal(id,role,active,name){
-  const euHtml='<div class="fg"><label class="fl">Role</label><select class="fs" id="eu-rl"><option value="sub_worker">Sub Worker</option><option value="sub_lead">Sub Lead</option><option value="technician">Technician</option><option value="stager">Stager</option><option value="foreman">Foreman</option><option value="pm">Project Manager</option><option value="admin">Admin</option></select></div><div class="fg"><label class="fl">Status</label><select class="fs" id="eu-act"><option value="true">Active</option><option value="false">Inactive</option></select></div>'
-  modal('Edit User — '+name, euHtml, async()=>{await sb.from('profiles').update({role:v('eu-rl'),is_active:v('eu-act')==='true'}).eq('id',id);closeModal();toast('Updated');pgUsers()})
-  setTimeout(()=>{try{document.getElementById('eu-rl').value=role;document.getElementById('eu-act').value=String(active)}catch{}},50)
+  const coOpts=(window._empCos||[]).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')
+  const html=
+    '<div class="two"><div class="fg"><label class="fl">Full Name</label><input class="fi" id="eu-nm" value="'+name+'"></div>'+
+    '<div class="fg"><label class="fl">Phone</label><input class="fi" id="eu-ph"></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Role</label><select class="fs" id="eu-rl">'+
+    '<option value="sub_worker">Field Worker</option><option value="sub_lead">Lead</option>'+
+    '<option value="technician">Technician</option><option value="stager">Stager</option>'+
+    '<option value="foreman">Foreman</option><option value="pm">Project Manager</option>'+
+    '<option value="admin">Admin</option></select></div>'+
+    '<div class="fg"><label class="fl">Company</label><select class="fs" id="eu-co"><option value="">Internal</option>'+coOpts+'</select></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="eu-hire"></div>'+
+    '<div class="fg"><label class="fl">Status</label><select class="fs" id="eu-act"><option value="true">Active</option><option value="false">Inactive</option></select></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Emergency Contact</label><input class="fi" id="eu-ec"></div>'+
+    '<div class="fg"><label class="fl">Emergency Phone</label><input class="fi" id="eu-ep"></div></div>'
+  modal('Edit Employee — '+name, html, async()=>{
+    const u={full_name:v('eu-nm'),phone:v('eu-ph'),role:v('eu-rl'),company_id:v('eu-co')||null,hire_date:v('eu-hire')||null,emergency_contact:v('eu-ec'),emergency_phone:v('eu-ep'),is_active:v('eu-act')==='true'}
+    const{error}=await sb.from('profiles').update(u).eq('id',id)
+    if(error)toast(error.message,'error');else{closeModal();toast('Updated');pgUsers()}
+  })
+  // Populate fields from DB
+  sb.from('profiles').select('*').eq('id',id).single().then(({data:p})=>{
+    if(!p)return
+    setTimeout(()=>{
+      try{
+        document.getElementById('eu-ph').value=p.phone||''
+        document.getElementById('eu-rl').value=p.role||'sub_worker'
+        document.getElementById('eu-co').value=p.company_id||''
+        document.getElementById('eu-hire').value=p.hire_date||''
+        document.getElementById('eu-act').value=String(p.is_active)
+        document.getElementById('eu-ec').value=p.emergency_contact||''
+        document.getElementById('eu-ep').value=p.emergency_phone||''
+      }catch(e){}
+    },80)
+  })
 }
 
 
