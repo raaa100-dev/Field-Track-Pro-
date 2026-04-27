@@ -1095,10 +1095,66 @@ async function uploadWalkPlan(files,walkId){
 // PHOTOS TAB
 async function renderPhotosTab(el){
   const{data:photos}=await sb.from('job_photos').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
-  el.innerHTML=\`<label class="upload-zone" style="margin-bottom:12px"><input type="file" multiple accept="image/*" onchange="uploadPhotos(this.files)"><div style="font-size:22px;color:#414e63">📷</div><div style="font-size:12px;color:#414e63;margin-top:5px">Click to upload photos (before/after/progress)</div></label>
-  <div class="photo-grid">\${(photos||[]).map(p=>\`<div class="photo-card" onclick="window.open('\${p.url}','_blank')"><img class="photo-thumb" src="\${p.url}" loading="lazy" onerror="this.style.display='none'"><div style="padding:5px 7px;font-size:10px;color:#414e63">\${p.type||'photo'} · \${p.uploaded_by||''}</div></div>\`).join('')}</div>\`
+  const photoList=photos||[]
+  // Build upload zone
+  let html='<label class="upload-zone" style="margin-bottom:12px;cursor:pointer;display:block;text-align:center;padding:18px;border:2px dashed rgba(255,255,255,.1);border-radius:9px">'
+  html+='<input type="file" multiple accept="image/*" onchange="uploadPhotos(this.files)" style="display:none">'
+  html+='<div style="font-size:28px;color:#414e63">📷</div>'
+  html+='<div style="font-size:12px;color:#8a96ab;margin-top:6px">Click to upload photos</div>'
+  html+='<div style="font-size:10px;color:#414e63;margin-top:3px">JPG, PNG, HEIC — multiple allowed</div>'
+  html+='</label>'
+  html+='<div id="photo-upload-status"></div>'
+  if(!photoList.length){el.innerHTML=html+empty('📷','No photos yet — click above to upload');return}
+  html+='<div style="font-size:11px;color:#414e63;margin-bottom:8px">'+photoList.length+' photo'+(photoList.length!==1?'s':'')+'</div>'
+  html+='<div class="photo-grid">'
+  for(const p of photoList){
+    if(p.url){
+      html+='<img src="'+p.url+'" class="photo-thumb" loading="lazy" style="cursor:pointer" data-url="'+p.url+'" onclick="openPhoto(this)" onerror="this.style.opacity=.3">'
+    } else {
+      html+='<div style="height:100px;display:flex;align-items:center;justify-content:center;color:#414e63;font-size:24px">🖼</div>'
+    }
+
+
+
+    html+='<div style="padding:5px 7px;display:flex;align-items:center;justify-content:space-between">'
+    html+='<div style="font-size:10px;color:#8a96ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px">'+(p.file_name||p.type||'photo')+'</div>'
+    html+='<button data-pid="'+p.id+'" data-sp="'+(p.storage_path||'')+'" data-pu="'+(p.url||'')+'" '+
+      'onclick="deleteJobPhoto(this.dataset.pid,this.dataset.sp,this.dataset.pu)" '+
+      'style="background:none;border:none;cursor:pointer;color:#414e63;font-size:12px;padding:2px 4px" title="Delete">✕</button>'
+    html+='</div></div>'
+  }
+  html+='</div>'
+  el.innerHTML=html
 }
-async function uploadPhotos(files){for(const f of files){const path=\`jobs/\${currentJobId}/photos/\${Date.now()}_\${f.name}\`;const{error}=await sb.storage.from('fieldtrack-photos').upload(path,f,{upsert:true});if(!error){const{data:{publicUrl}}=sb.storage.from('fieldtrack-photos').getPublicUrl(path);await sb.from('job_photos').insert({id:uuid(),job_id:currentJobId,url:publicUrl,type:'progress',uploaded_by:ME?.full_name,created_at:new Date().toISOString()})}};toast('Uploaded');loadJT('jt-photos')}
+
+async function uploadPhotos(files){
+  const el=document.getElementById('photo-upload-status')
+  if(el)el.innerHTML='<div style="font-size:11px;color:#414e63">Uploading '+files.length+' photo'+(files.length>1?'s':'')+'…</div>'
+  let ok=0,fail=0
+  for(const f of files){
+    try{
+      const path='jobs/'+currentJobId+'/photos/'+Date.now()+'_'+f.name.replace(/[^a-zA-Z0-9._-]/g,'_')
+      const{error:upErr}=await sb.storage.from('fieldtrack-photos').upload(path,f,{upsert:true,contentType:f.type})
+      if(upErr){
+        // Try fieldtrack-plans bucket as fallback
+        const{error:upErr2}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true,contentType:f.type})
+        if(upErr2){
+          console.error('Upload error:',upErr.message,upErr2.message)
+          fail++; continue
+        }
+        const{data:u}=sb.storage.from('fieldtrack-plans').getPublicUrl(path)
+        await sb.from('job_photos').insert({id:uuid(),job_id:currentJobId,url:u.publicUrl,storage_path:path,file_name:f.name,type:'progress',uploaded_by:ME?.full_name,created_at:new Date().toISOString()})
+      } else {
+        const{data:u}=sb.storage.from('fieldtrack-photos').getPublicUrl(path)
+        await sb.from('job_photos').insert({id:uuid(),job_id:currentJobId,url:u.publicUrl,storage_path:path,file_name:f.name,type:'progress',uploaded_by:ME?.full_name,created_at:new Date().toISOString()})
+      }
+      ok++
+    }catch(e){console.error('Photo upload error:',e);fail++}
+  }
+  if(fail>0) toast(fail+' photo'+(fail>1?'s':'')+' failed to upload — check Supabase Storage buckets exist','error')
+  if(ok>0) toast(ok+' photo'+(ok>1?'s':'')+' uploaded')
+  loadJT('jt-photos')
+}
 
 // CHECKLIST TAB
 async function renderChecklistTab(el){
@@ -1172,6 +1228,17 @@ async function renderDocsTab(el){
   const{data:docs}=await sb.from('job_documents').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
   el.innerHTML=\`<label class="btn btn-p btn-sm" style="cursor:pointer;margin-bottom:12px">+ Upload Document<input type="file" style="display:none" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg" onchange="uploadJobDoc(this.files)"></label>
   \${(docs||[]).map(d=>\`<div class="doc-row"><div style="font-size:18px">\${d.file_name.endsWith('.pdf')?'📄':d.file_name.match(/\\.(png|jpg|jpeg)$/i)?'🖼':'📎'}</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${d.name}</div><div style="font-size:10px;color:#414e63">\${d.category||'General'} · \${d.uploaded_by||''} · \${fd(d.created_at)}</div></div><a href="\${d.url}" target="_blank" class="btn btn-sm">View</a></div>\`).join('')||empty('📁','No documents uploaded')}\` 
+}
+function openPhoto(el){const u=el.dataset.url;if(u)window.open(u,'_blank')}
+async function deleteJobPhoto(id, storagePath, url){
+  if(!confirm('Delete this photo?'))return
+  if(storagePath){
+    await sb.storage.from('fieldtrack-photos').remove([storagePath]).catch(()=>{})
+    await sb.storage.from('fieldtrack-plans').remove([storagePath]).catch(()=>{})
+  }
+  await sb.from('job_photos').delete().eq('id',id)
+  toast('Photo deleted','warn')
+  loadJT('jt-photos')
 }
 async function uploadJobDoc(files){for(const f of files){const path=\`jobs/\${currentJobId}/docs/\${Date.now()}_\${f.name}\`;const{error}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true});if(!error){const{data:{publicUrl}}=sb.storage.from('fieldtrack-plans').getPublicUrl(path);await sb.from('job_documents').insert({id:uuid(),job_id:currentJobId,name:f.name,file_name:f.name,category:'general',storage_path:path,url:publicUrl,uploaded_by:ME?.full_name,created_at:new Date().toISOString()})}};toast('Uploaded');loadJT('jt-docs')}
 
