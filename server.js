@@ -1955,114 +1955,179 @@ async function loadScanEvents(){
 // ── CAMERA SCANNING ───────────────────────────────────────────
 // Uses native BarcodeDetector API (Chrome/Android/iOS 16+)
 // Falls back to ZXing WASM for older browsers
-let _scanStream=null, _scanRAF=null, _barcodeDetector=null
+let _scanStream=null, _scanActive=false, _scanTimer=null, _barcodeDetector=null, _lastCode='', _lastCodeTime=0
 
 async function toggleCam(){
-  if(_scanStream){stopCam();return}
-  const wrap=document.getElementById('cam-wrap');if(!wrap)return
-  wrap.style.display='block'
+  if(_scanActive){stopCam();return}
+  const wrap=document.getElementById('cam-wrap')
   const btn=document.getElementById('cam-toggle-btn')
-  btn.textContent='⏹ Stop Camera'
-  document.getElementById('cam-status').textContent='Starting camera…'
+  const status=document.getElementById('cam-status')
+  if(!wrap)return
+
+  // Show UI immediately so user sees feedback
+  wrap.style.display='block'
+  if(btn)btn.textContent='⏹ Stop Camera'
+  if(status)status.textContent='Requesting camera…'
+
+  // Step 1: Get camera stream — use simple constraints first (most compatible)
   try{
-    // Request camera
     _scanStream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}
+      video:{facingMode:'environment'}
     })
-    const video=document.getElementById('scan-video')
-    video.srcObject=_scanStream
-    await video.play()
-    document.getElementById('cam-status').textContent='Aim at barcode'
-    // Init detector
-    if('BarcodeDetector' in window){
-      _barcodeDetector=new BarcodeDetector({formats:['code_128','ean_13','ean_8','upc_a','upc_e','code_39','itf','qr_code','data_matrix']})
-      document.getElementById('cam-status').textContent='Ready — aim at barcode'
-      scanLoop()
-    } else {
-      // Load ZXing fallback
-      document.getElementById('cam-status').textContent='Loading scanner library…'
-      await loadZXing()
-      scanLoop()
+  }catch(e1){
+    // Try without facingMode if environment camera fails
+    try{
+      _scanStream=await navigator.mediaDevices.getUserMedia({video:true})
+    }catch(e2){
+      const err=e2.name||''
+      let msg
+      if(err==='NotAllowedError'||err==='PermissionDeniedError'){
+        msg=location.protocol!=='https:'
+          ?'Camera needs HTTPS — your URL must start with https://'
+          :'Permission denied — tap the 🔒 lock icon → Site settings → Camera → Allow → Refresh'
+      } else if(err==='NotFoundError'){
+        msg='No camera found on this device'
+      } else if(err==='NotReadableError'||err==='AbortError'){
+        msg='Camera busy — close other camera apps and try again'
+      } else {
+        msg='Camera unavailable: '+(e2.message||err)
+      }
+      if(status)status.textContent=msg
+      toast(msg,'error')
+      wrap.style.display='none'
+      if(btn)btn.textContent='📷 Start Camera Scanner'
+      return
     }
-  }catch(e){
-    toast('Camera error: '+(e.message||'Permission denied'),'error')
-    document.getElementById('cam-status').textContent='Camera failed — check permissions'
+  }
+
+  // Step 2: Attach stream to video element
+  const video=document.getElementById('scan-video')
+  if(!video){stopCam();return}
+  video.srcObject=_scanStream
+  video.setAttribute('playsinline','true') // critical for iOS
+  video.setAttribute('muted','true')
+
+  // Step 3: Wait for video to be ready then start scanning
+  video.onloadedmetadata=async()=>{
+    try{
+      await video.play()
+    }catch(playErr){
+      // iOS sometimes needs a user gesture - just continue, it usually works
+      console.warn('video.play() warning:',playErr.message)
+    }
+    _scanActive=true
+    if(status)status.textContent='Ready — aim at barcode'
+
+    // Init BarcodeDetector or fallback
+    if('BarcodeDetector' in window){
+      try{
+        _barcodeDetector=new BarcodeDetector({
+          formats:['code_128','ean_13','ean_8','upc_a','upc_e','code_39','itf','qr_code','data_matrix']
+        })
+        startScanInterval(video)
+      }catch{
+        _barcodeDetector=null
+        await loadZXingAndStart(video,status)
+      }
+    } else {
+      await loadZXingAndStart(video,status)
+    }
+  }
+
+  video.onerror=()=>{
+    if(status)status.textContent='Video error — try refreshing'
     stopCam()
   }
 }
 
-async function loadZXing(){
-  return new Promise((resolve,reject)=>{
-    if(window.ZXing){resolve();return}
-    const s=document.createElement('script')
-    s.src='https://unpkg.com/@zxing/browser@0.1.4/umd/index.min.js'
-    s.onload=resolve;s.onerror=reject
-    document.head.appendChild(s)
-  })
+async function loadZXingAndStart(video,status){
+  if(status)status.textContent='Loading scanner…'
+  try{
+    await new Promise((res,rej)=>{
+      if(window.ZXing){res();return}
+      const s=document.createElement('script')
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.21.2/umd/index.min.js'
+      s.onload=res;s.onerror=rej
+      document.head.appendChild(s)
+    })
+    if(status)status.textContent='Ready — aim at barcode'
+    startScanInterval(video)
+  }catch{
+    if(status)status.textContent='Scanner not supported — type barcode manually'
+  }
 }
 
-let _lastCode='',_lastCodeTime=0
-function scanLoop(){
-  const video=document.getElementById('scan-video')
-  if(!video||!_scanStream){return}
-  const canvas=document.getElementById('scan-canvas')
-  const ctx=canvas.getContext('2d')
-  async function tick(){
-    if(!_scanStream||video.readyState<2){_scanRAF=requestAnimationFrame(tick);return}
-    canvas.width=video.videoWidth;canvas.height=video.videoHeight
-    ctx.drawImage(video,0,0)
+function startScanInterval(video){
+  // Use setInterval instead of requestAnimationFrame — more reliable on mobile
+  // Scan every 400ms — fast enough without draining battery
+  _scanTimer=setInterval(async()=>{
+    if(!_scanActive||!video||video.readyState<2||video.paused||video.ended)return
     try{
-      let codes=[]
       if(_barcodeDetector){
-        codes=await _barcodeDetector.detect(video)
+        const codes=await _barcodeDetector.detect(video)
+        if(codes&&codes.length)handleDetected(codes[0].rawValue)
       } else if(window.ZXing){
-        // ZXing fallback
+        // Draw frame to canvas for ZXing
+        const canvas=document.getElementById('scan-canvas')
+        if(!canvas)return
+        canvas.width=video.videoWidth||320
+        canvas.height=video.videoHeight||240
+        const ctx=canvas.getContext('2d')
+        ctx.drawImage(video,0,0)
         try{
-          const result=await new ZXing.BrowserMultiFormatReader().decodeFromImageElement(canvas)
-          if(result)codes=[{rawValue:result.getText()}]
+          const hints=new Map()
+          const reader=new ZXing.MultiFormatReader()
+          reader.setHints(hints)
+          const luminance=new ZXing.HTMLCanvasElementLuminanceSource(canvas)
+          const bmp=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminance))
+          const result=reader.decode(bmp)
+          if(result)handleDetected(result.getText())
         }catch{}
       }
-      if(codes.length>0){
-        const code=codes[0].rawValue
-        const now=Date.now()
-        if(code!==_lastCode||now-_lastCodeTime>2500){
-          _lastCode=code;_lastCodeTime=now
-          onCodeDetected(code)
-        }
-      }
-    }catch{}
-    if(_scanStream)_scanRAF=requestAnimationFrame(tick)
-  }
-  _scanRAF=requestAnimationFrame(tick)
+    }catch(e){
+      // Silent — scan errors are normal when no barcode in frame
+    }
+  },350)
 }
 
-function onCodeDetected(code){
+function handleDetected(code){
+  if(!code)return
+  const now=Date.now()
+  if(code===_lastCode&&now-_lastCodeTime<2500)return
+  _lastCode=code;_lastCodeTime=now
   beep()
-  document.getElementById('cam-status').textContent='✓ '+code
-  document.getElementById('sc-bc').value=code
+  const status=document.getElementById('cam-status')
+  if(status)status.textContent='✓ Scanned: '+code
+  const bc=document.getElementById('sc-bc');if(bc)bc.value=code
   liveResolveBC(code)
   const match=allCatalog.find(c=>c.barcode===code)
   if(match){
     addToBatch(code,match.name)
-    document.getElementById('sc-bc').value=''
-    document.getElementById('sc-resolve').style.display='none'
-    document.getElementById('cam-status').textContent='Added: '+match.name+' — aim at next barcode'
+    const bc2=document.getElementById('sc-bc');if(bc2)bc2.value=''
+    const res=document.getElementById('sc-resolve');if(res)res.style.display='none'
+    if(status)status.textContent='Added: '+match.name+' — aim at next'
   } else {
-    document.getElementById('cam-status').textContent='Code: '+code+' — not in catalog, set qty and add'
+    if(status)status.textContent='Code: '+code+' — not in catalog, set qty and add'
   }
 }
 
 function stopCam(){
-  if(_scanRAF){cancelAnimationFrame(_scanRAF);_scanRAF=null}
-  if(_scanStream){_scanStream.getTracks().forEach(t=>t.stop());_scanStream=null}
+  _scanActive=false
+  if(_scanTimer){clearInterval(_scanTimer);_scanTimer=null}
+  if(_scanStream){
+    try{_scanStream.getTracks().forEach(t=>{t.stop()})}catch{}
+    _scanStream=null
+  }
   _barcodeDetector=null
+  const video=document.getElementById('scan-video')
+  if(video){video.srcObject=null;video.onloadedmetadata=null}
   const w=document.getElementById('cam-wrap');if(w)w.style.display='none'
   const b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera Scanner'
 }
 
 // Stop camera when navigating away
 const _origP=window.P
-window.P=function(page,el){if(_scanStream)stopCam();return _origP(page,el)}
+window.P=function(page,el){if(_scanActive)stopCam();return _origP(page,el)}
 
 // ══════════════════════════════════════════
 // CATALOG PAGE
