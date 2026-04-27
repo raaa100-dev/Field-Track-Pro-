@@ -1750,9 +1750,13 @@ async function pgScan(){
     '<canvas id="scan-canvas" style="display:none"></canvas>'+
     '<div id="cam-status" style="padding:7px 12px;background:rgba(6,10,16,.9);font-size:12px;color:#8a96ab;text-align:center;border-radius:0 0 10px 10px">Aim at barcode</div>'+
     '</div>'+
-    // Camera button
+    // Camera buttons - iOS uses native camera, others use live scanner
     '<div style="display:flex;gap:8px;margin-bottom:10px">'+
-    '<button class="btn btn-p" id="cam-toggle-btn" onclick="toggleCam()" style="flex:1;justify-content:center">📷 Start Camera Scanner</button>'+
+    '<label class="btn btn-p" style="flex:1;justify-content:center;cursor:pointer;display:flex;align-items:center;gap:6px">'+
+    '📷 Scan with Camera'+
+    '<input type="file" accept="image/*" capture="environment" style="display:none" onchange="scanFromPhoto(this.files[0])">'+
+    '</label>'+
+    '<button class="btn btn-sm" id="cam-toggle-btn" onclick="toggleCam()" title="Live camera scanner (Android/Desktop)">🎥</button>'+
     '<button class="btn btn-sm" onclick="testBeep()">🔊</button>'+
     '</div>'+
     // Manual input
@@ -2037,6 +2041,45 @@ async function toggleCam(){
     _h5scanner=null
     wrap.style.display='none'
     if(btn)btn.textContent='📷 Start Camera Scanner'
+  }
+}
+
+async function scanFromPhoto(file){
+  if(!file)return
+  const status=document.getElementById('cam-status')
+  const wrap=document.getElementById('cam-wrap')
+  // Show status
+  const toast_id=toast('Reading barcode…','info',0)
+
+  try{
+    // Try native BarcodeDetector first (fastest)
+    if('BarcodeDetector' in window){
+      const bd=new BarcodeDetector({formats:['code_128','ean_13','ean_8','upc_a','upc_e','code_39','itf','qr_code','data_matrix']})
+      const img=await createImageBitmap(file)
+      const codes=await bd.detect(img)
+      if(codes&&codes.length){
+        handleDetected(codes[0].rawValue)
+        return
+      }
+    }
+
+    // Fallback: draw to canvas and try html5-qrcode
+    if(!window.Html5Qrcode){
+      await new Promise((res,rej)=>{
+        const s=document.createElement('script')
+        s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'
+        s.onload=()=>setTimeout(res,100);s.onerror=rej
+        document.head.appendChild(s)
+      })
+    }
+    const result=await Html5Qrcode.scanFile(file,false)
+    if(result)handleDetected(result)
+    else toast('No barcode found — try again closer','warn')
+  }catch(e){
+    if(e.message&&e.message.includes('No MultiFormat'))
+      toast('No barcode found — try again, hold camera steady','warn')
+    else
+      toast('Scan error: '+(e.message||e),'error')
   }
 }
 
