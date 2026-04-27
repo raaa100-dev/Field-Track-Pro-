@@ -1769,11 +1769,15 @@ async function pgScan(){
     '<div id="scan-photo-status" style="display:none;margin-top:7px;font-size:11px;color:#414e63;text-align:center"></div>'+
     '</div>'+
     // Manual input
-    '<div class="fg"><label class="fl">Barcode / Part # <span style="color:#414e63">(scan or type — Enter to add)</span></label>'+
-    '<input class="fi" id="sc-bc" placeholder="Scan or type part number…" autocomplete="off" inputmode="text" '+
-    'oninput="liveResolveBC(this.value)" '+
-    'onkeydown="scanBcKeydown(event)" '+
-    '</div>'+
+    '<div class="fg">'+
+    '<label class="fl" style="display:flex;align-items:center;justify-content:space-between">'+
+    '<span>Barcode / Part #</span>'+
+    '<span id="scan-ready-pill" style="font-size:10px;background:rgba(22,163,74,.15);color:#16a34a;border:1px solid rgba(22,163,74,.25);padding:2px 8px;border-radius:99px">● Ready</span>'+
+    '</label>'+
+    '<input class="fi" id="sc-bc" placeholder="Aim scanner here — or type…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" '+
+    'style="font-size:18px;height:52px;font-family:DM Mono,monospace;letter-spacing:.05em" '+
+    'oninput="liveResolveBC(this.value)" onkeydown="scanBcKeydown(event)" '+
+    'onfocus="document.getElementById(\\'scan-ready-pill\\').style.background=\\'rgba(22,163,74,.3)\\'" '+
     '<div id="sc-resolve" style="display:none;margin-bottom:9px"></div>'+
     '<div id="sc-qty-row" style="display:none;margin-bottom:9px">'+
     '<label class="fl">Quantity</label>'+
@@ -1807,6 +1811,11 @@ async function pgScan(){
     '</div></div></div>'
 
   loadScanEvents()
+  // Auto-focus barcode field immediately for Bluetooth/USB scanner
+  setTimeout(()=>{
+    const bc=document.getElementById('sc-bc')
+    if(bc){bc.focus();bc.select()}
+  },200)
 }
 
 // Add scan line animation CSS
@@ -1829,14 +1838,25 @@ let _resolvedPart=null,_bcDeb=null
 
 function scanAddBtnClick(){
   addToBatch(null,null)
-  const bc=document.getElementById('sc-bc');if(bc)bc.value=''
-  const res=document.getElementById('sc-resolve');if(res)res.style.display='none'
+  setTimeout(()=>{
+    const bc=document.getElementById('sc-bc')
+    if(bc){bc.value='';bc.focus()}
+    const res=document.getElementById('sc-resolve');if(res)res.style.display='none'
+    const qr=document.getElementById('sc-qty-row');if(qr)qr.style.display='none'
+  },80)
 }
 function scanBcKeydown(e){
   if(e.key!=='Enter')return
+  e.preventDefault()
   addToBatch(null,null)
-  const bc=document.getElementById('sc-bc');if(bc)bc.value=''
-  const res=document.getElementById('sc-resolve');if(res)res.style.display='none'
+  // Clear and re-focus for next scan - slight delay so addToBatch can run first
+  setTimeout(()=>{
+    const bc=document.getElementById('sc-bc')
+    if(bc){bc.value='';bc.focus()}
+    const res=document.getElementById('sc-resolve');if(res)res.style.display='none'
+    const qr=document.getElementById('sc-qty-row');if(qr)qr.style.display='none'
+    document.getElementById('sc-qty').value=1
+  },80)
 }
 function liveResolveBC(val){
   clearTimeout(_bcDeb);const el=document.getElementById('sc-resolve');const qr=document.getElementById('sc-qty-row');if(!el)return
@@ -1881,6 +1901,11 @@ function addToBatch(bc,name){
   toast('Added: '+part.name+' ×'+qty)
   document.getElementById('sc-qty').value=1
   _resolvedPart=null
+  // Re-focus field so next scan goes straight in
+  setTimeout(()=>{
+    const bc=document.getElementById('sc-bc')
+    if(bc){bc.focus();bc.value='';bc.select()}
+  },50)
 }
 
 function renderBatch(){
@@ -1929,6 +1954,8 @@ async function commitBatch(){
     const action=_scanMode==='stage'?'Staged':_scanMode==='out'?'Checked out':'Returned'
     toast(action+' '+_batch.length+' part type(s)')
     clearBatch();loadJobPartsPanel();loadScanEvents()
+    // Re-focus for next round of scanning
+    setTimeout(()=>{const bc=document.getElementById('sc-bc');if(bc)bc.focus()},100)
   }catch(e){toast(e.message,'error')}
   btn.disabled=false;btn.textContent='Commit to Job'
 }
