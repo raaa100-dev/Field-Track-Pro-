@@ -1750,14 +1750,23 @@ async function pgScan(){
     '<canvas id="scan-canvas" style="display:none"></canvas>'+
     '<div id="cam-status" style="padding:7px 12px;background:rgba(6,10,16,.9);font-size:12px;color:#8a96ab;text-align:center;border-radius:0 0 10px 10px">Aim at barcode</div>'+
     '</div>'+
-    // Camera buttons - iOS uses native camera, others use live scanner
-    '<div style="display:flex;gap:8px;margin-bottom:10px">'+
-    '<label class="btn btn-p" style="flex:1;justify-content:center;cursor:pointer;display:flex;align-items:center;gap:6px">'+
-    '📷 Scan with Camera'+
-    '<input type="file" accept="image/*" capture="environment" style="display:none" onchange="scanFromPhoto(this.files[0])">'+
+    // Scanner options
+    '<div style="margin-bottom:12px">'+
+    // Primary: Bluetooth scanner notice
+    '<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:8px;padding:10px 12px;margin-bottom:9px">'+
+    '<div style="font-size:11px;font-weight:600;color:#60a5fa;margin-bottom:4px">💡 Fastest: Bluetooth Scanner</div>'+
+    '<div style="font-size:11px;color:#8a96ab">Pair a Bluetooth barcode scanner to your iPhone — it types directly into the field below. Fast, accurate, no camera needed.</div>'+
+    '</div>'+
+    // iOS camera option
+    '<div style="display:flex;gap:7px">'+
+    '<label class="btn btn-p" style="flex:1;justify-content:center;cursor:pointer;display:flex;align-items:center;gap:6px;min-height:40px">'+
+    '<span>📷 Take Photo of Barcode</span>'+
+    '<input type="file" accept="image/jpeg,image/png" capture="environment" style="display:none" onchange="scanFromPhoto(this.files[0])">'+
     '</label>'+
-    '<button class="btn btn-sm" id="cam-toggle-btn" onclick="toggleCam()" title="Live camera scanner (Android/Desktop)">🎥</button>'+
+    '<button class="btn btn-sm" id="cam-toggle-btn" onclick="toggleCam()" title="Live video scanner (Android/Chrome)">🎥 Live</button>'+
     '<button class="btn btn-sm" onclick="testBeep()">🔊</button>'+
+    '</div>'+
+    '<div id="scan-photo-status" style="display:none;margin-top:7px;font-size:11px;color:#414e63;text-align:center"></div>'+
     '</div>'+
     // Manual input
     '<div class="fg"><label class="fl">Barcode / Part # <span style="color:#414e63">(scan or type — Enter to add)</span></label>'+
@@ -2046,40 +2055,57 @@ async function toggleCam(){
 
 async function scanFromPhoto(file){
   if(!file)return
-  const status=document.getElementById('cam-status')
-  const wrap=document.getElementById('cam-wrap')
-  // Show status
-  const toast_id=toast('Reading barcode…','info',0)
+  const photoStatus=document.getElementById('scan-photo-status')
+  if(photoStatus){photoStatus.style.display='block';photoStatus.textContent='Processing image…'}
 
   try{
-    // Try native BarcodeDetector first (fastest)
-    if('BarcodeDetector' in window){
-      const bd=new BarcodeDetector({formats:['code_128','ean_13','ean_8','upc_a','upc_e','code_39','itf','qr_code','data_matrix']})
-      const img=await createImageBitmap(file)
-      const codes=await bd.detect(img)
-      if(codes&&codes.length){
-        handleDetected(codes[0].rawValue)
-        return
-      }
-    }
-
-    // Fallback: draw to canvas and try html5-qrcode
+    // Load html5-qrcode if needed (most reliable for still images on iOS)
     if(!window.Html5Qrcode){
+      if(photoStatus)photoStatus.textContent='Loading scanner…'
       await new Promise((res,rej)=>{
         const s=document.createElement('script')
         s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'
-        s.onload=()=>setTimeout(res,100);s.onerror=rej
+        s.onload=()=>setTimeout(res,200);s.onerror=rej
         document.head.appendChild(s)
       })
     }
-    const result=await Html5Qrcode.scanFile(file,false)
-    if(result)handleDetected(result)
-    else toast('No barcode found — try again closer','warn')
+
+    if(photoStatus)photoStatus.textContent='Scanning…'
+
+    // Try html5-qrcode on the file directly (best iOS support)
+    try{
+      const result=await Html5Qrcode.scanFile(file,false)
+      if(result){
+        if(photoStatus)photoStatus.style.display='none'
+        handleDetected(result)
+        return
+      }
+    }catch{}
+
+    // Try BarcodeDetector as fallback (Chrome/Android)
+    if('BarcodeDetector' in window){
+      try{
+        const bd=new BarcodeDetector({formats:['code_128','ean_13','ean_8','upc_a','upc_e','code_39','itf','qr_code','data_matrix']})
+        const img=await createImageBitmap(file)
+        const codes=await bd.detect(img)
+        if(codes&&codes.length){
+          if(photoStatus)photoStatus.style.display='none'
+          handleDetected(codes[0].rawValue)
+          return
+        }
+      }catch{}
+    }
+
+    // Nothing found
+    if(photoStatus){
+      photoStatus.textContent='No barcode detected — try holding the camera closer and steadier, or type the number manually'
+      photoStatus.style.color='#d97706'
+    }
   }catch(e){
-    if(e.message&&e.message.includes('No MultiFormat'))
-      toast('No barcode found — try again, hold camera steady','warn')
-    else
-      toast('Scan error: '+(e.message||e),'error')
+    if(photoStatus){
+      photoStatus.textContent='Error: '+(e.message||'scan failed')
+      photoStatus.style.color='#dc2626'
+    }
   }
 }
 
