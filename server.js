@@ -251,9 +251,107 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .progress-stages{display:flex;gap:3px;margin:8px 0}
 .ps{flex:1;height:5px;border-radius:99px;background:#1a2540}
 .ps.done{background:#16a34a}.ps.cur{background:#d97706}
+
+/* ── MOBILE RESPONSIVE ────────────────────────────────────────── */
+#mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99;backdrop-filter:blur(2px)}
+#hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;color:#e8edf5;flex-shrink:0}
+#hamburger svg{width:22px;height:22px}
+
+@media(max-width:768px){
+  body{font-size:14px}
+  #hamburger{display:flex;align-items:center}
+  #mobile-overlay{display:none}
+  #mobile-overlay.open{display:block}
+
+  /* Sidebar slides in from left */
+  #sidebar{
+    position:fixed;left:-220px;top:0;bottom:0;z-index:100;
+    transition:transform .25s cubic-bezier(.4,0,.2,1);
+    transform:translateX(0);
+    box-shadow:none;
+  }
+  #sidebar.open{
+    transform:translateX(220px);
+    box-shadow:4px 0 30px rgba(0,0,0,.5);
+  }
+
+  /* Main area takes full width */
+  #main{width:100%;min-width:0}
+
+  /* Topbar */
+  .topbar{padding:0 10px;gap:6px}
+  .topbar-title{font-size:14px}
+  #topbar-actions{gap:5px;flex-wrap:wrap;max-width:calc(100vw - 120px);overflow:hidden}
+  #topbar-actions .btn{padding:4px 8px;font-size:11px}
+  #topbar-actions select.fs{font-size:11px;padding:4px 6px;max-width:120px}
+
+  /* Page area */
+  #page-area{padding:10px!important}
+
+  /* Cards and forms */
+  .card{padding:12px}
+  .two,.three,.four{grid-template-columns:1fr!important}
+  .stats{grid-template-columns:repeat(2,1fr)!important}
+
+  /* Tables: make scrollable */
+  .card > table,.tbl{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;font-size:11px}
+
+  /* Job detail tabs: scrollable */
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0}
+  .tab{white-space:nowrap;padding:8px 12px;font-size:11px;flex-shrink:0}
+
+  /* Job detail split layout: stack vertically */
+  .jd-grid{grid-template-columns:1fr!important}
+
+  /* Modal: full screen on mobile */
+  .modal-box{
+    width:100%!important;max-width:100%!important;
+    margin:0!important;border-radius:16px 16px 0 0!important;
+    position:fixed!important;bottom:0!important;left:0!important;right:0!important;top:auto!important;
+    max-height:90vh;overflow-y:auto;
+  }
+  .modal-wrap{align-items:flex-end!important;padding:0!important}
+
+  /* Dispatch board: stack */
+  #page-area [style*="grid-template-columns:280px"]{
+    display:flex!important;flex-direction:column!important;height:auto!important
+  }
+  #dispatch-left{max-height:35vh;border-right:none!important;border-bottom:1px solid rgba(255,255,255,.07)}
+
+  /* Job map: stack */
+  #page-area [style*="grid-template-columns:1fr 300px"]{
+    display:flex!important;flex-direction:column!important;height:auto!important
+  }
+
+  /* Buttons: larger tap targets */
+  .btn{min-height:36px;padding:7px 12px}
+  .btn-sm{min-height:30px;padding:4px 10px}
+  .nav-item{padding:9px 10px;font-size:13px}
+
+  /* Photos grid: 2 cols on phone */
+  .photo-grid{grid-template-columns:repeat(2,1fr)!important}
+
+  /* Safety compliance grid: scrollable */
+  #page-area .card [style*="overflow-x:auto"]{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  /* Notifications bell */
+  #notif-badge{top:-2px!important;right:-2px!important}
+
+  /* Daily reports filters: wrap */
+  #page-area [style*="grid-template-columns:1fr 1fr 1fr 1fr"]{
+    grid-template-columns:1fr 1fr!important
+  }
+}
+
+@media(max-width:420px){
+  .stats{grid-template-columns:repeat(2,1fr)!important}
+  .photo-grid{grid-template-columns:repeat(2,1fr)!important}
+  #topbar-actions .btn{font-size:10px;padding:3px 6px}
+}
 </style>
 </head>
 <body>
+<div id="mobile-overlay" onclick="closeSidebar()"></div>
 <div id="sidebar">
   <div class="logo"><div class="logo-mark">FieldAxisHQ</div><div class="logo-sub">v2 · Operations</div></div>
   <div style="flex:1;padding:4px 0;overflow-y:auto">
@@ -296,6 +394,11 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 
 <div id="main">
   <div class="topbar">
+    <button id="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+      <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 6h16M3 11h16M3 16h16"/>
+      </svg>
+    </button>
     <div class="topbar-title" id="page-title">Dashboard</div>
     <div class="tb-right" id="topbar-actions">
       <div style="position:relative;cursor:pointer" onclick="P('notifications',null)" title="Notifications">
@@ -3773,6 +3876,26 @@ async function removeDispatchAssignment(id){
   await sb.from('dispatch_assignments').delete().eq('id',id)
   toast('Removed','warn');await loadDispatchData()
 }
+
+// ── MOBILE SIDEBAR ────────────────────────────────────────────
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar')
+  const ov=document.getElementById('mobile-overlay')
+  const isOpen=sb.classList.contains('open')
+  if(isOpen){closeSidebar()}
+  else{sb.classList.add('open');ov.classList.add('open');document.body.style.overflow='hidden'}
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open')
+  document.getElementById('mobile-overlay').classList.remove('open')
+  document.body.style.overflow=''
+}
+// Close sidebar when a nav item is tapped on mobile
+document.querySelectorAll && document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.addEventListener('click',()=>{ if(window.innerWidth<=768) closeSidebar() })
+  })
+})
 </script>
 `
 const HTML_WORKER = `<!DOCTYPE html>
