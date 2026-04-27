@@ -117,7 +117,7 @@ const HTML_ADMIN  = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FieldAxisHQ Admin v2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
@@ -1727,65 +1727,90 @@ async function pgScan(){
   allJobs=jobs||[]
   const{data:cat}=await sb.from('catalog').select('*').order('name')
   allCatalog=cat||[]
-  document.getElementById('page-area').innerHTML=\`
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-    <div>
-      <div class="card">
-        <div class="fg"><label class="fl">Job *</label><select class="fs" id="sc-job" onchange="_scanJobId=this.value;loadJobPartsPanel()"><option value="">— Select job —</option>\${allJobs.map(j=>\`<option value="\${j.id}">\${j.name}</option>\`).join('')}</select></div>
-        <div class="mode-toggle" style="margin-bottom:12px">
-          <button class="active" id="mt-stage" onclick="setScanMode('stage',this)">📥 Stage In</button>
-          <button id="mt-out" onclick="setScanMode('out',this)">📤 Check Out</button>
-          <button id="mt-return" onclick="setScanMode('return',this)">↩ Return</button>
-        </div>
-        <!-- CAMERA -->
-        <div id="cam-wrap" style="display:none">
-          <div class="scan-cam"><div id="cam-viewport"></div><div class="scan-overlay"><div class="scan-rect"><div class="scan-line"></div></div></div><div class="scan-status" id="cam-status">Align barcode in frame</div></div>
-        </div>
-        <div style="margin-bottom:10px;display:flex;gap:8px">
-          <button class="btn btn-sm" id="cam-toggle-btn" onclick="toggleCam()" style="flex:1">📷 Start Camera</button>
-          <button class="btn btn-sm" onclick="testBeep()">🔊 Test Beep</button>
-        </div>
-        <div class="fg">
-          <label class="fl">Barcode / Part # <span style="color:#414e63">(scan or type — Enter to add)</span></label>
-          <input class="fi" id="sc-bc" placeholder="Scan barcode or type part number…" autocomplete="off" oninput="liveResolveBC(this.value)" onkeydown="if(event.key==='Enter'){addToBatch(null,null);this.value='';document.getElementById('sc-resolve').style.display='none'}">
-        </div>
-        <div id="sc-resolve" style="display:none;margin-bottom:9px"></div>
-        <div id="sc-qty-row" style="display:none;margin-bottom:9px">
-          <label class="fl">Quantity</label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="btn btn-sm" onclick="adjManualQty(-1)">−</button>
-            <input class="fi" type="number" id="sc-qty" value="1" min="1" style="width:70px;text-align:center">
-            <button class="btn btn-sm" onclick="adjManualQty(1)">+</button>
-            <button class="btn btn-p btn-sm" onclick="addToBatch(null,null);document.getElementById('sc-bc').value='';document.getElementById('sc-resolve').style.display='none'">Add to Batch</button>
-          </div>
-        </div>
-        <!-- BATCH LIST -->
-        <div id="batch-list" style="display:none">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <span style="font-weight:500;font-size:13px" id="batch-title">Staging Batch</span>
-            <span style="background:#e8edf5;color:#060a10;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px" id="batch-cnt">0</span>
-          </div>
-          <div id="batch-items"></div>
-          <div style="display:flex;gap:7px;margin-top:9px">
-            <button class="btn btn-p btn-sm" id="commit-btn" onclick="commitBatch()" style="flex:2">Commit Batch to Job</button>
-            <button class="btn btn-r btn-sm" onclick="clearBatch()">Clear</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div>
-      <div class="card">
-        <div class="card-title">Parts on Job <button class="btn btn-sm btn-ghost" onclick="loadJobPartsPanel()">↻</button></div>
-        <div id="job-parts-panel"><div style="font-size:12px;color:#414e63">Select a job to see its parts</div></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Recent Scan Events</div>
-        <div id="scan-events-panel"></div>
-      </div>
-    </div>
-  </div>\`
+  document.getElementById('page-area').innerHTML=
+    '<div style="display:grid;grid-template-columns:1fr 340px;gap:14px;align-items:start">'+
+    // LEFT: Scanner
+    '<div>'+
+    '<div class="card" style="margin-bottom:12px">'+
+    // Job select
+    '<div class="fg"><label class="fl">Job *</label>'+
+    '<select class="fs" id="sc-job" onchange="_scanJobId=this.value;loadJobPartsPanel()">'+
+    '<option value="">— Select job —</option>'+
+    allJobs.map(j=>'<option value="'+j.id+'">'+j.name+'</option>').join('')+
+    '</select></div>'+
+    // Mode toggle
+    '<div class="mode-toggle" style="margin-bottom:12px">'+
+    '<button class="active" id="mt-stage" data-m="stage" onclick="setScanMode(this.dataset.m,this)">📥 Stage In</button>'+
+    '<button id="mt-out" data-m="out" onclick="setScanMode(this.dataset.m,this)">📤 Check Out</button>'+
+    '<button id="mt-return" data-m="return" onclick="setScanMode(this.dataset.m,this)">↩ Return</button>'+
+    '</div>'+
+    // Camera section
+    '<div id="cam-wrap" style="display:none;margin-bottom:12px">'+
+    '<div style="position:relative;width:100%;border-radius:10px;overflow:hidden;background:#000">'+
+    '<video id="scan-video" autoplay playsinline muted style="width:100%;display:block;max-height:280px;object-fit:cover"></video>'+
+    '<canvas id="scan-canvas" style="display:none"></canvas>'+
+    // Aim overlay
+    '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">'+
+    '<div style="width:65%;height:28%;border:2px solid rgba(255,255,255,.7);border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,.45)">'+
+    '<div style="position:absolute;top:0;left:0;right:0;height:2px;background:rgba(37,99,235,.9);animation:scanLine 1.8s ease-in-out infinite"></div>'+
+    '</div></div>'+
+    // Status bar
+    '<div id="cam-status" style="position:absolute;bottom:0;left:0;right:0;padding:8px 12px;background:rgba(0,0,0,.7);font-size:12px;color:#fff;text-align:center">Aim at barcode</div>'+
+    '</div>'+
+    '</div>'+
+    // Camera button
+    '<div style="display:flex;gap:8px;margin-bottom:10px">'+
+    '<button class="btn btn-p" id="cam-toggle-btn" onclick="toggleCam()" style="flex:1;justify-content:center">📷 Start Camera Scanner</button>'+
+    '<button class="btn btn-sm" onclick="testBeep()">🔊</button>'+
+    '</div>'+
+    // Manual input
+    '<div class="fg"><label class="fl">Barcode / Part # <span style="color:#414e63">(scan or type — Enter to add)</span></label>'+
+    '<input class="fi" id="sc-bc" placeholder="Scan or type part number…" autocomplete="off" inputmode="text" '+
+    'oninput="liveResolveBC(this.value)" '+
+    'onkeydown="scanBcKeydown(event)" '+
+    '</div>'+
+    '<div id="sc-resolve" style="display:none;margin-bottom:9px"></div>'+
+    '<div id="sc-qty-row" style="display:none;margin-bottom:9px">'+
+    '<label class="fl">Quantity</label>'+
+    '<div style="display:flex;gap:8px;align-items:center">'+
+    '<button class="btn btn-sm" onclick="adjManualQty(-1)">−</button>'+
+    '<input class="fi" type="number" id="sc-qty" value="1" min="1" style="width:70px;text-align:center">'+
+    '<button class="btn btn-sm" onclick="adjManualQty(1)">+</button>'+
+    '<button class="btn btn-p btn-sm" onclick="scanAddBtnClick()">Add</button>'+
+    '</div></div>'+
+    // Batch
+    '<div id="batch-list" style="display:none">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+    '<span style="font-weight:600;font-size:13px" id="batch-title">Staging Batch</span>'+
+    '<span style="background:#e8edf5;color:#060a10;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px" id="batch-cnt">0</span>'+
+    '</div>'+
+    '<div id="batch-items"></div>'+
+    '<div style="display:flex;gap:7px;margin-top:9px">'+
+    '<button class="btn btn-p btn-sm" id="commit-btn" onclick="commitBatch()" style="flex:2">Commit to Job</button>'+
+    '<button class="btn btn-r btn-sm" onclick="clearBatch()">Clear</button>'+
+    '</div></div>'+
+    '</div></div>'+
+    // RIGHT: Parts panel
+    '<div>'+
+    '<div class="card" style="margin-bottom:10px">'+
+    '<div class="card-title">Parts on Job <button class="btn btn-sm btn-ghost" onclick="loadJobPartsPanel()">↻</button></div>'+
+    '<div id="job-parts-panel"><div style="font-size:12px;color:#414e63">Select a job to see its parts</div></div>'+
+    '</div>'+
+    '<div class="card">'+
+    '<div class="card-title">Recent Scans</div>'+
+    '<div id="scan-events-panel"></div>'+
+    '</div></div></div>'
+
   loadScanEvents()
 }
+
+// Add scan line animation CSS
+if(!document.getElementById('scan-anim-css')){
+  const s=document.createElement('style');s.id='scan-anim-css'
+  s.textContent='@keyframes scanLine{0%{top:0}50%{top:calc(100% - 2px)}100%{top:0}}'
+  document.head.appendChild(s)
+}
+
 function setScanMode(m,btn){
   _scanMode=m
   document.querySelectorAll('#mt-stage,#mt-out,#mt-return').forEach(b=>b.classList.remove('active'))
@@ -1793,53 +1818,88 @@ function setScanMode(m,btn){
   const titles={stage:'Staging Batch',out:'Check-out Batch',return:'Return Batch'}
   const el=document.getElementById('batch-title');if(el)el.textContent=titles[m]||m
 }
+
 function testBeep(){beep()}
 let _resolvedPart=null,_bcDeb=null
+
+function scanAddBtnClick(){
+  addToBatch(null,null)
+  const bc=document.getElementById('sc-bc');if(bc)bc.value=''
+  const res=document.getElementById('sc-resolve');if(res)res.style.display='none'
+}
+function scanBcKeydown(e){
+  if(e.key!=='Enter')return
+  addToBatch(null,null)
+  const bc=document.getElementById('sc-bc');if(bc)bc.value=''
+  const res=document.getElementById('sc-resolve');if(res)res.style.display='none'
+}
 function liveResolveBC(val){
   clearTimeout(_bcDeb);const el=document.getElementById('sc-resolve');const qr=document.getElementById('sc-qty-row');if(!el)return
   if(!val||val.length<2){el.style.display='none';qr.style.display='none';_resolvedPart=null;return}
   _bcDeb=setTimeout(()=>{
-    const match=allCatalog.filter(c=>c.barcode.toLowerCase()===val.toLowerCase()||c.barcode.toLowerCase().includes(val.toLowerCase())||(c.part_number||'').toLowerCase().includes(val.toLowerCase())||(c.name||'').toLowerCase().includes(val.toLowerCase())).slice(0,5)
-    if(!match.length){el.innerHTML=\`<div style="font-size:11px;color:#414e63;padding:6px 9px;background:#131c2e;border-radius:6px">Not in catalog — will add as new part</div>\`;el.style.display='block';_resolvedPart={barcode:val,name:val,part_number:'',description:''};qr.style.display='block';return}
-    el.innerHTML=match.map(c=>\`<div style="padding:9px 11px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:7px;cursor:pointer;margin-bottom:4px" onclick="selectCatalogPart('\${c.barcode}','\${(c.name||'').replace(/'/g,"\\\\'")}')"><div style="font-size:13px;font-weight:500">\${c.name}</div><div style="font-size:10px;color:#414e63">\${c.barcode} \${c.part_number?' · #'+c.part_number:''} \${c.description?' · '+c.description.substring(0,40):''}</div></div>\`).join('')
+    const match=allCatalog.filter(c=>
+      c.barcode.toLowerCase()===val.toLowerCase()||
+      c.barcode.toLowerCase().includes(val.toLowerCase())||
+      (c.part_number||'').toLowerCase().includes(val.toLowerCase())||
+      (c.name||'').toLowerCase().includes(val.toLowerCase())
+    ).slice(0,5)
+    if(!match.length){
+      el.innerHTML='<div style="font-size:11px;color:#414e63;padding:6px 9px;background:#131c2e;border-radius:6px">Not in catalog — will add as new part</div>'
+      el.style.display='block';_resolvedPart={barcode:val,name:val,part_number:'',description:''};qr.style.display='block';return
+    }
+    el.innerHTML=match.map(cm=>'<div style="padding:9px 11px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:7px;cursor:pointer;margin-bottom:4px" '+
+      'data-bc="'+cm.barcode+'" data-name="'+cm.name.replace(/"/g,'&quot;')+'" onclick="selectCatalogPart(this.dataset.bc,this.dataset.name)">'+
+      '<div style="font-size:13px;font-weight:500">'+cm.name+'</div>'+
+      '<div style="font-size:10px;color:#414e63">'+cm.barcode+(cm.part_number?' · #'+cm.part_number:'')+(cm.description?' · '+cm.description.substring(0,40):'')+'</div></div>'
+    ).join('')
     el.style.display='block'
     if(match.length===1){_resolvedPart=match[0];qr.style.display='block'}
   },200)
 }
+
 function selectCatalogPart(bc,name){
   document.getElementById('sc-bc').value=bc
   document.getElementById('sc-resolve').style.display='none'
   document.getElementById('sc-qty-row').style.display='block'
   _resolvedPart=allCatalog.find(c=>c.barcode===bc)||{barcode:bc,name,part_number:'',description:''}
 }
+
 function adjManualQty(d){const el=document.getElementById('sc-qty');if(!el)return;el.value=Math.max(1,(parseInt(el.value)||1)+d)}
-function addToBatch(bc, name){
+
+function addToBatch(bc,name){
   const barcode=bc||v('sc-bc').trim();if(!barcode)return
   const qty=parseInt(v('sc-qty'))||1
   const part=_resolvedPart||allCatalog.find(c=>c.barcode===barcode)||{barcode,name:name||barcode,part_number:'',description:''}
   const ex=_batch.find(b=>b.barcode===barcode)
   if(ex){ex.qty+=qty}else{_batch.push({barcode,name:part.name,part_number:part.part_number||'',description:part.description||'',qty})}
-  beep()
-  renderBatch()
-  // Ask to add another
-  toast(\`Added: \${part.name} (x\${qty})\`)
+  beep();renderBatch()
+  toast('Added: '+part.name+' ×'+qty)
   document.getElementById('sc-qty').value=1
   _resolvedPart=null
 }
+
 function renderBatch(){
   const bl=document.getElementById('batch-list');if(!bl)return
   if(!_batch.length){bl.style.display='none';return}
   bl.style.display='block'
   document.getElementById('batch-cnt').textContent=_batch.reduce((s,b)=>s+b.qty,0)
-  document.getElementById('batch-items').innerHTML=_batch.map((b,i)=>\`<div class="batch-item">
-    <div class="bi-info"><div class="bi-name">\${b.name}</div><div class="bi-bc">\${b.barcode}\${b.part_number?' · #'+b.part_number:''}</div></div>
-    <div class="qty-ctrl"><button onclick="adjBatch(\${i},-1)">−</button><span>\${b.qty}</span><button onclick="adjBatch(\${i},1)">+</button></div>
-    <button style="background:none;border:none;cursor:pointer;color:#414e63;font-size:16px;padding:2px 5px" onclick="rmBatch(\${i})">×</button>
-  </div>\`).join('')
+  document.getElementById('batch-items').innerHTML=_batch.map((b,i)=>
+    '<div class="batch-item">'+
+    '<div class="bi-info"><div class="bi-name">'+b.name+'</div><div class="bi-bc">'+b.barcode+(b.part_number?' · #'+b.part_number:'')+'</div></div>'+
+    '<div class="qty-ctrl">'+
+    '<button data-i="'+i+'" onclick="adjBatch(parseInt(this.dataset.i),-1)">−</button>'+
+    '<span>'+b.qty+'</span>'+
+    '<button data-i="'+i+'" onclick="adjBatch(parseInt(this.dataset.i),1)">+</button>'+
+    '</div>'+
+    '<button style="background:none;border:none;cursor:pointer;color:#414e63;font-size:16px;padding:2px 5px" data-i="'+i+'" onclick="rmBatch(parseInt(this.dataset.i))">×</button>'+
+    '</div>'
+  ).join('')
 }
+
 function adjBatch(i,d){_batch[i].qty=Math.max(1,_batch[i].qty+d);renderBatch()}
 function rmBatch(i){_batch.splice(i,1);renderBatch()}
 function clearBatch(){_batch=[];renderBatch()}
+
 async function commitBatch(){
   const jobId=document.getElementById('sc-job')?.value;if(!jobId){toast('Select a job first','error');return}
   if(!_batch.length){toast('Batch is empty','warn');return}
@@ -1848,63 +1908,161 @@ async function commitBatch(){
   const statusMap={stage:'staged',out:'signed_out',return:'staged'}
   try{
     for(const item of _batch){
-      // Check if part already on job
-      const{data:existing}=await sb.from('job_parts').select('*').eq('job_id',jobId).eq('part_id',item.barcode).single()
+      const{data:existing}=await sb.from('job_parts').select('*').eq('job_id',jobId).eq('part_id',item.barcode).maybeSingle()
       if(existing){
-        // Update existing
         const update={assigned_qty:existing.assigned_qty+item.qty,status:statusMap[_scanMode],updated_at:now}
         if(_scanMode==='stage'){update.staged_by=ME?.full_name;update.staged_at=now}
         if(_scanMode==='out'){update.checked_out_by=ME?.full_name;update.checked_out_at=now;update.taken_qty=(existing.taken_qty||0)+item.qty}
         await sb.from('job_parts').update(update).eq('id',existing.id)
-      } else {
+      }else{
         const row={id:uuid(),job_id:jobId,part_id:item.barcode,part_name:item.name,status:statusMap[_scanMode],assigned_qty:item.qty,taken_qty:_scanMode==='out'?item.qty:0,staged_by:_scanMode==='stage'?ME?.full_name:null,staged_at:_scanMode==='stage'?now:null,checked_out_by:_scanMode==='out'?ME?.full_name:null,checked_out_at:_scanMode==='out'?now:null,notes:item.description||'',created_at:now,updated_at:now}
         await sb.from('job_parts').insert(row)
       }
-      // Log scan event
       await sb.from('scan_events').insert({id:uuid(),job_id:jobId,part_id:item.barcode,part_name:item.name,action:_scanMode==='stage'?'stage_in':_scanMode==='out'?'check_out':'return',qty:item.qty,scanned_by:ME?.full_name||'?',scanned_at:now,device_info:navigator.userAgent.slice(0,60)})
-      // Deduct from inventory on stage or checkout
-      if(_scanMode!=='return'){const{data:inv}=await sb.from('inventory').select('qty').eq('id',item.barcode).single();if(inv)await sb.from('inventory').update({qty:Math.max(0,inv.qty-item.qty),updated_at:now}).eq('id',item.barcode)}
+      if(_scanMode!=='return'){const{data:inv}=await sb.from('inventory').select('qty').eq('id',item.barcode).maybeSingle();if(inv)await sb.from('inventory').update({qty:Math.max(0,inv.qty-item.qty),updated_at:now}).eq('id',item.barcode)}
     }
     const action=_scanMode==='stage'?'Staged':_scanMode==='out'?'Checked out':'Returned'
-    toast(\`\${action} \${_batch.length} part type(s) ✓\`)
+    toast(action+' '+_batch.length+' part type(s)')
     clearBatch();loadJobPartsPanel();loadScanEvents()
   }catch(e){toast(e.message,'error')}
-  btn.disabled=false;btn.textContent='Commit Batch to Job'
+  btn.disabled=false;btn.textContent='Commit to Job'
 }
+
 async function loadJobPartsPanel(){
   const jobId=document.getElementById('sc-job')?.value;const el=document.getElementById('job-parts-panel');if(!el)return
   if(!jobId){el.innerHTML='<div style="font-size:12px;color:#414e63">Select a job</div>';return}
   const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',jobId).order('created_at',{ascending:false})
-  el.innerHTML=(parts||[]).length?\`<table class="tbl"><thead><tr><th>Part</th><th>Qty</th><th>Status</th><th>By</th></tr></thead><tbody>\${(parts||[]).map(p=>\`<tr><td style="font-weight:500;font-size:12px">\${p.part_name}</td><td>\${p.assigned_qty}</td><td><span class="badge \${p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-blue':'bg-green'}">\${p.status.replace('_',' ')}</span></td><td style="font-size:10px;color:#8a96ab">\${p.staged_by||p.checked_out_by||'—'}</td></tr>\`).join('')}</tbody></table>\`:'<div style="font-size:12px;color:#414e63">No parts on this job yet</div>'
+  if(!(parts||[]).length){el.innerHTML='<div style="font-size:12px;color:#414e63">No parts on this job yet</div>';return}
+  el.innerHTML='<table class="tbl"><thead><tr><th>Part</th><th>Qty</th><th>Status</th><th>By</th></tr></thead><tbody>'+
+    (parts||[]).map(p=>'<tr><td style="font-weight:500;font-size:12px">'+p.part_name+'</td><td>'+p.assigned_qty+'</td>'+
+    '<td><span class="badge '+(p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-blue':'bg-green')+'">'+p.status.replace('_',' ')+'</span></td>'+
+    '<td style="font-size:10px;color:#8a96ab">'+(p.staged_by||p.checked_out_by||'—')+'</td></tr>').join('')+
+    '</tbody></table>'
 }
+
 async function loadScanEvents(){
   const el=document.getElementById('scan-events-panel');if(!el)return
   const{data:events}=await sb.from('scan_events').select('*').order('scanned_at',{ascending:false}).limit(15)
-  el.innerHTML=(events||[]).length?events.map(e=>\`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span class="badge \${e.action==='stage_in'?'bg-amber':e.action==='check_out'?'bg-blue':'bg-green'}" style="flex-shrink:0">\${e.action.replace('_',' ')}</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${e.part_name} ×\${e.qty}</div><div style="font-size:10px;color:#414e63">\${e.scanned_by||'?'} · \${fdt(e.scanned_at)}</div></div></div>\`).join(''):'<div style="font-size:12px;color:#414e63">No recent scans</div>'
+  if(!(events||[]).length){el.innerHTML='<div style="font-size:12px;color:#414e63">No recent scans</div>';return}
+  el.innerHTML=events.map(e=>
+    '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)">'+
+    '<span class="badge '+(e.action==='stage_in'?'bg-amber':e.action==='check_out'?'bg-blue':'bg-green')+'" style="flex-shrink:0">'+e.action.replace('_',' ')+'</span>'+
+    '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+e.part_name+' ×'+e.qty+'</div>'+
+    '<div style="font-size:10px;color:#414e63">'+(e.scanned_by||'?')+' · '+fdt(e.scanned_at)+'</div></div></div>'
+  ).join('')
 }
 
-// CAMERA SCANNING
+// ── CAMERA SCANNING ───────────────────────────────────────────
+// Uses native BarcodeDetector API (Chrome/Android/iOS 16+)
+// Falls back to ZXing WASM for older browsers
+let _scanStream=null, _scanRAF=null, _barcodeDetector=null
+
 async function toggleCam(){
-  if(_camRunning){stopCam();return}
+  if(_scanStream){stopCam();return}
   const wrap=document.getElementById('cam-wrap');if(!wrap)return
   wrap.style.display='block'
-  document.getElementById('cam-toggle-btn').textContent='⏹ Stop Camera'
+  const btn=document.getElementById('cam-toggle-btn')
+  btn.textContent='⏹ Stop Camera'
+  document.getElementById('cam-status').textContent='Starting camera…'
   try{
-    await Quagga.init({inputStream:{name:'Live',type:'LiveStream',target:document.getElementById('cam-viewport'),constraints:{facingMode:'environment'}},decoder:{readers:['code_128_reader','ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_39_reader','itf_reader']},locate:true},err=>{if(err){toast('Camera error: '+err,'error');stopCam();return};Quagga.start();_camRunning=true;document.getElementById('cam-status').textContent='Ready — point at barcode'})
-    let lastCode='',lastTime=0
-    Quagga.onDetected(data=>{
-      const code=data.codeResult.code;const now=Date.now()
-      if(code===lastCode&&now-lastTime<2000)return
-      lastCode=code;lastTime=now
-      document.getElementById('sc-bc').value=code
-      liveResolveBC(code)
-      const match=allCatalog.find(c=>c.barcode===code)
-      if(match){addToBatch(code,match.name);document.getElementById('sc-bc').value='';document.getElementById('sc-resolve').style.display='none'}
-      else{beep();document.getElementById('cam-status').textContent='Found: '+code+' — not in catalog, set qty and add'}
+    // Request camera
+    _scanStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}
     })
-  }catch(e){toast('Camera failed: '+e.message,'error');stopCam()}
+    const video=document.getElementById('scan-video')
+    video.srcObject=_scanStream
+    await video.play()
+    document.getElementById('cam-status').textContent='Aim at barcode'
+    // Init detector
+    if('BarcodeDetector' in window){
+      _barcodeDetector=new BarcodeDetector({formats:['code_128','ean_13','ean_8','upc_a','upc_e','code_39','itf','qr_code','data_matrix']})
+      document.getElementById('cam-status').textContent='Ready — aim at barcode'
+      scanLoop()
+    } else {
+      // Load ZXing fallback
+      document.getElementById('cam-status').textContent='Loading scanner library…'
+      await loadZXing()
+      scanLoop()
+    }
+  }catch(e){
+    toast('Camera error: '+(e.message||'Permission denied'),'error')
+    document.getElementById('cam-status').textContent='Camera failed — check permissions'
+    stopCam()
+  }
 }
-function stopCam(){if(!_camRunning)return;try{Quagga.stop()}catch{};_camRunning=false;const w=document.getElementById('cam-wrap');if(w)w.style.display='none';const b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera'}
+
+async function loadZXing(){
+  return new Promise((resolve,reject)=>{
+    if(window.ZXing){resolve();return}
+    const s=document.createElement('script')
+    s.src='https://unpkg.com/@zxing/browser@0.1.4/umd/index.min.js'
+    s.onload=resolve;s.onerror=reject
+    document.head.appendChild(s)
+  })
+}
+
+let _lastCode='',_lastCodeTime=0
+function scanLoop(){
+  const video=document.getElementById('scan-video')
+  if(!video||!_scanStream){return}
+  const canvas=document.getElementById('scan-canvas')
+  const ctx=canvas.getContext('2d')
+  async function tick(){
+    if(!_scanStream||video.readyState<2){_scanRAF=requestAnimationFrame(tick);return}
+    canvas.width=video.videoWidth;canvas.height=video.videoHeight
+    ctx.drawImage(video,0,0)
+    try{
+      let codes=[]
+      if(_barcodeDetector){
+        codes=await _barcodeDetector.detect(video)
+      } else if(window.ZXing){
+        // ZXing fallback
+        try{
+          const result=await new ZXing.BrowserMultiFormatReader().decodeFromImageElement(canvas)
+          if(result)codes=[{rawValue:result.getText()}]
+        }catch{}
+      }
+      if(codes.length>0){
+        const code=codes[0].rawValue
+        const now=Date.now()
+        if(code!==_lastCode||now-_lastCodeTime>2500){
+          _lastCode=code;_lastCodeTime=now
+          onCodeDetected(code)
+        }
+      }
+    }catch{}
+    if(_scanStream)_scanRAF=requestAnimationFrame(tick)
+  }
+  _scanRAF=requestAnimationFrame(tick)
+}
+
+function onCodeDetected(code){
+  beep()
+  document.getElementById('cam-status').textContent='✓ '+code
+  document.getElementById('sc-bc').value=code
+  liveResolveBC(code)
+  const match=allCatalog.find(c=>c.barcode===code)
+  if(match){
+    addToBatch(code,match.name)
+    document.getElementById('sc-bc').value=''
+    document.getElementById('sc-resolve').style.display='none'
+    document.getElementById('cam-status').textContent='Added: '+match.name+' — aim at next barcode'
+  } else {
+    document.getElementById('cam-status').textContent='Code: '+code+' — not in catalog, set qty and add'
+  }
+}
+
+function stopCam(){
+  if(_scanRAF){cancelAnimationFrame(_scanRAF);_scanRAF=null}
+  if(_scanStream){_scanStream.getTracks().forEach(t=>t.stop());_scanStream=null}
+  _barcodeDetector=null
+  const w=document.getElementById('cam-wrap');if(w)w.style.display='none'
+  const b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera Scanner'
+}
+
+// Stop camera when navigating away
+const _origP=window.P
+window.P=function(page,el){if(_scanStream)stopCam();return _origP(page,el)}
 
 // ══════════════════════════════════════════
 // CATALOG PAGE
