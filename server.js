@@ -510,9 +510,9 @@ function renderOrdersList(orders, jobs){
     html+=items.map(i=>'<div style="display:flex;align-items:center;gap:10px;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.04)"><div style="flex:1"><div style="font-size:12px;font-weight:500">'+i.name+'</div><div style="font-size:10px;color:#414e63">'+i.barcode+'</div></div><div style="font-size:12px;font-weight:600">×'+i.qty+'</div></div>').join('')
     html+='<div style="padding:7px 11px;font-size:11px;color:#414e63">'+items.length+' type(s) · '+totalQty+' units</div></div>'
     html+='<div style="display:flex;gap:7px;flex-wrap:wrap">'
-    if(o.status==='pending') html+='<button class="btn btn-p btn-sm" data-oid="'+o.id+'" onclick="updateOrderStatus(this.dataset.oid,'ordered')">Mark Ordered</button>'
+    if(o.status==='pending') html+='<button class="btn btn-p btn-sm" data-oid="'+o.id+'" data-ns="ordered" onclick="updateOrderStatus(this.dataset.oid,this.dataset.ns)">Mark Ordered</button>'
     if(o.status==='ordered') html+='<button class="btn btn-p btn-sm" data-oid="'+o.id+'" data-jid="'+o.job_id+'" onclick="stageOrderToJob(this.dataset.oid,this.dataset.jid)">📥 Stage to Job</button>'
-    if(o.status!=='staged'&&o.status!=='cancelled') html+='<button class="btn btn-sm" data-oid="'+o.id+'" onclick="updateOrderStatus(this.dataset.oid,'cancelled')">Cancel</button>'
+    if(o.status!=='staged'&&o.status!=='cancelled') html+='<button class="btn btn-sm" data-oid="'+o.id+'" data-ns="cancelled" onclick="updateOrderStatus(this.dataset.oid,this.dataset.ns)">Cancel</button>'
     html+='</div></div>'
     return html
   }).join('')
@@ -1261,6 +1261,9 @@ async function commitCheckout(){
   if(btn)btn.textContent='📤 Sign Out Parts'
   loadJT('jt-parts')
 }
+</script>
+</body>
+</html>
 `
 const HTML_WORKER = `<!DOCTYPE html>
 <html lang="en">
