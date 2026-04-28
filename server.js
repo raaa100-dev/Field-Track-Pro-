@@ -1875,7 +1875,10 @@ function addWorkerToCoModal(coId){
 // SAFETY TOPICS PAGE
 // ══════════════════════════════════════════
 async function checkSafetyBadge(){
-  try{const{count}=await sb.from('safety_assignments').select('id',{count:'exact',head:true}).is('acknowledged_at',null);const b=document.getElementById('nb-safety');if(b){b.textContent=count||0;b.style.display=count>0?'inline-block':'none'}}catch{}
+  try{const{data:assigns}=await sb.from('safety_assignments').select('topic_id,profile_id')
+    const{data:acks}=await sb.from('safety_acks').select('topic_id,profile_id')
+    const ackedSet=new Set((acks||[]).map(a=>a.profile_id+'_'+a.topic_id))
+    const count=(assigns||[]).filter(a=>!ackedSet.has(a.profile_id+'_'+a.topic_id)).length;const b=document.getElementById('nb-safety');if(b){b.textContent=count||0;b.style.display=count>0?'inline-block':'none'}}catch{}
 }
 async function pgSafety(){
   document.getElementById('topbar-actions').innerHTML=
