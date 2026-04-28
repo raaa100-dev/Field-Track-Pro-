@@ -983,6 +983,575 @@ async function removeWorker(id){await sb.from('job_workers').update({is_active:f
 
 
 function buildPartsTable(parts){
+  if(!parts||!parts.length) return empty('📦','No parts on this job yet')
+
+  // Staging completeness check
+  const totalOrdered=parts.reduce((s,p)=>s+(p.ordered_qty||p.assigned_qty||0),0)
+  const totalStaged=parts.filter(p=>['staged','signed_out','partial_install','installed'].includes(p.status)).reduce((s,p)=>s+(p.assigned_qty||0),0)
+  const totalTaken=parts.reduce((s,p)=>s+(p.taken_qty||0),0)
+  const totalInstalled=parts.reduce((s,p)=>s+(p.installed_qty||0),0)
+  const stagedComplete=parts.every(p=>['staged','signed_out','partial_install','installed'].includes(p.status))
+  const overParts=parts.filter(p=>(p.installed_qty||0)>(p.ordered_qty||p.assigned_qty||0))
+  const underParts=parts.filter(p=>p.status==='installed'&&(p.installed_qty||0)<(p.ordered_qty||p.assigned_qty||0))
+
+  let html=''
+
+  // Flow summary bar
+  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">'
+  const flowSteps=[
+    {label:'Ordered',val:totalOrdered,color:'#60a5fa'},
+    {label:'Staged',val:totalStaged,color:'#eab308'},
+    {label:'Checked Out',val:totalTaken,color:'#a855f7'},
+    {label:'Installed',val:totalInstalled,color:'#16a34a'}
+  ]
+  flowSteps.forEach(step=>{
+    html+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 12px;text-align:center">'
+    html+='<div style="font-size:18px;font-weight:700;color:'+step.color+'">'+step.val+'</div>'
+    html+='<div style="font-size:10px;color:#414e63;margin-top:2px">'+step.label+'</div>'
+    html+='</div>'
+  })
+  html+='</div>'
+
+  // Staging status
+  html+='<div style="margin-bottom:10px;padding:8px 12px;border-radius:7px;font-size:12px;background:'+(stagedComplete?'rgba(22,163,74,.08)':'rgba(217,119,6,.08)')+';border:1px solid '+(stagedComplete?'rgba(22,163,74,.2)':'rgba(217,119,6,.2)')+'">'+
+    (stagedComplete
+      ?'✅ All parts staged and ready for pickup'
+      :'⚠ '+parts.filter(p=>!['staged','signed_out','partial_install','installed'].includes(p.status)).length+' part type(s) not yet staged')+
+    '</div>'
+
+  // Variance warnings
+  if(overParts.length) html+='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:9px 12px;margin-bottom:9px;font-size:12px;color:#dc2626">⚠ Over-issued: '+overParts.map(p=>p.part_name+' (ordered '+(p.ordered_qty||p.assigned_qty)+', installed '+(p.installed_qty||0)+')').join(', ')+'</div>'
+  if(underParts.length) html+='<div style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.2);border-radius:7px;padding:9px 12px;margin-bottom:9px;font-size:12px;color:#d97706">⚠ Under-installed: '+underParts.map(p=>p.part_name+' (ordered '+(p.ordered_qty||p.assigned_qty)+', installed '+(p.installed_qty||0)+')').join(', ')+'</div>'
+
+  // Parts table
+  html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr>'
+  html+='<th>Part</th><th>Ordered</th><th>Staged</th><th>Checked Out</th><th>Installed</th><th>Returned</th><th>Status</th><th>Staged By</th>'
+  html+='</tr></thead><tbody>'
+
+  parts.forEach(p=>{
+    const ordered=p.ordered_qty||p.assigned_qty||0
+    const staged=p.assigned_qty||0
+    const taken=p.taken_qty||0
+    const installed=p.installed_qty||0
+    const returned=p.returned_qty||0
+    const remaining=staged-taken
+    const bc=p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-purple':p.status==='installed'?'bg-green':p.status==='partial_install'?'bg-teal':p.status==='ordered'?'bg-blue':'bg-gray'
+    const pct=staged>0?Math.round(installed/staged*100):0
+    const varColor=installed>ordered?'color:#dc2626':installed===ordered&&installed>0?'color:#16a34a':'color:#8a96ab'
+
+    html+='<tr>'
+    html+='<td><div style="font-weight:500">'+p.part_name+'</div><div style="font-size:9px;color:#414e63">'+p.part_id+'</div></td>'
+    html+='<td style="font-weight:500">'+ordered+'</td>'
+    html+='<td style="color:'+(staged>0?'#eab308':'#414e63')+'">'+staged+'</td>'
+    html+='<td style="color:'+(taken>0?'#a855f7':'#414e63')+'">'+taken+'</td>'
+    html+='<td><div style="display:flex;align-items:center;gap:6px"><div class="pbar" style="width:40px"><div class="pb g" style="width:'+Math.min(100,pct)+'%"></div></div><span style="font-size:11px;'+varColor+'">'+installed+'</span></div></td>'
+    html+='<td style="font-size:11px;color:#414e63">'+returned+'</td>'
+    html+='<td><span class="badge '+bc+'">'+p.status.replace(/_/g,' ')+'</span></td>'
+    html+='<td style="font-size:11px;color:#8a96ab">'+(p.staged_by||'—')+(p.staged_at?'<br><span style="font-size:9px;color:#414e63">'+fd(p.staged_at)+'</span>':'')+'</td>'
+    html+='</tr>'
+  })
+  html+='</tbody></table></div>'
+  return html
+}
+
+
+function stageBadge(p){return\`<span class="badge \${STAGE_COLORS[p]||'bg-gray'}">\${STAGE_LABELS[p]||p||'—'}</span>\`}
+function roleBadge(r){const m={admin:'bg-purple',pm:'bg-blue',stager:'bg-amber',foreman:'bg-teal',technician:'bg-green',sub_lead:'bg-amber',sub_worker:'bg-gray'};return\`<span class="badge \${m[r]||'bg-gray'}">\${r||'—'}</span>\`}
+function empty(icon,txt){return\`<div class="empty"><div class="empty-icon">\${icon}</div><div style="color:#414e63;font-size:12px">\${txt}</div></div>\`}
+function ld(){return'<div class="loading"><div class="spin"></div> Loading…</div>'}
+
+// ══════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════
+async function pgDash(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="P(\\'newjob\\',null)">+ New Job</button>'
+  try {
+  // Run queries individually so one failure doesn't break everything
+  const {data:jobs,error:jobsError} = await sb.from('jobs').select('*').order('created_at',{ascending:false})
+  if(jobsError) throw new Error('Jobs: '+jobsError.message)
+  const {data:ci=[]} = await sb.from('checkins').select('id,job_id,worker_id,checkin_at,checkout_at,profiles:worker_id(full_name),jobs(name)').is('checkout_at',null).order('checkin_at',{ascending:false}).limit(20).then(r=>r).catch(()=>({data:[]}))
+  const {data:parts=[]} = await sb.from('job_parts').select('id,job_id,status,assigned_qty').in('status',['staged','signed_out']).then(r=>r).catch(()=>({data:[]}))
+  const {data:low=[]} = await sb.from('inventory').select('id,name,qty,min_qty').gt('min_qty',0).then(r=>r).catch(()=>({data:[]}))
+  const {data:safety=[]} = await sb.from('safety_topics').select('id,title,week_of').order('created_at',{ascending:false}).limit(5).then(r=>r).catch(()=>({data:[]}))
+  // Load worker names for check-ins separately (avoid join issues)
+  let ciWithNames = ci||[]
+  if(ciWithNames.length){
+    const workerIds=[...new Set(ciWithNames.map(c=>c.worker_id).filter(Boolean))]
+    const jobIds=[...new Set(ciWithNames.map(c=>c.job_id).filter(Boolean))]
+    const [{data:wProfiles},{data:ciJobs}]=await Promise.all([
+      sb.from('profiles').select('id,full_name').in('id',workerIds),
+      sb.from('jobs').select('id,name').in('id',jobIds)
+    ]).catch(()=>[{data:[]},{data:[]}])
+    const wMap={}; (wProfiles||[]).forEach(p=>wMap[p.id]=p.full_name)
+    const jMap={}; (ciJobs||[]).forEach(j=>jMap[j.id]=j.name)
+    ciWithNames=ciWithNames.map(c=>({...c,workerName:wMap[c.worker_id]||'?',jobName:jMap[c.job_id]||''}))
+  }
+  allJobs=jobs||[]
+  const active=allJobs.filter(j=>j.phase!=='complete')
+  const staged=(parts||[]).filter(p=>p.status==='staged')
+  const out=(parts||[]).filter(p=>p.status==='signed_out')
+  const lowStock=(low||[]).filter(i=>i.qty<=i.min_qty)
+  const checkins=ciWithNames
+  // Upcoming milestones in next 14 days
+  const soon=[]
+  allJobs.forEach(j=>{
+    const fields=[['expected_onsite_date','Expected On Site'],['next_visit_date','Next Visit'],['date_closeout','Closeout'],['due_date','Due']]
+    fields.forEach(([f,lbl])=>{if(j[f]){const da=daysAway(j[f]);if(da!=null&&da>=0&&da<=14)soon.push({job:j.name,type:lbl,date:j[f],da,id:j.id})}})
+  })
+  soon.sort((a,b)=>a.da-b.da)
+  document.getElementById('page-area').innerHTML=\`
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Active Jobs</div><div class="stat-value">\${active.length}</div><div style="font-size:10px;color:#414e63;margin-top:2px">\${active.filter(j=>isOD(j.due_date,j.phase)).length} overdue</div></div>
+    <div class="stat"><div class="stat-label">Parts Staged</div><div class="stat-value" style="color:#d97706">\${staged.length}</div></div>
+    <div class="stat"><div class="stat-label">Checked Out</div><div class="stat-value" style="color:#60a5fa">\${out.length}</div></div>
+    <div class="stat"><div class="stat-label">On Site Now</div><div class="stat-value" style="color:#16a34a">\${checkins.length}</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 280px;gap:13px">
+    <div>
+      <div class="card">
+        <div class="card-title">Active Jobs <button class="btn btn-sm btn-ghost" onclick="P('jobs',null)">All →</button></div>
+        \${active.length?\`<table class="tbl"><thead><tr><th>Job</th><th>Stage</th><th>Due</th></tr></thead><tbody>\${active.slice(0,8).map(j=>\`<tr onclick="openJob('\${j.id}')"><td><div style="font-weight:500">\${j.name}</div><div style="font-size:10px;color:#414e63">\${j.address||''}</div></td><td>\${stageBadge(j.phase)}</td><td style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">\${fd(j.due_date)}</td></tr>\`).join('')}</tbody></table>\`:empty('📋','No active jobs')}
+      </div>
+      <div class="card">
+        <div class="card-title">⚠ Due Within 14 Days</div>
+        \${soon.length?soon.map(s=>\`<div class="sched-item" onclick="openJob('\${s.id}')"><div class="sched-dot" style="background:\${s.da<=3?'#dc2626':s.da<=7?'#d97706':'#16a34a'};margin-top:4px"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${s.job}</div><div style="font-size:10px;color:#414e63">\${s.type} · \${fd(s.date)}</div></div><span class="badge \${s.da<=3?'bg-red':s.da<=7?'bg-amber':'bg-green'}">\${s.da===0?'Today':s.da+'d'}</span></div>\`).join(''):empty('📅','All clear — nothing due in 14 days')}
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">Low Stock</div>
+        \${lowStock.length?lowStock.slice(0,5).map(i=>\`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span>\${i.name}</span><span style="color:#dc2626;font-weight:500">\${i.qty}/\${i.min_qty}</span></div>\`).join(''):'<div style="font-size:12px;color:#414e63">All stock OK ✓</div>'}
+      </div>
+      <div class="card">
+        <div class="card-title">Live Check-ins</div>
+        \${checkins.length?checkins.slice(0,5).map(c=>\`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div class="av" style="width:22px;height:22px;font-size:8px;\${Object.entries(avS(c.workerName)).map(([k,v])=>k+':'+v).join(';')}">\${ini(c.workerName)}</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${c.workerName||'?'}</div><div style="font-size:10px;color:#414e63">\${c.jobName||''} · \${ft(c.checkin_at)}</div></div><span class="gps-live" style="font-size:9px"><span class="pulse"></span></span></div>\`).join(''):'<div style="font-size:12px;color:#414e63">No one on site</div>'}
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">🔔 Safety Pending</div>
+        \${(safety||[]).length?(safety||[]).map(s=>\`<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px"><div style="font-weight:500">\${s.safety_topics?.title||'Topic'}</div><div style="color:#414e63;margin-top:1px">\${s.assigned_name} · Week of \${fd(s.safety_topics?.week_of)}</div></div>\`).join(''):'<div style="font-size:12px;color:#414e63">No pending safety reviews ✓</div>'}
+        <button class="btn btn-sm" style="margin-top:8px;width:100%;justify-content:center" onclick="P('safety',null)">Manage Safety →</button>
+      </div>
+    </div>
+  </div>\`
+  } catch(e) {
+    console.error('Dashboard:',e)
+    document.getElementById('page-area').innerHTML='<div style="padding:20px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px"><div style="color:#dc2626;font-weight:600;margin-bottom:6px">⚠ Failed to load — database not ready</div><div style="font-size:12px;color:#f87171;word-break:break-all">'+e.message+'</div><div style="font-size:11px;color:#8a96ab;margin-top:8px">Run <strong>supabase-fix.sql</strong> in Supabase SQL Editor, then refresh.</div></div>'
+  }
+}
+// ══════════════════════════════════════════
+// ALL JOBS
+// ══════════════════════════════════════════
+async function pgJobs(){
+  document.getElementById('topbar-actions').innerHTML=\`
+    <label class="btn btn-sm" style="cursor:pointer">⬇ Import Excel<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importJobsExcel(this)"></label>
+    <button class="btn btn-sm" onclick="exportJobsExcel()">⬆ Export</button>
+    <button class="btn btn-p btn-sm" onclick="P('newjob',null)">+ New Job</button>\`
+  try {
+    const{data:jobs,error}=await sb.from('jobs').select('*').order('created_at',{ascending:false})
+    if(error) throw error
+    allJobs=jobs||[]
+    renderJobsTable('')
+  } catch(e) {
+    const errMsg=e.message||String(e)
+    document.getElementById('page-area').innerHTML='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:18px;margin:0"><div style="font-weight:600;color:#dc2626;margin-bottom:6px">Failed to load jobs</div><div style="font-size:12px;color:#f87171;font-family:monospace;word-break:break-all;margin-bottom:8px">'+errMsg+'</div><div style="font-size:11px;color:#8a96ab">To fix: go to Supabase Dashboard → SQL Editor → run <strong>supabase-fix.sql</strong> from the zip, then refresh this page.</div></div>'
+  }
+}
+function renderJobsTable(q){
+  const rows=allJobs.filter(j=>!q||j.name.toLowerCase().includes(q.toLowerCase())||(j.address||'').toLowerCase().includes(q.toLowerCase()))
+  document.getElementById('page-area').innerHTML=\`
+  <div style="margin-bottom:12px;display:flex;gap:8px">
+    <input class="fi" placeholder="Search jobs…" style="max-width:280px" oninput="renderJobsTable(this.value)" value="\${q}">
+    <select class="fs" style="width:160px" onchange="filterJobsByStage(this.value)"><option value="">All Stages</option>\${STAGES.map(s=>\`<option value="\${s}">\${STAGE_LABELS[s]}</option>\`).join('')}</select>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+  \${rows.length?\`<table class="tbl"><thead><tr><th>Job</th><th>GC</th><th>Stage</th><th>Due Date</th><th>Next Visit</th><th>Project Manager</th><th>Contract</th><th>Progress</th></tr></thead><tbody>\${rows.map(j=>\`<tr onclick="openJob('\${j.id}')"><td><div style="font-weight:500">\${j.name}</div><div style="font-size:10px;color:#414e63">\${j.address||''}</div></td><td style="font-size:11px;color:#8a96ab">\${j.gc_company||'—'}</td><td>\${stageBadge(j.phase)}</td><td style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">\${fd(j.due_date)}</td><td style="font-size:11px;color:\${daysAway(j.next_visit_date)!=null&&daysAway(j.next_visit_date)<=7?'#d97706':'#8a96ab'}">\${fd(j.next_visit_date)}</td><td style="font-size:11px">\${j.project_manager||'—'}</td><td style="font-size:11px">\${j.contract_value?fm(j.contract_value):'—'}</td><td><div class="pbar" style="width:70px"><div class="pb g" style="width:\${j.pct_complete||0}%"></div></div><div style="font-size:9px;color:#414e63;margin-top:2px">\${j.pct_complete||0}%</div></td></tr>\`).join('')}</tbody></table>\`:empty('📋','No jobs found')}
+  </div>\`
+}
+function filterJobsByStage(stage){
+  const rows=stage?allJobs.filter(j=>j.phase===stage):allJobs
+  const a=document.getElementById('page-area')
+  a.querySelector('table tbody').innerHTML=rows.map(j=>\`<tr onclick="openJob('\${j.id}')"><td><div style="font-weight:500">\${j.name}</div></td><td>\${j.gc_company||'—'}</td><td>\${stageBadge(j.phase)}</td><td style="font-size:11px">\${fd(j.due_date)}</td><td style="font-size:11px">\${fd(j.next_visit_date)}</td><td>\${j.contract_value?fm(j.contract_value):'—'}</td><td><div class="pbar" style="width:60px"><div class="pb g" style="width:\${j.pct_complete||0}%"></div></div></td></tr>\`).join('')
+}
+async function importJobsExcel(input){
+  const file=input.files[0];if(!file)return
+  const data=await file.arrayBuffer()
+  const wb=XLSX.read(data,{type:'array'})
+  const ws=wb.Sheets[wb.SheetNames[0]]
+  const rows=XLSX.utils.sheet_to_json(ws,{defval:''})
+  if(!rows.length){toast('No data found in file','error');return}
+  let created=0,errors=0
+  for(const r of rows){
+    if(!r['Job Name']&&!r['name'])continue
+    const job={id:uuid(),name:r['Job Name']||r['name']||'',address:r['Address']||r['address']||'',gc_company:r['GC Company']||r['gc_company']||'',gc_contact:r['GC Contact']||'',gc_phone:r['GC Phone']||'',phase:r['Stage']||r['phase']||'not_started',due_date:r['Due Date']||r['due_date']||null,contract_value:parseFloat(r['Contract Value']||r['contract_value'])||null,next_visit_date:r['Next Visit']||null,expected_onsite_date:r['Expected On Site']||null,archived:false,pct_complete:0,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
+    const{error}=await sb.from('jobs').insert(job)
+    if(error)errors++;else created++
+  }
+  toast(\`Imported \${created} jobs\${errors?' ('+errors+' errors)':''}\`,errors?'warn':'success')
+  pgJobs()
+}
+async function exportJobsExcel(){
+  const{data:jobs}=await sb.from('jobs').select('*').order('created_at',{ascending:false})
+  const rows=(jobs||[]).map(j=>({'Job Name':j.name,'Address':j.address||'','GC Company':j.gc_company||'','GC Contact':j.gc_contact||'','GC Phone':j.gc_phone||'','Stage':j.phase,'Due Date':j.due_date||'','Next Visit':j.next_visit_date||'','Expected On Site':j.expected_onsite_date||'','Contract Value':j.contract_value||'','% Complete':j.pct_complete||0,'Completion Date':j.completion_date||''}))
+  const ws=XLSX.utils.json_to_sheet(rows)
+  const wb=XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb,ws,'Jobs')
+  XLSX.writeFile(wb,'FieldAxisHQ-Jobs-'+new Date().toISOString().split('T')[0]+'.xlsx')
+  toast('Excel exported')
+}
+
+// ══════════════════════════════════════════
+// JOB DETAIL
+// ══════════════════════════════════════════
+async function openJob(id){
+  currentJobId=id
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
+  document.getElementById('page-title').textContent='Job Detail'
+  document.getElementById('topbar-actions').innerHTML=\`<button class="btn btn-sm" onclick="P('jobs',null)">← Jobs</button>\`
+  const{data:job}=await sb.from('jobs').select('*').eq('id',id).single()
+  currentJob=job
+  renderJobDetail()
+}
+function renderJobDetail(){
+  const j=currentJob
+  const si=STAGES.indexOf(j.phase)
+  document.getElementById('page-area').innerHTML=\`
+  <div style="margin-bottom:14px">
+    <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">\${j.name}</div>
+    <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${j.address||''}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap">
+      \${j.urgent_pm_visit?'<div style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);border-radius:7px;padding:4px 10px;font-size:12px;font-weight:600;color:#ef4444">🔥 Urgent PM Visit Required</div>':''}
+      \${stageBadge(j.phase)}
+      <select class="fs" style="width:180px;padding:5px 9px;font-size:12px" onchange="updateJobStage(this.value)">\${STAGES.map(s=>\`<option value="\${s}" \${j.phase===s?'selected':''}>\${STAGE_LABELS[s]}</option>\`).join('')}</select>
+      <input type="number" class="fi" style="width:70px;padding:5px 8px;font-size:12px" value="\${j.pct_complete||0}" min="0" max="100" title="% Complete" onchange="updateJobPct(this.value)">%
+      \${j.due_date?\`<span style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">Due \${fd(j.due_date)}</span>\`:''}
+    </div>
+    <div class="progress-stages" style="margin-top:10px">\${STAGES.map((s,i)=>\`<div class="ps \${i<si?'done':i===si?'cur':''}" title="\${STAGE_LABELS[s]}"></div>\`).join('')}</div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab active" onclick="JT(this,'jt-info')">Info</div>
+    <div class="tab" onclick="JT(this,'jt-scope')">Scope</div>
+    <div class="tab" onclick="JT(this,'jt-workers')">Workers</div>
+    <div class="tab" onclick="JT(this,'jt-parts')">Parts</div>
+    <div class="tab" onclick="JT(this,'jt-daily')">Daily Reports</div>
+    <div class="tab" onclick="JT(this,'jt-walks')">Job Walks</div>
+    <div class="tab" onclick="JT(this,'jt-photos')">Photos</div>
+    <div class="tab" onclick="JT(this,'jt-checklist')">Checklist</div>
+    <div class="tab" onclick="JT(this,'jt-punch')">Punch List</div>
+    <div class="tab" onclick="JT(this,'jt-pm')">PM Review</div>
+    <div class="tab" onclick="JT(this,'jt-co')">Change Orders</div>
+    <div class="tab" onclick="JT(this,'jt-fin')">Financials</div>
+    <div class="tab" onclick="JT(this,'jt-subs')">Sub Assignments</div>
+    <div class="tab" onclick="JT(this,'jt-asbuilts')">Plans &amp; As-builts</div>
+    <div class="tab" onclick="JT(this,'jt-pmvisits')">PM Visits</div>
+    <div class="tab" onclick="JT(this,'jt-docs')">Documents</div>
+    <div class="tab" onclick="JT(this,'jt-log')">Daily Log</div>
+  </div>
+  <div id="jt-content" style="padding:16px"></div>\`
+  _curTab='jt-info';loadJT('jt-info')
+}
+function JT(el,id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active')
+  _curTab=id;loadJT(id)
+}
+async function loadJT(id){
+  const el=document.getElementById('jt-content');if(!el)return
+  el.innerHTML=ld()
+  const j=currentJob
+  if(id==='jt-info') renderInfoTab(el,j)
+  else if(id==='jt-scope') renderScopeTab(el,j)
+  else if(id==='jt-workers') await renderWorkersTab(el)
+  else if(id==='jt-parts') await renderPartsTab(el)
+  else if(id==='jt-daily') await renderJobDailyTab(el)
+  else if(id==='jt-walks') await renderJobWalksTab(el)
+  else if(id==='jt-photos') await renderPhotosTab(el)
+  else if(id==='jt-checklist') await renderChecklistTab(el)
+  else if(id==='jt-punch') await renderPunchTab(el)
+  else if(id==='jt-pm') await renderPmTab(el)
+  else if(id==='jt-co') await renderCOTab(el)
+  else if(id==='jt-fin') await renderJobFinTab(el)
+  else if(id==='jt-subs') await renderSubAssignTab(el)
+  else if(id==='jt-asbuilts') await renderAsbuiltsTab(el)
+  else if(id==='jt-pmvisits') await renderPmVisitsTab(el)
+  else if(id==='jt-docs') await renderDocsTab(el)
+  else if(id==='jt-log') await renderLogTab(el)
+}
+async function updateJobStage(phase){await sb.from('jobs').update({phase,updated_at:new Date().toISOString()}).eq('id',currentJobId);currentJob.phase=phase;toast('Stage updated')}
+async function updateJobPct(pct){await sb.from('jobs').update({pct_complete:parseInt(pct)||0,updated_at:new Date().toISOString()}).eq('id',currentJobId);currentJob.pct_complete=parseInt(pct)||0;toast('Progress updated')}
+
+// INFO TAB
+function renderInfoTab(el,j){
+  el.innerHTML=\`<div class="two">
+  <div>
+    <div class="fg"><label class="fl">Job Name</label><input class="fi" id="ed-name" value="\${j.name||''}"></div>
+    <div class="fg" style="position:relative"><label class="fl">Project Address</label><input class="fi" id="ed-addr" value="\${j.address||''}" oninput="addrAC(this.value,'ed-addr-dd')"><div id="ed-addr-dd" class="addr-dd"></div></div>
+    <div class="two"><div class="fg"><label class="fl">GPS Lat</label><input class="fi" id="ed-lat" value="\${j.gps_lat||''}" style="font-family:'DM Mono',monospace;font-size:11px"></div><div class="fg"><label class="fl">GPS Lng</label><input class="fi" id="ed-lng" value="\${j.gps_lng||''}" style="font-family:'DM Mono',monospace;font-size:11px"></div></div>
+    <div class="fg"><label class="fl">Check-in Radius</label><select class="fs" id="ed-rad"><option value="100">100ft</option><option value="250">250ft</option><option value="500">500ft</option><option value="750">750ft</option><option value="1000">1000ft</option></select></div>
+    <div class="fg"><label class="fl">GC Company</label><input class="fi" id="ed-gc" value="\${j.gc_company||''}"></div>
+    <div class="two"><div class="fg"><label class="fl">GC Contact</label><input class="fi" id="ed-gcc" value="\${j.gc_contact||''}"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="ed-gcp" value="\${j.gc_phone||''}"></div></div>
+    <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="ed-sup" value="\${j.super_name||''}"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="ed-supp" value="\${j.super_phone||''}"></div></div>
+    <div class="fg"><label class="fl">Project Manager (Internal)</label><select class="fs" id="ed-pm"><option value="">— Unassigned —</option></select></div>
+    <div class="two"><div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="ed-pmschedule"><option value="none">No visits</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">Milestones only</option></select></div><div class="fg"><label class="fl">Next PM Visit Due</label><input class="fi" type="date" id="ed-pmvisit" value="\${j.next_pm_visit||''}"></div></div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="ed-urgent-pm" \${j.urgent_pm_visit?'checked':''} style="width:16px;height:16px;accent-color:#ef4444"><span style="font-size:13px">🔥 <strong>Urgent PM Visit Required</strong> — flags this job on the map with a fire icon</span></label></div>
+  </div>
+  <div>
+    <div class="sec-hdr">Key Dates</div>
+    <div class="two"><div class="fg"><label class="fl">Start Date</label><input class="fi" type="date" id="ed-start" value="\${j.date_start||''}"></div><div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="ed-due" value="\${j.due_date||''}"></div></div>
+    <div class="two"><div class="fg"><label class="fl">Expected On Site</label><input class="fi" type="date" id="ed-eos" value="\${j.expected_onsite_date||''}"></div><div class="fg"><label class="fl">Next Visit Date</label><input class="fi" type="date" id="ed-nvd" value="\${j.next_visit_date||''}"></div></div>
+    <div class="two"><div class="fg"><label class="fl">Rough-in</label><input class="fi" type="date" id="ed-dr" value="\${j.date_roughin||''}"></div><div class="fg"><label class="fl">Trim-out</label><input class="fi" type="date" id="ed-dt" value="\${j.date_trimout||''}"></div></div>
+    <div class="two"><div class="fg"><label class="fl">Inspection</label><input class="fi" type="date" id="ed-di" value="\${j.date_inspection||''}"></div><div class="fg"><label class="fl">Closeout</label><input class="fi" type="date" id="ed-dco" value="\${j.date_closeout||''}"></div></div>
+    <div class="fg"><label class="fl">Completion Date</label><input class="fi" type="date" id="ed-comp" value="\${j.completion_date||''}"></div>
+    <div class="sec-hdr">Budget</div>
+    <div class="two"><div class="fg"><label class="fl">Contract $</label><input class="fi" type="number" id="ed-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="ed-lr" value="\${j.labor_rate||''}"></div></div>
+    <div class="two"><div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="ed-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="ed-mb" value="\${j.material_budget||''}"></div></div>
+  </div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:4px">
+    <button class="btn btn-p" onclick="saveInfoTab()">Save Changes</button>
+    <button class="btn btn-a" onclick="archiveJob()">Archive Job</button>
+    \${ME?.role==='admin'?'<button class="btn" style="background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.3);color:#dc2626" onclick="deleteJobConfirm()">🗑 Delete Job</button>':''}
+  </div>
+
+  <!-- PERMITS & APPROVED PLANS -->
+  <div class="sec-hdr" style="margin-top:18px">Permits & Approved Plans</div>
+  <div id="job-permits-section">
+    <div style="font-size:12px;color:#414e63">Loading…</div>
+  </div>\`
+  setTimeout(async()=>{
+    document.getElementById('ed-rad').value=j.gps_radius_ft||250
+    if(document.getElementById('ed-pmschedule'))document.getElementById('ed-pmschedule').value=j.pm_visit_schedule||'none'
+    // Populate PM dropdown from employee list
+    const{data:pmUsers}=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
+    const sel=document.getElementById('ed-pm')
+    if(sel&&pmUsers){
+      sel.innerHTML='<option value="">— Unassigned —</option>'+(pmUsers||[]).map(p=>'<option value="'+p.full_name+'"'+( j.project_manager===p.full_name?' selected':'')+'>'+p.full_name+' ('+p.role+')</option>').join('')
+      if(j.project_manager&&!(pmUsers||[]).find(p=>p.full_name===j.project_manager)){
+        sel.innerHTML+='<option value="'+j.project_manager+'" selected>'+j.project_manager+' (not in system)</option>'
+      }
+    }
+  },50)
+}
+
+// ══════════════════════════════════════════
+// PERMITS & APPROVED PLANS
+// ══════════════════════════════════════════
+
+async function loadJobPermits(){
+  const el=document.getElementById('job-permits-section')
+  if(!el||!currentJobId)return
+  const{data:permits}=await sb.from('job_documents')
+    .select('*').eq('job_id',currentJobId).eq('doc_category','permit')
+    .order('created_at',{ascending:false})
+  renderPermitsList(el, permits||[])
+}
+
+function renderPermitsList(el, permits){
+  let html=''
+  if(permits.length){
+    html+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;overflow:hidden;margin-bottom:10px">'
+    html+=permits.map(p=>{
+      const ext=(p.file_name||'').split('.').pop().toLowerCase()
+      const icon=ext==='pdf'?'📄':['png','jpg','jpeg','gif'].includes(ext)?'🖼':'📎'
+      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04)">'
+        +'<div style="font-size:18px;flex-shrink:0">'+icon+'</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.file_name+'</div>'
+        +'<div style="font-size:10px;color:#414e63;margin-top:1px">'+(p.doc_type||'Document')+' · Uploaded '+fd(p.created_at)+' by '+(p.uploaded_by||'—')+'</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:5px;flex-shrink:0">'
+        +(p.file_url?'<a href="'+p.file_url+'" target="_blank" class="btn btn-sm">⬇ View</a>':'')
+        +'<button class="btn btn-sm" style="color:#dc2626" data-pid="'+p.id+'" onclick="deletePermit(this.dataset.pid)">✕</button>'
+        +'</div>'
+        +'</div>'
+    }).join('')
+    html+='</div>'
+  }
+  // Upload form
+  html+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">'
+  html+='<div style="font-size:11px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Upload Permit or Approved Plan</div>'
+  html+='<div class="two" style="margin-bottom:9px">'
+  html+='<div class="fg"><label class="fl">Document Type</label>'
+  html+='<select class="fs" id="permit-type">'+PERMIT_TYPES.map(t=>'<option value="'+t+'">'+t+'</option>').join('')+'</select></div>'
+  html+='<div class="fg"><label class="fl">Description (optional)</label><input class="fi" id="permit-desc" placeholder="e.g. Electrical permit 2024-001"></div>'
+  html+='</div>'
+  html+='<div id="permit-drop-zone" style="border:2px dashed rgba(255,255,255,.12);border-radius:7px;padding:20px;text-align:center;cursor:pointer;transition:.2s" '
+  html+='ondragover="ondragover_permit(event)" '
+  html+='ondragleave="ondragleave_permit(event)" '
+  html+='ondrop="handlePermitDrop(event)" '
+  html+='onclick="document.getElementById(\\"permit-file-input\\").click()">'
+  html+='<div style="font-size:22px;margin-bottom:6px">📎</div>'
+  html+='<div style="font-size:12px;color:#8a96ab">Click or drag & drop</div>'
+  html+='<div style="font-size:10px;color:#414e63;margin-top:3px">PDF, PNG, JPG up to 20MB</div>'
+  html+='<input type="file" id="permit-file-input" style="display:none" accept=".pdf,.png,.jpg,.jpeg,.gif" onchange="uploadPermitFile(this.files[0])">'
+  html+='</div>'
+  html+='<div id="permit-upload-progress" style="display:none;margin-top:8px;font-size:11px;color:#414e63"></div>'
+  html+='</div>'
+  el.innerHTML=html
+}
+
+function ondragover_permit(e){e.preventDefault();e.currentTarget.style.borderColor='rgba(37,99,235,.6)'}
+function ondragleave_permit(e){e.currentTarget.style.borderColor='rgba(255,255,255,.12)'}
+function handlePermitDrop(e){
+  e.preventDefault()
+  document.getElementById('permit-drop-zone').style.borderColor='rgba(255,255,255,.12)'
+  const file=e.dataTransfer.files[0]
+  if(file)uploadPermitFile(file)
+}
+
+async function uploadPermitFile(file){
+  if(!file)return
+  const maxMB=20
+  if(file.size>maxMB*1024*1024){toast('File too large — max '+maxMB+'MB','error');return}
+  const prog=document.getElementById('permit-upload-progress')
+  if(prog){prog.style.display='block';prog.textContent='Uploading…'}
+  try{
+    const docType=document.getElementById('permit-type')?.value||'Permit'
+    const desc=document.getElementById('permit-desc')?.value||''
+    const ext=file.name.split('.').pop()
+    const path='permits/'+currentJobId+'/'+uuid()+'.'+ext
+    // Try Supabase storage
+    let fileUrl=null
+    const{data:upData,error:upErr}=await sb.storage.from('fieldtrack-plans').upload(path,file,{contentType:file.type,upsert:false})
+    if(!upErr){
+      const{data:urlData}=sb.storage.from('fieldtrack-plans').getPublicUrl(path)
+      fileUrl=urlData?.publicUrl
+    }
+    // Store record
+    const{error}=await sb.from('job_documents').insert({
+      id:uuid(),job_id:currentJobId,
+      doc_category:'permit',
+      doc_type:docType,
+      file_name:desc||file.name,
+      file_url:fileUrl,
+      storage_path:path,
+      uploaded_by:ME?.full_name,
+      created_at:new Date().toISOString()
+    })
+    if(error)throw error
+    if(prog)prog.style.display='none'
+    toast(docType+' uploaded')
+    loadJobPermits()
+  }catch(e){
+    if(prog){prog.textContent='Upload failed: '+e.message;prog.style.color='#dc2626'}
+    toast('Upload failed: '+e.message,'error')
+  }
+}
+
+async function deletePermit(id){
+  if(!confirm('Delete this document?'))return
+  const{data:doc}=await sb.from('job_documents').select('storage_path').eq('id',id).single()
+  if(doc?.storage_path)await sb.storage.from('fieldtrack-plans').remove([doc.storage_path]).catch(()=>{})
+  await sb.from('job_documents').delete().eq('id',id)
+  toast('Deleted','warn')
+  loadJobPermits()
+}
+
+async function saveInfoTab(){
+  const u={name:v('ed-name'),address:v('ed-addr'),gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,urgent_pm_visit:document.getElementById('ed-urgent-pm')?.checked||false,date_start:v('ed-start')||null,due_date:v('ed-due')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
+  const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
+  if(error){toast(error.message,'error');return}
+  currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved')
+}
+async function archiveJob(){if(!confirm('Archive this job?'))return;await sb.from('jobs').update({archived:true}).eq('id',currentJobId);toast('Archived');P('jobs',null)}
+
+async function deleteJobConfirm(){
+  // Guard: admin only
+  if(ME?.role!=='admin'){toast('Only admins can delete jobs','error');return}
+  const jobName=currentJob?.name||'this job'
+  // Step 1: First confirmation
+  const step1=confirm('DELETE JOB — Step 1 of 2\\n\\nYou are about to permanently delete:\\n"'+jobName+'"\\n\\nThis will also delete ALL associated data including:\\n• Daily reports\\n• Parts & materials\\n• Photos\\n• Checklists & punch lists\\n• Job walks & plans\\n• Hours & check-ins\\n\\nThis CANNOT be undone.\\n\\nClick OK to continue to step 2.')
+  if(!step1)return
+  // Step 2: Type job name to confirm
+  const typed=prompt('DELETE JOB — Step 2 of 2\\n\\nTo confirm deletion, type the job name exactly as shown below:\\n\\n'+jobName)
+  if(typed===null)return // cancelled
+  if(typed.trim()!==jobName.trim()){
+    toast('Job name did not match — deletion cancelled','error')
+    return
+  }
+  // Perform delete
+  const btn=event?.target
+  if(btn){btn.disabled=true;btn.textContent='Deleting…'}
+  try{
+    // Delete in correct order to respect foreign keys
+    await sb.from('dispatch_assignments').delete().eq('job_id',currentJobId)
+    await sb.from('daily_reports').delete().eq('job_id',currentJobId)
+    await sb.from('job_parts').delete().eq('job_id',currentJobId)
+    await sb.from('job_photos').delete().eq('job_id',currentJobId)
+    await sb.from('job_checklist_items').delete().eq('job_id',currentJobId)
+    await sb.from('punch_list').delete().eq('job_id',currentJobId)
+    await sb.from('job_walks').delete().eq('job_id',currentJobId)
+    await sb.from('job_walk_plans').delete().eq('job_id',currentJobId)
+    await sb.from('pm_visits').delete().eq('job_id',currentJobId)
+    await sb.from('pm_inspections').delete().eq('job_id',currentJobId)
+    await sb.from('change_orders').delete().eq('job_id',currentJobId)
+    await sb.from('job_sub_assignments').delete().eq('job_id',currentJobId)
+    await sb.from('job_workers').delete().eq('job_id',currentJobId)
+    await sb.from('checkins').delete().eq('job_id',currentJobId)
+    await sb.from('job_documents').delete().eq('job_id',currentJobId)
+    await sb.from('notifications').delete().eq('meta->>job_id',currentJobId)
+    // Finally delete the job itself
+    const{error}=await sb.from('jobs').delete().eq('id',currentJobId)
+    if(error)throw error
+    toast('"'+jobName+'" permanently deleted')
+    P('jobs',null)
+  }catch(e){
+    toast('Delete failed: '+e.message,'error')
+    if(btn){btn.disabled=false;btn.textContent='🗑 Delete Job'}
+  }
+}
+function renderScopeTab(el,j){
+  el.innerHTML=\`
+  <div class="fg"><label class="fl">Scope of Work</label><textarea class="ft" id="sc-scope" style="min-height:120px">\${j.scope||''}</textarea></div>
+  <div class="fg"><label class="fl">Install Notes</label><textarea class="ft" id="sc-notes">\${j.install_notes||''}</textarea></div>
+  <div class="fg"><label class="fl">Job Walk Notes</label><textarea class="ft" id="sc-jwn">\${j.job_walk_notes||''}</textarea></div>
+  <div class="two"><div class="fg"><label class="fl">Job Walk By</label><input class="fi" id="sc-jwb" value="\${j.job_walk_by||''}"></div><div class="fg"><label class="fl">Job Walk Date</label><input class="fi" type="date" id="sc-jwd" value="\${j.job_walk_date||''}"></div></div>
+  <button class="btn btn-p" onclick="saveScope()">Save</button>\`
+}
+async function saveScope(){const{error}=await sb.from('jobs').update({scope:v('sc-scope'),install_notes:v('sc-notes'),job_walk_notes:v('sc-jwn'),job_walk_by:v('sc-jwb'),job_walk_date:v('sc-jwd')||null,updated_at:new Date().toISOString()}).eq('id',currentJobId);if(error)toast(error.message,'error');else toast('Saved')}
+
+// ADDRESS AUTOCOMPLETE
+async function addrAC(val,ddId){
+  clearTimeout(_addrDeb);const dd=document.getElementById(ddId);if(!dd)return
+  if(val.length<4){dd.style.display='none';return}
+  _addrDeb=setTimeout(async()=>{try{const r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(val)+'&format=json&limit=5&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}});const j=await r.json();if(!j.length){dd.style.display='none';return};dd.innerHTML=j.map(x=>\`<div class="addr-item" onclick="selAddr('\${x.display_name.replace(/'/g,"\\\\'")}','\${x.lat}','\${x.lon}','\${ddId}')">\${x.display_name.substring(0,80)}</div>\`).join('');dd.style.display='block'}catch{}},350)
+}
+function selAddr(label,lat,lng,ddId){
+  const dd=document.getElementById(ddId);if(dd)dd.style.display='none'
+  if(ddId==='ed-addr-dd'){document.getElementById('ed-addr').value=label;document.getElementById('ed-lat').value=lat;document.getElementById('ed-lng').value=lng;toast('GPS set')}
+  if(ddId==='nj-addr-dd'){document.getElementById('nj-addr').value=label;document.getElementById('nj-lat').value=lat;document.getElementById('nj-lng').value=lng;document.getElementById('nj-gps-ok').style.display='block';document.getElementById('nj-coords').textContent=parseFloat(lat).toFixed(5)+', '+parseFloat(lng).toFixed(5);toast('GPS set')}
+}
+document.addEventListener('click',e=>{document.querySelectorAll('.addr-dd').forEach(dd=>{if(!dd.contains(e.target))dd.style.display='none'})})
+// WORKERS TAB
+async function renderWorkersTab(el){
+  const[{data:workers},{data:ci}]=await Promise.all([
+    sb.from('job_workers').select('id,worker_id,is_active').eq('job_id',currentJobId).eq('is_active',true),
+    sb.from('checkins').select('*').eq('job_id',currentJobId).order('checkin_at',{ascending:false})
+  ])
+  const wIds2=(workers||[]).map(w=>w.worker_id).filter(Boolean)
+  const{data:wProfiles}=wIds2.length?await sb.from('profiles').select('id,full_name,email,is_lead').in('id',wIds2):{data:[]}
+  const totalHrs=(ci||[]).reduce((s,c)=>s+(c.hours_logged||0),0)
+  el.innerHTML=\`
+  <div class="sec-hdr">Assigned Workers <button class="btn btn-sm btn-p" onclick="addWorkerModal()">+ Add</button></div>
+  \${(workers||[]).map(w=>{const p=wProfiles.find(x=>x.id===w.worker_id)||{};return\`<div style="display:flex;align-items:center;gap:9px;padding:8px 10px;background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:7px;margin-bottom:6px"><div class="av" style="width:28px;height:28px;font-size:10px;\${Object.entries(avS(p.full_name)).map(([k,val])=>k+':'+val).join(';')}">\${ini(p.full_name)}</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${p.full_name||'?'}\${p.is_lead?' <span style="font-size:9px;color:#d97706">LEAD</span>':''}</div><div style="font-size:10px;color:#414e63">\${p.email||''}</div></div><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="removeWorker('\${w.id}')">Remove</button></div>\`}).join('')||'<div style="font-size:12px;color:#414e63;margin-bottom:12px">No workers assigned</div>'}
+  <div class="sec-hdr" style="margin-top:14px">GPS Check-in Log</div>
+  \${(ci||[]).length?\`<table class="tbl"><thead><tr><th>Worker</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Distance</th></tr></thead><tbody>\${(ci||[]).map(c=>\`<tr><td>\${c.workerName||'?'}</td><td style="font-size:11px;color:#8a96ab">\${fd(c.checkin_at)}</td><td style="font-size:11px">\${ft(c.checkin_at)}</td><td style="font-size:11px">\${c.checkout_at?ft(c.checkout_at):'<span class="gps-live" style="font-size:9px"><span class="pulse"></span>Active</span>'}</td><td style="font-weight:500">\${c.hours_logged?fh(c.hours_logged):'—'}</td><td>\${c.checkin_dist_ft!=null?\`<span class="badge bg-green">\${c.checkin_dist_ft}ft</span>\`:'—'}</td></tr>\`).join('')}</tbody></table>\`:'<div style="font-size:12px;color:#414e63">No check-ins yet</div>'}
+  <div style="margin-top:11px;background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:10px 13px;display:flex;gap:20px">
+    <div><div style="font-size:10px;color:#414e63">TOTAL HOURS</div><div style="font-size:20px;font-weight:300;margin-top:2px">\${fh(totalHrs)}</div></div>
+    <div><div style="font-size:10px;color:#414e63">EST LABOR COST</div><div style="font-size:20px;font-weight:300;margin-top:2px;color:#60a5fa">\${fm(totalHrs*(currentJob?.labor_rate||0))}</div></div>
+  </div>\`
+}
+async function addWorkerModal(){
+  const{data:all}=await sb.from('profiles').select('id,full_name,email').eq('is_active',true)
+  const{data:ex}=await sb.from('job_workers').select('worker_id').eq('job_id',currentJobId).eq('is_active',true)
+  const exIds=new Set((ex||[]).map(e=>e.worker_id))
+  modal('Add Worker',\`<div class="fg"><label class="fl">Select Worker</label><select class="fs" id="aw-sel"><option value="">— Select —</option>\${(all||[]).filter(w=>!exIds.has(w.id)).map(w=>\`<option value="\${w.id}">\${w.full_name} (\${w.email||''})</option>\`).join('')}</select></div>\`,
+  async()=>{const wid=v('aw-sel');if(!wid)return;await sb.from('job_workers').upsert({id:uuid(),job_id:currentJobId,worker_id:wid,is_active:true,added_by:ME?.full_name,added_at:new Date().toISOString()},{onConflict:'job_id,worker_id'});closeModal();toast('Added');loadJT('jt-workers')})
+}
+async function removeWorker(id){await sb.from('job_workers').update({is_active:false}).eq('id',id);toast('Removed');loadJT('jt-workers')}
+
+
+function buildPartsTable(parts){
   if(!parts||!parts.length) return empty('📦','No parts on this job yet — use Scan Parts to add')
   // Check for variance
   const overParts=parts.filter(p=>(p.installed_qty||0)>p.assigned_qty)
@@ -1012,10 +1581,24 @@ function buildPartsTable(parts){
 async function renderPartsTab(el){
   const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
   el.innerHTML=\`
-  <div style="display:flex;gap:8px;margin-bottom:13px">
-    <button class="btn btn-p btn-sm" onclick="P('scan',null)">📷 Go to Scanner</button>
+  <div style="display:flex;gap:8px;margin-bottom:13px;flex-wrap:wrap">
+    <button class="btn btn-p btn-sm" onclick="P('scan',null)">📷 Scanner</button>
+    <button class="btn btn-sm" id="checkout-toggle-btn" onclick="toggleCheckoutUI()">📤 Sign Out Parts</button>
     <button class="btn btn-sm" onclick="loadJT('jt-parts')">↻ Refresh</button>
-    <button class="btn btn-a btn-sm" onclick="checkPartsVariance('\${currentJobId}').then(()=>loadJT('jt-parts'))">⚠ Check Variance</button>
+    <button class="btn btn-a btn-sm" onclick="checkPartsVariance(currentJobId).then(()=>loadJT('jt-parts'))">⚠ Variance</button>
+  </div>
+  <div id="checkout-ui" style="display:none;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px;margin-bottom:13px">
+    <div style="font-size:12px;font-weight:600;color:#a855f7;margin-bottom:10px">📤 Sign Out Parts to Technician</div>
+    <div class="fg" style="margin-bottom:10px"><label class="fl">Technician</label>
+      <select class="fs" id="checkout-tech">
+        <option value="">— Select technician —</option>
+      </select>
+    </div>
+    <div id="checkout-parts-list" style="margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-p btn-sm" onclick="commitCheckout()" style="flex:1;justify-content:center">Sign Out Selected Parts</button>
+      <button class="btn btn-sm" onclick="toggleCheckoutUI()">Cancel</button>
+    </div>
   </div>
   <div class="stats" style="grid-template-columns:repeat(4,1fr)">
     <div class="stat"><div class="stat-label">Staged</div><div class="stat-value" style="color:#d97706">\${(parts||[]).filter(p=>p.status==='staged').length}</div></div>
@@ -2302,1868 +2885,265 @@ function adjStockModal(id='',name='',qty=0,min=0){
 // ══════════════════════════════════════════
 async function pgOrders(){
   const[{data:orders},{data:jobs}]=await Promise.all([
-    sb.from('orders').select('*').order('created_at',{ascending:false}),
+    sb.from('orders').select('*,jobs(name)').order('created_at',{ascending:false}),
     sb.from('jobs').select('id,name').eq('archived',false).order('name')
   ])
   const{data:cat}=await sb.from('catalog').select('*').order('name')
   allCatalog=cat||[]
   window._ordItems=[]
-  document.getElementById('page-area').innerHTML=\`
-  <div class="card" style="margin-bottom:14px">
-    <div class="card-title">New Order Request</div>
-    <div class="two"><div class="fg"><label class="fl">Job *</label><select class="fs" id="ord-job"><option value="">— Select —</option>\${(jobs||[]).map(j=>\`<option value="\${j.id}">\${j.name}</option>\`).join('')}</select></div><div class="fg"><label class="fl">Notes</label><input class="fi" id="ord-notes"></div></div>
-    <div id="ord-items-display" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px"></div>
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <input class="fi" id="ord-bc" placeholder="Barcode or part name" style="flex:1" oninput="liveResolveBC(this.value)">
-      <input class="fi" id="ord-qty" type="number" value="1" min="1" style="width:65px">
-      <button class="btn btn-p btn-sm" onclick="addOrdItem()">Add</button>
-    </div>
-    <button class="btn btn-p btn-full" onclick="submitOrder()">Submit Order</button>
-  </div>
-  <div class="card" style="padding:0;overflow:hidden">
-  \${(orders||[]).length?\`<table class="tbl"><thead><tr><th>Job</th><th>Items</th><th>By</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>\${(orders||[]).map(o=>{const items=typeof o.items==='string'?JSON.parse(o.items||'[]'):(o.items||[]);return\`<tr><td style="font-weight:500">\${o.job_id}</td><td style="font-size:11px;color:#8a96ab">\${items.length} type(s), \${items.reduce((s,i)=>s+(i.qty||0),0)} total</td><td style="font-size:11px">\${o.created_by||'—'}</td><td style="font-size:11px">\${fd(o.created_at)}</td><td><span class="badge \${o.status==='staged'?'bg-green':o.status==='approved'?'bg-blue':o.status==='rejected'?'bg-red':'bg-amber'}">\${o.status}</span></td><td style="display:flex;gap:5px">\${o.status==='pending'?\`<button class="btn btn-sm btn-g" onclick="approveOrder('\${o.id}')">Stage</button><button class="btn btn-sm btn-r" onclick="rejectOrder('\${o.id}')">Reject</button>\`:''}</td></tr>\`}).join('')}</tbody></table>\`:empty('🛒','No orders yet')}
-  </div>\`
-}
-function addOrdItem(){
-  if(!window._ordItems)window._ordItems=[]
-  const bc=v('ord-bc').trim(),qty=parseInt(v('ord-qty'))||1;if(!bc)return
-  const cat=allCatalog.find(c=>c.barcode===bc||c.name.toLowerCase()===bc.toLowerCase())
-  window._ordItems.push({partId:bc,name:cat?.name||bc,qty})
-  document.getElementById('ord-bc').value='';document.getElementById('ord-qty').value=1
-  document.getElementById('ord-items-display').innerHTML=window._ordItems.map((i,x)=>\`<div class="file-chip">\${i.name} ×\${i.qty}<span class="rm" onclick="window._ordItems.splice(\${x},1);document.getElementById('ord-items-display').innerHTML=window._ordItems.map((i,y)=>'<div class=file-chip>'+i.name+' ×'+i.qty+'</div>').join('')">×</span></div>\`).join('')
-}
-async function submitOrder(){
-  const jobId=v('ord-job');if(!jobId){toast('Select a job','error');return}
-  if(!window._ordItems?.length){toast('Add at least one part','warn');return}
-  const{data:job}=await sb.from('jobs').select('name').eq('id',jobId).single()
-  const{error}=await sb.from('orders').insert({id:uuid(),job_id:job?.name||jobId,items:window._ordItems,notes:v('ord-notes'),status:'pending',created_by:ME?.full_name,created_at:new Date().toISOString()})
-  if(error)toast(error.message,'error');else{toast('Order submitted');window._ordItems=[];pgOrders()}
-}
-async function approveOrder(id){await sb.from('orders').update({status:'staged',staged_by:ME?.full_name,staged_at:new Date().toISOString()}).eq('id',id);toast('Staged OK');pgOrders()}
-async function rejectOrder(id){const n=prompt('Reason for rejection:');if(n===null)return;await sb.from('orders').update({status:'rejected',rejected_by:ME?.full_name,rejection_note:n,rejected_at:new Date().toISOString()}).eq('id',id);toast('Rejected','warn');pgOrders()}
+  window._allOrders=orders||[]
+  window._allOrderJobs=jobs||[]
 
-// ══════════════════════════════════════════
-// GPS TRACKING PAGE
-// ══════════════════════════════════════════
-async function pgGPS(){
-  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="pgGPS()">↻ Refresh</button>'
-  const today=new Date().toISOString().split('T')[0]
-  const{data:ciRaw}=await sb.from('checkins').select('*').gte('checkin_at',today+'T00:00:00').order('checkin_at',{ascending:false})
-  const wIds=[...new Set((ciRaw||[]).map(c=>c.worker_id).filter(Boolean))]
-  const jIds=[...new Set((ciRaw||[]).map(c=>c.job_id).filter(Boolean))]
-  const[{data:gpsProf},{data:gpsJobs}]=await Promise.all([
-    wIds.length?sb.from('profiles').select('id,full_name,companies(name)').in('id',wIds):Promise.resolve({data:[]}),
-    jIds.length?sb.from('jobs').select('id,name').in('id',jIds):Promise.resolve({data:[]})
-  ])
-  const gpsWMap={}; (gpsProf||[]).forEach(p=>{gpsWMap[p.id]={name:p.full_name,company:p.companies?.name||'—'}})
-  const gpsJMap={}; (gpsJobs||[]).forEach(j=>gpsJMap[j.id]=j.name)
-  const ci=(ciRaw||[]).map(c=>({...c,workerName:gpsWMap[c.worker_id]?.name||'?',companyName:gpsWMap[c.worker_id]?.company||'—',jobName:gpsJMap[c.job_id]||'—'}))
-  document.getElementById('page-area').innerHTML=\`
-  <div class="stats" style="grid-template-columns:repeat(3,1fr)">
-    <div class="stat"><div class="stat-label">Currently On Site</div><div class="stat-value" style="color:#16a34a">\${(ci||[]).filter(c=>!c.checkout_at).length}</div></div>
-    <div class="stat"><div class="stat-label">Check-ins Today</div><div class="stat-value">\${(ci||[]).length}</div></div>
-    <div class="stat"><div class="stat-label">Total Hours Today</div><div class="stat-value">\${fh((ci||[]).reduce((s,c)=>s+(c.hours_logged||0),0))}</div></div>
-  </div>
-  <div class="card" style="padding:0;overflow:hidden">
-  \${(ci||[]).length?\`<table class="tbl"><thead><tr><th>Worker</th><th>Company</th><th>Job</th><th>In</th><th>Out</th><th>Hours</th><th>Distance</th><th>GPS</th></tr></thead><tbody>\${(ci||[]).map(c=>\`<tr>
-    <td><div style="display:flex;align-items:center;gap:7px"><div class="av" style="width:22px;height:22px;font-size:8px;\${Object.entries(avS(c.profiles?.full_name)).map(([k,val])=>k+':'+val).join(';')}">\${ini(c.profiles?.full_name)}</div>\${c.workerName||'?'}</div></td>
-    <td style="font-size:11px;color:#8a96ab">\${c.companyName||'—'}</td>
-    <td>\${c.jobName||'—'}</td>
-    <td style="font-size:11px">\${ft(c.checkin_at)}</td>
-    <td style="font-size:11px">\${c.checkout_at?ft(c.checkout_at):'<span class="gps-live" style="font-size:9px"><span class="pulse"></span>On Site</span>'}</td>
-    <td style="font-weight:500">\${c.hours_logged?fh(c.hours_logged):'—'}</td>
-    <td>\${c.checkin_dist_ft!=null?\`<span class="badge bg-green">\${c.checkin_dist_ft}ft</span>\`:'—'}</td>
-    <td style="font-size:10px;color:#414e63;font-family:'DM Mono',monospace">\${c.checkin_lat?c.checkin_lat.toFixed(4)+','+c.checkin_lng.toFixed(4):'—'}</td>
-  </tr>\`).join('')}</tbody></table>\`:empty('📍','No check-ins today')}
-  </div>\`
-}
-
-// ══════════════════════════════════════════
-// HOURS PAGE
-// ══════════════════════════════════════════
-async function pgHours(){
-  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="exportHoursExcel()">⬆ Export Excel</button>'
-  const[{data:ciHoursRaw},{data:profiles}]=await Promise.all([
-    sb.from('checkins').select('*').not('hours_logged','is',null).order('checkin_at',{ascending:false}).limit(200),
-    sb.from('profiles').select('id,full_name,role,companies(name)').eq('is_active',true)
-  ])
-  const byTech={},byJob={}
-  ;(ci||[]).forEach(c=>{
-    const n=c.workerName||'?'
-    const j=c.jobName||c.job_id
-    if(!byTech[n])byTech[n]={name:n,role:c.workerRole||'—',company:c.workerCompany,hours:0,days:new Set()}
-    byTech[n].hours+=(c.hours_logged||0)
-    byTech[n].days.add(c.checkin_at?.split('T')[0])
-    if(!byJob[j])byJob[j]={name:j,hours:0,checkins:0}
-    byJob[j].hours+=(c.hours_logged||0)
-    byJob[j].checkins++
-  })
-  const techRows=Object.values(byTech).sort((a,b)=>b.hours-a.hours)
-  const jobRows=Object.values(byJob).sort((a,b)=>b.hours-a.hours)
-  document.getElementById('page-area').innerHTML=\`
-  <div class="two">
-    <div class="card"><div class="card-title">By Technician / Worker</div>
-    \${techRows.length?\`<table class="tbl"><thead><tr><th>Name</th><th>Role</th><th>Company</th><th>Days</th><th>Total Hours</th></tr></thead><tbody>\${techRows.map(t=>\`<tr><td style="font-weight:500">\${t.name}</td><td>\${roleBadge(t.role)}</td><td style="font-size:11px;color:#8a96ab">\${t.company}</td><td>\${t.days.size}</td><td style="font-weight:500;font-family:'DM Mono',monospace">\${fh(t.hours)}</td></tr>\`).join('')}</tbody></table>\`:empty('⏱','No hours data')}
-    </div>
-    <div class="card"><div class="card-title">By Job</div>
-    \${jobRows.length?\`<table class="tbl"><thead><tr><th>Job</th><th>Check-ins</th><th>Total Hours</th></tr></thead><tbody>\${jobRows.map(j=>\`<tr><td style="font-weight:500">\${j.name}</td><td>\${j.checkins}</td><td style="font-weight:500;font-family:'DM Mono',monospace">\${fh(j.hours)}</td></tr>\`).join('')}</tbody></table>\`:empty('⏱','No hours data')}
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title">All Check-in Records</div>
-    \${(ci||[]).length?\`<table class="tbl"><thead><tr><th>Worker</th><th>Job</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Dist</th></tr></thead><tbody>\${(ci||[]).slice(0,50).map(c=>\`<tr><td style="font-weight:500">\${c.workerName||'?'}</td><td>\${c.jobName||'—'}</td><td style="font-size:11px">\${fd(c.checkin_at)}</td><td style="font-size:11px">\${ft(c.checkin_at)}</td><td style="font-size:11px">\${c.checkout_at?ft(c.checkout_at):'Active'}</td><td style="font-weight:500">\${fh(c.hours_logged)}</td><td>\${c.checkin_dist_ft!=null?c.checkin_dist_ft+'ft':'—'}</td></tr>\`).join('')}</tbody></table>\`:empty('⏱','No check-in records')}
-  </div>\`
-}
-async function exportHoursExcel(){
-  const{data:ci}=await sb.from('checkins').select('*').not('hours_logged','is',null).order('checkin_at',{ascending:false})
-  const rows=(ci||[]).map(c=>({'Worker':c.workerName||'?','Role':c.workerRole||'—','Company':c.workerCompany,'Job':c.jobName||'—','Date':c.checkin_at?.split('T')[0],'Check-in':ft(c.checkin_at),'Check-out':c.checkout_at?ft(c.checkout_at):'—','Hours':c.hours_logged||0,'Distance (ft)':c.checkin_dist_ft||'—'}))
-  const ws=XLSX.utils.json_to_sheet(rows)
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Hours')
-  XLSX.writeFile(wb,'FieldAxisHQ-Hours-'+new Date().toISOString().split('T')[0]+'.xlsx')
-  toast('Hours exported')
-}
-
-// ══════════════════════════════════════════
-// SUB COMPANIES PAGE
-// ══════════════════════════════════════════
-async function pgCompanies(){
-  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="addCompanyModal()">+ Add Company</button>'
-  const[{data:cos},{data:profiles}]=await Promise.all([
-    sb.from('companies').select('*').eq('is_active',true).order('name'),
-    sb.from('profiles').select('*').eq('is_active',true)
-  ])
-  const byC={};(profiles||[]).forEach(p=>{if(p.company_id){if(!byC[p.company_id])byC[p.company_id]=[];byC[p.company_id].push(p)}})
-  document.getElementById('page-area').innerHTML=(cos||[]).map(co=>{
-    const ws=byC[co.id]||[]
-    const insExp=co.ins_expiry?daysAway(co.ins_expiry):null
-    const insStatus=insExp===null?'unknown':insExp<0?'expired':insExp<30?'expiring':'ok'
-    return\`<div class="card" style="margin-bottom:13px">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-      <div><div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700">\${co.name}</div><div style="font-size:11px;color:#414e63;margin-top:2px">\${co.trade||''} \${co.license_num?'· Lic: '+co.license_num:''} \${co.email?'· '+co.email:''}</div></div>
-      <div style="display:flex;gap:7px;align-items:center">
-        <span class="badge \${insStatus==='ok'?'bg-green':insStatus==='expiring'?'bg-amber':'bg-red'}">\${insStatus==='ok'?'GL Insurance OK':insStatus==='expiring'?'Ins Expiring Soon':'Ins Expired/Unknown'}</span>
-        \${co.ins_expiry?\`<span style="font-size:10px;color:#414e63">Exp: \${fd(co.ins_expiry)}</span>\`:''}
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
-      \${ws.map(w=>\`<div style="background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px;display:flex;gap:10px;align-items:flex-start">
-        <div class="av" style="width:38px;height:38px;font-size:13px;flex-shrink:0;\${Object.entries(avS(w.full_name)).map(([k,val])=>k+':'+val).join(';')}">\${ini(w.full_name)}</div>
-        <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12px">\${w.full_name}\${w.is_lead?' <span style="font-size:9px;color:#d97706">LEAD</span>':''}</div><div style="font-size:10px;color:#414e63;margin-top:1px">\${w.email||''}</div><div style="font-size:10px;color:#414e63">\${w.phone||''}</div><div style="margin-top:5px">\${roleBadge(w.role)}</div></div>
-      </div>\`).join('')}
-      <div style="background:#131c2e;border:1.5px dashed rgba(255,255,255,.08);border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:80px" onclick="addWorkerToCoModal('\${co.id}')">
-        <div style="text-align:center;color:#414e63"><div style="font-size:20px">+</div><div style="font-size:11px;margin-top:3px">Add Worker</div></div>
-      </div>
-    </div>
-    </div>\`
-  }).join('')||empty('🏢','No sub companies yet')
-}
-function addCompanyModal(){
-  modal('Add Sub Company',\`
-  <div class="fg"><label class="fl">Company Name *</label><input class="fi" id="nc-nm"></div>
-  <div class="two"><div class="fg"><label class="fl">Trade</label><input class="fi" id="nc-tr" placeholder="HVAC, Electrical…"></div><div class="fg"><label class="fl">License #</label><input class="fi" id="nc-lic"></div></div>
-  <div class="two"><div class="fg"><label class="fl">Email</label><input class="fi" id="nc-em" type="email"></div><div class="fg"><label class="fl">Phone</label><input class="fi" id="nc-ph"></div></div>
-  <div class="fg"><label class="fl">GL Insurance Expiry</label><input class="fi" id="nc-ins" type="date"></div>\`,
-  async()=>{const nm=v('nc-nm').trim();if(!nm)return;const{error}=await sb.from('companies').insert({id:uuid(),name:nm,trade:v('nc-tr'),license_num:v('nc-lic'),email:v('nc-em'),phone:v('nc-ph'),ins_expiry:v('nc-ins')||null,is_active:true,created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();toast('Company added');pgCompanies()}})
-}
-function addWorkerToCoModal(coId){
-  modal('Add Worker',\`
-  <div class="fg"><label class="fl">Full Name *</label><input class="fi" id="nw-nm"></div>
-  <div class="fg"><label class="fl">Email *</label><input class="fi" id="nw-em" type="email"></div>
-  <div class="fg"><label class="fl">Phone</label><input class="fi" id="nw-ph"></div>
-  <div class="fg"><label class="fl">Role</label><select class="fs" id="nw-rl"><option value="sub_worker">Worker</option><option value="sub_lead">Lead</option><option value="technician">Technician</option><option value="foreman">Foreman</option></select></div>\`,
-  async()=>{const nm=v('nw-nm').trim(),em=v('nw-em').trim();if(!nm||!em){toast('Name and email required','error');return};const{error}=await sb.from('profiles').insert({id:uuid(),company_id:coId,full_name:nm,email:em,phone:v('nw-ph'),role:v('nw-rl'),is_lead:v('nw-rl')==='sub_lead',is_active:true,created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();toast('Worker added — invite via Supabase Auth to set password');pgCompanies()}})
-}
-
-// ══════════════════════════════════════════
-// SAFETY TOPICS PAGE
-// ══════════════════════════════════════════
-async function checkSafetyBadge(){
-  try{const{count}=await sb.from('safety_assignments').select('id',{count:'exact',head:true}).is('acknowledged_at',null);const b=document.getElementById('nb-safety');if(b){b.textContent=count||0;b.style.display=count>0?'inline-block':'none'}}catch{}
-}
-async function pgSafety(){
-  document.getElementById('topbar-actions').innerHTML=
-    '<button class="btn btn-sm" onclick="exportSafetyCSV()">⬆ Export Report</button>'+
-    '<button class="btn btn-p btn-sm" onclick="newSafetyTopicModal()">+ New Topic</button>'
-  const[{data:topics},{data:allAcks},{data:allAssigns}]=await Promise.all([
-    sb.from('safety_topics').select('*').order('week_of',{ascending:false,nullsFirst:false}),
-    sb.from('safety_acks').select('*,profiles:profile_id(full_name,role,companies(name))').order('acknowledged_at',{ascending:false}),
-    sb.from('safety_assignments').select('*,profiles:profile_id(full_name,role,companies(name))').order('assigned_at',{ascending:false})
-  ])
   // Stats
-  const totalTopics=(topics||[]).length
-  const totalAssigned=new Set((allAssigns||[]).map(a=>a.profile_id)).size
-  const totalAcked=new Set((allAcks||[]).map(a=>a.profile_id)).size
-  const pendingCount=(allAssigns||[]).filter(a=>{
-    return !((allAcks||[]).find(ak=>ak.topic_id===a.topic_id&&ak.profile_id===a.profile_id))
-  }).length
-  const pa=document.getElementById('page-area')
-  let html=
-    '<div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">'+
-    '<div class="stat"><div class="stat-label">Topics</div><div class="stat-value">'+totalTopics+'</div></div>'+
-    '<div class="stat"><div class="stat-label">Assigned To</div><div class="stat-value">'+totalAssigned+'</div></div>'+
-    '<div class="stat"><div class="stat-label">Completed</div><div class="stat-value" style="color:#16a34a">'+totalAcked+'</div></div>'+
-    '<div class="stat"><div class="stat-label">Pending</div><div class="stat-value" style="color:'+(pendingCount?'#dc2626':'#16a34a')+'">'+pendingCount+'</div></div>'+
-    '</div>'
-  // Tab bar: Topics | Compliance Report
-  const svTopicCls=window._safetyView!=='report'?'btn-p':''
-  const svReportCls=window._safetyView==='report'?'btn-p':''
-  html+='<div style="display:flex;gap:8px;margin-bottom:13px">'+
-    '<button class="btn '+svTopicCls+'" onclick="window._safetyView=\\'topics\\';pgSafety()">Topics</button>'+
-    '<button class="btn '+svReportCls+'" onclick="window._safetyView=\\'report\\';pgSafety()">Compliance Report</button>'+
-    '</div>'
-  if(window._safetyView==='report'){
-    // Full compliance grid: employees vs topics
-    const{data:allProfiles}=await sb.from('profiles').select('id,full_name,role,companies(name)').eq('is_active',true).order('full_name')
-    const profiles=allProfiles||[]
-    const ackMap={} // ackMap[profile_id+topic_id] = ack record
-    ;(allAcks||[]).forEach(a=>{ackMap[a.profile_id+'_'+a.topic_id]=a})
-    const assignMap={}
-    ;(allAssigns||[]).forEach(a=>{assignMap[a.profile_id+'_'+a.topic_id]=a})
-    html+='<div class="card" style="padding:0;overflow:hidden;overflow-x:auto"><table class="tbl"><thead><tr>'
-    html+='<th style="min-width:150px;position:sticky;left:0;background:#131c2e;z-index:1">Employee</th>'
-    html+='<th>Role</th>'
-    ;(topics||[]).forEach(t=>{
-      html+='<th style="min-width:120px;font-size:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+t.title+'">'+t.title.substring(0,20)+(t.title.length>20?'…':'')+'</th>'
-    })
-    html+='</tr></thead><tbody>'
-    profiles.forEach(p=>{
-      const assignedTopics=(allAssigns||[]).filter(a=>a.profile_id===p.id)
-      if(!assignedTopics.length) return // skip unassigned employees
-      html+='<tr onclick="viewEmployeeModal(\\"'+p.id+'\\")" style="cursor:pointer">'
-      html+='<td style="position:sticky;left:0;background:#0c1220;font-weight:500">'+p.full_name+'<div style="font-size:9px;color:#414e63">'+(p.companies?.name||'Internal')+'</div></td>'
-      html+='<td>'+roleBadge(p.role)+'</td>'
-      ;(topics||[]).forEach(t=>{
-        const ack=ackMap[p.id+'_'+t.id]
-        const assigned=assignMap[p.id+'_'+t.id]
-        if(ack){
-          html+='<td title="Completed '+fdt(ack.acknowledged_at)+'"><span class="badge bg-green" style="font-size:9px">✓ '+fd(ack.acknowledged_at)+'</span></td>'
-        }else if(assigned){
-          const overdue=assigned.due_date&&new Date(assigned.due_date)<new Date()
-          html+='<td><span class="badge '+(overdue?'bg-red':'bg-amber')+'" style="font-size:9px">'+(overdue?'Overdue':'Pending')+'</span></td>'
-        }else{
-          html+='<td><span style="font-size:10px;color:#1a2540">—</span></td>'
-        }
-      })
-      html+='</tr>'
-    })
-    html+='</tbody></table></div>'
-  } else {
-    // Topics list view
-    html+=(topics||[]).map(t=>safetyTopicCard(t,allAcks||[],allAssigns||[])).join('')||empty('🛡','No safety topics yet')
-  }
-  pa.innerHTML=html
-}
+  const pending=(orders||[]).filter(o=>o.status==='pending').length
+  const ordered=(orders||[]).filter(o=>o.status==='ordered').length
+  const staged=(orders||[]).filter(o=>o.status==='staged').length
 
-
-function safetyTopicCard(t, allAcks, allAssigns){
-  const tAcks=allAcks.filter(a=>a.topic_id===t.id)
-  const tAssigns=allAssigns.filter(a=>a.topic_id===t.id)
-  const tPending=tAssigns.filter(a=>!tAcks.find(ak=>ak.profile_id===a.profile_id))
-  const safeTitle=t.title.replace(/"/g,'&quot;').replace(/'/g,'&#39;')
-  return '<div class="card" style="margin-bottom:10px">'+
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px">'+
-    '<div><div style="font-family:Syne,sans-serif;font-size:14px;font-weight:700">'+t.title+'</div>'+
-    '<div style="font-size:11px;color:#414e63;margin-top:2px">'+t.category+' · Week of '+fd(t.week_of)+' · By '+(t.created_by||'—')+'</div></div>'+
-    '<div style="display:flex;gap:6px">'+
-    '<button class="btn btn-sm" onclick="viewSafetyAcks(this.dataset.id)" data-id="'+t.id+'">View Acks</button>'+
-    '<button class="btn btn-sm btn-p" onclick="assignSafetyModal(this.dataset.id,this.dataset.title)" data-id="'+t.id+'" data-title="'+safeTitle+'">Assign</button>'+
-    '</div></div>'+
-    '<div style="font-size:12px;color:#8a96ab;line-height:1.6;margin-bottom:9px">'+t.content.substring(0,200)+(t.content.length>200?'…':'')+'</div>'+
-    '<div style="display:flex;gap:12px;font-size:11px">'+
-    '<span style="color:#16a34a">✓ '+tAcks.length+' completed</span>'+
-    '<span style="color:#414e63">/ '+tAssigns.length+' assigned</span>'+
-    (tPending.length?'<span style="color:#dc2626">⚠ '+tPending.length+' pending</span>':'')+
-    '</div></div>'
-}
-async function exportSafetyCSV(){
-  const[{data:topics},{data:acks},{data:assigns}]=await Promise.all([
-    sb.from('safety_topics').select('*').order('week_of',{ascending:false}),
-    sb.from('safety_acks').select('*,profiles:profile_id(full_name,role,companies(name))'),
-    sb.from('safety_assignments').select('*,profiles:profile_id(full_name,role)')
-  ])
-  const ackMap={}
-  ;(acks||[]).forEach(a=>{ackMap[a.profile_id+'_'+a.topic_id]=a})
-  const rows=[['Topic','Category','Week Of','Employee','Role','Assigned Date','Due Date','Status','Completed At']]
-  ;(assigns||[]).forEach(a=>{
-    const topic=(topics||[]).find(t=>t.id===a.topic_id)
-    const ack=ackMap[a.profile_id+'_'+a.topic_id]
-    rows.push([
-      topic?.title||'',topic?.category||'',fd(topic?.week_of),
-      a.profiles?.full_name||'',a.profiles?.role||'',
-      fd(a.assigned_at),fd(a.due_date),
-      ack?'Completed':'Pending',
-      ack?fdt(ack.acknowledged_at):''
-    ])
-  })
-  const csv=rows.map(r=>r.map(x=>'"'+String(x||'').replace(/"/g,'""')+'"').join(',')).join('\\n')
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='Safety-Training-Report-'+new Date().toISOString().split('T')[0]+'.csv';a.click();toast('Report exported')
-}
-
-async function assignSafetyModal(topicId,topicTitle){
-  const[{data:profiles},{data:already}]=await Promise.all([
-    sb.from('profiles').select('id,full_name,role,companies(name)').eq('is_active',true).order('full_name'),
-    sb.from('safety_assignments').select('assigned_to').eq('topic_id',topicId)
-  ])
-  const assigned=new Set((already||[]).map(a=>a.profile_id))
-  modal('Assign — '+topicTitle,\`
-  <div style="font-size:11px;color:#414e63;margin-bottom:10px">Select who must review this safety topic. Already assigned are pre-checked.</div>
-  <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="sa-due"></div>
-  <div style="max-height:300px;overflow-y:auto;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:6px">
-    <div style="padding:4px 6px;margin-bottom:5px"><label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px;color:#8a96ab"><input type="checkbox" id="sa-all" onchange="document.querySelectorAll('.sa-cb').forEach(cb=>cb.checked=this.checked)"> Select All</label></div>
-    \${(profiles||[]).map(p=>\`<label style="display:flex;align-items:center;gap:8px;padding:6px 7px;cursor:pointer;border-radius:5px;transition:.15s" onmouseover="this.style.background='#131c2e'" onmouseout="this.style.background=''">
-      <input type="checkbox" class="sa-cb" value="\${p.id}" data-name="\${p.full_name}" \${assigned.has(p.id)?'checked':''}>
-      <div class="av" style="width:22px;height:22px;font-size:8px;flex-shrink:0;\${Object.entries(avS(p.full_name)).map(([k,val])=>k+':'+val).join(';')}">\${ini(p.full_name)}</div>
-      <div style="flex:1"><div style="font-size:12px">\${p.full_name}</div><div style="font-size:10px;color:#414e63">\${p.role} · \${p.companies?.name||'Internal'}</div></div>
-    </label>\`).join('')}
-  </div>\`,
-  async()=>{
-    const selected=[...document.querySelectorAll('.sa-cb:checked')]
-    const due=v('sa-due')||null
-    let added=0
-    for(const cb of selected){
-      if(assigned.has(cb.value))continue // skip already assigned
-      await sb.from('safety_assignments').insert({id:uuid(),topic_id:topicId,profile_id:cb.value,assigned_name:cb.dataset.name,due_date:due,assigned_at:new Date().toISOString()})
-      added++
-    }
-    closeModal();toast(\`Assigned to \${selected.length} person(s)\${added<selected.length?' ('+(selected.length-added)+' already assigned)':''}\`);pgSafety()
-  })
-}
-async function viewSafetyAcks(topicId){
-  const[{data:acks},{data:assignments}]=await Promise.all([
-    sb.from('safety_acks').select('*').eq('topic_id',topicId).order('acknowledged_at',{ascending:false}),
-    sb.from('safety_assignments').select('*').eq('topic_id',topicId)
-  ])
-  const ackedIds=new Set((acks||[]).map(a=>a.user_name))
-  const pending=(assignments||[]).filter(a=>!ackedIds.has(a.assigned_name))
-  modal('Acknowledgements',\`
-  <div class="two" style="margin-bottom:12px">
-    <div style="background:rgba(22,163,74,.08);border-radius:7px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:300;color:#16a34a">\${(acks||[]).length}</div><div style="font-size:10px;color:#414e63">Acknowledged</div></div>
-    <div style="background:rgba(217,119,6,.08);border-radius:7px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:300;color:#d97706">\${pending.length}</div><div style="font-size:10px;color:#414e63">Pending</div></div>
-  </div>
-  \${(acks||[]).length?\`<div class="sec-hdr">Acknowledged</div>\${(acks||[]).map(a=>\`<div class="safety-ack-row"><span class="badge bg-green" style="flex-shrink:0">✓</span><div style="flex:1"><div style="font-size:12px;font-weight:500">\${a.user_name}</div><div style="font-size:10px;color:#414e63">\${fdt(a.acknowledged_at)}</div></div></div>\`).join('')}\`:''}
-  \${pending.length?\`<div class="sec-hdr" style="margin-top:10px">Pending Review</div>\${pending.map(a=>\`<div class="safety-ack-row"><span class="badge bg-amber" style="flex-shrink:0">⏳</span><div style="flex:1"><div style="font-size:12px;font-weight:500">\${a.assigned_name}</div><div style="font-size:10px;color:#414e63">Assigned \${fd(a.assigned_at)}\${a.due_date?' · Due '+fd(a.due_date):''}</div></div></div>\`).join('')}\`:''}\`,
-  ()=>closeModal(),'Close',false)
-  document.getElementById('modal-footer').innerHTML='<button class="btn" onclick="closeModal()">Close</button>'
-}
-
-// ══════════════════════════════════════════
-// FINANCIALS PAGE
-// ══════════════════════════════════════════
-async function pgFinancials(){
-  const[{data:jobs},{data:ci},{data:parts}]=await Promise.all([
-    sb.from('jobs').select('*').eq('archived',false).order('name'),
-    sb.from('checkins').select('job_id,hours_logged').not('hours_logged','is',null),
-    sb.from('job_parts').select('*').in('status',['signed_out','installed','staged'])
-  ])
-  const hrsByJob={};(ci||[]).forEach(c=>{hrsByJob[c.job_id]=(hrsByJob[c.job_id]||0)+(c.hours_logged||0)})
-  const matByJob={} // Material cost from parts catalog not available without join
-  let totC=0,totCost=0,totP=0
-  const rows=(jobs||[]).map(j=>{
-    const hrs=hrsByJob[j.id]||0
-    const labor=hrs*(j.labor_rate||0)
-    const mat=matByJob[j.id]||0
-    const cost=labor+mat
-    const cv=j.contract_value||0
-    const profit=cv-cost
-    const margin=cv>0?profit/cv*100:null
-    totC+=cv;totCost+=cost;totP+=profit
-    return{...j,hrs,labor,mat,cost,profit,margin}
-  })
-  document.getElementById('page-area').innerHTML=\`
-  <div class="stats">
-    <div class="stat"><div class="stat-label">Total Contract</div><div class="stat-value" style="font-size:20px">\${fm(totC)}</div></div>
-    <div class="stat"><div class="stat-label">Total Cost</div><div class="stat-value" style="font-size:20px">\${fm(totCost)}</div></div>
-    <div class="stat"><div class="stat-label">Gross Profit</div><div class="stat-value" style="font-size:20px;color:\${totP>=0?'#16a34a':'#dc2626'}">\${fm(totP)}</div></div>
-    <div class="stat"><div class="stat-label">Avg Margin</div><div class="stat-value" style="font-size:20px;color:\${totC>0&&totP/totC>=.2?'#16a34a':totP/totC>=.1?'#d97706':'#dc2626'}">\${totC>0?((totP/totC)*100).toFixed(1)+'%':'—'}</div></div>
-  </div>
-  <div class="card" style="padding:0;overflow:hidden">
-  <table class="tbl"><thead><tr><th>Job</th><th>Stage</th><th>Contract</th><th>Labor Hrs</th><th>Labor Cost</th><th>Material</th><th>Total Cost</th><th>Profit</th><th>Margin</th></tr></thead><tbody>
-  \${rows.map(j=>\`<tr onclick="openJob('\${j.id}')"><td style="font-weight:500">\${j.name}</td><td>\${stageBadge(j.phase)}</td><td>\${fm(j.contract_value)}</td><td style="font-family:'DM Mono',monospace;font-size:11px">\${fh(j.hrs)}</td><td>\${fm(j.labor)}</td><td>\${fm(j.mat)}</td><td>\${fm(j.cost)}</td><td style="color:\${j.profit>=0?'#16a34a':'#dc2626'};font-weight:500">\${fm(j.profit)}</td><td><span class="badge \${j.margin>=20?'bg-green':j.margin>=10?'bg-amber':'bg-red'}">\${j.margin!=null?j.margin.toFixed(1)+'%':'—'}</span></td></tr>\`).join('')}
-  </tbody></table>
-  </div>\`
-}
-
-// ══════════════════════════════════════════
-// REPORTS PAGE
-// ══════════════════════════════════════════
-async function pgReports(){
-  document.getElementById('page-area').innerHTML=\`
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:16px">
-    \${[
-      ['⏱','Labor & Hours','GPS check-in logs with times','labor'],
-      ['📦','Parts Report','All parts staged & checked out','parts'],
-      ['📋','Jobs Export','All jobs with all dates (Excel)','jobs'],
-      ['💰','Financial Summary','P&L per job (Excel)','fin'],
-      ['📍','GPS Log','All check-ins with coordinates','gps_csv'],
-      ['📊','Inventory Report','Stock levels and low-stock','inv_csv'],
-      ['📅','Daily Reports','All daily reports','daily_csv'],
-      ['🔍','Scan Events','Complete scan audit trail','scan_csv'],
-      ['🛡','Safety Report','Acknowledgement status','safety_csv']
-    ].map(([ico,ttl,sub,t])=>\`<div style="background:#0c1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px;cursor:pointer;transition:.15s" onmouseover="this.style.borderColor='rgba(255,255,255,.15)'" onmouseout="this.style.borderColor='rgba(255,255,255,.06)'" onclick="exportReport('\${t}')">
-      <div style="font-size:26px;margin-bottom:8px">\${ico}</div>
-      <div style="font-size:13px;font-weight:500;margin-bottom:3px">\${ttl}</div>
-      <div style="font-size:11px;color:#414e63">\${sub}</div>
-    </div>\`).join('')}
-  </div>\`
-}
-async function exportReport(type){
-  toast('Preparing export…','info')
-  if(type==='jobs'){
-    const{data}=await sb.from('jobs').select('*').order('created_at',{ascending:false})
-    const rows=(data||[]).map(j=>({'Job Name':j.name,'Address':j.address||'','GC Company':j.gc_company||'','GC Contact':j.gc_contact||'','GC Phone':j.gc_phone||'','Stage':STAGE_LABELS[j.phase]||j.phase,'% Complete':j.pct_complete||0,'Due Date':j.due_date||'','Expected On Site':j.expected_onsite_date||'','Next Visit':j.next_visit_date||'','Closeout':j.date_closeout||'','Completion':j.completion_date||'','Contract Value':j.contract_value||'','Labor Rate':j.labor_rate||'','GC Company2':j.gc_company||''}))
-    const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Jobs');XLSX.writeFile(wb,'Jobs-'+new Date().toISOString().split('T')[0]+'.xlsx');return toast('Jobs exported')
-  }
-  if(type==='fin'){
-    const{data:jobs}=await sb.from('jobs').select('*').order('name')
-    const{data:ci}=await sb.from('checkins').select('job_id,hours_logged').not('hours_logged','is',null)
-    const hrsByJob={};(ci||[]).forEach(c=>{hrsByJob[c.job_id]=(hrsByJob[c.job_id]||0)+(c.hours_logged||0)})
-    const rows=(jobs||[]).map(j=>{const hrs=hrsByJob[j.id]||0;const cost=hrs*(j.labor_rate||0);return{'Job':j.name,'Stage':j.phase,'Contract':j.contract_value||0,'Labor Hrs':hrs.toFixed(1),'Labor Cost':cost.toFixed(2),'Gross Profit':((j.contract_value||0)-cost).toFixed(2),'Margin %':j.contract_value>0?(((j.contract_value-cost)/j.contract_value)*100).toFixed(1)+'%':'—'}})
-    const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Financials');XLSX.writeFile(wb,'Financials-'+new Date().toISOString().split('T')[0]+'.xlsx');return toast('Financials exported')
-  }
-  // CSV exports
-  let csv='',fn=type+'.csv'
-  if(type==='labor'){const{data}=await sb.from('checkins').select('*').order('checkin_at',{ascending:false});csv='Worker,Role,Company,Job,Date,In,Out,Hours,Distance(ft)\\n'+(data||[]).map(c=>\`"\${c.worker_name||''}","\${c.workerRole||''}","\${c.company_name||''}","\${c.job_name||''}","\${c.checkin_at?.split('T')[0]||''}","\${ft(c.checkin_at)}","\${c.checkout_at?ft(c.checkout_at):''}",\${c.hours_logged||0},\${c.checkin_dist_ft||''}\`).join('\\n');fn='Labor-Report.csv'}
-  else if(type==='parts'){const{data}=await sb.from('job_parts').select('*,jobs(name)').order('created_at',{ascending:false});csv='Part Name,Barcode,Job,Status,Qty,Staged By,Staged At,Checked Out By,Checked Out At\\n'+(data||[]).map(p=>\`"\${p.part_name}","\${p.part_id}","\${p.jobs?.name||''}","\${p.status}",\${p.assigned_qty},"\${p.staged_by||''}","\${p.staged_at||''}","\${p.checked_out_by||''}","\${p.checked_out_at||''}"\`).join('\\n');fn='Parts-Report.csv'}
-  else if(type==='gps_csv'){const{data}=await sb.from('checkins').select('*').order('checkin_at',{ascending:false});csv='Worker,Job ID,Date,In,Out,Hours,Lat,Lng,Dist(ft)\\n'+(data||[]).map(c=>\`"\${c.worker_name||''}","\${c.job_id}","\${c.checkin_at?.split('T')[0]}","\${ft(c.checkin_at)}","\${c.checkout_at?ft(c.checkout_at):''}",\${c.hours_logged||0},\${c.checkin_lat||''},\${c.checkin_lng||''},\${c.checkin_dist_ft||''}\`).join('\\n');fn='GPS-Log.csv'}
-  else if(type==='inv_csv'){const{data}=await sb.from('inventory').select('*').order('name');csv='ID,Name,Qty,Min Qty,Status\\n'+(data||[]).map(i=>\`"\${i.id}","\${i.name}",\${i.qty},\${i.min_qty||0},"\${i.qty<=(i.min_qty||0)&&i.min_qty>0?'LOW STOCK':'OK'}"\`).join('\\n');fn='Inventory-Report.csv'}
-  else if(type==='daily_csv'){const{data}=await sb.from('daily_reports').select('*').order('report_date',{ascending:false});csv='Date,Job,Crew,Hours,Weather,Work Performed,Issues,Submitted By\\n'+(data||[]).map(r=>\`"\${r.report_date}","\${r.jobs?.name||''}",\${r.crew_count},\${r.hours_worked||0},"\${r.weather||''}","\${(r.work_performed||'').replace(/"/g,'""')}","\${(r.issues||'').replace(/"/g,'""')}","\${r.submitted_by||''}"\`).join('\\n');fn='Daily-Reports.csv'}
-  else if(type==='scan_csv'){const{data}=await sb.from('scan_events').select('*').order('scanned_at',{ascending:false});csv='Action,Part Name,Barcode,Qty,Job,Scanned By,Date/Time\\n'+(data||[]).map(e=>\`"\${e.action}","\${e.part_name}","\${e.part_id}",\${e.qty},"\${e.job_id}","\${e.scanned_by||'?'}","\${fdt(e.scanned_at)}"\`).join('\\n');fn='Scan-Events.csv'}
-  else if(type==='safety_csv'){const{data:topics}=await sb.from('safety_topics').select('*').order('week_of',{ascending:false});const{data:acks}=await sb.from('safety_acks').select('*');const{data:assigns}=await sb.from('safety_assignments').select('*');csv='Topic,Week Of,Person,Assigned Date,Acknowledged,Ack Date\\n'+(assigns||[]).map(a=>{const ack=(acks||[]).find(x=>x.topic_id===a.topic_id&&x.user_name===a.assigned_name);const topic=(topics||[]).find(t=>t.id===a.topic_id);return\`"\${topic?.title||''}","\${fd(topic?.week_of)}","\${a.assigned_name}","\${fd(a.assigned_at)}","\${ack?'YES':'NO'}","\${ack?fdt(ack.acknowledged_at):''}"\`}).join('\\n');fn='Safety-Report.csv'}
-  if(csv){const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=fn;a.click();toast('Downloading…')}
-}
-
-// ══════════════════════════════════════════
-// DOCUMENTS VAULT PAGE
-// ══════════════════════════════════════════
-async function pgDocuments(){
-  document.getElementById('topbar-actions').innerHTML='<label class="btn btn-p btn-sm" style="cursor:pointer">+ Upload Document<input type="file" style="display:none" multiple onchange="uploadGlobalDoc(this.files)"></label>'
-  const{data:docs}=await sb.from('job_documents').select('*,jobs(name)').order('created_at',{ascending:false})
-  document.getElementById('page-area').innerHTML=\`
-  <div style="margin-bottom:12px"><input class="fi" placeholder="Search documents…" style="max-width:300px" oninput="filterDocs(this.value)"></div>
-  <div class="card" style="padding:0;overflow:hidden" id="docs-table">
-  \${(docs||[]).length?\`<table class="tbl"><thead><tr><th>Name</th><th>Job</th><th>Category</th><th>Uploaded By</th><th>Date</th><th></th></tr></thead><tbody>\${(docs||[]).map(d=>\`<tr><td><div style="display:flex;align-items:center;gap:7px"><span style="font-size:16px">\${d.file_name?.match(/\\.pdf$/i)?'📄':d.file_name?.match(/\\.(png|jpg|jpeg)$/i)?'🖼':d.file_name?.match(/\\.(xls|xlsx)$/i)?'📊':'📎'}</span><div style="font-weight:500">\${d.name}</div></div></td><td style="font-size:11px">\${d.jobs?.name||'—'}</td><td><span class="badge bg-gray">\${d.category||'general'}</span></td><td style="font-size:11px;color:#8a96ab">\${d.uploaded_by||'—'}</td><td style="font-size:11px;color:#8a96ab">\${fd(d.created_at)}</td><td><a href="\${d.url}" target="_blank" class="btn btn-sm">View</a></td></tr>\`).join('')}</tbody></table>\`:empty('📁','No documents uploaded')}
-  </div>\`
-  window._docsAll=docs||[]
-}
-function filterDocs(q){const el=document.getElementById('docs-table');if(!el||!window._docsAll)return;const f=(window._docsAll||[]).filter(d=>!q||d.name.toLowerCase().includes(q.toLowerCase())||(d.jobs?.name||'').toLowerCase().includes(q.toLowerCase()));el.innerHTML=renderDocsTableHTML(f)}
-function renderDocsTableHTML(docs){return docs.length?\`<table class="tbl"><thead><tr><th>Name</th><th>Job</th><th>Category</th><th>By</th><th>Date</th><th></th></tr></thead><tbody>\${docs.map(d=>\`<tr><td style="font-weight:500">\${d.name}</td><td>\${d.jobs?.name||'—'}</td><td>\${d.category||'—'}</td><td style="font-size:11px;color:#8a96ab">\${d.uploaded_by||'—'}</td><td style="font-size:11px">\${fd(d.created_at)}</td><td><a href="\${d.url}" target="_blank" class="btn btn-sm">View</a></td></tr>\`).join('')}</tbody></table>\`:empty('📁','No documents found')}
-async function uploadGlobalDoc(files){
-  modal('Upload Document',\`<div class="fg"><label class="fl">Job (optional)</label><select class="fs" id="ud-job"><option value="">— No specific job —</option>\${allJobs.map(j=>\`<option value="\${j.id}">\${j.name}</option>\`).join('')}</select></div><div class="fg"><label class="fl">Category</label><select class="fs" id="ud-cat"><option value="general">General</option><option value="contract">Contract</option><option value="permit">Permit</option><option value="submittal">Submittal</option><option value="rfi">RFI</option><option value="plans">Plans</option><option value="insurance">Insurance</option><option value="lien_waiver">Lien Waiver</option></select></div>\`,
-  async()=>{
-    const jobId=v('ud-job')||null;const cat=v('ud-cat')
-    for(const f of files){
-      const path=\`documents/\${Date.now()}_\${f.name}\`
-      const{error}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true})
-      if(!error){const{data:{publicUrl}}=sb.storage.from('fieldtrack-plans').getPublicUrl(path);await sb.from('job_documents').insert({id:uuid(),job_id:jobId,name:f.name,file_name:f.name,category:cat,storage_path:path,url:publicUrl,uploaded_by:ME?.full_name,created_at:new Date().toISOString()})}
-    }
-    closeModal();toast('Uploaded');pgDocuments()
-  })
-}
-
-// ══════════════════════════════════════════
-// USERS PAGE
-// ══════════════════════════════════════════
-async function pgUsers(){
-  document.getElementById('topbar-actions').innerHTML=
-    '<button class="btn btn-sm" onclick="exportEmployeesCSV()">⬆ Export</button>'+
-    '<button class="btn btn-p btn-sm" onclick="addUserModal()">+ Add Employee</button>'
-  const[{data:users},{data:companies}]=await Promise.all([
-    sb.from('profiles').select('*,companies(name)').order('full_name'),
-    sb.from('companies').select('id,name').eq('is_active',true).order('name')
-  ])
-  const all=users||[]
-  const roles=[...new Set(all.map(u=>u.role).filter(Boolean))].sort()
   const pa=document.getElementById('page-area')
   pa.innerHTML=
-    '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'+
-    '<input class="fi" id="emp-search" placeholder="Search name or email…" style="max-width:220px" oninput="filterEmployees()">'+
-    '<select class="fs" id="emp-role" style="width:150px" onchange="filterEmployees()"><option value="">All Roles</option>'+roles.map(r=>'<option value="'+r+'">'+r.replace(/_/g,' ')+'</option>').join('')+'</select>'+
-    '<select class="fs" id="emp-co" style="width:160px" onchange="filterEmployees()"><option value="">All Companies</option>'+
-    (companies||[]).map(co=>'<option value="'+co.id+'">'+co.name+'</option>').join('')+
-    '<option value="internal">Internal</option></select>'+
-    '<select class="fs" id="emp-status" style="width:120px" onchange="filterEmployees()"><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select>'+
+    '<div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">'+
+    '<div class="stat"><div class="stat-label">Total Orders</div><div class="stat-value">'+(orders||[]).length+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Pending</div><div class="stat-value" style="color:#d97706">'+pending+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Ordered</div><div class="stat-value" style="color:#60a5fa">'+ordered+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Staged</div><div class="stat-value" style="color:#16a34a">'+staged+'</div></div>'+
     '</div>'+
-    '<div id="emp-table"></div>'+
-    '<div style="margin-top:11px;font-size:11px;color:#414e63" id="emp-count"></div>'
-  window._empAll=all
-  window._empCos=companies||[]
-  filterEmployees()
+    '<div class="card" style="margin-bottom:14px">'+
+    '<div class="card-title">New Order Request</div>'+
+    '<div class="two"><div class="fg"><label class="fl">Job *</label>'+
+    '<select class="fs" id="ord-job"><option value="">— Select —</option>'+
+    (jobs||[]).map(j=>'<option value="'+j.id+'">'+j.name+'</option>').join('')+
+    '</select></div><div class="fg"><label class="fl">Notes / PO #</label><input class="fi" id="ord-notes"></div></div>'+
+    '<div id="ord-items-display" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px"></div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:8px">'+
+    '<input class="fi" id="ord-bc" placeholder="Barcode or part name" style="flex:1" oninput="liveResolveBC(this.value)">'+
+    '<input class="fi" id="ord-qty" type="number" value="1" min="1" style="width:65px">'+
+    '<button class="btn btn-p btn-sm" onclick="addOrdItem()">Add</button>'+
+    '</div>'+
+    '<button class="btn btn-p btn-full" onclick="submitOrder()">Submit Order</button>'+
+    '</div>'+
+    '<div id="orders-list"></div>'
+
+  renderOrdersList(orders||[], jobs||[])
 }
 
-function filterEmployees(){
-  const q=(document.getElementById('emp-search')?.value||'').toLowerCase()
-  const role=document.getElementById('emp-role')?.value||''
-  const co=document.getElementById('emp-co')?.value||''
-  const status=document.getElementById('emp-status')?.value||''
-  const all=window._empAll||[]
-  const rows=all.filter(u=>{
-    if(q&&!u.full_name.toLowerCase().includes(q)&&!(u.email||'').toLowerCase().includes(q))return false
-    if(role&&u.role!==role)return false
-    if(co==='internal'&&u.company_id)return false
-    if(co&&co!=='internal'&&u.company_id!==co)return false
-    if(status==='active'&&!u.is_active)return false
-    if(status==='inactive'&&u.is_active)return false
-    return true
-  })
-  const el=document.getElementById('emp-table')
-  const cnt=document.getElementById('emp-count')
-  if(cnt)cnt.textContent=rows.length+' employee'+(rows.length!==1?'s':'')
-  if(!rows.length){if(el)el.innerHTML=empty('👥','No employees match filters');return}
-  let html='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr>'
-  html+='<th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Company</th><th>Emergency Contact</th><th>Status</th><th></th>'
-  html+='</tr></thead><tbody>'
-  for(const u of rows){
-    const avCss=Object.entries(avS(u.full_name)).map(([k,val])=>k+':'+val).join(';')
-    html+='<tr>'
-    html+='<td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:26px;height:26px;font-size:9px;'+avCss+'">'+ini(u.full_name)+'</div><div><div style="font-weight:500">'+u.full_name+'</div>'+(u.hire_date?'<div style="font-size:9px;color:#414e63">Hired '+fd(u.hire_date)+'</div>':'')+'</div></div></td>'
-    html+='<td style="font-size:11px;color:#8a96ab">'+(u.email||'—')+'</td>'
-    html+='<td style="font-size:11px;color:#8a96ab">'+(u.phone||'—')+'</td>'
-    html+='<td>'+roleBadge(u.role)+'</td>'
-    html+='<td style="font-size:11px">'+(u.companies?.name||'Internal')+'</td>'
-    html+='<td style="font-size:10px;color:#8a96ab">'+(u.emergency_contact||'—')+'<br>'+(u.emergency_phone?'<span style="color:#414e63">'+u.emergency_phone+'</span>':'')+'</td>'
-    html+='<td><span class="badge '+(u.is_active?'bg-green':'bg-gray')+'">'+(u.is_active?'Active':'Inactive')+'</span></td>'
-    html+='<td style="display:flex;gap:4px"><button class="btn btn-sm" data-id="'+u.id+'" onclick="viewEmployeeModal(this.dataset.id)">View</button><button class="btn btn-sm" data-id="'+u.id+'" data-role="'+u.role+'" data-active="'+u.is_active+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="editUserModal(this.dataset.id,this.dataset.role,this.dataset.active,this.dataset.name)">Edit</button></td>'
-    html+='</tr>'
-  }
-  html+='</tbody></table></div>'
-  if(el)el.innerHTML=html
-}
+function renderOrdersList(orders, jobs){
+  const el=document.getElementById('orders-list');if(!el)return
+  const jobMap={}; (jobs||window._allOrderJobs||[]).forEach(j=>jobMap[j.id]=j.name)
 
-async function exportEmployeesCSV(){
-  const all=window._empAll||[]
-  const rows=[['Name','Email','Phone','Role','Company','Hire Date','Emergency Contact','Emergency Phone','Status']]
-  all.forEach(u=>rows.push([u.full_name,u.email||'',u.phone||'',u.role,u.companies?.name||'Internal',u.hire_date||'',u.emergency_contact||'',u.emergency_phone||'',u.is_active?'Active':'Inactive']))
-  const csv=rows.map(r=>r.map(x=>'"'+String(x||'').replace(/"/g,'""')+'"').join(',')).join('\\n')
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='Employees-'+new Date().toISOString().split('T')[0]+'.csv';a.click();toast('Exported')
-}
+  if(!orders.length){el.innerHTML=empty('📦','No orders yet');return}
 
-async function viewEmployeeModal(id){
-  const{data:u}=await sb.from('profiles').select('*,companies(name)').eq('id',id).single()
-  if(!u)return
-  // Get safety training history
-  const[{data:acks},{data:assigns}]=await Promise.all([
-    sb.from('safety_acks').select('*,safety_topics(title,week_of,category)').eq('profile_id',id).order('acknowledged_at',{ascending:false}),
-    sb.from('safety_assignments').select('*,safety_topics(title,week_of)').eq('profile_id',id).order('assigned_at',{ascending:false})
-  ])
-  const ackedIds=new Set((acks||[]).map(a=>a.topic_id))
-  const pending=(assigns||[]).filter(a=>!ackedIds.has(a.topic_id))
-  const avCss=Object.entries(avS(u.full_name)).map(([k,val])=>k+':'+val).join(';')
-  let html=
-    '<div style="display:flex;align-items:center;gap:13px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.07)">'+
-    '<div class="av" style="width:52px;height:52px;font-size:18px;flex-shrink:0;'+avCss+'">'+ini(u.full_name)+'</div>'+
-    '<div><div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700">'+u.full_name+'</div>'+
-    '<div style="margin-top:3px">'+roleBadge(u.role)+'</div>'+
-    '<div style="font-size:11px;color:#414e63;margin-top:3px">'+(u.companies?.name||'Internal')+(u.hire_date?' · Hired '+fd(u.hire_date):'')+'</div></div></div>'+
-    '<div class="two" style="margin-bottom:13px">'+
-    '<div><div class="fl">EMAIL</div><div style="font-size:13px">'+(u.email||'—')+'</div></div>'+
-    '<div><div class="fl">PHONE</div><div style="font-size:13px">'+(u.phone||'—')+'</div></div>'+
-    '</div>'+
-    '<div class="two" style="margin-bottom:13px">'+
-    '<div><div class="fl">EMERGENCY CONTACT</div><div style="font-size:13px">'+(u.emergency_contact||'—')+'</div></div>'+
-    '<div><div class="fl">EMERGENCY PHONE</div><div style="font-size:13px">'+(u.emergency_phone||'—')+'</div></div>'+
-    '</div>'+
-    '<div class="sec-hdr" style="margin-bottom:10px">Safety Training — '+
-    '<span style="color:#16a34a">'+(acks||[]).length+' completed</span> · '+
-    '<span style="color:'+(pending.length?'#dc2626':'#414e63')+'">'+pending.length+' pending</span></div>'
-  if(pending.length){
-    html+='<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);border-radius:7px;padding:9px 12px;margin-bottom:10px">'
-    html+='<div style="font-size:10px;color:#dc2626;font-weight:600;margin-bottom:6px">PENDING — NOT YET COMPLETED</div>'
-    html+=pending.map(a=>'<div style="font-size:12px;color:#f87171;padding:3px 0">⏳ '+a.safety_topics?.title+(a.due_date?' · Due '+fd(a.due_date):'')+'</div>').join('')
+  el.innerHTML=orders.map(o=>{
+    const items=typeof o.items==='string'?JSON.parse(o.items||'[]'):(o.items||[])
+    const totalQty=items.reduce((s,i)=>s+(i.qty||0),0)
+    const statusColors={pending:'bg-amber',ordered:'bg-blue',staged:'bg-green',cancelled:'bg-gray'}
+    const sc=statusColors[o.status]||'bg-gray'
+    const jobName=o.jobs?.name||jobMap[o.job_id]||o.job_id||'—'
+
+    let html='<div class="card" style="margin-bottom:9px">'
+    html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
+    html+='<div><div style="font-weight:600;font-size:14px">'+jobName+'</div>'
+    html+='<div style="font-size:11px;color:#414e63;margin-top:2px">'+(o.notes||'No notes')+' · By '+(o.created_by||'—')+' · '+fd(o.created_at)+'</div>'
+    html+=(o.staged_at?'<div style="font-size:10px;color:#16a34a;margin-top:2px">Staged by '+(o.staged_by||'?')+' on '+fdt(o.staged_at)+'</div>':'')
     html+='</div>'
-  }
-  if((acks||[]).length){
-    html+='<div style="background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.15);border-radius:7px;padding:9px 12px">'
-    html+='<div style="font-size:10px;color:#16a34a;font-weight:600;margin-bottom:6px">COMPLETED</div>'
-    html+=(acks||[]).map(a=>'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px">✓ '+a.safety_topics?.title+'</span><span style="font-size:10px;color:#414e63">'+fdt(a.acknowledged_at)+'</span></div>').join('')
+    html+='<div style="display:flex;align-items:center;gap:7px"><span class="badge '+sc+'">'+o.status+'</span></div>'
     html+='</div>'
-  }
-  if(!(acks||[]).length&&!pending.length) html+='<div style="font-size:12px;color:#414e63">No safety training assigned yet</div>'
-  modal(u.full_name, html, ()=>closeModal(), 'Close', false)
-  const editBtn=document.createElement('button')
-  editBtn.className='btn btn-p btn-sm'
-  editBtn.textContent='Edit'
-  editBtn.onclick=()=>{closeModal();editUserModal(id,u.role,u.is_active,u.full_name)}
-  const closeBtn=document.createElement('button')
-  closeBtn.className='btn'
-  closeBtn.textContent='Close'
-  closeBtn.onclick=closeModal
-  const ft=document.getElementById('modal-footer')
-  ft.innerHTML=''
-  ft.appendChild(closeBtn)
-  ft.appendChild(editBtn)
-}
-
-function addUserModal(){
-  const coOpts=(window._empCos||[]).map(co=>'<option value="'+co.id+'">'+co.name+'</option>').join('')
-  const html=
-    '<div class="two"><div class="fg"><label class="fl">Full Name *</label><input class="fi" id="au-nm"></div>'+
-    '<div class="fg"><label class="fl">Email *</label><input class="fi" id="au-em" type="email" placeholder="They will get a password setup email"></div></div>'+
-    '<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="au-ph"></div>'+
-    '<div class="fg"><label class="fl">Role *</label><select class="fs" id="au-rl">'+
-    '<option value="sub_worker">Field Worker</option><option value="sub_lead">Lead</option>'+
-    '<option value="technician">Technician</option><option value="stager">Stager</option>'+
-    '<option value="foreman">Foreman</option><option value="pm">Project Manager</option>'+
-    '<option value="admin">Admin</option></select></div></div>'+
-    '<div class="two"><div class="fg"><label class="fl">Company</label><select class="fs" id="au-co">'+
-    '<option value="">Internal</option>'+coOpts+'</select></div>'+
-    '<div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="au-hire"></div></div>'+
-    '<div class="two"><div class="fg"><label class="fl">Emergency Contact</label><input class="fi" id="au-ec"></div>'+
-    '<div class="fg"><label class="fl">Emergency Phone</label><input class="fi" id="au-ep"></div></div>'+
-    '<div id="au-status" style="display:none;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:7px;padding:9px 12px;font-size:12px;color:#16a34a;margin-top:4px"></div>'
-  modal('Add Employee', html, async()=>{
-    const nm=v('au-nm').trim(),em=v('au-em').trim()
-    if(!nm||!em){toast('Name and email required','error');return}
-    const btn=document.getElementById('modal-ok')
-    btn.disabled=true;btn.textContent='Adding…'
-    try{
-      // Try server route first (creates auth account + profile + sends password email)
-      const{data:{session}}=await sb.auth.getSession()
-      const res=await fetch('/api/invite-user',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
-        body:JSON.stringify({email:em,full_name:nm,role:v('au-rl'),phone:v('au-ph'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep')})
-      })
-      const result=await res.json()
-      if(res.ok&&result.success){
-        closeModal()
-        toast('Employee added! Password setup email sent to '+em)
-        pgUsers()
-        return
-      }
-      // If service key not set, fall back to profile-only (no auth account)
-      console.warn('Invite route result:',result)
-      if(result.error?.includes('SUPABASE_SERVICE_KEY')||result.error?.includes('service')){
-        // Fallback: create auth user via signUp then insert profile
-        const tempPw=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2).toUpperCase()+'!9'
-        const{data:signUpData,error:signUpErr}=await sb.auth.signUp({email:em,password:tempPw,options:{data:{full_name:nm,role:v('au-rl')}}})
-        const authId=signUpData?.user?.id
-        if(signUpErr&&!authId){toast(signUpErr.message,'error');btn.disabled=false;btn.textContent='Save';return}
-        // Wait a moment then insert profile
-        await new Promise(r=>setTimeout(r,500))
-        const{error:profErr}=await sb.from('profiles').upsert({id:authId,full_name:nm,email:em,phone:v('au-ph'),role:v('au-rl'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep'),is_active:true,created_at:new Date().toISOString()},{onConflict:'id'})
-        if(profErr){toast(profErr.message,'error');btn.disabled=false;btn.textContent='Save';return}
-        closeModal()
-        toast('Employee added. They will get a confirmation email to set their password.','info')
-        pgUsers()
-        return
-      }
-      throw new Error(result.error||'Failed to create employee')
-    }catch(e){
-      toast(e.message,'error')
-      btn.disabled=false;btn.textContent='Save'
-    }
-  })
-}
-
-function editUserModal(id,role,active,name){
-  const coOpts=(window._empCos||[]).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')
-  const html=
-    '<div class="two"><div class="fg"><label class="fl">Full Name</label><input class="fi" id="eu-nm" value="'+name+'"></div>'+
-    '<div class="fg"><label class="fl">Phone</label><input class="fi" id="eu-ph"></div></div>'+
-    '<div class="two"><div class="fg"><label class="fl">Role</label><select class="fs" id="eu-rl">'+
-    '<option value="sub_worker">Field Worker</option><option value="sub_lead">Lead</option>'+
-    '<option value="technician">Technician</option><option value="stager">Stager</option>'+
-    '<option value="foreman">Foreman</option><option value="pm">Project Manager</option>'+
-    '<option value="admin">Admin</option></select></div>'+
-    '<div class="fg"><label class="fl">Company</label><select class="fs" id="eu-co"><option value="">Internal</option>'+coOpts+'</select></div></div>'+
-    '<div class="two"><div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="eu-hire"></div>'+
-    '<div class="fg"><label class="fl">Status</label><select class="fs" id="eu-act"><option value="true">Active</option><option value="false">Inactive</option></select></div></div>'+
-    '<div class="two"><div class="fg"><label class="fl">Emergency Contact</label><input class="fi" id="eu-ec"></div>'+
-    '<div class="fg"><label class="fl">Emergency Phone</label><input class="fi" id="eu-ep"></div></div>'
-  modal('Edit Employee — '+name, html, async()=>{
-    const u={full_name:v('eu-nm'),phone:v('eu-ph'),role:v('eu-rl'),company_id:v('eu-co')||null,hire_date:v('eu-hire')||null,emergency_contact:v('eu-ec'),emergency_phone:v('eu-ep'),is_active:v('eu-act')==='true'}
-    const{error}=await sb.from('profiles').update(u).eq('id',id)
-    if(error)toast(error.message,'error');else{closeModal();toast('Updated');pgUsers()}
-  })
-  // Populate fields from DB
-  sb.from('profiles').select('*').eq('id',id).single().then(({data:p})=>{
-    if(!p)return
-    setTimeout(()=>{
-      try{
-        document.getElementById('eu-ph').value=p.phone||''
-        document.getElementById('eu-rl').value=p.role||'sub_worker'
-        document.getElementById('eu-co').value=p.company_id||''
-        document.getElementById('eu-hire').value=p.hire_date||''
-        document.getElementById('eu-act').value=String(p.is_active)
-        document.getElementById('eu-ec').value=p.emergency_contact||''
-        document.getElementById('eu-ep').value=p.emergency_phone||''
-      }catch(e){}
-    },80)
-  })
-  loadJobPermits()
-}
-
-
-// ══════════════════════════════════════════
-// JOB MAP PAGE
-// ══════════════════════════════════════════
-// ── JOB MAP ───────────────────────────────────────────────────────
-// Colors: brighter for active, gray for complete, 🔥 for urgent PM visit
-const MAP_COLORS={
-  not_started:  '#94a3b8',  // slate gray
-  parts_ordered:'#f97316',  // orange
-  parts_staged: '#eab308',  // yellow
-  in_progress:  '#3b82f6',  // bright blue
-  pre_test:     '#f59e0b',  // amber
-  pre_tested:   '#06b6d4',  // cyan
-  ready_for_final:'#a855f7',// purple
-  complete:     '#4b5563',  // dark gray (completed)
-  pm_needed:    '#22c55e',  // green — PM visit due
-  urgent_pm:    '🔥'        // special fire marker
-}
-const MAP_LEGEND_ITEMS=[
-  {key:'not_started',  color:'#94a3b8', label:'Not Started'},
-  {key:'parts_ordered',color:'#f97316', label:'Parts Ordered'},
-  {key:'parts_staged', color:'#eab308', label:'Parts Staged'},
-  {key:'in_progress',  color:'#3b82f6', label:'In Progress'},
-  {key:'pre_test',     color:'#f59e0b', label:'Ready for Pre-test'},
-  {key:'pre_tested',   color:'#06b6d4', label:'Pre-Tested'},
-  {key:'ready_for_final','color':'#a855f7',label:'Ready for Final'},
-  {key:'complete',     color:'#4b5563', label:'Completed'},
-  {key:'pm_needed',    color:'#22c55e', label:'PM Visit Due'},
-  {key:'urgent_pm',    color:'🔥',       label:'Urgent PM Visit'}
-]
-
-function getMapColor(j){
-  if(j.urgent_pm_visit) return {color:'🔥',isUrgent:true}
-  if(j.pm_visit_due)    return {color:'#22c55e',isUrgent:false}
-  return {color:MAP_COLORS[j.phase]||'#94a3b8',isUrgent:false}
-}
-
-async function pgJobMap(){
-  document.getElementById('page-title').textContent='Job Map'
-  document.getElementById('topbar-actions').innerHTML=''
-
-  const[{data:jobs},{data:companies}]=await Promise.all([
-    sb.from('jobs').select('*').eq('archived',false),
-    sb.from('companies').select('id,name')
-  ])
-  window._mapJobs=jobs||[]
-  const coMap={}; (companies||[]).forEach(co=>coMap[co.id]=co.name)
-
-  // Enrich jobs with pm_visit_due flag
-  const today=new Date().toISOString().split('T')[0]
-  ;(window._mapJobs||[]).forEach(j=>{
-    j.pm_visit_due = j.next_pm_visit && j.next_pm_visit <= today && j.phase!=='complete'
-  })
-
-  // Build filter option lists
-  const pms=[...new Set((jobs||[]).map(j=>j.project_manager).filter(Boolean))].sort()
-  const gcs=[...new Set((jobs||[]).map(j=>j.gc_company).filter(Boolean))].sort()
-  const assignees=[...new Set((jobs||[]).map(j=>j.company_id).filter(Boolean))]
-
-  document.getElementById('page-area').innerHTML=
-    '<div style="display:grid;grid-template-columns:1fr 300px;gap:0;height:calc(100vh - 90px)">'+
-    // MAP AREA
-    '<div style="position:relative;border-radius:10px 0 0 10px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">'+
-    '<div id="map-container" style="width:100%;height:100%;background:#0c1220;display:flex;align-items:center;justify-content:center">'+
-    '<div style="text-align:center;color:#414e63"><div style="font-size:32px;margin-bottom:8px">🗺</div><div style="font-size:13px;color:#8a96ab">Loading map…</div></div>'+
-    '</div>'+
-    '</div>'+
-    // SIDEBAR
-    '<div style="background:#0c1220;border:1px solid rgba(255,255,255,.08);border-left:none;border-radius:0 10px 10px 0;display:flex;flex-direction:column;overflow:hidden">'+
-    // LEGEND (always visible at top)
-    '<div id="map-legend" style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0"></div>'+
-    // FILTERS
-    '<div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0">'+
-    '<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Filters</div>'+
-    '<select class="fs" id="map-filter-stage" style="width:100%;margin-bottom:6px;padding:5px 8px;font-size:11px" onchange="filterMapPins()">'+
-    '<option value="">All Stages</option>'+
-    STAGES.map(s=>'<option value="'+s+'">'+STAGE_LABELS[s]+'</option>').join('')+
-    '<option value="pm_needed">PM Visit Due</option>'+
-    '<option value="urgent_pm">Urgent PM Visit 🔥</option>'+
-    '<option value="overdue">Overdue Due Date</option>'+
-    '</select>'+
-    '<select class="fs" id="map-filter-pm" style="width:100%;margin-bottom:6px;padding:5px 8px;font-size:11px" onchange="filterMapPins()">'+
-    '<option value="">All Project Managers</option>'+pms.map(p=>'<option value="'+p+'">'+p+'</option>').join('')+
-    '</select>'+
-    '<select class="fs" id="map-filter-gc" style="width:100%;margin-bottom:6px;padding:5px 8px;font-size:11px" onchange="filterMapPins()">'+
-    '<option value="">All GC Companies</option>'+gcs.map(g=>'<option value="'+g+'">'+g+'</option>').join('')+
-    '</select>'+
-    '<select class="fs" id="map-filter-due" style="width:100%;margin-bottom:6px;padding:5px 8px;font-size:11px" onchange="filterMapPins()">'+
-    '<option value="">Any Due Date</option>'+
-    '<option value="today">Due Today</option>'+
-    '<option value="week">Due This Week</option>'+
-    '<option value="month">Due This Month</option>'+
-    '<option value="overdue">Overdue</option>'+
-    '</select>'+
-    '<button class="btn btn-sm" style="width:100%;justify-content:center" onclick="clearMapFilters()">Clear Filters</button>'+
-    '</div>'+
-    // JOB LIST
-    '<div style="flex:1;overflow-y:auto;padding:10px 14px">'+
-    '<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Jobs</div>'+
-    '<div id="map-job-list"></div>'+
-    '</div>'+
-    '</div>'+
-    '</div>'
-
-  // Load Leaflet map
-  if(!document.getElementById('leaflet-css')){
-    const link=document.createElement('link');link.id='leaflet-css';link.rel='stylesheet';link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(link)
-    const script=document.createElement('script');script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';script.onload=()=>initMap(jobs||[]);document.head.appendChild(script)
-  } else {
-    initMap(jobs||[])
-  }
-}
-
-function clearMapFilters(){
-  ['map-filter-stage','map-filter-pm','map-filter-gc','map-filter-due'].forEach(id=>{
-    const el=document.getElementById(id);if(el)el.value=''
-  })
-  filterMapPins()
-}
-
-function initMap(jobs){
-  const container=document.getElementById('map-container')
-  if(!container||!window.L)return
-  container.innerHTML='<div id="leaflet-map" style="width:100%;height:100%"></div>'
-  const map=window.L.map('leaflet-map',{zoomControl:true}).setView([33.4484,-112.0740],10)
-  window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(map)
-  window._leafletMap=map
-  window._mapMarkers=[]
-  renderMapLegend()
-  addMapPins(jobs,map)
-  renderMapJobList(jobs)
-}
-
-function renderMapLegend(){
-  const el=document.getElementById('map-legend');if(!el)return
-  el.innerHTML=
-    '<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Legend</div>'+
-    MAP_LEGEND_ITEMS.map(item=>{
-      const dot = item.color==='🔥'
-        ? '<span style="font-size:14px;line-height:1">🔥</span>'
-        : '<div style="width:11px;height:11px;border-radius:50%;background:'+item.color+';flex-shrink:0;box-shadow:0 0 4px '+item.color+'88"></div>'
-      return '<div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer" data-key="'+item.key+'" onclick="quickFilterByLegend(this.dataset.key)" title="Filter by this status">'+dot+'<span style="font-size:11px;color:#e8edf5">'+item.label+'</span></div>'
-    }).join('')
-}
-
-function quickFilterByLegend(key){
-  const sel=document.getElementById('map-filter-stage');if(!sel)return
-  sel.value=key==='pm_needed'?'pm_needed':key==='urgent_pm'?'urgent_pm':key
-  filterMapPins()
-  // Highlight the selected legend item
-  document.querySelectorAll('#map-legend [onclick]').forEach(el=>el.style.background='')
-}
-
-function makeMapPin(j){
-  const {color,isUrgent}=getMapColor(j)
-  if(isUrgent){
-    return window.L.divIcon({
-      html:'<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.7));cursor:pointer">🔥</div>',
-      className:'',iconSize:[22,22],iconAnchor:[11,22]
-    })
-  }
-  const isComplete=j.phase==='complete'
-  const size=isComplete?12:16
-  const pulse=j.pm_visit_due&&!isUrgent?'animation:mapPulse 1.5s infinite;':'';
-  return window.L.divIcon({
-    html:'<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+color+';border:2px solid rgba(255,255,255,'+(isComplete?.4:.9)+');box-shadow:0 2px 8px '+color+'99;'+pulse+'cursor:pointer"></div>',
-    className:'',iconSize:[size,size],iconAnchor:[size/2,size/2]
-  })
-}
-
-// Add pulse animation for PM-due jobs
-if(!document.getElementById('map-pulse-css')){
-  const s=document.createElement('style');s.id='map-pulse-css'
-  s.textContent='@keyframes mapPulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.7)}50%{box-shadow:0 0 0 6px rgba(34,197,94,0)}}'
-  document.head.appendChild(s)
-}
-
-function addMapPins(jobs,map){
-  if(!window.L)return
-  ;(window._mapMarkers||[]).forEach(m=>m.remove())
-  window._mapMarkers=[]
-  const withGPS=jobs.filter(j=>j.gps_lat&&j.gps_lng)
-  withGPS.forEach(j=>{
-    const{color,isUrgent}=getMapColor(j)
-    const icon=makeMapPin(j)
-    const marker=window.L.marker([j.gps_lat,j.gps_lng],{icon}).addTo(map)
-    const colorLabel=isUrgent?'🔥 URGENT PM VISIT':j.pm_visit_due?'⚡ PM Visit Overdue':''
-    const daysUntilDue=j.due_date?Math.round((new Date(j.due_date)-new Date())/86400000):null
-    const dueColor=daysUntilDue!=null&&daysUntilDue<0?'#dc2626':daysUntilDue!=null&&daysUntilDue<=7?'#d97706':'#666'
-    marker.bindPopup(
-      '<div style="font-family:DM Sans,sans-serif;min-width:220px">'+
-      (colorLabel?'<div style="font-size:11px;font-weight:700;color:'+(isUrgent?'#ef4444':'#22c55e')+';margin-bottom:6px">'+colorLabel+'</div>':'')+
-      '<div style="font-weight:700;font-size:14px;margin-bottom:3px">'+j.name+'</div>'+
-      '<div style="font-size:11px;color:#666;margin-bottom:6px">'+( j.address||'')+'</div>'+
-      '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px">'+
-      '<span style="background:'+color+( isUrgent?'':'')+';color:'+(j.phase==='complete'?'#9ca3af':'#fff')+';padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">'+( STAGE_LABELS[j.phase]||j.phase)+'</span>'+
-      '</div>'+
-      (j.project_manager?'<div style="font-size:11px;margin-bottom:2px"><strong>PM:</strong> '+j.project_manager+'</div>':'')+
-      (j.gc_company?'<div style="font-size:11px;margin-bottom:2px"><strong>GC:</strong> '+j.gc_company+'</div>':'')+
-      (j.due_date?'<div style="font-size:11px;color:'+dueColor+'"><strong>Due:</strong> '+fd(j.due_date)+(daysUntilDue!=null?' ('+( daysUntilDue<0?Math.abs(daysUntilDue)+'d overdue':daysUntilDue+'d away')+')':'')+'</div>':'')+
-      (j.next_pm_visit?'<div style="font-size:11px;color:'+(j.pm_visit_due?'#22c55e':'#666')+'"><strong>PM Visit:</strong> '+fd(j.next_pm_visit)+'</div>':'')+
-      '<div style="margin-top:8px;display:flex;gap:6px">'+
-      '<a href="javascript:void(0)" data-jid="'+j.id+'" onclick="openJob(this.dataset.jid)" style="color:#3b82f6;font-size:11px;font-weight:600">Open Job →</a>'+
-      (isUrgent?'':' <a href="javascript:void(0)" data-jid="'+j.id+'" onclick="setUrgentPM(this.dataset.jid,true)" style="color:#ef4444;font-size:11px">🔥 Mark Urgent</a>')+
-      '</div>'+
-      '</div>'
-    )
-    window._mapMarkers.push(marker)
-  })
-  if(withGPS.length>0){
-    const bounds=window.L.latLngBounds(withGPS.map(j=>[j.gps_lat,j.gps_lng]))
-    map.fitBounds(bounds,{padding:[30,30]})
-  }
-}
-
-function renderMapJobList(jobs){
-  const el=document.getElementById('map-job-list');if(!el)return
-  if(!jobs.length){el.innerHTML='<div style="font-size:12px;color:#414e63">No jobs match filters</div>';return}
-  el.innerHTML=jobs.map(j=>{
-    const{color,isUrgent}=getMapColor(j)
-    const dot=isUrgent?'🔥':'<div style="width:9px;height:9px;border-radius:50%;background:'+color+';flex-shrink:0;box-shadow:0 0 4px '+color+'66"></div>'
-    const daysUntilDue=j.due_date?Math.round((new Date(j.due_date)-new Date())/86400000):null
-    const dueText=daysUntilDue!=null?(daysUntilDue<0?'<span style="color:#dc2626;font-size:9px">'+Math.abs(daysUntilDue)+'d overdue</span>':daysUntilDue===0?'<span style="color:#d97706;font-size:9px">Due today</span>':daysUntilDue<=7?'<span style="color:#d97706;font-size:9px">'+daysUntilDue+'d</span>':''):''
-    return '<div style="display:flex;align-items:flex-start;gap:7px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" data-jid="'+j.id+'" onclick="mapFlyTo(this.dataset.jid)">'
-      '<div style="margin-top:3px;font-size:12px">'+dot+'</div>'+
-      '<div style="flex:1;min-width:0">'+
-      '<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+j.name+'</div>'+
-      '<div style="font-size:10px;color:#414e63;margin-top:1px">'+( j.project_manager||'')+(j.gc_company?' · '+j.gc_company:'')+' '+dueText+'</div>'+
-      '</div>'+
-      '</div>'
+    // Items list
+    html+='<div style="background:#0c1220;border-radius:7px;overflow:hidden;margin-bottom:9px">'
+    html+=items.map(i=>'<div style="display:flex;align-items:center;gap:10px;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.04)">'
+      +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">'+i.name+'</div>'
+      +'<div style="font-size:10px;color:#414e63">'+i.barcode+'</div></div>'
+      +'<div style="font-size:12px;font-weight:600;color:#e8edf5">×'+i.qty+'</div>'
+      +'</div>').join('')
+    html+='<div style="padding:7px 11px;font-size:11px;color:#414e63">'+items.length+' part type(s) · '+totalQty+' total units</div>'
+    html+='</div>'
+    // Action buttons based on status
+    html+='<div style="display:flex;gap:7px;flex-wrap:wrap">'
+    if(o.status==='pending') html+='<button class="btn btn-p btn-sm" data-oid="'+o.id+'" onclick="updateOrderStatus(this.dataset.oid,\\'ordered\\')">Mark Ordered</button>'
+    if(o.status==='ordered') html+='<button class="btn btn-p btn-sm" data-oid="'+o.id+'" data-jid="'+o.job_id+'" onclick="stageOrderToJob(this.dataset.oid,this.dataset.jid)">📥 Stage to Job</button>'
+    if(o.status!=='staged'&&o.status!=='cancelled') html+='<button class="btn btn-sm" data-oid="'+o.id+'" onclick="updateOrderStatus(this.dataset.oid,\\'cancelled\\')">Cancel</button>'
+    html+='</div></div>'
+    return html
   }).join('')
 }
 
-function mapFlyTo(jobId){
-  const j=(window._mapJobs||[]).find(x=>x.id===jobId);if(!j||!j.gps_lat)return
-  if(window._leafletMap)window._leafletMap.flyTo([j.gps_lat,j.gps_lng],16)
-}
 
-function filterMapPins(){
-  const stage=document.getElementById('map-filter-stage')?.value||''
-  const pm=document.getElementById('map-filter-pm')?.value||''
-  const gc=document.getElementById('map-filter-gc')?.value||''
-  const due=document.getElementById('map-filter-due')?.value||''
-  const today=new Date();today.setHours(0,0,0,0)
-  const filtered=(window._mapJobs||[]).filter(j=>{
-    if(pm&&j.project_manager!==pm)return false
-    if(gc&&j.gc_company!==gc)return false
-    if(stage==='pm_needed'&&!j.pm_visit_due)return false
-    if(stage==='urgent_pm'&&!j.urgent_pm_visit)return false
-    if(stage==='overdue'){const d=j.due_date?new Date(j.due_date):null;if(!d||d>=today||j.phase==='complete')return false}
-    else if(stage&&stage!=='pm_needed'&&stage!=='urgent_pm'&&stage!=='overdue'&&j.phase!==stage)return false
-    if(due){
-      const d=j.due_date?new Date(j.due_date):null
-      if(!d)return false
-      if(due==='overdue'&&d>=today)return false
-      if(due==='today'){const t=new Date(today);t.setDate(t.getDate()+1);if(d<today||d>=t)return false}
-      if(due==='week'){const w=new Date(today);w.setDate(w.getDate()+7);if(d<today||d>w)return false}
-      if(due==='month'){const m=new Date(today);m.setDate(m.getDate()+30);if(d<today||d>m)return false}
-    }
-    return true
-  })
-  if(window._leafletMap)addMapPins(filtered,window._leafletMap)
-  renderMapJobList(filtered)
-}
 
-async function setUrgentPM(jobId, urgent){
-  const{error}=await sb.from('jobs').update({urgent_pm_visit:urgent,updated_at:new Date().toISOString()}).eq('id',jobId)
+
+async function updateOrderStatus(orderId, newStatus){
+  const{error}=await sb.from('orders').update({status:newStatus,updated_at:new Date().toISOString()}).eq('id',orderId)
   if(error){toast(error.message,'error');return}
-  // Update local data
-  const j=(window._mapJobs||[]).find(x=>x.id===jobId)
-  if(j)j.urgent_pm_visit=urgent
-  if(window._leafletMap)addMapPins(window._mapJobs||[],window._leafletMap)
-  renderMapJobList(window._mapJobs||[])
-  toast(urgent?'🔥 Urgent PM visit flagged':'Urgent flag removed')
+  toast('Order marked '+newStatus)
+  pgOrders()
 }
 
-// ══════════════════════════════════════════
-// SUB WORK ASSIGNMENT TAB (per job)
-// ══════════════════════════════════════════
-async function renderSubAssignTab(el){
-  const[{data:companies},{data:existing}]=await Promise.all([
-    sb.from('companies').select('*').eq('is_active',true).order('name'),
-    sb.from('job_sub_assignments').select('*').eq('job_id',currentJobId).order('created_at')
-  ])
-  el.innerHTML=\`
-  <div class="sec-hdr">Subcontractor Work Assignments <button class="btn btn-p btn-sm" onclick="addSubAssignModal()">+ Assign Sub</button></div>
-  \${(existing||[]).map(a=>\`<div style="background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px;margin-bottom:8px">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div><div style="font-weight:600;font-size:13px">\${a.company_name||a.company_id||'—'}</div><div style="font-size:11px;color:#414e63;margin-top:2px">\${a.scope_of_work||'All work'}</div></div>
-      <span class="badge \${a.status==='complete'?'bg-green':a.status==='in_progress'?'bg-blue':'bg-amber'}">\${a.status||'assigned'}</span>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:9px">
-      <div><div style="font-size:10px;color:#414e63">CONTRACT VALUE</div><div style="font-size:13px;font-weight:500">\${a.contract_value?fm(a.contract_value):'Not set'}</div></div>
-      <div><div style="font-size:10px;color:#414e63">START</div><div style="font-size:13px">\${fd(a.start_date)}</div></div>
-      <div><div style="font-size:10px;color:#414e63">DUE</div><div style="font-size:13px;color:\${isOD(a.due_date,a.status)?'#dc2626':'#e8edf5'}">\${fd(a.due_date)}</div></div>
-    </div>
-    \${a.notes?\`<div style="font-size:12px;color:#8a96ab;margin-bottom:8px">\${a.notes}</div>\`:''}
-    <div style="display:flex;gap:7px">
-      <button class="btn btn-sm btn-g" onclick="updateSubAssign('\${a.id}','in_progress')">In Progress</button>
-      <button class="btn btn-sm" onclick="updateSubAssign('\${a.id}','complete')">✓ Complete</button>
-      <button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="deleteSubAssign('\${a.id}')">Remove</button>
-    </div>
-  </div>\`).join('')||'<div style="font-size:12px;color:#414e63;padding:10px 0">No sub assignments yet</div>'}\`
-}
-async function addSubAssignModal(){
-  const{data:companies}=await sb.from('companies').select('id,name').eq('is_active',true).order('name')
-  modal('Assign Subcontractor',\`
-  <div class="fg"><label class="fl">Subcontractor *</label><select class="fs" id="sa-co"><option value="">— Select —</option>\${(companies||[]).map(c=>\`<option value="\${c.id}">\${c.name}</option>\`).join('')}</select></div>
-  <div class="fg"><label class="fl">Scope of Work *</label><textarea class="ft" id="sa-scope" placeholder="Describe the portion of work assigned to this sub…"></textarea></div>
-  <div class="two"><div class="fg"><label class="fl">Contract Value</label><input class="fi" type="number" id="sa-cv" step="0.01"></div><div class="fg"><label class="fl">Status</label><select class="fs" id="sa-status"><option value="assigned">Assigned</option><option value="in_progress">In Progress</option><option value="complete">Complete</option></select></div></div>
-  <div class="two"><div class="fg"><label class="fl">Start Date</label><input class="fi" type="date" id="sa-start"></div><div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="sa-due"></div></div>
-  <div class="fg"><label class="fl">Notes</label><textarea class="ft" id="sa-notes" style="min-height:55px"></textarea></div>\`,
-  async()=>{
-    const coId=v('sa-co');if(!coId){toast('Select a sub','error');return}
-    const scope=v('sa-scope').trim();if(!scope){toast('Scope required','error');return}
-    const{error}=await sb.from('job_sub_assignments').insert({id:uuid(),job_id:currentJobId,company_id:coId,scope_of_work:scope,contract_value:parseFloat(v('sa-cv'))||null,status:v('sa-status'),start_date:v('sa-start')||null,due_date:v('sa-due')||null,notes:v('sa-notes'),created_by:ME?.full_name,created_at:new Date().toISOString()})
-    if(error)toast(error.message,'error');else{closeModal();toast('Sub assigned');renderSubAssignTab(document.getElementById('jt-subs'))}
-  })
-}
-async function updateSubAssign(id,status){await sb.from('job_sub_assignments').update({status}).eq('id',id);toast('Updated');renderSubAssignTab(document.getElementById('jt-subs'))}
-async function deleteSubAssign(id){if(!confirm('Remove this assignment?'))return;await sb.from('job_sub_assignments').delete().eq('id',id);renderSubAssignTab(document.getElementById('jt-subs'))}
-
-// ══════════════════════════════════════════
-// PLAN MARKUP (enhanced — used for job walks AND job asbuilts)
-// markupType: 'walk' | 'job'
-// ══════════════════════════════════════════
-let _markupPlanId=null,_markupReturnFn=null
-
-function openPlanMarkup(planId,planUrl,fileName,returnFn){
-  _markupPlanId=planId;_markupReturnFn=returnFn
-  document.getElementById('page-title').textContent='Plan Markup — '+fileName
-  document.getElementById('topbar-actions').innerHTML=\`
-    <button class="btn btn-sm" onclick="if(_markupReturnFn)_markupReturnFn()">← Back</button>
-    <button class="btn btn-sm btn-p" onclick="saveMarkupData()">💾 Save</button>
-    <button class="btn btn-sm btn-g" onclick="downloadMarkupPNG()">⬇ Download PNG</button>\`
-
-  document.getElementById('page-area').innerHTML=\`
-  <div style="display:grid;grid-template-columns:1fr 260px;gap:13px;height:calc(100vh - 130px)">
-    <div style="display:flex;flex-direction:column;gap:9px">
-      <!-- TOOLBAR -->
-      <div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <span style="font-size:10px;color:#414e63;font-weight:600">MODE</span>
-        <button class="mt-btn active" id="mmt-dot" onclick="setMarkupMode('dot',this)">● Dot</button>
-        <button class="mt-btn" id="mmt-text" onclick="setMarkupMode('text',this)">T Text</button>
-        <button class="mt-btn" id="mmt-del" onclick="setMarkupMode('delete',this)">🗑 Delete</button>
-        <div style="width:1px;height:20px;background:rgba(255,255,255,.1);margin:0 4px"></div>
-        <span style="font-size:10px;color:#414e63;font-weight:600">COLOR</span>
-        <div id="color-swatches" style="display:flex;gap:5px">
-          \${['#dc2626','#d97706','#16a34a','#2563eb','#7c3aed','#0d9488','#ec4899','#f97316','#ffffff','#000000'].map((clr,i)=>\`<div onclick="setMarkupColor('\${clr}',this)" style="width:18px;height:18px;border-radius:50%;background:\${clr};cursor:pointer;border:2px solid \${i===0?'#fff':'transparent'};flex-shrink:0" data-color="\${clr}"></div>\`).join('')}
-        </div>
-        <div style="width:1px;height:20px;background:rgba(255,255,255,.1);margin:0 4px"></div>
-        <span style="font-size:10px;color:#414e63;font-weight:600">SIZE</span>
-        <select class="fi" id="dot-size" style="width:60px;padding:3px 6px;font-size:11px">
-          <option value="6">XS</option><option value="9">S</option><option value="13" selected>M</option><option value="18">L</option><option value="24">XL</option>
-        </select>
-        <button class="mt-btn" onclick="clearAllMarkup()" style="margin-left:auto;color:#dc2626">🗑 Clear All</button>
-      </div>
-      <!-- CANVAS -->
-      <div style="flex:1;overflow:auto;background:#1a2540;border-radius:9px;border:1px solid rgba(255,255,255,.07);cursor:crosshair;position:relative" id="canvas-scroll-wrap">
-        <canvas id="markup-canvas" style="display:block;max-width:100%"></canvas>
-        <div id="canvas-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#414e63;font-size:13px">Loading plan…</div>
-      </div>
-      <div style="font-size:10px;color:#414e63">Tip: Click to place dot/text • Click existing element in Delete mode to remove • Save often</div>
-    </div>
-    <!-- SIDEBAR -->
-    <div style="overflow-y:auto;display:flex;flex-direction:column;gap:10px">
-      <div class="card">
-        <div class="card-title">Legend <button class="btn btn-sm btn-p" onclick="addLegendEntry()" style="font-size:10px;padding:3px 8px">+</button></div>
-        <div id="legend-entries"></div>
-        <div style="font-size:10px;color:#414e63;margin-top:6px">Add entries to explain what your colored dots mean</div>
-      </div>
-      <div class="card">
-        <div class="card-title">Text Boxes</div>
-        <div id="textbox-entries"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Dots (\${0})</div>
-        <div id="dot-count-display" style="font-size:11px;color:#414e63">0 dots placed</div>
-      </div>
-    </div>
-  </div>\`
-
-  loadMarkupData(planId,planUrl)
-}
-
-let _mMode='dot',_mColor='#dc2626',_mCanvas=null,_mCtx=null,_mImg=null,_mData={dots:[],textboxes:[],legend:[]}
-
-function setMarkupMode(m,btn){
-  _mMode=m
-  document.querySelectorAll('.mt-btn').forEach(b=>b.classList.remove('active'))
-  if(btn)btn.classList.add('active')
-  const canvas=document.getElementById('markup-canvas')
-  if(canvas)canvas.style.cursor=m==='delete'?'crosshair':m==='text'?'text':'crosshair'
-}
-function setMarkupColor(c,el){
-  _mColor=c
-  document.querySelectorAll('#color-swatches div').forEach(d=>d.style.border='2px solid transparent')
-  if(el)el.style.border='2px solid #fff'
-}
-
-async function loadMarkupData(planId,planUrl){
-  const{data:plan}=await sb.from('job_walk_plans').select('markup_json').eq('id',planId).single()
-  _mData=plan?.markup_json||{dots:[],textboxes:[],legend:[]}
-  // Load image
-  const canvas=document.getElementById('markup-canvas')
-  const ctx=canvas.getContext('2d')
-  _mCanvas=canvas;_mCtx=ctx
-  const img=new Image();img.crossOrigin='anonymous'
-  img.onload=()=>{
-    canvas.width=img.naturalWidth||1200;canvas.height=img.naturalHeight||800
-    canvas.style.width='100%'
-    _mImg=img
-    document.getElementById('canvas-loading').style.display='none'
-    redrawMarkup()
-    renderLegendEntries();renderTextboxEntries();updateDotCount()
-    // Attach click handler
-    canvas.onclick=handleMarkupClick
-  }
-  img.onerror=()=>{
-    canvas.width=1200;canvas.height=800;canvas.style.width='100%'
-    ctx.fillStyle='#1a2540';ctx.fillRect(0,0,1200,800)
-    ctx.fillStyle='#414e63';ctx.font='16px DM Sans,sans-serif';ctx.textAlign='center'
-    ctx.fillText('PDF/image preview not available',600,400)
-    ctx.fillText('Markup will still be saved. Use Download to view with annotations.',600,430)
-    _mImg=null
-    document.getElementById('canvas-loading').style.display='none'
-    redrawMarkup();canvas.onclick=handleMarkupClick
-  }
-  img.src=planUrl
-}
-
-function handleMarkupClick(e){
-  const canvas=document.getElementById('markup-canvas');if(!canvas)return
-  const rect=canvas.getBoundingClientRect()
-  const sx=canvas.width/rect.width,sy=canvas.height/rect.height
-  const cx=(e.clientX-rect.left)*sx,cy=(e.clientY-rect.top)*sy
-  if(_mMode==='dot'){
-    const sz=parseInt(document.getElementById('dot-size')?.value||13)
-    const id=uuid()
-    _mData.dots.push({id,x:cx,y:cy,color:_mColor,size:sz,label:''})
-    redrawMarkup();updateDotCount();beep()
-  } else if(_mMode==='text'){
-    const txt=prompt('Enter text to place on plan:');if(!txt)return
-    _mData.textboxes.push({id:uuid(),x:cx,y:cy,text:txt,color:_mColor,fontSize:14})
-    redrawMarkup();renderTextboxEntries()
-  } else if(_mMode==='delete'){
-    const hit=findMarkupHit(cx,cy)
-    if(hit){
-      if(hit.type==='dot')_mData.dots=_mData.dots.filter(d=>d.id!==hit.id)
-      else _mData.textboxes=_mData.textboxes.filter(t=>t.id!==hit.id)
-      redrawMarkup();renderLegendEntries();renderTextboxEntries();updateDotCount()
-      toast('Removed','info')
+async function stageOrderToJob(orderId, jobId){
+  const{data:order}=await sb.from('orders').select('*').eq('id',orderId).single()
+  if(!order){toast('Order not found','error');return}
+  const items=typeof order.items==='string'?JSON.parse(order.items||'[]'):(order.items||[])
+  if(!items.length){toast('No items in order','error');return}
+  const jobName=(window._allOrderJobs||[]).find(j=>j.id===jobId)?.name||jobId
+  const preview=items.map(i=>'• '+i.name+' ×'+i.qty).join('\\n')
+  if(!confirm('Stage '+items.length+' part type(s) to:\\n'+jobName+'\\n\\n'+preview+'\\n\\nThis will add parts to the job and mark order Staged.'))return
+  const now=new Date().toISOString()
+  for(const item of items){
+    const{data:existing}=await sb.from('job_parts').select('*').eq('job_id',jobId).eq('part_id',item.barcode).maybeSingle()
+    if(existing){
+      await sb.from('job_parts').update({assigned_qty:existing.assigned_qty+item.qty,ordered_qty:(existing.ordered_qty||0)+item.qty,status:'staged',staged_by:ME?.full_name,staged_at:now,order_id:orderId,updated_at:now}).eq('id',existing.id)
+    } else {
+      await sb.from('job_parts').insert({id:uuid(),job_id:jobId,part_id:item.barcode,part_name:item.name,status:'staged',assigned_qty:item.qty,ordered_qty:item.qty,taken_qty:0,installed_qty:0,returned_qty:0,staged_by:ME?.full_name,staged_at:now,order_id:orderId,notes:item.description||'',created_at:now,updated_at:now})
     }
+    const{data:inv}=await sb.from('inventory').select('qty').eq('id',item.barcode).maybeSingle()
+    if(inv)await sb.from('inventory').update({qty:Math.max(0,inv.qty-item.qty),updated_at:now}).eq('id',item.barcode)
   }
-}
-function findMarkupHit(cx,cy){
-  for(const d of _mData.dots){if(Math.sqrt((cx-d.x)**2+(cy-d.y)**2)<=d.size+5)return{...d,type:'dot'}}
-  for(const t of _mData.textboxes){if(cx>=t.x-5&&cx<=t.x+200&&cy>=t.y-t.fontSize-2&&cy<=t.y+5)return{...t,type:'text'}}
-  return null
-}
-function redrawMarkup(){
-  if(!_mCtx||!_mCanvas)return
-  _mCtx.clearRect(0,0,_mCanvas.width,_mCanvas.height)
-  if(_mImg)_mCtx.drawImage(_mImg,0,0)
-  else{_mCtx.fillStyle='#1a2540';_mCtx.fillRect(0,0,_mCanvas.width,_mCanvas.height)}
-  // Draw dots
-  for(const d of _mData.dots){
-    _mCtx.beginPath();_mCtx.arc(d.x,d.y,d.size/2,0,Math.PI*2)
-    _mCtx.fillStyle=d.color;_mCtx.fill()
-    _mCtx.strokeStyle='rgba(255,255,255,.75)';_mCtx.lineWidth=1.5;_mCtx.stroke()
-    if(d.label){_mCtx.fillStyle=d.color;_mCtx.font='bold 11px DM Sans,sans-serif';_mCtx.fillText(d.label,d.x+d.size/2+4,d.y+4)}
-  }
-  // Draw textboxes
-  for(const t of _mData.textboxes){
-    _mCtx.font=\`\${t.fontSize}px DM Sans,sans-serif\`
-    const w=_mCtx.measureText(t.text).width
-    _mCtx.fillStyle='rgba(0,0,0,.65)';_mCtx.fillRect(t.x-3,t.y-t.fontSize,w+6,t.fontSize+6)
-    _mCtx.fillStyle=t.color;_mCtx.fillText(t.text,t.x,t.y)
-  }
-}
-function updateDotCount(){const el=document.getElementById('dot-count-display');if(el)el.textContent=(_mData.dots||[]).length+' dots placed'}
-function renderLegendEntries(){
-  const el=document.getElementById('legend-entries');if(!el)return
-  const colorCounts={}
-  ;(_mData.dots||[]).forEach(d=>{colorCounts[d.color]=(colorCounts[d.color]||0)+1})
-  el.innerHTML=(_mData.legend||[]).map((l,i)=>\`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><div style="width:14px;height:14px;border-radius:50%;background:\${l.color};flex-shrink:0;border:1.5px solid rgba(255,255,255,.3)"></div><div style="font-size:10px;color:#414e63;flex-shrink:0">\${colorCounts[l.color]||0}×</div><input style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:5px;color:#e8edf5;font-size:11px;padding:3px 7px;font-family:inherit" value="\${l.label||''}" placeholder="What this color means…" oninput="_mData.legend[\${i}].label=this.value"><button onclick="_mData.legend.splice(\${i},1);renderLegendEntries()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:16px;flex-shrink:0">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No legend entries — click + to add</div>'
-}
-function addLegendEntry(){_mData.legend.push({id:uuid(),color:_mColor,label:''});renderLegendEntries()}
-function renderTextboxEntries(){
-  const el=document.getElementById('textbox-entries');if(!el)return
-  el.innerHTML=(_mData.textboxes||[]).map((t,i)=>\`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="width:8px;height:8px;border-radius:50%;background:\${t.color};flex-shrink:0"></div><div style="font-size:11px;flex:1;color:#8a96ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${t.text}</div><button onclick="_mData.textboxes.splice(\${i},1);renderTextboxEntries();redrawMarkup()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No text boxes</div>'
-}
-function clearAllMarkup(){if(!confirm('Clear all dots and text boxes?'))return;_mData.dots=[];_mData.textboxes=[];redrawMarkup();renderLegendEntries();renderTextboxEntries();updateDotCount();toast('Cleared','warn')}
-async function saveMarkupData(){
-  if(!_markupPlanId)return
-  const{error}=await sb.from('job_walk_plans').update({markup_json:_mData}).eq('id',_markupPlanId)
-  if(error)toast(error.message,'error');else toast('Markup saved')
-}
-function downloadMarkupPNG(){
-  const canvas=document.getElementById('markup-canvas');if(!canvas)return
-  const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='plan-markup-'+new Date().toISOString().split('T')[0]+'.png';a.click();toast('Downloading PNG…')
+  await sb.from('orders').update({status:'staged',staged_by:ME?.full_name,staged_at:now}).eq('id',orderId)
+  toast('Staged '+items.length+' part types to '+jobName)
+  pgOrders()
 }
 
-// Upload plans to job (as-builts)
-async function uploadJobAsbuilt(files){
-  for(const f of files){
-    const path=\`jobs/\${currentJobId}/asbuilts/\${Date.now()}_\${f.name}\`
-    const{error}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true})
-    if(!error){
-      const{data:{publicUrl}}=sb.storage.from('fieldtrack-plans').getPublicUrl(path)
-      await sb.from('job_walk_plans').insert({id:uuid(),job_walk_id:null,job_id:currentJobId,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],legend:[]},created_at:new Date().toISOString()})
-    }
-  }
-  toast('Plan uploaded OK');loadJT('jt-asbuilts')
+function addOrdItem(){
+  const bc=v('ord-bc').trim();if(!bc){toast('Enter a barcode or part name','error');return}
+  const qty=parseInt(v('ord-qty'))||1
+  const part=allCatalog.find(x=>x.barcode===bc||x.name.toLowerCase()===bc.toLowerCase())||{barcode:bc,name:bc,description:''}
+  const ex=(window._ordItems||[]).find(i=>i.barcode===part.barcode)
+  if(ex){ex.qty+=qty}else{(window._ordItems=window._ordItems||[]).push({barcode:part.barcode,name:part.name,qty,description:part.description||''})}
+  document.getElementById('ord-bc').value=''
+  document.getElementById('ord-qty').value=1
+  renderOrdItems()
 }
 
-async function renderAsbuiltsTab(el){
-  const{data:plans}=await sb.from('job_walk_plans').select('*').eq('job_id',currentJobId).is('job_walk_id',null).order('created_at',{ascending:false})
-  el.innerHTML=\`
-  <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
-    <label class="btn btn-p btn-sm" style="cursor:pointer">+ Upload Plan / As-built<input type="file" style="display:none" multiple accept=".pdf,.png,.jpg,.jpeg,.dwg" onchange="uploadJobAsbuilt(this.files)"></label>
-    <span style="font-size:11px;color:#414e63">Upload plans, then click Markup to annotate with colored dots, text, and legend</span>
-  </div>
-  \${(plans||[]).length?plans.map(p=>\`<div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:7px">
-    <div style="font-size:22px">\${p.file_name?.match(/\\.pdf$/i)?'📄':'🖼'}</div>
-    <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${p.file_name}</div>
-    <div style="font-size:10px;color:#414e63;margin-top:1px">\${fd(p.created_at)} · \${(p.markup_json?.dots||[]).length} dots · \${(p.markup_json?.textboxes||[]).length} text boxes</div></div>
-    <button class="btn btn-sm btn-p" onclick="openPlanMarkup('\${p.id}','\${p.url}','\${p.file_name}',()=>loadJT('jt-asbuilts'))">✏ Markup</button>
-    <a href="\${p.url}" target="_blank" class="btn btn-sm">View</a>
-    <button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="deleteJobPlan('\${p.id}','\${p.storage_path||''}')">Del</button>
-  </div>\`).join(''):empty('📐','No plans uploaded yet — upload PDF or image files to begin markup')}\` 
-}
-async function deleteJobPlan(planId,storagePath){
-  if(!confirm('Delete this plan?'))return
-  if(storagePath)await sb.storage.from('fieldtrack-plans').remove([storagePath]).catch(()=>{})
-  await sb.from('job_walk_plans').delete().eq('id',planId)
-  toast('Deleted');loadJT('jt-asbuilts')
-}
-
-
-// ══════════════════════════════════════════
-// PM VISIT TRACKING
-// ══════════════════════════════════════════
-async function renderPmVisitsTab(el){
-  const{data:visits}=await sb.from('pm_visits').select('*').eq('job_id',currentJobId).order('visit_date',{ascending:false})
-  const j=currentJob
-  const nextVisitColor=j.next_pm_visit&&daysAway(j.next_pm_visit)<=0?'#dc2626':j.next_pm_visit&&daysAway(j.next_pm_visit)<=7?'#d97706':'#e8edf5'
-  const nextVisitText=j.next_pm_visit?(daysAway(j.next_pm_visit)===0?'Today':daysAway(j.next_pm_visit)<0?Math.abs(daysAway(j.next_pm_visit))+'d overdue':daysAway(j.next_pm_visit)+'d away'):''
-  let visitsHtml=''
-  for(const vis of (visits||[])){
-    const outColor=vis.outcome==='approved'?'bg-green':vis.outcome==='issues_found'?'bg-amber':'bg-gray'
-    visitsHtml+='<div style="padding:10px 12px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:7px">'
-    visitsHtml+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">'
-    visitsHtml+='<div><div style="font-weight:500;font-size:13px">PM Visit — '+fd(vis.visit_date)+'</div>'
-    visitsHtml+='<div style="font-size:11px;color:#414e63;margin-top:1px">'+(vis.pm_name||'')+'</div></div>'
-    visitsHtml+='<span class="badge '+outColor+'">'+(vis.outcome||'visited')+'</span></div>'
-    if(vis.observations)visitsHtml+='<div style="font-size:12px;color:#8a96ab;margin-bottom:6px">'+vis.observations+'</div>'
-    if(vis.issues)visitsHtml+='<div style="font-size:12px;color:#d97706;margin-bottom:6px">'+vis.issues+'</div>'
-    if(vis.next_visit_date)visitsHtml+='<div style="font-size:11px;color:#414e63">Next visit: '+fd(vis.next_visit_date)+'</div>'
-    visitsHtml+='</div>'
-  }
-  el.innerHTML=
-    '<div style="margin-bottom:13px;display:flex;gap:9px;align-items:flex-start">'+
-    '<div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">'+
-    '<div style="font-size:10px;color:#414e63;margin-bottom:3px">NEXT PM VISIT DUE</div>'+
-    '<div style="font-size:18px;font-weight:300;color:'+nextVisitColor+'">'+(j.next_pm_visit?fd(j.next_pm_visit):'Not scheduled')+'</div>'+
-    (nextVisitText?'<div style="font-size:11px;color:#414e63;margin-top:2px">'+nextVisitText+'</div>':'')+
-    '</div>'+
-    '<div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">'+
-    '<div style="font-size:10px;color:#414e63;margin-bottom:3px">PM ASSIGNED</div>'+
-    '<div style="font-size:14px;font-weight:500">'+(j.project_manager||'Not assigned')+'</div>'+
-    '<div style="font-size:11px;color:#414e63;margin-top:2px">'+(j.pm_visit_schedule||'No schedule set')+'</div>'+
-    '</div>'+
-    '<button class="btn btn-p btn-sm" onclick="logPmVisitModal()">+ Log Visit</button>'+
-    '</div>'+
-    '<div class="sec-hdr">Visit History</div>'+
-    (visitsHtml||empty('📋','No PM visits logged yet'))
-}
-
-async function logPmVisitModal(){
-  const pvHtml=
-    '<div class="two"><div class="fg"><label class="fl">Visit Date *</label><input class="fi" type="date" id="pmv-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
-    '<div class="fg"><label class="fl">PM Name</label><input class="fi" id="pmv-pm" value="'+(currentJob?.project_manager||ME?.full_name||'')+'"></div></div>'+
-    '<div class="fg"><label class="fl">Observations</label><textarea class="ft" id="pmv-obs" placeholder="What was observed on site…"></textarea></div>'+
-    '<div class="fg"><label class="fl">Issues Found</label><textarea class="ft" id="pmv-iss" placeholder="Any problems or items requiring attention…"></textarea></div>'+
-    '<div class="two"><div class="fg"><label class="fl">Outcome</label>'+
-    '<select class="fs" id="pmv-out"><option value="visited">Visited</option><option value="approved">Approved</option>'+
-    '<option value="issues_found">Issues Found</option><option value="reinspection_needed">Reinspection Needed</option></select></div>'+
-    '<div class="fg"><label class="fl">Next Visit Date</label><input class="fi" type="date" id="pmv-next"></div></div>'
-  modal('Log PM Visit', pvHtml,
-    async()=>{
-      const{error}=await sb.from('pm_visits').insert({id:uuid(),job_id:currentJobId,visit_date:v('pmv-date'),pm_name:v('pmv-pm'),observations:v('pmv-obs'),issues:v('pmv-iss'),outcome:v('pmv-out'),next_visit_date:v('pmv-next')||null,created_at:new Date().toISOString()})
-      if(error){toast(error.message,'error');return}
-      if(v('pmv-next'))await sb.from('jobs').update({next_pm_visit:v('pmv-next'),updated_at:new Date().toISOString()}).eq('id',currentJobId)
-      closeModal();toast('Visit logged');loadJT('jt-pmvisits')
-    }
-  )
-}
-
-</script>
-</body>
-</html>
-<script>
-// ══════════════════════════════════════════
-// NOTIFICATIONS PAGE + BADGE
-// ══════════════════════════════════════════
-async function loadNotifBadge(){
-  try{
-    const{count}=await sb.from('notifications').select('id',{count:'exact',head:true}).eq('read',false)
-    const el=document.getElementById('notif-badge')
-    if(el){el.textContent=count||0;el.style.display=(count||0)>0?'block':'none'}
-  }catch(e){}
-}
-
-async function pgNotifications(){
-  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm btn-ghost" onclick="markAllNotifsRead()">Mark all read</button>'
-  const{data:notifs}=await sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(100)
-  const el=document.getElementById('page-area')
-  if(!(notifs||[]).length){el.innerHTML=empty('🔔','No notifications');return}
-  const groups={parts_variance:[],safety:[],general:[]}
-  ;(notifs||[]).forEach(n=>{
-    if(n.type==='parts_variance')groups.parts_variance.push(n)
-    else if(n.type?.includes('safety'))groups.safety.push(n)
-    else groups.general.push(n)
-  })
-  let html=''
-  const renderGroup=(title,icon,items)=>{
-    if(!items.length)return''
-    return '<div class="card" style="margin-bottom:13px"><div class="card-title">'+icon+' '+title+' ('+items.length+')</div>'+
-      items.map(n=>'<div style="display:flex;gap:11px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start;opacity:'+(n.read?.7:1)+'">'+'<div style="flex-shrink:0;margin-top:2px"><div style="width:8px;height:8px;border-radius:50%;background:'+(n.read?'#414e63':'#dc2626')+'"></div></div>'+
-        '<div style="flex:1"><div style="font-size:13px;font-weight:'+(n.read?400:600)+'">'+n.title+'</div>'+
-        '<div style="font-size:12px;color:#8a96ab;margin-top:3px">'+n.message+'</div>'+
-        '<div style="font-size:10px;color:#414e63;margin-top:4px">'+fdt(n.created_at)+'</div>'+
-        (n.meta?.job_id?'<button class="btn btn-sm" style="margin-top:6px" onclick="openJob(\\''+n.meta.job_id+'\\')">View Job →</button>':'')+
-        '</div>'+
-        (!n.read?'<button class="btn btn-sm btn-ghost" onclick="markNotifRead(\\''+n.id+'\\')" style="flex-shrink:0">✓</button>':'')+
-        '</div>').join('')+
-      '</div>'
-  }
-  html+=renderGroup('Parts Variance','⚠',groups.parts_variance)
-  html+=renderGroup('Safety','🛡',groups.safety)
-  html+=renderGroup('General','🔔',groups.general)
-  el.innerHTML=html||empty('🔔','No notifications')
-  // Mark all as read after viewing
-  await sb.from('notifications').update({read:true}).eq('read',false)
-  loadNotifBadge()
-}
-
-async function markNotifRead(id){
-  await sb.from('notifications').update({read:true}).eq('id',id)
-  pgNotifications()
-}
-async function markAllNotifsRead(){
-  await sb.from('notifications').update({read:true}).eq('read',false)
-  toast('All marked read')
-  pgNotifications()
-}
-
-// Load badge on boot (called from DOMContentLoaded in main script)
-setTimeout(loadNotifBadge, 2000)
-setInterval(loadNotifBadge, 60000)
-</script>
-<script>
-// ══════════════════════════════════════════
-// DISPATCH BOARD
-// ══════════════════════════════════════════
-let _dispatchDate = new Date().toISOString().split('T')[0]
-let _dispatchData = { jobs:[], employees:[], companies:[], assignments:[] }
-let _dragJob = null
-
-// ══════════════════════════════════════════
-// ICS CALENDAR EXPORT
-// ══════════════════════════════════════════
-function fmtICSDate(dateStr, timeStr){
-  // Returns YYYYMMDDTHHMMSS format
-  const d = new Date(dateStr + (timeStr ? 'T' + timeStr : 'T00:00:00'))
-  const pad = n => String(n).padStart(2,'0')
-  return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'T'+pad(d.getHours())+pad(d.getMinutes())+'00'
-}
-
-function buildICSEvent(a, empName){
-  const uid = a.id + '@fieldaxishq'
-  const jobName = a.jobs?.name || 'Job Assignment'
-  const jobAddr = a.jobs?.address || ''
-  const dateStr = a.dispatch_date
-  const startDt = fmtICSDate(dateStr, a.start_time)
-  const endDt   = a.end_time ? fmtICSDate(dateStr, a.end_time) : fmtICSDate(dateStr, (a.start_time ? a.start_time.split(':')[0]+':00' : '08:00'))
-  const now     = fmtICSDate(new Date().toISOString().split('T')[0], new Date().toTimeString().slice(0,5))
-  const notes   = a.notes ? '\\nNotes: ' + a.notes : ''
-  const pm      = a.jobs?.project_manager ? '\\nPM: ' + a.jobs.project_manager : ''
-
-  return [
-    'BEGIN:VEVENT',
-    'UID:' + uid,
-    'DTSTAMP:' + now,
-    'DTSTART:' + startDt,
-    'DTEND:' + endDt,
-    'SUMMARY:' + jobName + (empName ? ' — ' + empName : ''),
-    jobAddr ? 'LOCATION:' + jobAddr.replace(/,/g, '\\,') : '',
-    'DESCRIPTION:Job: ' + jobName + pm + notes + '\\nStatus: ' + (a.status||'scheduled'),
-    'STATUS:CONFIRMED',
-    'END:VEVENT'
-  ].filter(Boolean).join('\\r\\n')
-}
-
-function buildICSFile(events, calName){
-  return [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//FieldAxisHQ//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    'X-WR-CALNAME:' + calName,
-    ...events,
-    'END:VCALENDAR'
-  ].join('\\r\\n')
-}
-
-function downloadICS(content, filename){
-  const blob = new Blob([content], {type:'text/calendar;charset=utf-8'})
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(a.href)
-  toast('Calendar file downloaded — open it to add to Outlook, Google, or Apple Calendar')
-}
-
-async function exportDayICS(){
-  const{data:assignments}=await sb.from('dispatch_assignments')
-    .select('*,jobs(name,address,project_manager),profiles:profile_id(full_name,email)')
-    .eq('dispatch_date',_dispatchDate)
-  if(!(assignments||[]).length){toast('No assignments on this date','warn');return}
-  const events = assignments.map(a=>buildICSEvent(a, a.profiles?.full_name))
-  const ics = buildICSFile(events, 'FieldAxisHQ — '+_dispatchDate)
-  downloadICS(ics, 'Schedule-'+_dispatchDate+'.ics')
-}
-
-async function exportEmployeeICS(profileId, profileName){
-  // Get all future assignments for this employee
-  const today = new Date().toISOString().split('T')[0]
-  const{data:assignments}=await sb.from('dispatch_assignments')
-    .select('*,jobs(name,address,project_manager)')
-    .eq('profile_id', profileId)
-    .gte('dispatch_date', today)
-    .order('dispatch_date')
-  if(!(assignments||[]).length){toast('No upcoming assignments for '+profileName,'warn');return}
-  const events = assignments.map(a=>buildICSEvent(a, profileName))
-  const ics = buildICSFile(events, 'Schedule — '+profileName)
-  downloadICS(ics, 'Schedule-'+profileName.replace(/\\s+/g,'-')+'.ics')
-  toast('Exported '+assignments.length+' assignment'+(assignments.length!==1?'s':'')+' for '+profileName)
-}
-
-async function exportSingleAssignmentICS(assignmentId){
-  const{data:a}=await sb.from('dispatch_assignments')
-    .select('*,jobs(name,address,project_manager),profiles:profile_id(full_name,email)')
-    .eq('id',assignmentId).single()
-  if(!a){toast('Assignment not found','error');return}
-  const ics = buildICSFile([buildICSEvent(a, a.profiles?.full_name)], a.jobs?.name||'Assignment')
-  downloadICS(ics, 'Assignment-'+a.dispatch_date+'.ics')
-}
-
-async function pgDispatch(){
-  document.getElementById('topbar-actions').innerHTML =
-    '<button class="btn btn-sm" onclick="dispatchPrevDay()">← Prev</button>'+
-    '<input type="date" class="fi" id="dispatch-date" value="'+_dispatchDate+'" style="width:150px;padding:5px 10px" onchange="_dispatchDate=this.value;loadDispatchData()">'+
-    '<button class="btn btn-sm" onclick="dispatchNextDay()">Next →</button>'+
-    '<button class="btn btn-p btn-sm" onclick="loadDispatchData()">↻ Refresh</button>'+
-    '<button class="btn btn-sm btn-g" onclick="exportDayICS()">📅 Export Day to Calendar</button>'
-
-  document.getElementById('page-area').innerHTML =
-    '<div style="display:grid;grid-template-columns:280px 1fr;gap:0;height:calc(100vh - 100px);overflow:hidden">' +
-    '<div id="dispatch-left" style="border-right:1px solid rgba(255,255,255,.07);overflow-y:auto;background:#060a10"></div>' +
-    '<div id="dispatch-right" style="overflow-y:auto;padding:14px"></div>' +
+function renderOrdItems(){
+  const el=document.getElementById('ord-items-display');if(!el)return
+  el.innerHTML=(window._ordItems||[]).map((i,idx)=>
+    '<div style="display:inline-flex;align-items:center;gap:5px;background:#131c2e;border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:4px 8px;font-size:12px">'+
+    '<span>'+i.name+' ×'+i.qty+'</span>'+
+    '<button data-idx="'+idx+'" onclick="(window._ordItems||[]).splice(parseInt(this.dataset.idx),1);renderOrdItems()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px;padding:0 2px">×</button>'+
     '</div>'
-
-  await loadDispatchData()
+  ).join('')
 }
 
-function dispatchPrevDay(){
-  const d=new Date(_dispatchDate);d.setDate(d.getDate()-1)
-  _dispatchDate=d.toISOString().split('T')[0]
-  document.getElementById('dispatch-date').value=_dispatchDate
-  loadDispatchData()
-}
-function dispatchNextDay(){
-  const d=new Date(_dispatchDate);d.setDate(d.getDate()+1)
-  _dispatchDate=d.toISOString().split('T')[0]
-  document.getElementById('dispatch-date').value=_dispatchDate
-  loadDispatchData()
+async function submitOrder(){
+  const jobId=v('ord-job');if(!jobId){toast('Select a job','error');return}
+  const items=window._ordItems||[];if(!items.length){toast('Add at least one item','error');return}
+  const{error}=await sb.from('orders').insert({id:uuid(),job_id:jobId,items:JSON.stringify(items),notes:v('ord-notes'),status:'pending',created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+  if(error){toast(error.message,'error');return}
+  window._ordItems=[]
+  toast('Order submitted')
+  pgOrders()
 }
 
-async function loadDispatchData(){
-  const left=document.getElementById('dispatch-left')
-  const right=document.getElementById('dispatch-right')
-  if(!left||!right) return
-  left.innerHTML='<div class="loading"><div class="spin"></div></div>'
-  right.innerHTML='<div class="loading"><div class="spin"></div></div>'
-
-  const[{data:jobs},{data:employees},{data:companies},{data:assignments}]=await Promise.all([
-    sb.from('jobs').select('id,name,address,phase,gc_company,project_manager,due_date').eq('archived',false).neq('phase','complete').order('name'),
-    sb.from('profiles').select('id,full_name,role,phone,company_id,companies(name)').eq('is_active',true).order('full_name'),
-    sb.from('companies').select('id,name,trade').eq('is_active',true).order('name'),
-    sb.from('dispatch_assignments').select('*,jobs(name,address),profiles:profile_id(full_name,role),companies:company_id(name)').eq('dispatch_date',_dispatchDate)
-  ])
-
-  _dispatchData={jobs:jobs||[],employees:employees||[],companies:companies||[],assignments:assignments||[]}
-
-  // Figure out who/what is already assigned today
-  const assignedProfileIds=new Set((assignments||[]).filter(a=>a.profile_id).map(a=>a.profile_id))
-  const assignedCompanyIds=new Set((assignments||[]).filter(a=>a.company_id&&!a.profile_id).map(a=>a.company_id))
-  const assignedJobIds=new Set((assignments||[]).map(a=>a.job_id))
-
-  renderDispatchLeft(left, employees||[], companies||[], assignedProfileIds, assignedCompanyIds)
-  renderDispatchRight(right, employees||[], companies||[], assignments||[], jobs||[], assignedJobIds)
+// ══════════════════════════════════════════
+// PARTS CHECKOUT UI
+// ══════════════════════════════════════════
+async function toggleCheckoutUI(){
+  const ui=document.getElementById('checkout-ui')
+  const btn=document.getElementById('checkout-toggle-btn')
+  if(!ui)return
+  const showing=ui.style.display!=='none'
+  ui.style.display=showing?'none':'block'
+  if(btn)btn.textContent=showing?'📤 Sign Out Parts':'✕ Cancel Sign Out'
+  if(!showing) await loadCheckoutUI()
 }
 
-function renderDispatchLeft(el, employees, companies, assignedProfileIds, assignedCompanyIds){
-  const unassignedEmp=employees.filter(e=>!assignedProfileIds.has(e.id))
-  const unassignedCos=companies.filter(co=>!assignedCompanyIds.has(co.id))
+async function loadCheckoutUI(){
+  // Load staged parts for this job
+  const{data:parts}=await sb.from('job_parts').select('*')
+    .eq('job_id',currentJobId)
+    .in('status',['staged'])
+  // Load technicians
+  const{data:techs}=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
 
-  // Group employees by company
-  const internal=unassignedEmp.filter(e=>!e.company_id)
-  const byCo={}
-  unassignedEmp.filter(e=>e.company_id).forEach(e=>{
-    if(!byCo[e.company_id])byCo[e.company_id]={name:e.companies?.name||'?',workers:[]}
-    byCo[e.company_id].workers.push(e)
-  })
-
-  let html='<div style="padding:12px 13px;border-bottom:1px solid rgba(255,255,255,.07)">'
-  html+='<div style="font-size:11px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">'+_dispatchDate+'</div>'
-  html+='<div style="font-size:10px;color:#414e63">'+(unassignedEmp.length)+' available · drag to assign</div>'
-  html+='</div>'
-
-  // Unassigned jobs pool at top
-  const unassignedJobs=_dispatchData.jobs.filter(j=>!new Set(_dispatchData.assignments.map(a=>a.job_id)).has(j.id))
-  if(unassignedJobs.length){
-    html+='<div style="padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.07)">'
-    html+='<div style="font-size:10px;font-weight:600;color:#d97706;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">📋 Unscheduled Jobs ('+unassignedJobs.length+')</div>'
-    html+=unassignedJobs.map(j=>
-      '<div class="dispatch-job-chip" draggable="true" data-job-id="'+j.id+'" data-job-name="'+j.name.replace(/"/g,'&quot;')+'" data-job-addr="'+(j.address||'').replace(/"/g,'&quot;')+'" onmousedown="startJobDrag(event,this)" '+
-      'style="background:#131c2e;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 10px;margin-bottom:5px;cursor:grab;user-select:none;transition:.15s" '+
-      'onmouseenter="this.style.borderColor=\\'rgba(37,99,235,.5)\\'" onmouseleave="this.style.borderColor=\\'rgba(255,255,255,.08)\\'">' +
-      '<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+j.name+'</div>'+
-      '<div style="font-size:10px;color:#414e63;margin-top:2px">'+stageBadge(j.phase)+'</div>'+
-      '</div>'
-    ).join('')
-    html+='</div>'
+  // Populate tech dropdown
+  const techSel=document.getElementById('checkout-tech')
+  if(techSel){
+    techSel.innerHTML='<option value="">— Select technician —</option>'+
+      (techs||[]).map(t=>'<option value="'+t.full_name+'">'+t.full_name+' ('+t.role+')</option>').join('')
   }
 
-  // Internal employees
-  if(internal.length){
-    html+='<div style="padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.07)">'
-    html+='<div style="font-size:10px;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">👷 Internal Team ('+internal.length+')</div>'
-    html+=internal.map(e=>dispatchPersonChip(e)).join('')
-    html+='</div>'
-  }
-
-  // Sub company groups
-  Object.values(byCo).forEach(group=>{
-    html+='<div style="padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.07)">'
-    html+='<div style="font-size:10px;font-weight:600;color:#a78bfa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">🏢 '+group.name+' ('+group.workers.length+')</div>'
-    html+=group.workers.map(e=>dispatchPersonChip(e)).join('')
-    html+='</div>'
-  })
-
-  if(!unassignedEmp.length&&!unassignedJobs.length){
-    html+='<div style="padding:20px 13px;text-align:center;color:#414e63;font-size:12px">Everyone assigned for today ✓</div>'
-  }
-
-  el.innerHTML=html
-}
-
-function dispatchPersonChip(e){
-  const avCss=Object.entries(avS(e.full_name)).map(([k,v])=>k+':'+v).join(';')
-  return '<div class="dispatch-person-chip" data-profile-id="'+e.id+'" data-profile-name="'+e.full_name.replace(/"/g,'&quot;')+'" '+
-    'style="display:flex;align-items:center;gap:8px;padding:7px 9px;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:7px;margin-bottom:5px;cursor:default">'+
-    '<div class="av" style="width:26px;height:26px;font-size:9px;flex-shrink:0;'+avCss+'">'+ini(e.full_name)+'</div>'+
-    '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+e.full_name+'</div>'+
-    '<div style="font-size:10px;color:#414e63">'+e.role+(e.phone?' · '+e.phone:'')+'</div></div>'+
-    '</div>'
-}
-
-function renderDispatchRight(el, employees, companies, assignments, jobs, assignedJobIds){
-  const dateLabel=new Date(_dispatchDate).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})
-  let html='<div style="font-family:\\'Syne\\',sans-serif;font-size:16px;font-weight:700;margin-bottom:14px">'+dateLabel+'</div>'
-
-  // Time slots header
-  const hours=['6am','7am','8am','9am','10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm']
-
-  // Rows: each employee who is assigned OR all employees (show full board)
-  const allEmp=employees
-  if(!allEmp.length){
-    el.innerHTML=html+'<div style="color:#414e63;font-size:13px">No employees to show. Add employees in the Users section.</div>'
+  // Render parts with +/- counters
+  const el=document.getElementById('checkout-parts-list')
+  if(!el)return
+  if(!(parts||[]).length){
+    el.innerHTML='<div style="font-size:12px;color:#414e63">No staged parts on this job — stage parts from an order first</div>'
     return
   }
-
-  html+='<div style="overflow-x:auto">'
-  html+='<table style="width:100%;border-collapse:collapse;min-width:900px">'
-  // Header row with times
-  html+='<thead><tr>'
-  html+='<th style="text-align:left;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.07);font-size:11px;color:#414e63;min-width:180px;position:sticky;left:0;background:#060a10;z-index:2">Employee</th>'
-  html+='<th style="text-align:left;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.07);font-size:10px;color:#414e63;min-width:400px">Schedule — drag a job from the left panel to assign</th>'
-  html+='</tr></thead><tbody>'
-
-  for(const emp of allEmp){
-    const empAssignments=assignments.filter(a=>a.profile_id===emp.id)
-    const avCss=Object.entries(avS(emp.full_name)).map(([k,v])=>k+':'+v).join(';')
-    html+='<tr style="border-bottom:1px solid rgba(255,255,255,.04)">'
-    // Employee cell
-    html+='<td style="padding:10px 12px;vertical-align:top;position:sticky;left:0;background:#060a10;z-index:1">'
-    html+='<div style="display:flex;align-items:center;gap:8px">'
-    html+='<div class="av" style="width:28px;height:28px;font-size:10px;flex-shrink:0;'+avCss+'">'+ini(emp.full_name)+'</div>'
-    html+='<div><div style="font-size:12px;font-weight:500">'+emp.full_name+'</div>'
-    html+='<div style="font-size:10px;color:#414e63">'+emp.role+'</div>'
-    html+='<button data-eid="'+emp.id+'" data-ename="'+emp.full_name.replace(/"/g,'&quot;')+'" onclick="exportEmployeeICS(this.dataset.eid,this.dataset.ename)" style="background:none;border:none;padding:2px 0;cursor:pointer;font-size:10px;color:#414e63;text-decoration:underline;margin-top:3px">📅 Export</button>'
+  let html='<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Staged Parts — set quantity to sign out</div>'
+  html+='<div style="background:#131c2e;border-radius:8px;overflow:hidden">'
+  parts.forEach(p=>{
+    const available=p.assigned_qty-(p.taken_qty||0)
+    if(available<=0)return
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)" data-part-id="'+p.id+'">'
+    html+='<div style="flex:1;min-width:0">'
+    html+='<div style="font-size:13px;font-weight:500">'+p.part_name+'</div>'
+    html+='<div style="font-size:10px;color:#414e63;margin-top:1px">'+p.part_id+' · '+available+' available ('+p.assigned_qty+' staged, '+(p.taken_qty||0)+' already out)</div>'
+    html+='</div>'
+    // +/- counter
+    html+='<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
+    html+='<button class="co-minus" data-pid="'+p.id+'" data-max="'+available+'" onclick="adjCheckout(this,-1)" '
+    html+='style="width:32px;height:32px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:18px;display:flex;align-items:center;justify-content:center">−</button>'
+    html+='<input type="number" class="co-qty fi" data-pid="'+p.id+'" data-max="'+available+'" value="0" min="0" max="'+available+'" '
+    html+='style="width:56px;text-align:center;padding:6px;font-size:15px;font-weight:600" onchange="clampCoQty(this)">'
+    html+='<button class="co-plus" data-pid="'+p.id+'" data-max="'+available+'" onclick="adjCheckout(this,1)" '
+    html+='style="width:32px;height:32px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#16a34a;font-size:18px;display:flex;align-items:center;justify-content:center">+</button>'
     html+='</div></div>'
-    html+='</td>'
-    // Schedule cell — drop zone + assigned jobs
-    html+='<td class="dispatch-drop-zone" data-profile-id="'+emp.id+'" data-profile-name="'+emp.full_name.replace(/"/g,'&quot;')+'" '+
-      'ondragover="event.preventDefault();this.style.background=\\'rgba(37,99,235,.08)\\'" '+
-      'ondragleave="this.style.background=\\'\\'" '+
-      'ondrop="handleDispatchDrop(event,this)" '+
-      'style="padding:8px 10px;vertical-align:top;min-height:60px;transition:.15s">'
-    if(empAssignments.length){
-      html+=empAssignments.map(a=>dispatchAssignmentCard(a,assignments)).join('')
-    } else {
-      html+='<div class="dispatch-empty-zone" style="border:1.5px dashed rgba(255,255,255,.07);border-radius:7px;padding:10px;text-align:center;color:#1a2540;font-size:11px;min-height:44px;display:flex;align-items:center;justify-content:center">Drop job here</div>'
-    }
-    html+='</td></tr>'
-  }
-
-  html+='</tbody></table></div>'
+  })
+  html+='</div>'
   el.innerHTML=html
 }
 
-
-function buildCrewLine(a, allAssignments){
-  if(!allAssignments||!allAssignments.length) return ''
-  const crew=(allAssignments||[]).filter(x=>x.job_id===a.job_id&&x.dispatch_date===a.dispatch_date&&x.id!==a.id&&x.profile_id)
-  if(!crew.length) return ''
-  return '<div style="display:flex;align-items:center;gap:4px;margin-top:5px;flex-wrap:wrap">'+
-    '<span style="font-size:9px;color:#414e63">With:</span>'+
-    crew.map(x=>{
-      const avCss=Object.entries(avS(x.profiles?.full_name||'?')).map(([k,v])=>k+':'+v).join(';')
-      return '<div class="av" style="width:18px;height:18px;font-size:7px;'+avCss+'" title="'+(x.profiles?.full_name||'?')+'">'+ini(x.profiles?.full_name||'?')+'</div>'
-    }).join('')+
-    (crew.length>0?'<span style="font-size:9px;color:#8a96ab">'+crew.map(x=>x.profiles?.full_name||'?').join(', ')+'</span>':'')+
-    '</div>'
+function adjCheckout(btn, delta){
+  const pid=btn.dataset.pid
+  const max=parseInt(btn.dataset.max)||99
+  const input=document.querySelector('.co-qty[data-pid="'+pid+'"]')
+  if(!input)return
+  const newVal=Math.min(max,Math.max(0,(parseInt(input.value)||0)+delta))
+  input.value=newVal
+  input.style.color=newVal>0?'#16a34a':'#8a96ab'
 }
 
-function dispatchAssignmentCard(a, allAssignments){
-  const statusColors={scheduled:'rgba(37,99,235,.12)',in_progress:'rgba(22,163,74,.12)',complete:'rgba(22,163,74,.08)',cancelled:'rgba(220,38,38,.08)'}
-  const statusBorder={scheduled:'rgba(37,99,235,.25)',in_progress:'rgba(22,163,74,.3)',complete:'rgba(22,163,74,.2)',cancelled:'rgba(220,38,38,.2)'}
-  const bg=statusColors[a.status]||statusColors.scheduled
-  const border=statusBorder[a.status]||statusBorder.scheduled
-  return '<div style="background:'+bg+';border:1px solid '+border+';border-radius:7px;padding:8px 10px;margin-bottom:5px;position:relative">'+
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
-    '<div style="flex:1;min-width:0">'+
-    '<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.jobs?.name||'Job')+'</div>'+
-    (a.jobs?.address?'<div style="font-size:10px;color:#414e63;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.jobs.address+'</div>':'')+
-    '<div style="display:flex;align-items:center;gap:8px;margin-top:4px">'+
-    '<span style="font-size:10px;color:#414e63">'+a.dispatch_date+'</span>'+
-    (a.start_time?' <span style="font-size:10px;color:#60a5fa">⏱ '+fmtDispatchTime(a.start_time)+(a.end_time?' – '+fmtDispatchTime(a.end_time):'')+'</span>':'')+'  '+
-    '<span class="badge bg-gray" style="font-size:9px">'+a.status+'</span>'+
-    '</div>'+
-    (a.notes?'<div style="font-size:10px;color:#8a96ab;margin-top:3px">'+a.notes+'</div>':'')+
-    buildCrewLine(a, allAssignments)+
-    '</div>'+
-    '<div style="display:flex;flex-direction:column;gap:4px;margin-left:8px;flex-shrink:0">'+
-    '<button onclick="editDispatchAssignment(\\''+a.id+'\\')" style="background:rgba(255,255,255,.08);border:none;border-radius:4px;padding:3px 7px;cursor:pointer;color:#8a96ab;font-size:10px">✏</button>'+
-    '<button onclick="exportSingleAssignmentICS(\\''+a.id+'\\')" style="background:rgba(22,163,74,.1);border:none;border-radius:4px;padding:3px 7px;cursor:pointer;color:#16a34a;font-size:10px">📅</button>'+
-    '<button onclick="removeDispatchAssignment(\\''+a.id+'\\')" style="background:rgba(220,38,38,.1);border:none;border-radius:4px;padding:3px 7px;cursor:pointer;color:#dc2626;font-size:10px">✕</button>'+
-    '</div></div></div>'
+function clampCoQty(input){
+  const max=parseInt(input.dataset.max)||99
+  input.value=Math.min(max,Math.max(0,parseInt(input.value)||0))
+  input.style.color=parseInt(input.value)>0?'#16a34a':'#8a96ab'
 }
 
-function fmtDispatchTime(t){
-  if(!t)return''
-  const[h,m]=t.split(':').map(Number)
-  const ampm=h>=12?'pm':'am'
-  const h12=h%12||12
-  return h12+(m?':'+String(m).padStart(2,'0'):'')+ampm
-}
-
-// ── DRAG & DROP ────────────────────────────────────────────────
-let _dragData=null
-
-function startJobDrag(e, el){
-  _dragData={job_id:el.dataset.jobId, job_name:el.dataset.jobName}
-  el.style.opacity='.5'
-  el.style.transform='scale(.97)'
-  // Make droppable with native drag
-  el.setAttribute('draggable','true')
-  el.addEventListener('dragend',()=>{el.style.opacity='';el.style.transform='';_dragData=null},{once:true})
-}
-
-function handleDispatchDrop(event, dropZone){
-  event.preventDefault()
-  dropZone.style.background=''
-  if(!_dragData?.job_id){
-    // Try native drag data
-    const jobId=event.dataTransfer.getData('job_id')
-    const jobName=event.dataTransfer.getData('job_name')
-    if(jobId) _dragData={job_id:jobId, job_name:jobName}
-    else return
-  }
-  const profileId=dropZone.dataset.profileId
-  const profileName=dropZone.dataset.profileName
-  openAssignModal(_dragData.job_id, _dragData.job_name, profileId, profileName)
-  _dragData=null
-}
-
-// Also handle dragstart on job chips for native HTML5 drag
-document.addEventListener('dragstart', e=>{
-  const chip=e.target.closest('.dispatch-job-chip')
-  if(chip){
-    _dragData={job_id:chip.dataset.jobId, job_name:chip.dataset.jobName}
-    e.dataTransfer.setData('job_id', chip.dataset.jobId)
-    e.dataTransfer.setData('job_name', chip.dataset.jobName)
-    e.dataTransfer.effectAllowed='move'
-  }
-})
-
-function openAssignModal(jobId, jobName, profileId, profileName){
-  const now=new Date()
-  const hh=String(now.getHours()).padStart(2,'0')
-  const mm=String(Math.round(now.getMinutes()/15)*15%60).padStart(2,'0')
-  const defStart=hh+':'+mm
-  const defEnd=String((now.getHours()+4)%24).padStart(2,'0')+':00'
-
-  const html=
-    '<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:7px;padding:10px 12px;margin-bottom:13px">'+
-    '<div style="font-size:11px;color:#414e63">ASSIGNING</div>'+
-    '<div style="font-size:14px;font-weight:600;margin-top:2px">'+jobName+'</div>'+
-    '<div style="font-size:12px;color:#8a96ab;margin-top:2px">→ '+profileName+'</div>'+
-    '</div>'+
-    '<div class="fg"><label class="fl">Scheduled Date</label><input class="fi" type="date" id="da-date" value="'+_dispatchDate+'"></div>'+
-    '<div class="two">'+
-    '<div class="fg"><label class="fl">Start Time</label><input class="fi" type="time" id="da-start" value="'+defStart+'"></div>'+
-    '<div class="fg"><label class="fl">Projected End</label><input class="fi" type="time" id="da-end" value="'+defEnd+'"></div>'+
-    '</div>'+
-    '<div class="fg"><label class="fl">Notes</label><input class="fi" id="da-notes" placeholder="Special instructions, access codes…"></div>'+
-    '<div class="fg"><label class="fl">Status</label><select class="fs" id="da-status">'+
-    '<option value="scheduled">Scheduled</option>'+
-    '<option value="in_progress">In Progress</option>'+
-    '<option value="complete">Complete</option>'+
-    '<option value="cancelled">Cancelled</option>'+
-    '</select></div>'
-
-  modal('Assign to Schedule', html, async()=>{
-    const assignDate=document.getElementById('da-date')?.value||_dispatchDate
-    const{error}=await sb.from('dispatch_assignments').insert({
-      id:uuid(), job_id:jobId, profile_id:profileId,
-      dispatch_date:assignDate,
-      start_time:v('da-start')||null,
-      end_time:v('da-end')||null,
-      notes:v('da-notes'),
-      status:v('da-status'),
-      created_by:ME?.full_name,
-      created_at:new Date().toISOString(),
-      updated_at:new Date().toISOString()
-    })
-    if(error){toast(error.message,'error');return}
-    closeModal()
-    toast(profileName+' assigned to '+jobName)
-    await loadDispatchData()
-  }, 'Assign')
-}
-
-async function editDispatchAssignment(id){
-  // Load the assignment plus all crew on the same job/date
-  const{data:a}=await sb.from('dispatch_assignments')
-    .select('*,jobs(name,address),profiles:profile_id(full_name)')
-    .eq('id',id).single()
-  if(!a)return
-
-  // Get all other crew assigned to this same job on this same date
-  const{data:crew}=await sb.from('dispatch_assignments')
-    .select('id,profile_id,profiles:profile_id(full_name),start_time,end_time')
-    .eq('job_id',a.job_id).eq('dispatch_date',a.dispatch_date)
-    .neq('id',id)
-
-  const crewHtml=(crew&&crew.length)
-    ?'<div class="fg"><div class="fl">Also Assigned to This Job</div>'+
-      '<div style="background:#131c2e;border-radius:7px;padding:9px 11px">'+
-      (crew||[]).map(x=>{
-        const avCss=Object.entries(avS(x.profiles?.full_name||'?')).map(([k,v])=>k+':'+v).join(';')
-        return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)">'+
-          '<div class="av" style="width:22px;height:22px;font-size:8px;flex-shrink:0;'+avCss+'">'+ini(x.profiles?.full_name||'?')+'</div>'+
-          '<span style="font-size:12px;flex:1">'+(x.profiles?.full_name||'?')+'</span>'+
-          (x.start_time?'<span style="font-size:10px;color:#60a5fa">'+fmtDispatchTime(x.start_time)+(x.end_time?'–'+fmtDispatchTime(x.end_time):'')+'</span>':'')+
-          '</div>'
-      }).join('')+'</div></div>'
-    :'<div style="font-size:11px;color:#414e63;margin-bottom:10px">No other crew assigned to this job on this date</div>'
-
-  const html=
-    '<div style="background:#131c2e;border-radius:7px;padding:9px 12px;margin-bottom:13px">'+
-    '<div style="font-size:13px;font-weight:600">'+(a.jobs?.name||'Job')+'</div>'+
-    '<div style="font-size:11px;color:#414e63;margin-top:2px">'+(a.jobs?.address||'')+'</div>'+
-    '<div style="font-size:11px;color:#8a96ab;margin-top:3px">Assigned to: '+(a.profiles?.full_name||'?')+'</div>'+
-    '</div>'+
-    crewHtml+
-    '<div class="fg"><label class="fl">Scheduled Date</label><input class="fi" type="date" id="ea-date" value="'+(a.dispatch_date||_dispatchDate)+'"></div>'+
-    '<div class="two">'+
-    '<div class="fg"><label class="fl">Start Time</label><input class="fi" type="time" id="ea-start" value="'+(a.start_time||'')+'"></div>'+
-    '<div class="fg"><label class="fl">Projected End</label><input class="fi" type="time" id="ea-end" value="'+(a.end_time||'')+'"></div>'+
-    '</div>'+
-    '<div class="fg"><label class="fl">Notes</label><input class="fi" id="ea-notes" value="'+(a.notes||'').replace(/"/g,'&quot;')+'"></div>'+
-    '<div class="fg"><label class="fl">Status</label><select class="fs" id="ea-status">'+
-    '<option value="scheduled"'+(a.status==='scheduled'?' selected':'')+'>Scheduled</option>'+
-    '<option value="in_progress"'+(a.status==='in_progress'?' selected':'')+'>In Progress</option>'+
-    '<option value="complete"'+(a.status==='complete'?' selected':'')+'>Complete</option>'+
-    '<option value="cancelled"'+(a.status==='cancelled'?' selected':'')+'>Cancelled</option>'+
-    '</select></div>'+
-    '<div class="fg"><label class="fl">Apply date/time change to</label>'+
-    '<select class="fs" id="ea-scope">'+
-    '<option value="this">This employee only</option>'+
-    '<option value="all">All crew on this job & date</option>'+
-    '</select></div>'
-
-  modal('Edit Assignment', html, async()=>{
-    const scope=v('ea-scope')
-    const update={
-      dispatch_date:v('ea-date')||_dispatchDate,
-      start_time:v('ea-start')||null,
-      end_time:v('ea-end')||null,
-      notes:v('ea-notes'),
-      status:v('ea-status'),
-      updated_at:new Date().toISOString()
-    }
-    if(scope==='all'){
-      // Update all crew on this job/date
-      const{error}=await sb.from('dispatch_assignments').update(update)
-        .eq('job_id',a.job_id).eq('dispatch_date',a.dispatch_date)
-      if(error){toast(error.message,'error');return}
-      toast('Updated all crew on this job')
-    } else {
-      const{error}=await sb.from('dispatch_assignments').update(update).eq('id',id)
-      if(error){toast(error.message,'error');return}
-      toast('Assignment updated')
-    }
-    closeModal();await loadDispatchData()
-  }, 'Save')
-}
-
-async function removeDispatchAssignment(id){
-  if(!confirm('Remove this assignment?'))return
-  await sb.from('dispatch_assignments').delete().eq('id',id)
-  toast('Removed','warn');await loadDispatchData()
-}
-
-// ── MOBILE SIDEBAR ────────────────────────────────────────────
-function toggleSidebar(){
-  const sb=document.getElementById('sidebar')
-  const ov=document.getElementById('mobile-overlay')
-  const isOpen=sb.classList.contains('open')
-  if(isOpen){closeSidebar()}
-  else{sb.classList.add('open');ov.classList.add('open');document.body.style.overflow='hidden'}
-}
-function closeSidebar(){
-  document.getElementById('sidebar').classList.remove('open')
-  document.getElementById('mobile-overlay').classList.remove('open')
-  document.body.style.overflow=''
-}
-// Close sidebar when a nav item is tapped on mobile
-document.querySelectorAll && document.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('.nav-item').forEach(el=>{
-    el.addEventListener('click',()=>{ if(window.innerWidth<=768) closeSidebar() })
+async function commitCheckout(){
+  const tech=document.getElementById('checkout-tech')?.value
+  if(!tech){toast('Select a technician','error');return}
+  const inputs=document.querySelectorAll('.co-qty')
+  const items=[]
+  inputs.forEach(inp=>{
+    const qty=parseInt(inp.value)||0
+    if(qty>0)items.push({part_id:inp.dataset.pid, qty})
   })
-})
-</script>
+  if(!items.length){toast('Set quantity for at least one part','error');return}
+
+  const now=new Date().toISOString()
+  let count=0
+  for(const item of items){
+    const{data:p}=await sb.from('job_parts').select('*').eq('id',item.part_id).single()
+    if(!p)continue
+    const newTaken=(p.taken_qty||0)+item.qty
+    const newStatus=newTaken>=(p.assigned_qty||0)?'signed_out':'staged'
+    await sb.from('job_parts').update({
+      taken_qty:newTaken,
+      status:newStatus,
+      checked_out_by:tech,
+      checked_out_at:now,
+      updated_at:now
+    }).eq('id',item.part_id)
+    await sb.from('scan_events').insert({
+      id:uuid(),job_id:currentJobId,part_id:p.part_id,part_name:p.part_name,
+      action:'check_out',qty:item.qty,scanned_by:ME?.full_name||'?',
+      scanned_at:now,device_info:'Admin checkout by '+tech
+    })
+    count+=item.qty
+  }
+  toast(count+' parts signed out to '+tech)
+  document.getElementById('checkout-ui').style.display='none'
+  const btn=document.getElementById('checkout-toggle-btn')
+  if(btn)btn.textContent='📤 Sign Out Parts'
+  loadJT('jt-parts')
+}
 `
 const HTML_WORKER = `<!DOCTYPE html>
 <html lang="en">
