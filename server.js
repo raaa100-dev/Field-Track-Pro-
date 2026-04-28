@@ -1697,45 +1697,91 @@ function adjStockModal(id='',name='',qty=0,min=0){
 // ══════════════════════════════════════════
 // ORDERS PAGE
 // ══════════════════════════════════════════
-async function pgOrders(){
+async function pgOrders(filterJobId){
   const[{data:orders},{data:jobs}]=await Promise.all([
     sb.from('orders').select('*,jobs(name)').order('created_at',{ascending:false}),
     sb.from('jobs').select('id,name').eq('archived',false).order('name')
   ])
+  window._ordFilterJobId=filterJobId||null
   const{data:cat}=await sb.from('catalog').select('*').order('name')
   allCatalog=cat||[]
+  window._allOrders=orders||[]
+  window._allOrderJobs=jobs||[]
   window._ordItems=[]
-  document.getElementById('page-area').innerHTML=\`
-  <div class="card" style="margin-bottom:14px">
-    <div class="card-title">New Order Request</div>
-    <div class="two"><div class="fg"><label class="fl">Job *</label><select class="fs" id="ord-job"><option value="">— Select —</option>\${(jobs||[]).map(j=>\`<option value="\${j.id}">\${j.name}</option>\`).join('')}</select></div><div class="fg"><label class="fl">Notes</label><input class="fi" id="ord-notes"></div></div>
-    <div id="ord-items-display" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px"></div>
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <input class="fi" id="ord-bc" placeholder="Barcode or part name" style="flex:1" oninput="liveResolveBC(this.value)">
-      <input class="fi" id="ord-qty" type="number" value="1" min="1" style="width:65px">
-      <button class="btn btn-p btn-sm" onclick="addOrdItem()">Add</button>
-    </div>
-    <button class="btn btn-p btn-full" onclick="submitOrder()">Submit Order</button>
-  </div>
-  <div class="card" style="padding:0;overflow:hidden">
-  \${(orders||[]).length?\`<table class="tbl"><thead><tr><th>Job</th><th>Items</th><th>By</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>\${(orders||[]).map(o=>{const items=typeof o.items==='string'?JSON.parse(o.items||'[]'):(o.items||[]);return\`<tr><td style="font-weight:500">\${(jobs||[]).find(j=>j.id===o.job_id)?.name||o.jobs?.name||o.job_id}</td><td style="font-size:11px;color:#8a96ab">\${items.length} type(s), \${items.reduce((s,i)=>s+(i.qty||0),0)} total</td><td style="font-size:11px">\${o.created_by||'—'}</td><td style="font-size:11px">\${fd(o.created_at)}</td><td><span class="badge \${o.status==='staged'?'bg-green':o.status==='approved'?'bg-blue':o.status==='rejected'?'bg-red':'bg-amber'}">\${o.status}</span></td><td style="display:flex;gap:5px">\${o.status==='pending'?\`<button class="btn btn-sm btn-g" onclick="approveOrder('\${o.id}')">Stage</button><button class="btn btn-sm btn-r" onclick="rejectOrder('\${o.id}')">Reject</button>\`:''}</td></tr>\`}).join('')}</tbody></table>\`:empty('🛒','No orders yet')}
-  </div>\`
+
+  const pending=(orders||[]).filter(o=>o.status==='pending').length
+  const ordered=(orders||[]).filter(o=>o.status==='ordered').length
+  const staged=(orders||[]).filter(o=>o.status==='staged').length
+
+  document.getElementById('page-area').innerHTML=
+    '<div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">'+
+    '<div class="stat"><div class="stat-label">Total</div><div class="stat-value">'+(orders||[]).length+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Pending</div><div class="stat-value" style="color:#d97706">'+pending+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Ordered</div><div class="stat-value" style="color:#60a5fa">'+ordered+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Staged</div><div class="stat-value" style="color:#16a34a">'+staged+'</div></div>'+
+    '</div>'+
+    // Filter bar
+    '<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">'+
+    '<select class="fs" id="ord-filter-job" style="max-width:260px" onchange="window._ordFilterJobId=this.value;renderOrdersList(window._allOrders,window._allOrderJobs)">'+
+    '<option value="">All Jobs</option>'+
+    (jobs||[]).map(j=>'<option value="'+j.id+'"'+(filterJobId===j.id?' selected':'')+'>'+j.name+'</option>').join('')+
+    '</select>'+
+    '<span style="font-size:11px;color:#414e63" id="ord-filter-count"></span>'+
+    '</div>'+
+    // New order form
+    '<div class="card" style="margin-bottom:14px">'+
+    '<div class="card-title">New Order Request</div>'+
+    '<div class="two"><div class="fg"><label class="fl">Job *</label>'+
+    '<select class="fs" id="ord-job"><option value="">— Select —</option>'+
+    (jobs||[]).map(j=>'<option value="'+j.id+'"'+(filterJobId===j.id?' selected':'')+'>'+j.name+'</option>').join('')+
+    '</select></div>'+
+    '<div class="fg"><label class="fl">Notes / PO #</label><input class="fi" id="ord-notes"></div></div>'+
+    '<div id="ord-items-display" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px"></div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:8px">'+
+    '<input class="fi" id="ord-bc" placeholder="Barcode or part name" style="flex:1" oninput="liveResolveBC(this.value)">'+
+    '<input class="fi" id="ord-qty" type="number" value="1" min="1" style="width:65px">'+
+    '<button class="btn btn-p btn-sm" onclick="addOrdItem()">Add</button>'+
+    '</div>'+
+    '<button class="btn btn-p btn-full" onclick="submitOrder()">Submit Order</button>'+
+    '</div>'+
+    '<div id="orders-list"></div>'
+
+  renderOrdersList(orders||[], jobs||[])
 }
-function addOrdItem(){
-  if(!window._ordItems)window._ordItems=[]
-  const bc=v('ord-bc').trim(),qty=parseInt(v('ord-qty'))||1;if(!bc)return
-  const cat=allCatalog.find(c=>c.barcode===bc||c.name.toLowerCase()===bc.toLowerCase())
-  window._ordItems.push({partId:bc,name:cat?.name||bc,qty})
-  document.getElementById('ord-bc').value='';document.getElementById('ord-qty').value=1
-  document.getElementById('ord-items-display').innerHTML=window._ordItems.map((i,x)=>\`<div class="file-chip">\${i.name} ×\${i.qty}<span class="rm" onclick="window._ordItems.splice(\${x},1);document.getElementById('ord-items-display').innerHTML=window._ordItems.map((i,y)=>'<div class=file-chip>'+i.name+' ×'+i.qty+'</div>').join('')">×</span></div>\`).join('')
+
+function renderOrdersList(orders, jobs){
+  const el=document.getElementById('orders-list');if(!el)return
+  const jobMap={}; (jobs||window._allOrderJobs||[]).forEach(j=>jobMap[j.id]=j.name)
+  // Apply job filter
+  const filterJob=window._ordFilterJobId||document.getElementById('ord-filter-job')?.value||''
+  const filtered=filterJob?(orders||[]).filter(o=>o.job_id===filterJob):(orders||[])
+  const cnt=document.getElementById('ord-filter-count')
+  if(cnt)cnt.textContent=filtered.length+' order'+(filtered.length!==1?'s':'')+( filterJob?' for this job':'')
+  if(!filtered.length){el.innerHTML=empty('📦',filterJob?'No orders for this job yet':'No orders yet');return}
+  el.innerHTML=filtered.map(o=>{
+    const items=typeof o.items==='string'?JSON.parse(o.items||'[]'):(o.items||[])
+    const totalQty=items.reduce((s,i)=>s+(i.qty||0),0)
+    const sc={pending:'bg-amber',ordered:'bg-blue',staged:'bg-green',cancelled:'bg-gray'}[o.status]||'bg-gray'
+    const jobName=o.jobs?.name||jobMap[o.job_id]||o.job_id||'—'
+    let html='<div class="card" style="margin-bottom:9px">'
+    html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
+    html+='<div><div style="font-weight:600;font-size:14px">'+jobName+'</div>'
+    html+='<div style="font-size:11px;color:#414e63;margin-top:2px">'+(o.notes||'No notes')+' · By '+(o.created_by||'—')+' · '+fd(o.created_at)+'</div>'
+    html+=(o.staged_at?'<div style="font-size:10px;color:#16a34a">Staged by '+(o.staged_by||'?')+' on '+fdt(o.staged_at)+'</div>':'')
+    html+='</div><span class="badge '+sc+'">'+o.status+'</span></div>'
+    html+='<div style="background:#0c1220;border-radius:7px;overflow:hidden;margin-bottom:9px">'
+    html+=items.map(i=>'<div style="display:flex;align-items:center;gap:10px;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.04)"><div style="flex:1"><div style="font-size:12px;font-weight:500">'+i.name+'</div><div style="font-size:10px;color:#414e63">'+i.barcode+'</div></div><div style="font-size:12px;font-weight:600">×'+i.qty+'</div></div>').join('')
+    html+='<div style="padding:7px 11px;font-size:11px;color:#414e63">'+items.length+' type(s) · '+totalQty+' units</div></div>'
+    html+='<div style="display:flex;gap:7px;flex-wrap:wrap">'
+    if(o.status==='pending') html+='<button class="btn btn-p btn-sm" data-oid="'+o.id+'" data-ns="ordered" onclick="updateOrderStatus(this.dataset.oid,this.dataset.ns)">Mark Ordered</button>'
+    if(o.status==='ordered') html+='<button class="btn btn-p btn-sm" data-oid="'+o.id+'" data-jid="'+o.job_id+'" onclick="stageOrderToJob(this.dataset.oid,this.dataset.jid)">📥 Stage to Job</button>'
+    if(o.status!=='staged'&&o.status!=='cancelled') html+='<button class="btn btn-sm" data-oid="'+o.id+'" data-ns="cancelled" onclick="updateOrderStatus(this.dataset.oid,this.dataset.ns)">Cancel</button>'
+    html+='</div></div>'
+    return html
+  }).join('')
 }
-async function submitOrder(){
-  const jobId=v('ord-job');if(!jobId){toast('Select a job','error');return}
-  if(!window._ordItems?.length){toast('Add at least one part','warn');return}
-  const{data:job}=await sb.from('jobs').select('name').eq('id',jobId).single()
-  const{error}=await sb.from('orders').insert({id:uuid(),job_id:job?.name||jobId,items:window._ordItems,notes:v('ord-notes'),status:'pending',created_by:ME?.full_name,created_at:new Date().toISOString()})
-  if(error)toast(error.message,'error');else{toast('Order submitted');window._ordItems=[];pgOrders()}
-}
+
+
 async function approveOrder(id){await sb.from('orders').update({status:'staged',staged_by:ME?.full_name,staged_at:new Date().toISOString()}).eq('id',id);toast('Staged OK');pgOrders()}
 async function rejectOrder(id){const n=prompt('Reason for rejection:');if(n===null)return;await sb.from('orders').update({status:'rejected',rejected_by:ME?.full_name,rejection_note:n,rejected_at:new Date().toISOString()}).eq('id',id);toast('Rejected','warn');pgOrders()}
 
