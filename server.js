@@ -117,7 +117,7 @@ const HTML_ADMIN  = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FieldAxisHQ Admin v2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
@@ -251,107 +251,9 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .progress-stages{display:flex;gap:3px;margin:8px 0}
 .ps{flex:1;height:5px;border-radius:99px;background:#1a2540}
 .ps.done{background:#16a34a}.ps.cur{background:#d97706}
-
-/* ── MOBILE RESPONSIVE ────────────────────────────────────────── */
-#mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99;backdrop-filter:blur(2px)}
-#hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;color:#e8edf5;flex-shrink:0}
-#hamburger svg{width:22px;height:22px}
-
-@media(max-width:768px){
-  body{font-size:14px}
-  #hamburger{display:flex;align-items:center}
-  #mobile-overlay{display:none}
-  #mobile-overlay.open{display:block}
-
-  /* Sidebar slides in from left */
-  #sidebar{
-    position:fixed;left:-220px;top:0;bottom:0;z-index:100;
-    transition:transform .25s cubic-bezier(.4,0,.2,1);
-    transform:translateX(0);
-    box-shadow:none;
-  }
-  #sidebar.open{
-    transform:translateX(220px);
-    box-shadow:4px 0 30px rgba(0,0,0,.5);
-  }
-
-  /* Main area takes full width */
-  #main{width:100%;min-width:0}
-
-  /* Topbar */
-  .topbar{padding:0 10px;gap:6px}
-  .topbar-title{font-size:14px}
-  #topbar-actions{gap:5px;flex-wrap:wrap;max-width:calc(100vw - 120px);overflow:hidden}
-  #topbar-actions .btn{padding:4px 8px;font-size:11px}
-  #topbar-actions select.fs{font-size:11px;padding:4px 6px;max-width:120px}
-
-  /* Page area */
-  #page-area{padding:10px!important}
-
-  /* Cards and forms */
-  .card{padding:12px}
-  .two,.three,.four{grid-template-columns:1fr!important}
-  .stats{grid-template-columns:repeat(2,1fr)!important}
-
-  /* Tables: make scrollable */
-  .card > table,.tbl{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;font-size:11px}
-
-  /* Job detail tabs: scrollable */
-  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0}
-  .tab{white-space:nowrap;padding:8px 12px;font-size:11px;flex-shrink:0}
-
-  /* Job detail split layout: stack vertically */
-  .jd-grid{grid-template-columns:1fr!important}
-
-  /* Modal: full screen on mobile */
-  .modal-box{
-    width:100%!important;max-width:100%!important;
-    margin:0!important;border-radius:16px 16px 0 0!important;
-    position:fixed!important;bottom:0!important;left:0!important;right:0!important;top:auto!important;
-    max-height:90vh;overflow-y:auto;
-  }
-  .modal-wrap{align-items:flex-end!important;padding:0!important}
-
-  /* Dispatch board: stack */
-  #page-area [style*="grid-template-columns:280px"]{
-    display:flex!important;flex-direction:column!important;height:auto!important
-  }
-  #dispatch-left{max-height:35vh;border-right:none!important;border-bottom:1px solid rgba(255,255,255,.07)}
-
-  /* Job map: stack */
-  #page-area [style*="grid-template-columns:1fr 300px"]{
-    display:flex!important;flex-direction:column!important;height:auto!important
-  }
-
-  /* Buttons: larger tap targets */
-  .btn{min-height:36px;padding:7px 12px}
-  .btn-sm{min-height:30px;padding:4px 10px}
-  .nav-item{padding:9px 10px;font-size:13px}
-
-  /* Photos grid: 2 cols on phone */
-  .photo-grid{grid-template-columns:repeat(2,1fr)!important}
-
-  /* Safety compliance grid: scrollable */
-  #page-area .card [style*="overflow-x:auto"]{overflow-x:auto;-webkit-overflow-scrolling:touch}
-
-  /* Notifications bell */
-  #notif-badge{top:-2px!important;right:-2px!important}
-
-  /* Daily reports filters: wrap */
-  #page-area [style*="grid-template-columns:1fr 1fr 1fr 1fr"]{
-    grid-template-columns:1fr 1fr!important
-  }
-}
-
-@media(max-width:420px){
-  .stats{grid-template-columns:repeat(2,1fr)!important}
-  .photo-grid{grid-template-columns:repeat(2,1fr)!important}
-  #topbar-actions .btn{font-size:10px;padding:3px 6px}
-}
 </style>
 </head>
 <body>
-<div id="mobile-overlay" onclick="closeSidebar()"></div>
 <div id="sidebar">
   <div class="logo"><div class="logo-mark">FieldAxisHQ</div><div class="logo-sub">v2 · Operations</div></div>
   <div style="flex:1;padding:4px 0;overflow-y:auto">
@@ -394,11 +296,6 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 
 <div id="main">
   <div class="topbar">
-    <button id="hamburger" onclick="toggleSidebar()" aria-label="Menu">
-      <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M3 6h16M3 11h16M3 16h16"/>
-      </svg>
-    </button>
     <div class="topbar-title" id="page-title">Dashboard</div>
     <div class="tb-right" id="topbar-actions">
       <div style="position:relative;cursor:pointer" onclick="P('notifications',null)" title="Notifications">
@@ -439,7 +336,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   P('dashboard',document.querySelector('.nav-item'))
   checkSafetyBadge()
 })
-function doSignOut(){sb.auth.signOut().then(()=>{location.href='index.html?signout=1'})}
+function doSignOut(){sb.auth.signOut();location.href='index.html'}
 
 // ── NAVIGATION ────────────────────────────────────────────────
 const PAGE_TITLES={dashboard:'Dashboard',notifications:'Notifications',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
@@ -491,43 +388,16 @@ function ld(){return'<div class="loading"><div class="spin"></div> Loading…</d
 // ══════════════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════════════
-function renderOrdersList(orders, jobs){
-  const el=document.getElementById('orders-list');if(!el)return
-  const jobMap={}; (jobs||window._allOrderJobs||[]).forEach(j=>jobMap[j.id]=j.name)
-  if(!orders.length){el.innerHTML=empty('📦','No orders yet');return}
-  el.innerHTML=orders.map(o=>{
-    const items=typeof o.items==='string'?JSON.parse(o.items||'[]'):(o.items||[])
-    const totalQty=items.reduce((s,i)=>s+(i.qty||0),0)
-    const sc={pending:'bg-amber',ordered:'bg-blue',staged:'bg-green',cancelled:'bg-gray'}[o.status]||'bg-gray'
-    const jobName=o.jobs?.name||jobMap[o.job_id]||o.job_id||'—'
-    let html='<div class="card" style="margin-bottom:9px">'
-    html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
-    html+='<div><div style="font-weight:600;font-size:14px">'+jobName+'</div>'
-    html+='<div style="font-size:11px;color:#414e63;margin-top:2px">'+(o.notes||'No notes')+' · '+fd(o.created_at)+'</div>'
-    html+=(o.staged_at?'<div style="font-size:10px;color:#16a34a">Staged by '+(o.staged_by||'?')+' on '+fdt(o.staged_at)+'</div>':'')
-    html+='</div><span class="badge '+sc+'">'+o.status+'</span></div>'
-    html+='<div style="background:#0c1220;border-radius:7px;overflow:hidden;margin-bottom:9px">'
-    html+=items.map(i=>'<div style="display:flex;align-items:center;gap:10px;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.04)"><div style="flex:1"><div style="font-size:12px;font-weight:500">'+i.name+'</div><div style="font-size:10px;color:#414e63">'+i.barcode+'</div></div><div style="font-size:12px;font-weight:600">×'+i.qty+'</div></div>').join('')
-    html+='<div style="padding:7px 11px;font-size:11px;color:#414e63">'+items.length+' type(s) · '+totalQty+' units</div></div>'
-    html+='<div style="display:flex;gap:7px;flex-wrap:wrap">'
-    if(o.status==='pending') html+='<button class="btn btn-p btn-sm" data-oid="'+o.id+'" data-ns="ordered" onclick="updateOrderStatus(this.dataset.oid,this.dataset.ns)">Mark Ordered</button>'
-    if(o.status==='ordered') html+='<button class="btn btn-p btn-sm" data-oid="'+o.id+'" data-jid="'+o.job_id+'" onclick="stageOrderToJob(this.dataset.oid,this.dataset.jid)">📥 Stage to Job</button>'
-    if(o.status!=='staged'&&o.status!=='cancelled') html+='<button class="btn btn-sm" data-oid="'+o.id+'" data-ns="cancelled" onclick="updateOrderStatus(this.dataset.oid,this.dataset.ns)">Cancel</button>'
-    html+='</div></div>'
-    return html
-  }).join('')
-}
-
 async function pgDash(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="P(\\'newjob\\',null)">+ New Job</button>'
   try {
   // Run queries individually so one failure doesn't break everything
   const {data:jobs,error:jobsError} = await sb.from('jobs').select('*').order('created_at',{ascending:false})
   if(jobsError) throw new Error('Jobs: '+jobsError.message)
-  const {data:ci=[]} = await sb.from('checkins').select('id,job_id,worker_id,checkin_at,checkout_at,profiles:worker_id(full_name),jobs(name)').is('checkout_at',null).order('checkin_at',{ascending:false}).limit(20).then(r=>r).catch(()=>({data:[]}))
-  const {data:parts=[]} = await sb.from('job_parts').select('id,job_id,status,assigned_qty').in('status',['staged','signed_out']).then(r=>r).catch(()=>({data:[]}))
-  const {data:low=[]} = await sb.from('inventory').select('id,name,qty,min_qty').gt('min_qty',0).then(r=>r).catch(()=>({data:[]}))
-  const {data:safety=[]} = await sb.from('safety_topics').select('id,title,week_of').order('created_at',{ascending:false}).limit(5).then(r=>r).catch(()=>({data:[]}))
+  const {data:ci} = await sb.from('checkins').select('id,job_id,worker_id,checkin_at,checkout_at').is('checkout_at',null).order('checkin_at',{ascending:false}).limit(20).catch(()=>({data:[]}))
+  const {data:parts} = await sb.from('job_parts').select('id,job_id,status,assigned_qty').in('status',['staged','signed_out']).catch(()=>({data:[]}))
+  const {data:low} = await sb.from('inventory').select('id,name,qty,min_qty').gt('min_qty',0).catch(()=>({data:[]}))
+  const {data:safety} = await sb.from('safety_topics').select('id,title,week_of').order('created_at',{ascending:false}).limit(5).catch(()=>({data:[]}))
   // Load worker names for check-ins separately (avoid join issues)
   let ciWithNames = ci||[]
   if(ciWithNames.length){
@@ -676,7 +546,6 @@ function renderJobDetail(){
     <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">\${j.name}</div>
     <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${j.address||''}</div>
     <div style="display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap">
-      \${j.urgent_pm_visit?'<div style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);border-radius:7px;padding:4px 10px;font-size:12px;font-weight:600;color:#ef4444">🔥 Urgent PM Visit Required</div>':''}
       \${stageBadge(j.phase)}
       <select class="fs" style="width:180px;padding:5px 9px;font-size:12px" onchange="updateJobStage(this.value)">\${STAGES.map(s=>\`<option value="\${s}" \${j.phase===s?'selected':''}>\${STAGE_LABELS[s]}</option>\`).join('')}</select>
       <input type="number" class="fi" style="width:70px;padding:5px 8px;font-size:12px" value="\${j.pct_complete||0}" min="0" max="100" title="% Complete" onchange="updateJobPct(this.value)">%
@@ -749,7 +618,6 @@ function renderInfoTab(el,j){
     <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="ed-sup" value="\${j.super_name||''}"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="ed-supp" value="\${j.super_phone||''}"></div></div>
     <div class="fg"><label class="fl">Project Manager (Internal)</label><select class="fs" id="ed-pm"><option value="">— Unassigned —</option></select></div>
     <div class="two"><div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="ed-pmschedule"><option value="none">No visits</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">Milestones only</option></select></div><div class="fg"><label class="fl">Next PM Visit Due</label><input class="fi" type="date" id="ed-pmvisit" value="\${j.next_pm_visit||''}"></div></div>
-    <div class="fg"><label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="ed-urgent-pm" \${j.urgent_pm_visit?'checked':''} style="width:16px;height:16px;accent-color:#ef4444"><span style="font-size:13px">🔥 <strong>Urgent PM Visit Required</strong> — flags this job on the map with a fire icon</span></label></div>
   </div>
   <div>
     <div class="sec-hdr">Key Dates</div>
@@ -766,13 +634,6 @@ function renderInfoTab(el,j){
   <div style="display:flex;gap:8px;margin-top:4px">
     <button class="btn btn-p" onclick="saveInfoTab()">Save Changes</button>
     <button class="btn btn-a" onclick="archiveJob()">Archive Job</button>
-    \${ME?.role==='admin'?'<button class="btn" style="background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.3);color:#dc2626" onclick="deleteJobConfirm()">🗑 Delete Job</button>':''}
-  </div>
-
-  <!-- PERMITS & APPROVED PLANS -->
-  <div class="sec-hdr" style="margin-top:18px">Permits & Approved Plans</div>
-  <div id="job-permits-section">
-    <div style="font-size:12px;color:#414e63">Loading…</div>
   </div>\`
   setTimeout(async()=>{
     document.getElementById('ed-rad').value=j.gps_radius_ft||250
@@ -788,175 +649,13 @@ function renderInfoTab(el,j){
     }
   },50)
 }
-
-// ══════════════════════════════════════════
-// PERMITS & APPROVED PLANS
-// ══════════════════════════════════════════
-const PERMIT_TYPES=['Permit','Approved Plan','Inspection Report','City Approval','Engineering Stamp','Other']
-
-async function loadJobPermits(){
-  const el=document.getElementById('job-permits-section')
-  if(!el||!currentJobId)return
-  const{data:permits}=await sb.from('job_documents')
-    .select('*').eq('job_id',currentJobId).eq('doc_category','permit')
-    .order('created_at',{ascending:false})
-  renderPermitsList(el, permits||[])
-}
-
-function renderPermitsList(el, permits){
-  let html=''
-  if(permits.length){
-    html+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;overflow:hidden;margin-bottom:10px">'
-    html+=permits.map(p=>{
-      const ext=(p.file_name||'').split('.').pop().toLowerCase()
-      const icon=ext==='pdf'?'📄':['png','jpg','jpeg','gif'].includes(ext)?'🖼':'📎'
-      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04)">'
-        +'<div style="font-size:18px;flex-shrink:0">'+icon+'</div>'
-        +'<div style="flex:1;min-width:0">'
-        +'<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.file_name+'</div>'
-        +'<div style="font-size:10px;color:#414e63;margin-top:1px">'+(p.doc_type||'Document')+' · Uploaded '+fd(p.created_at)+' by '+(p.uploaded_by||'—')+'</div>'
-        +'</div>'
-        +'<div style="display:flex;gap:5px;flex-shrink:0">'
-        +(p.file_url?'<a href="'+p.file_url+'" target="_blank" class="btn btn-sm">⬇ View</a>':'')
-        +'<button class="btn btn-sm" style="color:#dc2626" data-pid="'+p.id+'" onclick="deletePermit(this.dataset.pid)">✕</button>'
-        +'</div>'
-        +'</div>'
-    }).join('')
-    html+='</div>'
-  }
-  // Upload form
-  html+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">'
-  html+='<div style="font-size:11px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Upload Permit or Approved Plan</div>'
-  html+='<div class="two" style="margin-bottom:9px">'
-  html+='<div class="fg"><label class="fl">Document Type</label>'
-  html+='<select class="fs" id="permit-type">'+PERMIT_TYPES.map(t=>'<option value="'+t+'">'+t+'</option>').join('')+'</select></div>'
-  html+='<div class="fg"><label class="fl">Description (optional)</label><input class="fi" id="permit-desc" placeholder="e.g. Electrical permit 2024-001"></div>'
-  html+='</div>'
-  html+='<div id="permit-drop-zone" style="border:2px dashed rgba(255,255,255,.12);border-radius:7px;padding:20px;text-align:center;cursor:pointer;transition:.2s" '
-  html+='ondragover="ondragover_permit(event)" '
-  html+='ondragleave="ondragleave_permit(event)" '
-  html+='ondrop="handlePermitDrop(event)" '
-  html+='onclick="document.getElementById(\\"permit-file-input\\").click()">'
-  html+='<div style="font-size:22px;margin-bottom:6px">📎</div>'
-  html+='<div style="font-size:12px;color:#8a96ab">Click or drag & drop</div>'
-  html+='<div style="font-size:10px;color:#414e63;margin-top:3px">PDF, PNG, JPG up to 20MB</div>'
-  html+='<input type="file" id="permit-file-input" style="display:none" accept=".pdf,.png,.jpg,.jpeg,.gif" onchange="uploadPermitFile(this.files[0])">'
-  html+='</div>'
-  html+='<div id="permit-upload-progress" style="display:none;margin-top:8px;font-size:11px;color:#414e63"></div>'
-  html+='</div>'
-  el.innerHTML=html
-}
-
-function ondragover_permit(e){e.preventDefault();e.currentTarget.style.borderColor='rgba(37,99,235,.6)'}
-function ondragleave_permit(e){e.currentTarget.style.borderColor='rgba(255,255,255,.12)'}
-function handlePermitDrop(e){
-  e.preventDefault()
-  document.getElementById('permit-drop-zone').style.borderColor='rgba(255,255,255,.12)'
-  const file=e.dataTransfer.files[0]
-  if(file)uploadPermitFile(file)
-}
-
-async function uploadPermitFile(file){
-  if(!file)return
-  const maxMB=20
-  if(file.size>maxMB*1024*1024){toast('File too large — max '+maxMB+'MB','error');return}
-  const prog=document.getElementById('permit-upload-progress')
-  if(prog){prog.style.display='block';prog.textContent='Uploading…'}
-  try{
-    const docType=document.getElementById('permit-type')?.value||'Permit'
-    const desc=document.getElementById('permit-desc')?.value||''
-    const ext=file.name.split('.').pop()
-    const path='permits/'+currentJobId+'/'+uuid()+'.'+ext
-    // Try Supabase storage
-    let fileUrl=null
-    const{data:upData,error:upErr}=await sb.storage.from('fieldtrack-plans').upload(path,file,{contentType:file.type,upsert:false})
-    if(!upErr){
-      const{data:urlData}=sb.storage.from('fieldtrack-plans').getPublicUrl(path)
-      fileUrl=urlData?.publicUrl
-    }
-    // Store record
-    const{error}=await sb.from('job_documents').insert({
-      id:uuid(),job_id:currentJobId,
-      doc_category:'permit',
-      doc_type:docType,
-      file_name:desc||file.name,
-      file_url:fileUrl,
-      storage_path:path,
-      uploaded_by:ME?.full_name,
-      created_at:new Date().toISOString()
-    })
-    if(error)throw error
-    if(prog)prog.style.display='none'
-    toast(docType+' uploaded')
-    loadJobPermits()
-  }catch(e){
-    if(prog){prog.textContent='Upload failed: '+e.message;prog.style.color='#dc2626'}
-    toast('Upload failed: '+e.message,'error')
-  }
-}
-
-async function deletePermit(id){
-  if(!confirm('Delete this document?'))return
-  const{data:doc}=await sb.from('job_documents').select('storage_path').eq('id',id).single()
-  if(doc?.storage_path)await sb.storage.from('fieldtrack-plans').remove([doc.storage_path]).catch(()=>{})
-  await sb.from('job_documents').delete().eq('id',id)
-  toast('Deleted','warn')
-  loadJobPermits()
-}
-
 async function saveInfoTab(){
-  const u={name:v('ed-name'),address:v('ed-addr'),gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,urgent_pm_visit:document.getElementById('ed-urgent-pm')?.checked||false,date_start:v('ed-start')||null,due_date:v('ed-due')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
+  const u={name:v('ed-name'),address:v('ed-addr'),gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,date_start:v('ed-start')||null,due_date:v('ed-due')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
   const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
   if(error){toast(error.message,'error');return}
   currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved')
 }
 async function archiveJob(){if(!confirm('Archive this job?'))return;await sb.from('jobs').update({archived:true}).eq('id',currentJobId);toast('Archived');P('jobs',null)}
-
-async function deleteJobConfirm(){
-  // Guard: admin only
-  if(ME?.role!=='admin'){toast('Only admins can delete jobs','error');return}
-  const jobName=currentJob?.name||'this job'
-  // Step 1: First confirmation
-  const step1=confirm('DELETE JOB — Step 1 of 2\\n\\nYou are about to permanently delete:\\n"'+jobName+'"\\n\\nThis will also delete ALL associated data including:\\n• Daily reports\\n• Parts & materials\\n• Photos\\n• Checklists & punch lists\\n• Job walks & plans\\n• Hours & check-ins\\n\\nThis CANNOT be undone.\\n\\nClick OK to continue to step 2.')
-  if(!step1)return
-  // Step 2: Type job name to confirm
-  const typed=prompt('DELETE JOB — Step 2 of 2\\n\\nTo confirm deletion, type the job name exactly as shown below:\\n\\n'+jobName)
-  if(typed===null)return // cancelled
-  if(typed.trim()!==jobName.trim()){
-    toast('Job name did not match — deletion cancelled','error')
-    return
-  }
-  // Perform delete
-  const btn=event?.target
-  if(btn){btn.disabled=true;btn.textContent='Deleting…'}
-  try{
-    // Delete in correct order to respect foreign keys
-    await sb.from('dispatch_assignments').delete().eq('job_id',currentJobId)
-    await sb.from('daily_reports').delete().eq('job_id',currentJobId)
-    await sb.from('job_parts').delete().eq('job_id',currentJobId)
-    await sb.from('job_photos').delete().eq('job_id',currentJobId)
-    await sb.from('job_checklist_items').delete().eq('job_id',currentJobId)
-    await sb.from('punch_list').delete().eq('job_id',currentJobId)
-    await sb.from('job_walks').delete().eq('job_id',currentJobId)
-    await sb.from('job_walk_plans').delete().eq('job_id',currentJobId)
-    await sb.from('pm_visits').delete().eq('job_id',currentJobId)
-    await sb.from('pm_inspections').delete().eq('job_id',currentJobId)
-    await sb.from('change_orders').delete().eq('job_id',currentJobId)
-    await sb.from('job_sub_assignments').delete().eq('job_id',currentJobId)
-    await sb.from('job_workers').delete().eq('job_id',currentJobId)
-    await sb.from('checkins').delete().eq('job_id',currentJobId)
-    await sb.from('job_documents').delete().eq('job_id',currentJobId)
-    await sb.from('notifications').delete().eq('meta->>job_id',currentJobId)
-    // Finally delete the job itself
-    const{error}=await sb.from('jobs').delete().eq('id',currentJobId)
-    if(error)throw error
-    toast('"'+jobName+'" permanently deleted')
-    P('jobs',null)
-  }catch(e){
-    toast('Delete failed: '+e.message,'error')
-    if(btn){btn.disabled=false;btn.textContent='🗑 Delete Job'}
-  }
-}
 function renderScopeTab(el,j){
   el.innerHTML=\`
   <div class="fg"><label class="fl">Scope of Work</label><textarea class="ft" id="sc-scope" style="min-height:120px">\${j.scope||''}</textarea></div>
@@ -1011,259 +710,2589 @@ async function removeWorker(id){await sb.from('job_workers').update({is_active:f
 
 function buildPartsTable(parts){
   if(!parts||!parts.length) return empty('📦','No parts on this job yet')
-
-  // Staging completeness check
   const totalOrdered=parts.reduce((s,p)=>s+(p.ordered_qty||p.assigned_qty||0),0)
-  const totalStaged=parts.filter(p=>['staged','signed_out','partial_install','installed'].includes(p.status)).reduce((s,p)=>s+(p.assigned_qty||0),0)
   const totalTaken=parts.reduce((s,p)=>s+(p.taken_qty||0),0)
   const totalInstalled=parts.reduce((s,p)=>s+(p.installed_qty||0),0)
+  const totalStaged=parts.filter(p=>['staged','signed_out','partial_install','installed'].includes(p.status)).reduce((s,p)=>s+(p.assigned_qty||0),0)
   const stagedComplete=parts.every(p=>['staged','signed_out','partial_install','installed'].includes(p.status))
-  const overParts=parts.filter(p=>(p.installed_qty||0)>(p.ordered_qty||p.assigned_qty||0))
-  const underParts=parts.filter(p=>p.status==='installed'&&(p.installed_qty||0)<(p.ordered_qty||p.assigned_qty||0))
-
-  let html=''
-
-  // Flow summary bar
-  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">'
-  const flowSteps=[
-    {label:'Ordered',val:totalOrdered,color:'#60a5fa'},
-    {label:'Staged',val:totalStaged,color:'#eab308'},
-    {label:'Checked Out',val:totalTaken,color:'#a855f7'},
-    {label:'Installed',val:totalInstalled,color:'#16a34a'}
-  ]
-  flowSteps.forEach(step=>{
-    html+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 12px;text-align:center">'
-    html+='<div style="font-size:18px;font-weight:700;color:'+step.color+'">'+step.val+'</div>'
-    html+='<div style="font-size:10px;color:#414e63;margin-top:2px">'+step.label+'</div>'
-    html+='</div>'
-  })
-  html+='</div>'
-
-  // Staging status
-  html+='<div style="margin-bottom:10px;padding:8px 12px;border-radius:7px;font-size:12px;background:'+(stagedComplete?'rgba(22,163,74,.08)':'rgba(217,119,6,.08)')+';border:1px solid '+(stagedComplete?'rgba(22,163,74,.2)':'rgba(217,119,6,.2)')+'">'+
-    (stagedComplete
-      ?'✅ All parts staged and ready for pickup'
-      :'⚠ '+parts.filter(p=>!['staged','signed_out','partial_install','installed'].includes(p.status)).length+' part type(s) not yet staged')+
-    '</div>'
-
-  // Variance warnings
-  if(overParts.length) html+='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:9px 12px;margin-bottom:9px;font-size:12px;color:#dc2626">⚠ Over-issued: '+overParts.map(p=>p.part_name+' (ordered '+(p.ordered_qty||p.assigned_qty)+', installed '+(p.installed_qty||0)+')').join(', ')+'</div>'
-  if(underParts.length) html+='<div style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.2);border-radius:7px;padding:9px 12px;margin-bottom:9px;font-size:12px;color:#d97706">⚠ Under-installed: '+underParts.map(p=>p.part_name+' (ordered '+(p.ordered_qty||p.assigned_qty)+', installed '+(p.installed_qty||0)+')').join(', ')+'</div>'
-
-  // Parts table
-  html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr>'
-  html+='<th>Part</th><th>Ordered</th><th>Staged</th><th>Checked Out</th><th>Installed</th><th>Returned</th><th>Status</th><th>Staged By</th>'
-  html+='</tr></thead><tbody>'
-
+  const over=parts.filter(p=>(p.installed_qty||0)>(p.ordered_qty||p.assigned_qty||0))
+  const under=parts.filter(p=>p.status==='installed'&&(p.installed_qty||0)<(p.ordered_qty||p.assigned_qty||0))
+  let html='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">'
+  ;[{l:'Ordered',v:totalOrdered,cl:'#60a5fa'},{l:'Staged',v:totalStaged,cl:'#eab308'},{l:'Checked Out',v:totalTaken,cl:'#a855f7'},{l:'Installed',v:totalInstalled,cl:'#16a34a'}].forEach(s=>{html+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 12px;text-align:center"><div style="font-size:18px;font-weight:700;color:'+s.cl+'">'+s.v+'</div><div style="font-size:10px;color:#414e63;margin-top:2px">'+s.l+'</div></div>'})
+  html+='</div><div style="margin-bottom:10px;padding:8px 12px;border-radius:7px;font-size:12px;background:'+(stagedComplete?'rgba(22,163,74,.08)':'rgba(217,119,6,.08)')+';border:1px solid '+(stagedComplete?'rgba(22,163,74,.2)':'rgba(217,119,6,.2)')+'">'+( stagedComplete?'✅ All parts staged':'⚠ '+parts.filter(p=>!['staged','signed_out','partial_install','installed'].includes(p.status)).length+' not yet staged')+'</div>'
+  if(over.length)html+='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:9px 12px;margin-bottom:9px;font-size:12px;color:#dc2626">⚠ Over-issued: '+over.map(p=>p.part_name).join(', ')+'</div>'
+  if(under.length)html+='<div style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.2);border-radius:7px;padding:9px 12px;margin-bottom:9px;font-size:12px;color:#d97706">⚠ Under-installed: '+under.map(p=>p.part_name).join(', ')+'</div>'
+  html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Part</th><th>Ordered</th><th>Staged</th><th>Taken</th><th>Installed</th><th>Status</th><th>Staged By</th></tr></thead><tbody>'
   parts.forEach(p=>{
-    const ordered=p.ordered_qty||p.assigned_qty||0
-    const staged=p.assigned_qty||0
-    const taken=p.taken_qty||0
-    const installed=p.installed_qty||0
-    const returned=p.returned_qty||0
-    const remaining=staged-taken
-    const bc=p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-purple':p.status==='installed'?'bg-green':p.status==='partial_install'?'bg-teal':p.status==='ordered'?'bg-blue':'bg-gray'
-    const pct=staged>0?Math.round(installed/staged*100):0
-    const varColor=installed>ordered?'color:#dc2626':installed===ordered&&installed>0?'color:#16a34a':'color:#8a96ab'
-
-    html+='<tr>'
-    html+='<td><div style="font-weight:500">'+p.part_name+'</div><div style="font-size:9px;color:#414e63">'+p.part_id+'</div></td>'
-    html+='<td style="font-weight:500">'+ordered+'</td>'
-    html+='<td style="color:'+(staged>0?'#eab308':'#414e63')+'">'+staged+'</td>'
-    html+='<td style="color:'+(taken>0?'#a855f7':'#414e63')+'">'+taken+'</td>'
-    html+='<td><div style="display:flex;align-items:center;gap:6px"><div class="pbar" style="width:40px"><div class="pb g" style="width:'+Math.min(100,pct)+'%"></div></div><span style="font-size:11px;'+varColor+'">'+installed+'</span></div></td>'
-    html+='<td style="font-size:11px;color:#414e63">'+returned+'</td>'
-    html+='<td><span class="badge '+bc+'">'+p.status.replace(/_/g,' ')+'</span></td>'
-    html+='<td style="font-size:11px;color:#8a96ab">'+(p.staged_by||'—')+(p.staged_at?'<br><span style="font-size:9px;color:#414e63">'+fd(p.staged_at)+'</span>':'')+'</td>'
-    html+='</tr>'
+    const ord=p.ordered_qty||p.assigned_qty||0,stg=p.assigned_qty||0,tak=p.taken_qty||0,ins=p.installed_qty||0
+    const pct=stg>0?Math.round(ins/stg*100):0
+    const bc=p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-purple':p.status==='installed'?'bg-green':p.status==='partial_install'?'bg-teal':'bg-gray'
+    html+='<tr><td><div style="font-weight:500">'+p.part_name+'</div><div style="font-size:9px;color:#414e63">'+p.part_id+'</div></td><td>'+ord+'</td><td style="color:'+(stg>0?'#eab308':'#414e63')+'">'+stg+'</td><td style="color:'+(tak>0?'#a855f7':'#414e63')+'">'+tak+'</td><td><div style="display:flex;align-items:center;gap:5px"><div class="pbar" style="width:36px"><div class="pb g" style="width:'+Math.min(100,pct)+'%"></div></div><span style="font-size:11px">'+ins+'</span></div></td><td><span class="badge '+bc+'">'+p.status.replace(/_/g,' ')+'</span></td><td style="font-size:11px;color:#8a96ab">'+(p.staged_by||'—')+'</td></tr>'
   })
   html+='</tbody></table></div>'
   return html
 }
 
+// PARTS TAB (per job view)
+async function renderPartsTab(el){
+  const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
+  el.innerHTML=\`
+  <div style="display:flex;gap:8px;margin-bottom:13px">
+    <button class="btn btn-p btn-sm" onclick="P('scan',null)">📷 Go to Scanner</button>
+    <button class="btn btn-sm" onclick="loadJT('jt-parts')">↻ Refresh</button>
+    <button class="btn btn-a btn-sm" onclick="checkPartsVariance(currentJobId).then(()=>loadJT('jt-parts'))">⚠ Variance</button>
+  </div>
+  <div id="checkout-ui" style="display:none;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px;margin-bottom:13px">
+    <div style="font-size:12px;font-weight:600;color:#a855f7;margin-bottom:10px">📤 Sign Out Parts to Technician</div>
+    <div class="fg" style="margin-bottom:10px"><label class="fl">Technician</label><select class="fs" id="checkout-tech"><option value="">— Select —</option></select></div>
+    <div id="checkout-parts-list" style="margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px"><button class="btn btn-p btn-sm" onclick="commitCheckout()" style="flex:1;justify-content:center">Sign Out</button><button class="btn btn-sm" onclick="toggleCheckoutUI()">Cancel</button></div>
+  </div>
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="stat-label">Staged</div><div class="stat-value" style="color:#d97706">\${(parts||[]).filter(p=>p.status==='staged').length}</div></div>
+    <div class="stat"><div class="stat-label">Checked Out</div><div class="stat-value" style="color:#60a5fa">\${(parts||[]).filter(p=>p.status==='signed_out').length}</div></div>
+    <div class="stat"><div class="stat-label">Installed</div><div class="stat-value" style="color:#16a34a">\${(parts||[]).filter(p=>p.status==='installed').length}</div></div>
+    <div class="stat"><div class="stat-label">Total Items</div><div class="stat-value">\${(parts||[]).reduce((s,p)=>s+p.assigned_qty,0)}</div></div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+  \${buildPartsTable(parts)}
+  </div>\`
+}
+
+// DAILY REPORTS TAB (per job)
+async function renderJobDailyTab(el){
+  const{data:reports}=await sb.from('daily_reports').select('*').eq('job_id',currentJobId).order('report_date',{ascending:false})
+  el.innerHTML=\`
+  <div style="margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="newDailyModal('\${currentJobId}')">+ New Daily Report</button></div>
+  \${(reports||[]).map(r=>\`<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px"><div><div style="font-weight:600;font-size:13px">\${fd(r.report_date)}</div><div style="font-size:11px;color:#414e63">By \${r.submitted_by||'—'} · \${r.crew_count} crew · \${fh(r.hours_worked)} worked</div></div><span class="badge bg-blue">\${r.weather||'N/A'} \${r.temp_high?r.temp_high+'°/'+r.temp_low+'°':''}</span></div>
+  \${r.work_performed?\`<div style="margin-bottom:8px"><div style="font-size:10px;color:#414e63;margin-bottom:3px">WORK PERFORMED</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap">\${r.work_performed}</div></div>\`:''}
+  \${r.issues?\`<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);border-radius:7px;padding:8px 10px;font-size:12px;color:#dc2626">\${r.issues}</div>\`:''}
+  <div style="margin-top:8px;display:flex;gap:8px"><button class="btn btn-sm" onclick="emailReport(\${JSON.stringify(r).replace(/"/g,'&quot;')})">📧 Email Report</button><button class="btn btn-sm btn-ghost" onclick="dlDailyReport(\${JSON.stringify(r).replace(/"/g,'&quot;')})">⬇ Download</button></div></div>\`).join('')||empty('📋','No daily reports for this job')}\` 
+}
+function dlDailyReport(r){
+  const jobName=_drJobs&&_drJobs[r.job_id]?_drJobs[r.job_id]:currentJob?.name||r.job_id||'Unknown'
+  const content=\`DAILY REPORT\\n\${'='.repeat(40)}\\nJob: \${jobName}\\nDate: \${fd(r.report_date)}\\nSubmitted By: \${r.submitted_by||'—'}\\nCrew Count: \${r.crew_count}\\nHours Worked: \${fh(r.hours_worked)}\\nWeather: \${r.weather} \${r.temp_high?r.temp_high+'°/'+r.temp_low+'°':''}\\n\\nWORK PERFORMED:\\n\${r.work_performed||'—'}\\n\\nMATERIALS USED:\\n\${r.materials_used||'—'}\\n\\nEQUIPMENT USED:\\n\${r.equipment_used||'—'}\\n\\nISSUES:\\n\${r.issues||'None'}\\n\\nVISITORS:\\n\${r.visitors||'None'}\`
+  const a=document.createElement('a');a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(content);a.download='Daily-Report-'+r.report_date+'.txt';a.click()
+}
+function emailReport(r){
+  const subject=encodeURIComponent('Daily Report — '+currentJob?.name+' — '+fd(r.report_date))
+  const body=encodeURIComponent('Daily Report\\n\\nJob: '+currentJob?.name+'\\nDate: '+fd(r.report_date)+'\\nCrew: '+r.crew_count+'\\n\\nWork Performed:\\n'+r.work_performed+'\\n\\nIssues:\\n'+(r.issues||'None'))
+  window.open('mailto:?subject='+subject+'&body='+body)
+}
+
+// JOB WALKS TAB (per job)
+async function renderJobWalksTab(el){
+  const{data:walks}=await sb.from('job_walks').select('*').eq('job_id',currentJobId).order('walk_date',{ascending:false})
+  el.innerHTML=\`
+  <div style="margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="newWalkModal('\${currentJobId}')">+ New Job Walk</button></div>
+  \${(walks||[]).map(w=>\`<div class="card" style="margin-bottom:10px;cursor:pointer" onclick="openJobWalk('\${w.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px"><div><div style="font-weight:600;font-size:13px">Job Walk — \${fd(w.walk_date)}</div><div style="font-size:11px;color:#414e63">By \${w.walked_by||'—'} · \${w.attendees||'No attendees listed'}</div></div><span class="badge \${w.status==='complete'?'bg-green':'bg-amber'}">\${w.status}</span></div>
+  \${w.scope_notes?\`<div style="font-size:12px;color:#8a96ab;margin-bottom:6px">\${w.scope_notes.substring(0,150)}\${w.scope_notes.length>150?'…':''}</div>\`:''}
+  \${w.issues_found?\`<div style="font-size:11px;color:#d97706">⚠ Issues: \${w.issues_found.substring(0,100)}</div>\`:''}
+  <div style="font-size:10px;color:#414e63;margin-top:5px">Click to view details & markup plans →</div></div>\`).join('')||empty('🚶','No job walks recorded yet')}\` 
+}
+
+async function openJobWalk(walkId){
+  const{data:walk}=await sb.from('job_walks').select('*').eq('id',walkId).single()
+  const{data:plans}=await sb.from('job_walk_plans').select('*').eq('job_walk_id',walkId)
+  modal('Job Walk — '+fd(walk.walk_date),\`
+  <div class="two" style="margin-bottom:12px">
+    <div><div style="font-size:10px;color:#414e63">WALKED BY</div><div style="font-size:13px;font-weight:500;margin-top:2px">\${walk.walked_by||'—'}</div></div>
+    <div><div style="font-size:10px;color:#414e63">ATTENDEES</div><div style="font-size:13px;font-weight:500;margin-top:2px">\${walk.attendees||'—'}</div></div>
+  </div>
+  \${walk.scope_notes?\`<div style="margin-bottom:10px"><div style="font-size:10px;color:#414e63;margin-bottom:3px">SCOPE NOTES</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap">\${walk.scope_notes}</div></div>\`:''}
+  \${walk.issues_found?\`<div style="margin-bottom:10px;background:rgba(220,38,38,.08);border-radius:7px;padding:9px 11px"><div style="font-size:10px;color:#dc2626;margin-bottom:3px">ISSUES FOUND</div><div style="font-size:12px;color:#dc2626;white-space:pre-wrap">\${walk.issues_found}</div></div>\`:''}
+  \${walk.action_items?\`<div style="margin-bottom:10px"><div style="font-size:10px;color:#414e63;margin-bottom:3px">ACTION ITEMS</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap">\${walk.action_items}</div></div>\`:''}
+  <div class="sec-hdr">Plans & Markup</div>
+  \${(plans||[]).length?(plans||[]).map(p=>\`<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div>📄</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${p.file_name}</div></div><button class="btn btn-sm" onclick="openMarkup('\${p.id}','\${p.url}','\${walk.id}')">✏ Markup</button><a href="\${p.url}" target="_blank" class="btn btn-sm">View</a></div>\`).join(''):'<div style="font-size:12px;color:#414e63;margin-bottom:8px">No plans uploaded</div>'}
+  <label class="btn btn-sm btn-p" style="cursor:pointer;margin-top:6px">+ Upload Plan<input type="file" style="display:none" accept=".pdf,.png,.jpg,.jpeg" onchange="uploadWalkPlan(this.files,'\${walkId}')"></label>\`,
+  ()=>closeModal(),'Close',false)
+  document.getElementById('modal-footer').innerHTML='<button class="btn" onclick="closeModal()">Close</button>'
+}
+
+// MARKUP PAGE
+async function openMarkup(planId,planUrl,walkId){
+  closeModal()
+  // Load existing markup
+  const{data:plan}=await sb.from('job_walk_plans').select('*').eq('id',planId).single()
+  const markup=plan?.markup_json||{dots:[],textboxes:[],legend:[]}
+  document.getElementById('page-area').innerHTML=\`
+  <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+    <button class="btn btn-sm" onclick="openJobWalk('\${walkId}')">← Back</button>
+    <span style="font-size:13px;font-weight:500">\${plan?.file_name||'Plan'} — Markup</span>
+    <button class="btn btn-sm btn-p" onclick="saveMarkup('\${planId}')">💾 Save Markup</button>
+    <button class="btn btn-sm btn-g" onclick="downloadMarkup()">⬇ Download</button>
+  </div>
+  <div class="two" style="gap:14px">
+    <div>
+      <div class="markup-toolbar">
+        <span style="font-size:10px;color:#414e63;margin-right:4px">MODE:</span>
+        <button class="mt-btn active" id="mt-dot" onclick="setMT('dot',this)">● Dot</button>
+        <button class="mt-btn" id="mt-text" onclick="setMT('text',this)">T Text</button>
+        <button class="mt-btn" id="mt-move" onclick="setMT('move',this)">✋ Move</button>
+        <button class="mt-btn" id="mt-del" onclick="setMT('del',this)">🗑 Delete</button>
+        <span style="font-size:10px;color:#414e63;margin-left:8px">COLOR:</span>
+        \${['#dc2626','#d97706','#16a34a','#2563eb','#7c3aed','#0d9488','#ec4899','#000000'].map(c=>\`<div class="dot-swatch" style="background:\${c}" onclick="setDotColor('\${c}',this)" title="\${c}"></div>\`).join('')}
+        <span style="font-size:10px;color:#414e63;margin-left:8px">SIZE:</span>
+        <select class="fi" style="width:60px;padding:3px 5px;font-size:11px" id="dot-size-sel"><option value="8">S</option><option value="12" selected>M</option><option value="18">L</option><option value="24">XL</option></select>
+      </div>
+      <div class="markup-canvas-wrap">
+        <canvas id="markup-canvas" width="800" height="600"></canvas>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">Legend <button class="btn btn-sm btn-p" onclick="addLegendItem()">+ Add</button></div>
+        <div id="legend-list"></div>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <div class="card-title">Text Boxes</div>
+        <div id="textbox-list"></div>
+      </div>
+    </div>
+  </div>\`
+  initMarkupCanvas(planUrl, markup, planId)
+}
+
+let _markup={dots:[],textboxes:[],legend:[]},_mtMode='dot',_dotColor='#dc2626',_selectedId=null
+function setMT(mode,btn){_mtMode=mode;document.querySelectorAll('.mt-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active')}
+function setDotColor(c,el){_dotColor=c;document.querySelectorAll('.dot-swatch').forEach(s=>s.classList.remove('sel'));el.classList.add('sel')}
+
+function initMarkupCanvas(url, existingMarkup, planId){
+  _markup=JSON.parse(JSON.stringify(existingMarkup))
+  const canvas=document.getElementById('markup-canvas')
+  if(!canvas)return
+  const ctx=canvas.getContext('2d')
+  const img=new Image();img.crossOrigin='anonymous'
+  img.onload=()=>{
+    canvas.width=img.naturalWidth||800;canvas.height=img.naturalHeight||600
+    canvas.style.maxWidth='100%'
+    drawMarkup(ctx,img)
+    renderLegend();renderTextboxList()
+  }
+  img.onerror=()=>{ctx.fillStyle='#1a2540';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#414e63';ctx.font='16px DM Sans';ctx.textAlign='center';ctx.fillText('PDF preview not available — download to view',canvas.width/2,canvas.height/2);ctx.fillText('Dots and text will still be saved',canvas.width/2,canvas.height/2+30);drawMarkup(ctx,null)}
+  img.src=url
+  canvas.onclick=e=>{
+    const rect=canvas.getBoundingClientRect()
+    const scaleX=canvas.width/rect.width,scaleY=canvas.height/rect.height
+    const cx=(e.clientX-rect.left)*scaleX,cy=(e.clientY-rect.top)*scaleY
+    if(_mtMode==='dot'){
+      const size=parseInt(document.getElementById('dot-size-sel')?.value||12)
+      _markup.dots.push({id:uuid(),x:cx,y:cy,color:_dotColor,size,label:''})
+      drawMarkup(ctx,img);renderLegend()
+    } else if(_mtMode==='text'){
+      const txt=prompt('Enter text:');if(!txt)return
+      _markup.textboxes.push({id:uuid(),x:cx,y:cy,text:txt,color:'#e8edf5',size:14})
+      drawMarkup(ctx,img);renderTextboxList()
+    } else if(_mtMode==='del'){
+      const hit=findHit(cx,cy)
+      if(hit){if(hit.type==='dot')_markup.dots=_markup.dots.filter(d=>d.id!==hit.id);else _markup.textboxes=_markup.textboxes.filter(t=>t.id!==hit.id);drawMarkup(ctx,img);renderLegend();renderTextboxList()}
+    }
+  }
+}
+function findHit(cx,cy){
+  for(const d of _markup.dots){if(Math.sqrt((cx-d.x)**2+(cy-d.y)**2)<d.size+4)return{...d,type:'dot'}}
+  for(const t of _markup.textboxes){if(cx>t.x-5&&cx<t.x+150&&cy>t.y-t.size&&cy<t.y+5)return{...t,type:'text'}}
+  return null
+}
+function drawMarkup(ctx,img){
+  ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height)
+  if(img)ctx.drawImage(img,0,0)
+  for(const d of _markup.dots){ctx.beginPath();ctx.arc(d.x,d.y,d.size/2,0,Math.PI*2);ctx.fillStyle=d.color;ctx.fill();ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=1.5;ctx.stroke();if(d.label){ctx.fillStyle=d.color;ctx.font='11px DM Sans';ctx.fillText(d.label,d.x+d.size/2+3,d.y+4)}}
+  for(const t of _markup.textboxes){ctx.font=t.size+'px DM Sans';ctx.fillStyle='rgba(0,0,0,.6)';const w=ctx.measureText(t.text).width;ctx.fillRect(t.x-2,t.y-t.size,w+4,t.size+4);ctx.fillStyle=t.color;ctx.fillText(t.text,t.x,t.y)}
+}
+function renderLegend(){
+  const el=document.getElementById('legend-list');if(!el)return
+  el.innerHTML=_markup.legend.map((l,i)=>\`<div class="legend-item"><div style="width:14px;height:14px;border-radius:50%;background:\${l.color};flex-shrink:0;border:1.5px solid rgba(255,255,255,.3)"></div><input style="flex:1;background:transparent;border:none;color:#e8edf5;font-size:12px;font-family:'DM Sans',sans-serif" value="\${l.label}" oninput="_markup.legend[\${i}].label=this.value" placeholder="Legend entry…"><button onclick="_markup.legend.splice(\${i},1);renderLegend()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">Add legend entries to explain your dots</div>'
+}
+function addLegendItem(){_markup.legend.push({id:uuid(),color:_dotColor,label:''});renderLegend()}
+function renderTextboxList(){
+  const el=document.getElementById('textbox-list');if(!el)return
+  el.innerHTML=_markup.textboxes.map((t,i)=>\`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="font-size:11px;flex:1;color:#8a96ab">\${t.text}</div><button onclick="_markup.textboxes.splice(\${i},1);renderTextboxList();const c=document.getElementById('markup-canvas');if(c){const ctx=c.getContext('2d');drawMarkup(ctx,document.querySelector('#markup-canvas + img')||null)}" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No text boxes added</div>'
+}
+async function saveMarkup(planId){
+  const{error}=await sb.from('job_walk_plans').update({markup_json:_markup}).eq('id',planId)
+  if(error)toast(error.message,'error');else toast('Markup saved')
+}
+async function downloadMarkup(){
+  const canvas=document.getElementById('markup-canvas');if(!canvas)return
+  const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='plan-markup-'+new Date().toISOString().split('T')[0]+'.png';a.click();toast('Downloading…')
+}
+async function uploadWalkPlan(files,walkId){
+  for(const f of files){
+    const path=\`walks/\${walkId}/plans/\${Date.now()}_\${f.name}\`
+    const{error,data}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true})
+    if(!error){const{data:{publicUrl}}=sb.storage.from('fieldtrack-plans').getPublicUrl(path);await sb.from('job_walk_plans').insert({id:uuid(),job_walk_id:walkId,job_id:currentJobId,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],legend:[]},created_at:new Date().toISOString()})}
+  }
+  toast('Plan uploaded');openJobWalk(walkId)
+}
+
+// PHOTOS TAB
+async function renderPhotosTab(el){
+  const{data:photos}=await sb.from('job_photos').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
+  el.innerHTML=\`<label class="upload-zone" style="margin-bottom:12px"><input type="file" multiple accept="image/*" onchange="uploadPhotos(this.files)"><div style="font-size:22px;color:#414e63">📷</div><div style="font-size:12px;color:#414e63;margin-top:5px">Click to upload photos (before/after/progress)</div></label>
+  <div class="photo-grid">\${(photos||[]).map(p=>\`<div class="photo-card" onclick="window.open('\${p.url}','_blank')"><img class="photo-thumb" src="\${p.url}" loading="lazy" onerror="this.style.display='none'"><div style="padding:5px 7px;font-size:10px;color:#414e63">\${p.type||'photo'} · \${p.uploaded_by||''}</div></div>\`).join('')}</div>\`
+}
+async function uploadPhotos(files){for(const f of files){const path=\`jobs/\${currentJobId}/photos/\${Date.now()}_\${f.name}\`;const{error}=await sb.storage.from('fieldtrack-photos').upload(path,f,{upsert:true});if(!error){const{data:{publicUrl}}=sb.storage.from('fieldtrack-photos').getPublicUrl(path);await sb.from('job_photos').insert({id:uuid(),job_id:currentJobId,url:publicUrl,type:'progress',uploaded_by:ME?.full_name,created_at:new Date().toISOString()})}};toast('Uploaded');loadJT('jt-photos')}
+
+// CHECKLIST TAB
+async function renderChecklistTab(el){
+  const{data:items}=await sb.from('job_checklist_items').select('*').eq('job_id',currentJobId).order('sort_order')
+  const done=(items||[]).filter(i=>i.is_checked).length
+  el.innerHTML=\`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-weight:500">Checklist <span style="font-size:11px;color:#414e63">\${done}/\${(items||[]).length}</span></span><button class="btn btn-sm btn-p" onclick="addCheckItem()">+ Add</button></div>
+  <div class="pbar" style="margin-bottom:13px"><div class="pb g" style="width:\${(items||[]).length?Math.round(done/(items||[]).length*100):0}%"></div></div>
+  \${(items||[]).map(i=>\`<div class="chk-item"><div class="chk-box \${i.is_checked?'ck':''}" onclick="toggleCheck('\${i.id}',\${!i.is_checked})"></div><div style="flex:1"><div style="font-size:13px;\${i.is_checked?'text-decoration:line-through;color:#414e63':'color:#e8edf5'}">\${i.item_text}</div>\${i.section?\`<div style="font-size:10px;color:#2563eb;margin-top:1px">§ \${i.section}</div>\`:''}</div><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="delCheckItem('\${i.id}')">×</button></div>\`).join('')||empty('✅','Add checklist items')}\` 
+}
+async function addCheckItem(){modal('Add Item',\`<div class="fg"><label class="fl">Item *</label><input class="fi" id="ci-t"></div><div class="fg"><label class="fl">Section</label><input class="fi" id="ci-s" placeholder="Install, Closeout…"></div>\`,async()=>{const t=v('ci-t').trim();if(!t)return;const{data:last}=await sb.from('job_checklist_items').select('sort_order').eq('job_id',currentJobId).order('sort_order',{ascending:false}).limit(1).single();await sb.from('job_checklist_items').insert({id:uuid(),job_id:currentJobId,item_text:t,section:v('ci-s')||null,sort_order:(last?.sort_order||0)+1,is_checked:false});closeModal();loadJT('jt-checklist')})}
+async function toggleCheck(id,val){await sb.from('job_checklist_items').update({is_checked:val,checked_by:val?ME?.id:null,checked_at:val?new Date().toISOString():null}).eq('id',id);loadJT('jt-checklist')}
+async function delCheckItem(id){await sb.from('job_checklist_items').delete().eq('id',id);loadJT('jt-checklist')}
+
+// PUNCH LIST TAB (per job)
+async function renderPunchTab(el){
+  const{data:items}=await sb.from('punch_list').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
+  el.innerHTML=\`<div style="margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="addPunchItem('\${currentJobId}',true)">+ Add Punch Item</button></div>
+  <table class="tbl"><thead><tr><th>Item</th><th>Location</th><th>Assigned To</th><th>Priority</th><th>Status</th><th>Due</th><th></th></tr></thead><tbody>
+  \${(items||[]).map(i=>\`<tr><td style="font-weight:500">\${i.item}</td><td style="font-size:11px;color:#8a96ab">\${i.location||'—'}</td><td style="font-size:11px">\${i.assigned_to||'—'}</td><td><span class="badge \${i.priority==='urgent'?'bg-red':i.priority==='high'?'bg-amber':'bg-gray'}">\${i.priority}</span></td><td><span class="badge \${i.status==='complete'?'bg-green':'bg-amber'}">\${i.status}</span></td><td style="font-size:11px">\${fd(i.due_date)}</td><td>\${i.status!=='complete'?\`<button class="btn btn-sm btn-g" onclick="completePunch('\${i.id}')">Done</button>\`:''}</td></tr>\`).join('')}</tbody></table>
+  \${!(items||[]).length?empty('✅','No punch list items'):''}\` 
+}
+async function completePunch(id){await sb.from('punch_list').update({status:'complete',completed_at:new Date().toISOString(),completed_by:ME?.full_name}).eq('id',id);loadJT('jt-punch')}
+
+// PM REVIEW TAB
+async function renderPmTab(el){
+  const{data:insps}=await sb.from('pm_inspections').select('*').eq('job_id',currentJobId).order('visited_at',{ascending:false})
+  el.innerHTML=\`<div style="margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="logPmVisit()">+ Log Visit</button></div>
+  \${(insps||[]).map(ins=>\`<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div style="font-weight:500">\${ins.visit_type==='final'?'Final Sign-off':'Inspection'} — \${fd(ins.visited_at)}</div><div style="font-size:11px;color:#414e63">\${ins.pm_name||''}</div></div><span class="badge \${ins.approved_at?'bg-green':ins.rejected_at?'bg-red':'bg-gray'}">\${ins.approved_at?'Approved':ins.rejected_at?'Rejected':'Pending'}</span></div>
+  <div style="font-size:12px;color:#8a96ab">\${ins.work_observed||'—'}</div>
+  \${ins.issues_noted?\`<div style="font-size:12px;color:#d97706;margin-top:6px">\${ins.issues_noted}</div>\`:''}
+  \${!ins.approved_at&&!ins.rejected_at?\`<div style="display:flex;gap:7px;margin-top:10px"><button class="btn btn-sm btn-g" onclick="approveInsp('\${ins.id}')">✓ Approve</button><button class="btn btn-sm btn-r" onclick="rejectInsp('\${ins.id}')">Reject</button></div>\`:''}</div>\`).join('')||empty('🔍','No PM inspections yet')}\`
+}
+async function logPmVisit(){modal('Log PM Visit',\`<div class="fg"><label class="fl">Type</label><select class="fs" id="ins-t"><option value="midpoint">Midpoint</option><option value="final">Final</option></select></div><div class="fg"><label class="fl">Work Observed</label><textarea class="ft" id="ins-o"></textarea></div><div class="fg"><label class="fl">Issues</label><textarea class="ft" id="ins-i"></textarea></div>\`,async()=>{const{error}=await sb.from('pm_inspections').insert({id:uuid(),job_id:currentJobId,pm_name:ME?.full_name,visit_type:v('ins-t'),work_observed:v('ins-o'),issues_noted:v('ins-i'),visited_at:new Date().toISOString(),created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();loadJT('jt-pm')}})}
+async function approveInsp(id){await sb.from('pm_inspections').update({approved_at:new Date().toISOString()}).eq('id',id);await sb.from('jobs').update({phase:'complete'}).eq('id',currentJobId);currentJob.phase='complete';toast('Approved');loadJT('jt-pm')}
+async function rejectInsp(id){const r=prompt('Reason:');if(!r)return;await sb.from('pm_inspections').update({rejected_at:new Date().toISOString(),rejection_reason:r}).eq('id',id);toast('Rejected','warn');loadJT('jt-pm')}
+
+// CHANGE ORDERS TAB
+async function renderCOTab(el){
+  const{data:cos}=await sb.from('change_orders').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
+  el.innerHTML=\`<div style="margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="newCO()">+ New Change Order</button></div>
+  \${(cos||[]).map(co=>\`<div class="card" style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;margin-bottom:7px"><div><div style="font-weight:500">\${co.co_number||'CO'} — \${co.title}</div><div style="font-size:11px;color:#414e63">\${fd(co.created_at)} · \${co.created_by||''}</div></div><span class="badge \${co.status==='signed'?'bg-green':'bg-amber'}">\${(co.status||'').replace('_',' ')}</span></div>
+  <div style="font-size:12px;color:#8a96ab;margin-bottom:8px">\${co.description||''}</div>
+  <div style="display:flex;gap:16px"><div><div style="font-size:10px;color:#414e63">VALUE</div><div style="color:#d97706">\${co.value>=0?'+':''}\${fm(co.value)}</div></div><div><div style="font-size:10px;color:#414e63">PM SIGNED</div><div style="font-size:11px;color:\${co.pm_signed_at?'#16a34a':'#d97706'}">\${co.pm_signed_at?'✓ '+fd(co.pm_signed_at):'Pending'}</div></div></div>
+  \${!co.pm_signed_at?\`<button class="btn btn-sm btn-g" style="margin-top:8px" onclick="signCO('\${co.id}')">✓ PM Sign</button>\`:''}</div>\`).join('')||empty('📝','No change orders')}\` 
+}
+async function newCO(){const{data:last}=await sb.from('change_orders').select('co_number').eq('job_id',currentJobId).order('created_at',{ascending:false}).limit(1).single();const num='CO-'+((parseInt((last?.co_number||'CO-0').split('-')[1])||0)+1+'').padStart(3,'0');modal('New Change Order',\`<div class="fg"><label class="fl">Title *</label><input class="fi" id="co-t"></div><div class="fg"><label class="fl">Description</label><textarea class="ft" id="co-d"></textarea></div><div class="two"><div class="fg"><label class="fl">Value ($)</label><input class="fi" type="number" id="co-v" step="0.01"></div><div class="fg"><label class="fl">Days Added</label><input class="fi" type="number" id="co-dy" value="0"></div></div>\`,async()=>{const t=v('co-t').trim();if(!t)return;await sb.from('change_orders').insert({id:uuid(),job_id:currentJobId,co_number:num,title:t,description:v('co-d'),value:parseFloat(v('co-v'))||0,days_added:parseInt(v('co-dy'))||0,status:'pending_sub',created_by:ME?.full_name,created_at:new Date().toISOString()});closeModal();loadJT('jt-co')})}
+async function signCO(id){await sb.from('change_orders').update({pm_signed_by:ME?.full_name,pm_signed_at:new Date().toISOString(),status:'signed'}).eq('id',id);toast('Signed');loadJT('jt-co')}
+
+// FINANCIALS TAB (per job)
+async function renderJobFinTab(el){
+  const{data:ci}=await sb.from('checkins').select('hours_logged').eq('job_id',currentJobId)
+  const hrs=(ci||[]).reduce((s,c)=>s+(c.hours_logged||0),0)
+  const j=currentJob
+  const labor=hrs*(j.labor_rate||0)
+  const profit=(j.contract_value||0)-labor
+  const margin=j.contract_value>0?profit/j.contract_value*100:null
+  el.innerHTML=\`<button class="btn btn-sm" style="float:right;margin-bottom:11px" onclick="editBudget()">Edit Budget</button>
+  <div class="two">
+    <div class="card"><div class="card-title">Revenue</div><div class="fin-row"><span style="color:#8a96ab">Contract Value</span><span style="font-weight:500">\${fm(j.contract_value)}</span></div><div class="fin-row"><span style="color:#8a96ab">Labor Budget</span><span>\${fm(j.labor_budget)}</span></div><div class="fin-row"><span style="color:#8a96ab">Material Budget</span><span>\${fm(j.material_budget)}</span></div></div>
+    <div class="card"><div class="card-title">Costs</div><div class="fin-row"><span style="color:#8a96ab">Labor (\${fh(hrs)} @ \${fm(j.labor_rate||0)}/hr)</span><span>\${fm(labor)}</span></div><div class="fin-row"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">\${fm(labor)}</span></div></div>
+  </div>
+  <div class="card" style="background:\${profit>=0?'rgba(22,163,74,.08)':'rgba(220,38,38,.08)'};border-color:\${profit>=0?'rgba(22,163,74,.2)':'rgba(220,38,38,.2)'}">
+    <div style="font-size:26px;font-weight:300;color:\${profit>=0?'#16a34a':'#dc2626'}">\${fm(profit)} \${margin!=null?'('+margin.toFixed(1)+'% margin)':''}</div>
+    <div style="font-size:12px;color:#8a96ab;margin-top:3px">Gross Profit · \${fh(hrs)} logged</div>
+  </div>\` 
+}
+function editBudget(){const j=currentJob;modal('Edit Budget',\`<div class="two"><div class="fg"><label class="fl">Contract $</label><input class="fi" type="number" id="eb-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="eb-lr" value="\${j.labor_rate||''}"></div></div><div class="two"><div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="eb-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="eb-mb" value="\${j.material_budget||''}"></div></div>\`,async()=>{const u={contract_value:fN('eb-cv'),labor_rate:fN('eb-lr'),labor_budget:fN('eb-lb'),material_budget:fN('eb-mb')};await sb.from('jobs').update(u).eq('id',currentJobId);currentJob={...currentJob,...u};closeModal();toast('Saved');loadJT('jt-fin')})}
+
+// DOCUMENTS TAB (per job)
+async function renderDocsTab(el){
+  const{data:docs}=await sb.from('job_documents').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
+  el.innerHTML=\`<label class="btn btn-p btn-sm" style="cursor:pointer;margin-bottom:12px">+ Upload Document<input type="file" style="display:none" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg" onchange="uploadJobDoc(this.files)"></label>
+  \${(docs||[]).map(d=>\`<div class="doc-row"><div style="font-size:18px">\${d.file_name.endsWith('.pdf')?'📄':d.file_name.match(/\\.(png|jpg|jpeg)$/i)?'🖼':'📎'}</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${d.name}</div><div style="font-size:10px;color:#414e63">\${d.category||'General'} · \${d.uploaded_by||''} · \${fd(d.created_at)}</div></div><a href="\${d.url}" target="_blank" class="btn btn-sm">View</a></div>\`).join('')||empty('📁','No documents uploaded')}\` 
+}
+async function uploadJobDoc(files){for(const f of files){const path=\`jobs/\${currentJobId}/docs/\${Date.now()}_\${f.name}\`;const{error}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true});if(!error){const{data:{publicUrl}}=sb.storage.from('fieldtrack-plans').getPublicUrl(path);await sb.from('job_documents').insert({id:uuid(),job_id:currentJobId,name:f.name,file_name:f.name,category:'general',storage_path:path,url:publicUrl,uploaded_by:ME?.full_name,created_at:new Date().toISOString()})}};toast('Uploaded');loadJT('jt-docs')}
+
+// DAILY LOG TAB
+async function renderLogTab(el){
+  const{data:logs}=await sb.from('daily_logs').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
+  el.innerHTML=\`<div style="margin-bottom:12px"><div class="two" style="margin-bottom:7px"><select class="fs" id="log-type"><option value="note">Note</option><option value="issue">Issue</option><option value="progress">Progress</option><option value="delivery">Delivery</option></select><button class="btn btn-p" onclick="addLog()">Add</button></div><textarea class="ft" id="log-txt" placeholder="Field note…"></textarea></div>
+  \${(logs||[]).map(l=>\`<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;font-weight:600;color:\${l.type==='issue'?'#dc2626':l.type==='progress'?'#16a34a':'#414e63'}">\${(l.type||'NOTE').toUpperCase()}</span><span style="font-size:10px;color:#414e63">\${l.author||''} · \${fdt(l.created_at)}</span></div><div style="font-size:13px;color:#8a96ab;white-space:pre-wrap">\${l.content}</div></div>\`).join('')||'<div style="font-size:12px;color:#414e63">No entries</div>'}\`
+}
+async function addLog(){const c=v('log-txt').trim();if(!c)return;await sb.from('daily_logs').insert({id:uuid(),job_id:currentJobId,type:v('log-type'),content:c,author:ME?.full_name,created_at:new Date().toISOString()});document.getElementById('log-txt').value='';toast('Added');loadJT('jt-log')}
+// ══════════════════════════════════════════
+// NEW JOB PAGE
+// ══════════════════════════════════════════
+async function pgNewJob(){
+  const[{data:companies},{data:pmUsers}]=await Promise.all([sb.from('companies').select('id,name').eq('is_active',true).order('name'),sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')])
+  document.getElementById('page-area').innerHTML=\`<div class="two">
+  <div>
+    <div class="card">
+      <div class="fg"><label class="fl">Job Name *</label><input class="fi" id="nj-name" placeholder="Project name"></div>
+      <div class="fg" style="position:relative"><label class="fl">Project Address *</label><input class="fi" id="nj-addr" placeholder="Start typing…" autocomplete="off" oninput="addrAC(this.value,'nj-addr-dd')"><div id="nj-addr-dd" class="addr-dd"></div>
+      <div id="nj-gps-ok" style="display:none;font-size:10px;color:#16a34a;margin-top:4px">✓ GPS: <span id="nj-coords"></span></div><input type="hidden" id="nj-lat"><input type="hidden" id="nj-lng"></div>
+      <div class="three"><div class="fg"><label class="fl">Radius</label><select class="fs" id="nj-rad"><option value="100">100ft</option><option value="250" selected>250ft</option><option value="500">500ft</option><option value="750">750ft</option><option value="1000">1000ft</option></select></div>
+      <div class="fg"><label class="fl">Start</label><input class="fi" type="date" id="nj-start"></div>
+      <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="nj-due"></div></div>
+      <div class="three"><div class="fg"><label class="fl">Expected On Site</label><input class="fi" type="date" id="nj-eos"></div>
+      <div class="fg"><label class="fl">Next Visit</label><input class="fi" type="date" id="nj-nvd"></div>
+      <div class="fg"><label class="fl">Closeout Date</label><input class="fi" type="date" id="nj-dco"></div></div>
+      <div class="three"><div class="fg"><label class="fl">Contract $</label><input class="fi" type="number" id="nj-cv"></div>
+      <div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="nj-lb"></div>
+      <div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="nj-lr"></div></div>
+      <div class="fg"><label class="fl">GC Company</label><input class="fi" id="nj-gc"></div>
+      <div class="two"><div class="fg"><label class="fl">GC Contact</label><input class="fi" id="nj-gcc"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="nj-gcp"></div></div>
+      <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="nj-sup"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="nj-supp"></div></div>
+      <div class="fg"><label class="fl">Project Manager (Internal)</label><select class="fs" id="nj-pm"><option value="">— Assign PM —</option></select></div>
+      <div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="nj-pmschedule"><option value="none">No scheduled visits</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">At milestones only</option></select></div>
+      <div class="fg"><label class="fl">Next PM Visit Due</label><input class="fi" type="date" id="nj-pmvisit"></div>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <div class="fg"><label class="fl">Sub Company</label><select class="fs" id="nj-co" onchange="loadNjWorkers()"><option value="">— None —</option>\${(companies||[]).map(c=>\`<option value="\${c.id}">\${c.name}</option>\`).join('')}</select></div>
+      <div class="fg"><label class="fl">Workers</label><div id="nj-workers" style="background:#131c2e;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:9px;min-height:44px"><div style="font-size:11px;color:#414e63">Select a company first</div></div></div>
+      <div class="fg"><label class="fl">PM Review</label><select class="fs" id="nj-pmr"><option value="midpoint_and_final">Mid-point &amp; Final</option><option value="final_only">Final only</option><option value="none">None</option></select></div>
+      <div class="fg"><label class="fl">Scope of Work</label><textarea class="ft" id="nj-scope"></textarea></div>
+      <div class="fg"><label class="fl">Install Notes</label><textarea class="ft" id="nj-notes" style="min-height:55px"></textarea></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Milestone Dates</div>
+      <div class="two"><div class="fg"><label class="fl">Rough-in</label><input class="fi" type="date" id="nj-dr"></div><div class="fg"><label class="fl">Trim-out</label><input class="fi" type="date" id="nj-dt"></div></div>
+      <div class="two"><div class="fg"><label class="fl">Inspection</label><input class="fi" type="date" id="nj-di"></div><div class="fg"><label class="fl">Contract Signed</label><input class="fi" type="date" id="nj-dc"></div></div>
+    </div>
+    <button class="btn btn-p btn-full" id="nj-btn" onclick="submitNewJob()">Create Job</button>
+  </div></div>\`
+  setTimeout(()=>populateNjPM(pmUsers),100)
+}
+async function populateNjPM(pmUsers){
+  const sel=document.getElementById('nj-pm');if(!sel)return
+  // Always fetch fresh from DB - ignore passed users if empty
+  const{data,error}=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
+  let users=(!error&&data&&data.length)?data:(pmUsers||[])
+  if(!users.length){
+    // Last resort - try without any filter
+    const{data:all}=await sb.from('profiles').select('id,full_name,role').order('full_name').limit(100)
+    users=all||[]
+  }
+  if(!users.length){
+    sel.innerHTML='<option value="">— Add employees in Users page first —</option>'
+    return
+  }
+  sel.innerHTML='<option value="">— Unassigned —</option>'+users.map(p=>'<option value="'+p.full_name+'">'+p.full_name+(p.role?' ('+p.role+')':'')+'</option>').join('')
+}
+async function loadNjWorkers(){const coId=v('nj-co');const wrap=document.getElementById('nj-workers');if(!wrap)return;if(!coId){wrap.innerHTML='<div style="font-size:11px;color:#414e63">Select a company first</div>';return};const{data}=await sb.from('profiles').select('id,full_name,is_lead').eq('company_id',coId).eq('is_active',true);wrap.innerHTML=(data||[]).map(w=>\`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><input type="checkbox" id="w-\${w.id}" value="\${w.id}" \${w.is_lead?'checked':''}><label for="w-\${w.id}" style="font-size:12px;color:#8a96ab">\${w.full_name}\${w.is_lead?' (Lead)':''}</label></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No workers</div>'}
+async function submitNewJob(){
+  const name=v('nj-name').trim();if(!name){toast('Job name required','error');return}
+  const btn=document.getElementById('nj-btn');btn.disabled=true;btn.textContent='Creating…'
+  let lat=parseFloat(v('nj-lat'))||null,lng=parseFloat(v('nj-lng'))||null
+  if(!lat&&v('nj-addr')){try{const r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(v('nj-addr'))+'&format=json&limit=1',{headers:{'User-Agent':'FieldAxisHQ/1.0'}});const j=await r.json();if(j[0]){lat=parseFloat(j[0].lat);lng=parseFloat(j[0].lon)}}catch{}}
+  const job={id:uuid(),name,address:v('nj-addr'),gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:v('nj-start')||null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),project_manager:v('nj-pm')||null,pm_visit_schedule:v('nj-pmschedule')||'none',next_pm_visit:v('nj-pmvisit')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
+  const{data:created,error}=await sb.from('jobs').insert(job).select().single()
+  if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Create Job';return}
+  document.querySelectorAll('#nj-workers input[type=checkbox]:checked').forEach(async cb=>await sb.from('job_workers').insert({id:uuid(),job_id:created.id,worker_id:cb.value,is_active:true,added_by:ME?.full_name,added_at:new Date().toISOString()}))
+  toast('Job created!');allJobs.unshift(created);openJob(created.id)
+}
+
+// ══════════════════════════════════════════
+// SCHEDULE PAGE
+// ══════════════════════════════════════════
+async function pgSchedule(){
+  const{data:jobs}=await sb.from('jobs').select('*').eq('archived',false).order('name')
+  const events=[];const today=new Date();today.setHours(0,0,0,0)
+  ;(jobs||[]).forEach(j=>{
+    const fields=[['expected_onsite_date','📍 Expected On Site','#60a5fa'],['next_visit_date','🔄 Next Visit','#d97706'],['date_roughin','🔨 Rough-in','#fb923c'],['date_trimout','✂ Trim-out','#2dd4bf'],['date_inspection','🔍 Inspection','#a78bfa'],['date_closeout','📋 Closeout','#16a34a'],['due_date','⚑ Due Date','#dc2626']]
+    fields.forEach(([f,lbl,color])=>{if(j[f]){const da=daysAway(j[f]);events.push({job:j.name,jobId:j.id,type:lbl,date:j[f],da,color,phase:j.phase})}})
+  })
+  events.sort((a,b)=>new Date(a.date)-new Date(b.date))
+  const upcoming=events.filter(e=>e.da>=0&&e.da<=14)
+  const past=events.filter(e=>e.da<0).slice(0,10)
+  const future=events.filter(e=>e.da>14).slice(0,20)
+  document.getElementById('page-area').innerHTML=\`
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div>
+      <div class="card">
+        <div class="card-title" style="color:#d97706">⚠ Due in Next 14 Days (\${upcoming.length})</div>
+        \${upcoming.length?upcoming.map(e=>\`<div class="sched-item" onclick="openJob('\${e.jobId}')"><div class="sched-dot" style="background:\${e.da<=3?'#dc2626':e.da<=7?'#d97706':'#16a34a'};margin-top:5px"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${e.job}</div><div style="font-size:10px;color:#414e63">\${e.type} · \${fd(e.date)}</div></div><span class="badge \${e.da<=3?'bg-red':e.da<=7?'bg-amber':'bg-green'}">\${e.da===0?'Today':e.da+'d'}</span></div>\`).join(''):empty('✅','Nothing due in next 14 days')}
+      </div>
+      <div class="card">
+        <div class="card-title">Past Due / Recent</div>
+        \${past.length?past.map(e=>\`<div class="sched-item" onclick="openJob('\${e.jobId}')"><div class="sched-dot" style="background:#dc2626;margin-top:5px"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${e.job}</div><div style="font-size:10px;color:#414e63">\${e.type} · \${fd(e.date)}</div></div><span class="badge bg-red">\${Math.abs(e.da)}d ago</span></div>\`).join(''):empty('✅','No past due items')}
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">Upcoming (Beyond 2 Weeks)</div>
+        \${future.length?future.map(e=>\`<div class="sched-item" onclick="openJob('\${e.jobId}')"><div class="sched-dot" style="background:\${e.color};margin-top:5px"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${e.job}</div><div style="font-size:10px;color:#414e63">\${e.type} · \${fd(e.date)}</div></div><span class="badge bg-gray">\${e.da}d</span></div>\`).join(''):empty('📅','No future events')}
+      </div>
+    </div>
+  </div>\`
+}
+
+// ══════════════════════════════════════════
+// DAILY REPORTS PAGE
+// ══════════════════════════════════════════
+let _drAll=[], _drJobs={}
+async function pgDaily(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="newDailyModal()">+ New Report</button>'
+  // Fetch reports with job names
+  const[{data:reports},{data:jobs}]=await Promise.all([
+    sb.from('daily_reports').select('*').order('report_date',{ascending:false}).limit(500),
+    sb.from('jobs').select('id,name').order('name')
+  ])
+  _drAll=reports||[]
+  _drJobs={}; (jobs||[]).forEach(j=>_drJobs[j.id]=j.name)
+  // Build employee list for filter
+  const employees=[...new Set(_drAll.map(r=>r.submitted_by).filter(Boolean))].sort()
+  const today=new Date().toISOString().split('T')[0]
+  const thirtyDaysAgo=new Date(Date.now()-30*864e5).toISOString().split('T')[0]
+  document.getElementById('page-area').innerHTML=
+    '<div style="background:#0c1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px;margin-bottom:13px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:flex-end">'+
+    '<div><label class="fl">Job</label><select class="fs" id="dr-f-job" onchange="filterDailyReports()"><option value="">All Jobs</option>'+
+    (jobs||[]).map(j=>'<option value="'+j.id+'">'+j.name+'</option>').join('')+
+    '</select></div>'+
+    '<div><label class="fl">From Date</label><input class="fi" type="date" id="dr-f-from" value="'+thirtyDaysAgo+'" onchange="filterDailyReports()"></div>'+
+    '<div><label class="fl">To Date</label><input class="fi" type="date" id="dr-f-to" value="'+today+'" onchange="filterDailyReports()"></div>'+
+    '<div><label class="fl">Employee</label><select class="fs" id="dr-f-emp" onchange="filterDailyReports()"><option value="">All Employees</option>'+
+    employees.map(e=>'<option value="'+e+'">'+e+'</option>').join('')+
+    '</select></div>'+
+    '<button class="btn btn-sm" onclick="clearDrFilters()">Clear</button>'+
+    '</div></div>'+
+    '<div id="dr-results"></div>'
+  filterDailyReports()
+}
+function clearDrFilters(){
+  const today=new Date().toISOString().split('T')[0]
+  const ago=new Date(Date.now()-30*864e5).toISOString().split('T')[0]
+  document.getElementById('dr-f-job').value=''
+  document.getElementById('dr-f-from').value=ago
+  document.getElementById('dr-f-to').value=today
+  document.getElementById('dr-f-emp').value=''
+  filterDailyReports()
+}
+function filterDailyReports(){
+  const jobId=document.getElementById('dr-f-job')?.value||''
+  const from=document.getElementById('dr-f-from')?.value||''
+  const to=document.getElementById('dr-f-to')?.value||''
+  const emp=document.getElementById('dr-f-emp')?.value||''
+  let rows=_drAll.filter(r=>{
+    if(jobId&&r.job_id!==jobId)return false
+    if(from&&r.report_date<from)return false
+    if(to&&r.report_date>to)return false
+    if(emp&&r.submitted_by!==emp)return false
+    return true
+  })
+  const el=document.getElementById('dr-results')
+  if(!el)return
+  if(!rows.length){el.innerHTML=empty('📋','No reports match your filters');return}
+  let html='<div style="font-size:11px;color:#414e63;margin-bottom:8px">'+rows.length+' report'+(rows.length!==1?'s':'')+' found</div>'
+  html+='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr>'
+  html+='<th>Date</th><th>Job</th><th>Submitted By</th><th>Crew</th><th>Hours</th><th>Weather</th><th>Issues</th><th></th>'
+  html+='</tr></thead><tbody>'
+  for(const r of rows){
+    const jobName=_drJobs[r.job_id]||r.job_id||'—'
+    const hasIssues=r.issues&&r.issues.trim()
+    html+='<tr onclick="viewDailyReport(\\"'+r.id+'\\")" style="cursor:pointer">'
+    html+='<td style="font-weight:500;white-space:nowrap">'+fd(r.report_date)+'</td>'
+    html+='<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+jobName+'</td>'
+    html+='<td style="font-size:12px">'+( r.submitted_by||'—')+'</td>'
+    html+='<td>'+r.crew_count+'</td>'
+    html+='<td>'+fh(r.hours_worked)+'</td>'
+    html+='<td style="font-size:11px;color:#8a96ab">'+(r.weather||'—')+(r.temp_high?' '+r.temp_high+'°':'')+'</td>'
+    html+='<td>'+(hasIssues?'<span class="badge bg-red">Yes</span>':'<span style="font-size:11px;color:#414e63">—</span>')+'</td>'
+    html+='<td><button class="btn btn-sm" onclick="event.stopPropagation();dlDailyReportById(\\"'+r.id+'\\")">⬇</button></td>'
+    html+='</tr>'
+  }
+  html+='</tbody></table></div>'
+  el.innerHTML=html
+}
+async function viewDailyReport(id){
+  const{data:r}=await sb.from('daily_reports').select('*').eq('id',id).single()
+  modal('Daily Report — '+fd(r.report_date),\`
+  <div class="two" style="margin-bottom:12px">
+    <div><div class="fl">JOB</div><div style="font-weight:500">\${_drJobs[r.job_id]||r.job_id||'—'}</div></div>
+    <div><div class="fl">DATE</div><div style="font-weight:500">\${fd(r.report_date)}</div></div>
+  </div>
+  <div class="four" style="margin-bottom:12px">
+    <div><div class="fl">CREW</div><div style="font-weight:500">\${r.crew_count}</div></div>
+    <div><div class="fl">HOURS</div><div style="font-weight:500">\${fh(r.hours_worked)}</div></div>
+    <div><div class="fl">WEATHER</div><div style="font-weight:500">\${r.weather||'—'}</div></div>
+    <div><div class="fl">TEMP</div><div style="font-weight:500">\${r.temp_high?r.temp_high+'°/'+r.temp_low+'°':'—'}</div></div>
+  </div>
+  \${r.work_performed?\`<div class="fg"><div class="fl">Work Performed</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap;background:#131c2e;padding:9px;border-radius:7px">\${r.work_performed}</div></div>\`:''}
+  \${(r.installed_parts&&r.installed_parts.length)?\`<div class="fg"><div class="fl" style="margin-bottom:7px">Parts Installed Today</div><div style="background:#131c2e;border-radius:7px;overflow:hidden">\${r.installed_parts.map(p=>'<div style="display:flex;justify-content:space-between;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px">'+p.part_name+'</span><span style="font-size:12px;font-weight:600;color:#16a34a">'+p.installed_qty+' installed</span></div>').join('')}</div></div>\`:''}
+  \${r.equipment_used?\`<div class="fg"><div class="fl">Equipment</div><div style="font-size:12px;color:#8a96ab">\${r.equipment_used}</div></div>\`:''}
+  \${r.issues?\`<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);border-radius:7px;padding:10px 12px;margin-bottom:9px"><div class="fl" style="color:#dc2626">Issues</div><div style="font-size:12px;color:#dc2626;white-space:pre-wrap">\${r.issues}</div></div>\`:''}
+  \${r.visitors?\`<div class="fg"><div class="fl">Visitors</div><div style="font-size:12px;color:#8a96ab">\${r.visitors}</div></div>\`:''}\`,
+  ()=>closeModal(),'Close',false)
+  document.getElementById('modal-footer').innerHTML='<button class="btn" onclick="closeModal()">Close</button><button class="btn btn-sm" onclick="dlDailyReportById(\\''+id+'\\')">⬇ Download</button>'
+}
+async function dlDailyReportById(id){const{data:r}=await sb.from('daily_reports').select('*').eq('id',id).single();dlDailyReport({...r,jobs:r.jobs})}
+function newDailyModal(jobIdOverride){
+  const jobSel=(!jobIdOverride&&allJobs.length)?
+    '<div class="fg"><label class="fl">Job *</label><select class="fs" id="dr-job" onchange="drLoadParts(this.value)"><option value="">— Select —</option>'+allJobs.map(j=>'<option value="'+j.id+'">'+j.name+'</option>').join('')+'</select></div>':
+    (jobIdOverride?'<input type="hidden" id="dr-job" value="'+jobIdOverride+'">':'')
+  const html=jobSel+
+    '<div class="two">'+
+    '<div class="fg"><label class="fl">Report Date</label><input class="fi" type="date" id="dr-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '<div class="fg"><label class="fl">Crew Count</label><input class="fi" type="number" id="dr-crew" value="1" min="0"></div>'+
+    '</div>'+
+    '<div class="three">'+
+    '<div class="fg"><label class="fl">Hours Worked</label><input class="fi" type="number" id="dr-hrs" step="0.5" min="0"></div>'+
+    '<div class="fg"><label class="fl">Weather</label><input class="fi" id="dr-wx" placeholder="Sunny, Rainy…"></div>'+
+    '<div class="fg"><label class="fl">Temp Hi/Lo (°F)</label><div style="display:flex;gap:5px"><input class="fi" type="number" id="dr-th" placeholder="Hi"><input class="fi" type="number" id="dr-tl" placeholder="Lo"></div></div>'+
+    '</div>'+
+    '<div class="fg"><label class="fl">Work Performed *</label><textarea class="ft" id="dr-work" style="min-height:80px" placeholder="Describe work completed today…"></textarea></div>'+
+    '<div id="dr-parts-section" style="margin-bottom:12px">'+
+    (jobIdOverride?'<div id="dr-parts-wrap"><div style="font-size:11px;color:#414e63">Loading parts…</div></div>':
+    '<div id="dr-parts-wrap"><div style="font-size:11px;color:#414e63">Select a job to see staged parts</div></div>')+
+    '</div>'+
+    '<div class="fg"><label class="fl">Equipment Used</label><input class="fi" id="dr-eq"></div>'+
+    '<div class="fg"><label class="fl">Issues / Delays</label><textarea class="ft" id="dr-iss" placeholder="Any problems, delays, safety issues?"></textarea></div>'+
+    '<div class="fg"><label class="fl">Visitors</label><input class="fi" id="dr-vis" placeholder="Inspectors, owner reps…"></div>'
+  modal('New Daily Report', html, async()=>{
+    const jobId=v('dr-job');if(!jobId){toast('Select a job','error');return}
+    const work=v('dr-work').trim();if(!work){toast('Work performed required','error');return}
+    // Collect installed parts from the form
+    const installedParts=[]
+    document.querySelectorAll('.dr-part-row').forEach(row=>{
+      const partId=row.dataset.partId
+      const partName=row.dataset.partName
+      const available=parseInt(row.dataset.available)||0
+      const installed=parseInt(row.querySelector('.dr-part-qty')?.value)||0
+      if(installed>0) installedParts.push({part_id:partId,part_name:partName,installed_qty:installed,available_qty:available})
+    })
+    const{error}=await sb.from('daily_reports').insert({id:uuid(),job_id:jobId,report_date:v('dr-date'),crew_count:parseInt(v('dr-crew'))||0,hours_worked:parseFloat(v('dr-hrs'))||0,weather:v('dr-wx'),temp_high:fN('dr-th'),temp_low:fN('dr-tl'),work_performed:work,equipment_used:v('dr-eq'),issues:v('dr-iss'),visitors:v('dr-vis'),installed_parts:installedParts,submitted_by:ME?.full_name,submitted_at:new Date().toISOString(),created_at:new Date().toISOString()})
+    if(error){toast(error.message,'error');return}
+    // Update job_parts installed_qty and subtract from available
+    for(const ip of installedParts){
+      const{data:part}=await sb.from('job_parts').select('id,installed_qty,assigned_qty').eq('job_id',jobId).eq('part_id',ip.part_id).single()
+      if(part){
+        const newInstalled=(part.installed_qty||0)+ip.installed_qty
+        const newStatus=newInstalled>=part.assigned_qty?'installed':'partial_install'
+        await sb.from('job_parts').update({installed_qty:newInstalled,status:newStatus,updated_at:new Date().toISOString()}).eq('id',part.id)
+      }
+    }
+    // Check if job is complete - run over/under check
+    if(installedParts.length) await checkPartsVariance(jobId)
+    closeModal();toast('Report saved OK');if(jobIdOverride)loadJT('jt-daily');else pgDaily()
+  })
+  // Load parts if job is pre-selected
+  if(jobIdOverride) setTimeout(()=>drLoadParts(jobIdOverride),100)
+}
+
+async function drLoadParts(jobId){
+  const wrap=document.getElementById('dr-parts-wrap');if(!wrap)return
+  if(!jobId){wrap.innerHTML='<div style="font-size:11px;color:#414e63">Select a job to see staged parts</div>';return}
+  wrap.innerHTML='<div style="font-size:11px;color:#414e63">Loading parts…</div>'
+  const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',jobId).in('status',['staged','signed_out','partial_install'])
+  if(!parts?.length){wrap.innerHTML='<div style="font-size:11px;color:#414e63;padding:8px 0">No staged parts on this job yet</div>';return}
+  let html='<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Parts Staged on Job — Enter Qty Installed Today</div>'
+  html+='<div style="background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;overflow:hidden">'
+  for(const p of parts){
+    const available=p.assigned_qty-(p.installed_qty||0)
+    if(available<=0) continue
+    html+='<div class="dr-part-row" data-part-id="'+p.part_id+'" data-part-name="'+p.part_name+'" data-available="'+available+'" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04)">'
+    html+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.part_name+'</div>'
+    html+='<div style="font-size:10px;color:#414e63">'+p.part_id+' · '+available+' available ('+( p.installed_qty||0)+' already installed)</div></div>'
+    html+='<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
+    html+='<button onclick="this.nextElementSibling.value=Math.max(0,parseInt(this.nextElementSibling.value||0)-1)" style="width:24px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:14px">−</button>'
+    html+='<input type="number" class="dr-part-qty fi" value="0" min="0" max="'+available+'" style="width:60px;text-align:center;padding:4px 6px">'
+    html+='<button onclick="this.previousElementSibling.value=Math.min('+available+',parseInt(this.previousElementSibling.value||0)+1)" style="width:24px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:14px">+</button>'
+    html+='</div></div>'
+  }
+  html+='</div>'
+  wrap.innerHTML=html
+}
+
+async function checkPartsVariance(jobId){
+  const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',jobId)
+  if(!parts?.length) return
+  const{data:job}=await sb.from('jobs').select('name,phase').eq('id',jobId).single()
+  const overParts=[],underParts=[]
+  for(const p of parts){
+    const installed=p.installed_qty||0
+    const assigned=p.assigned_qty||0
+    if(installed>assigned) overParts.push({name:p.part_name,over:installed-assigned,id:p.part_id})
+    else if(installed<assigned&&(job?.phase==='complete'||p.status==='installed'))
+      underParts.push({name:p.part_name,under:assigned-installed,id:p.part_id})
+  }
+  if(overParts.length||underParts.length){
+    const msg=[]
+    if(overParts.length) msg.push('OVER on: '+overParts.map(p=>p.name+' (+'+p.over+')').join(', '))
+    if(underParts.length) msg.push('UNDER on: '+underParts.map(p=>p.name+' (−'+p.under+')').join(', '))
+    // Save notification
+    await sb.from('notifications').insert({id:uuid(),type:'parts_variance',title:'Parts Variance — '+(job?.name||jobId),message:msg.join(' | '),meta:{job_id:jobId,over:overParts,under:underParts},read:false,created_at:new Date().toISOString()})
+    toast('Parts variance detected — check notifications','warn')
+  }
+}
+
+// ══════════════════════════════════════════
+// JOB WALKS PAGE
+// ══════════════════════════════════════════
+async function pgJobWalks(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="newWalkModal()">+ New Job Walk</button>'
+  const{data:walks}=await sb.from('job_walks').select('*').order('walk_date',{ascending:false}).limit(40)
+  document.getElementById('page-area').innerHTML=\`
+  <div class="card" style="padding:0;overflow:hidden">
+  \${(walks||[]).length?\`<table class="tbl"><thead><tr><th>Date</th><th>Job</th><th>Walked By</th><th>Attendees</th><th>Status</th><th>Issues</th></tr></thead><tbody>\${(walks||[]).map(w=>\`<tr onclick="openJobWalk('\${w.id}')"><td style="font-weight:500">\${fd(w.walk_date)}</td><td>\${w.job_id||'—'}</td><td style="font-size:11px">\${w.walked_by||'—'}</td><td style="font-size:11px;color:#8a96ab">\${w.attendees||'—'}</td><td><span class="badge \${w.status==='complete'?'bg-green':'bg-amber'}">\${w.status}</span></td><td style="font-size:11px;color:\${w.issues_found?'#d97706':'#414e63'}">\${w.issues_found?'Yes':'None'}</td></tr>\`).join('')}</tbody></table>\`:empty('🚶','No job walks recorded')}
+  </div>\`
+}
+function newWalkModal(jobIdOverride){
+  let jobSel=''
+  if(!jobIdOverride)jobSel=\`<div class="fg"><label class="fl">Job *</label><select class="fs" id="wk-job"><option value="">— Select —</option>\${allJobs.map(j=>\`<option value="\${j.id}">\${j.name}</option>\`).join('')}</select></div>\`
+  modal('New Job Walk',\`
+  \${jobIdOverride?\`<input type="hidden" id="wk-job" value="\${jobIdOverride}">\`:jobSel}
+  <div class="two">
+    <div class="fg"><label class="fl">Walk Date *</label><input class="fi" type="date" id="wk-date" value="\${new Date().toISOString().split('T')[0]}"></div>
+    <div class="fg"><label class="fl">Walked By</label><input class="fi" id="wk-by" value="\${ME?.full_name||''}"></div>
+  </div>
+  <div class="fg"><label class="fl">Attendees</label><input class="fi" id="wk-att" placeholder="Names of everyone present"></div>
+  <div class="fg"><label class="fl">Scope / Conditions</label><textarea class="ft" id="wk-scope" placeholder="Site conditions, access, scope observations…"></textarea></div>
+  <div class="fg"><label class="fl">Measurements / Notes</label><textarea class="ft" id="wk-meas"></textarea></div>
+  <div class="fg"><label class="fl">Issues Found</label><textarea class="ft" id="wk-iss" placeholder="Problems, concerns, items requiring attention…"></textarea></div>
+  <div class="fg"><label class="fl">Action Items</label><textarea class="ft" id="wk-act" placeholder="What needs to happen and by whom…"></textarea></div>
+  <div class="two"><div class="fg"><label class="fl">Follow-up Date</label><input class="fi" type="date" id="wk-fup"></div><div class="fg"><label class="fl">Status</label><select class="fs" id="wk-status"><option value="open">Open</option><option value="complete">Complete</option></select></div></div>\`,
+  async()=>{
+    const jobId=v('wk-job');if(!jobId){toast('Select a job','error');return}
+    const{data:walk,error}=await sb.from('job_walks').insert({id:uuid(),job_id:jobId,walk_date:v('wk-date'),walked_by:v('wk-by'),attendees:v('wk-att'),scope_notes:v('wk-scope'),measurements:v('wk-meas'),issues_found:v('wk-iss'),action_items:v('wk-act'),follow_up_date:v('wk-fup')||null,status:v('wk-status'),created_at:new Date().toISOString()}).select().single()
+    if(error)toast(error.message,'error');else{closeModal();toast('Job walk saved OK');if(jobIdOverride)loadJT('jt-walks');else{openJobWalk(walk.id)}}
+  })
+}
+
+// ══════════════════════════════════════════
+// PUNCH LIST PAGE (global)
+// ══════════════════════════════════════════
+async function pgPunch(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="addPunchItem()">+ Add Item</button>'
+  const{data:items}=await sb.from('punch_list').select('*').order('created_at',{ascending:false})
+  document.getElementById('page-area').innerHTML=\`
+  <div class="card" style="padding:0;overflow:hidden">
+  \${(items||[]).length?\`<table class="tbl"><thead><tr><th>Item</th><th>Job</th><th>Location</th><th>Assigned</th><th>Priority</th><th>Status</th><th>Due</th><th></th></tr></thead><tbody>\${(items||[]).map(i=>\`<tr><td style="font-weight:500">\${i.item}</td><td style="font-size:11px">\${i.job_id||'—'}</td><td style="font-size:11px;color:#8a96ab">\${i.location||'—'}</td><td style="font-size:11px">\${i.assigned_to||'—'}</td><td><span class="badge \${i.priority==='urgent'?'bg-red':i.priority==='high'?'bg-amber':'bg-gray'}">\${i.priority}</span></td><td><span class="badge \${i.status==='complete'?'bg-green':'bg-amber'}">\${i.status}</span></td><td style="font-size:11px">\${fd(i.due_date)}</td><td>\${i.status!=='complete'?\`<button class="btn btn-sm btn-g" onclick="completePunchGlobal('\${i.id}')">Done</button>\`:''}</td></tr>\`).join('')}</tbody></table>\`:empty('✅','No punch list items')}
+  </div>\`
+}
+function addPunchItem(jobIdOverride,reloadTab){
+  let jobSel=''
+  if(!jobIdOverride)jobSel=\`<div class="fg"><label class="fl">Job *</label><select class="fs" id="pl-job"><option value="">— Select —</option>\${allJobs.map(j=>\`<option value="\${j.id}">\${j.name}</option>\`).join('')}</select></div>\`
+  modal('Add Punch Item',\`
+  \${jobIdOverride?\`<input type="hidden" id="pl-job" value="\${jobIdOverride}">\`:jobSel}
+  <div class="fg"><label class="fl">Item *</label><input class="fi" id="pl-item" placeholder="What needs to be fixed/completed?"></div>
+  <div class="two"><div class="fg"><label class="fl">Location</label><input class="fi" id="pl-loc" placeholder="Room, area, zone…"></div>
+  <div class="fg"><label class="fl">Assigned To</label><input class="fi" id="pl-ass"></div></div>
+  <div class="two"><div class="fg"><label class="fl">Priority</label><select class="fs" id="pl-pri"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
+  <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="pl-due"></div></div>\`,
+  async()=>{const jobId=v('pl-job');if(!jobId){toast('Select a job','error');return};const item=v('pl-item').trim();if(!item)return;const{error}=await sb.from('punch_list').insert({id:uuid(),job_id:jobId,item,location:v('pl-loc'),assigned_to:v('pl-ass'),priority:v('pl-pri'),status:'open',due_date:v('pl-due')||null,created_by:ME?.full_name,created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();toast('Added');if(reloadTab)loadJT('jt-punch');else pgPunch()}})
+}
+async function completePunchGlobal(id){await sb.from('punch_list').update({status:'complete',completed_at:new Date().toISOString(),completed_by:ME?.full_name}).eq('id',id);toast('Done OK');pgPunch()}
+
+// ══════════════════════════════════════════
+// SCAN PARTS PAGE — Full barcode scanning
+// ══════════════════════════════════════════
+let _scanMode='stage',_batch=[],_camRunning=false,_scanJobId=null
+async function pgScan(){
+  const{data:jobs}=await sb.from('jobs').select('id,name').eq('archived',false).order('name')
+  allJobs=jobs||[]
+  const{data:cat}=await sb.from('catalog').select('*').order('name')
+  allCatalog=cat||[]
+  document.getElementById('page-area').innerHTML=\`
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div>
+      <div class="card">
+        <div class="fg"><label class="fl">Job *</label><select class="fs" id="sc-job" onchange="_scanJobId=this.value;loadJobPartsPanel()"><option value="">— Select job —</option>\${allJobs.map(j=>\`<option value="\${j.id}">\${j.name}</option>\`).join('')}</select></div>
+        <div class="mode-toggle" style="margin-bottom:12px">
+          <button class="active" id="mt-stage" onclick="setScanMode('stage',this)">📥 Stage In</button>
+          <button id="mt-out" onclick="setScanMode('out',this)">📤 Check Out</button>
+          <button id="mt-return" onclick="setScanMode('return',this)">↩ Return</button>
+        </div>
+        <!-- CAMERA -->
+        <div id="cam-wrap" style="display:none">
+          <div class="scan-cam"><div id="cam-viewport"></div><div class="scan-overlay"><div class="scan-rect"><div class="scan-line"></div></div></div><div class="scan-status" id="cam-status">Align barcode in frame</div></div>
+        </div>
+        <div style="margin-bottom:10px;display:flex;gap:8px">
+          <button class="btn btn-sm" id="cam-toggle-btn" onclick="toggleCam()" style="flex:1">📷 Start Camera</button>
+          <button class="btn btn-sm" onclick="testBeep()">🔊 Test Beep</button>
+        </div>
+        <div class="fg">
+          <label class="fl">Barcode / Part # <span style="color:#414e63">(scan or type — Enter to add)</span></label>
+          <input class="fi" id="sc-bc" placeholder="Scan barcode or type part number…" autocomplete="off" oninput="liveResolveBC(this.value)" onkeydown="if(event.key==='Enter'){addToBatch(null,null);this.value='';document.getElementById('sc-resolve').style.display='none'}">
+        </div>
+        <div id="sc-resolve" style="display:none;margin-bottom:9px"></div>
+        <div id="sc-qty-row" style="display:none;margin-bottom:9px">
+          <label class="fl">Quantity</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-sm" onclick="adjManualQty(-1)">−</button>
+            <input class="fi" type="number" id="sc-qty" value="1" min="1" style="width:70px;text-align:center">
+            <button class="btn btn-sm" onclick="adjManualQty(1)">+</button>
+            <button class="btn btn-p btn-sm" onclick="addToBatch(null,null);document.getElementById('sc-bc').value='';document.getElementById('sc-resolve').style.display='none'">Add to Batch</button>
+          </div>
+        </div>
+        <!-- BATCH LIST -->
+        <div id="batch-list" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-weight:500;font-size:13px" id="batch-title">Staging Batch</span>
+            <span style="background:#e8edf5;color:#060a10;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px" id="batch-cnt">0</span>
+          </div>
+          <div id="batch-items"></div>
+          <div style="display:flex;gap:7px;margin-top:9px">
+            <button class="btn btn-p btn-sm" id="commit-btn" onclick="commitBatch()" style="flex:2">Commit Batch to Job</button>
+            <button class="btn btn-r btn-sm" onclick="clearBatch()">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">Parts on Job <button class="btn btn-sm btn-ghost" onclick="loadJobPartsPanel()">↻</button></div>
+        <div id="job-parts-panel"><div style="font-size:12px;color:#414e63">Select a job to see its parts</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Recent Scan Events</div>
+        <div id="scan-events-panel"></div>
+      </div>
+    </div>
+  </div>\`
+  loadScanEvents()
+}
+function setScanMode(m,btn){
+  _scanMode=m
+  document.querySelectorAll('#mt-stage,#mt-out,#mt-return').forEach(b=>b.classList.remove('active'))
+  btn.classList.add('active')
+  const titles={stage:'Staging Batch',out:'Check-out Batch',return:'Return Batch'}
+  const el=document.getElementById('batch-title');if(el)el.textContent=titles[m]||m
+}
+function testBeep(){beep()}
+let _resolvedPart=null,_bcDeb=null
+function liveResolveBC(val){
+  clearTimeout(_bcDeb);const el=document.getElementById('sc-resolve');const qr=document.getElementById('sc-qty-row');if(!el)return
+  if(!val||val.length<2){el.style.display='none';qr.style.display='none';_resolvedPart=null;return}
+  _bcDeb=setTimeout(()=>{
+    const match=allCatalog.filter(c=>c.barcode.toLowerCase()===val.toLowerCase()||c.barcode.toLowerCase().includes(val.toLowerCase())||(c.part_number||'').toLowerCase().includes(val.toLowerCase())||(c.name||'').toLowerCase().includes(val.toLowerCase())).slice(0,5)
+    if(!match.length){el.innerHTML=\`<div style="font-size:11px;color:#414e63;padding:6px 9px;background:#131c2e;border-radius:6px">Not in catalog — will add as new part</div>\`;el.style.display='block';_resolvedPart={barcode:val,name:val,part_number:'',description:''};qr.style.display='block';return}
+    el.innerHTML=match.map(c=>\`<div style="padding:9px 11px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:7px;cursor:pointer;margin-bottom:4px" onclick="selectCatalogPart('\${c.barcode}','\${(c.name||'').replace(/'/g,"\\\\'")}')"><div style="font-size:13px;font-weight:500">\${c.name}</div><div style="font-size:10px;color:#414e63">\${c.barcode} \${c.part_number?' · #'+c.part_number:''} \${c.description?' · '+c.description.substring(0,40):''}</div></div>\`).join('')
+    el.style.display='block'
+    if(match.length===1){_resolvedPart=match[0];qr.style.display='block'}
+  },200)
+}
+function selectCatalogPart(bc,name){
+  document.getElementById('sc-bc').value=bc
+  document.getElementById('sc-resolve').style.display='none'
+  document.getElementById('sc-qty-row').style.display='block'
+  _resolvedPart=allCatalog.find(c=>c.barcode===bc)||{barcode:bc,name,part_number:'',description:''}
+}
+function adjManualQty(d){const el=document.getElementById('sc-qty');if(!el)return;el.value=Math.max(1,(parseInt(el.value)||1)+d)}
+function addToBatch(bc, name){
+  const barcode=bc||v('sc-bc').trim();if(!barcode)return
+  const qty=parseInt(v('sc-qty'))||1
+  const part=_resolvedPart||allCatalog.find(c=>c.barcode===barcode)||{barcode,name:name||barcode,part_number:'',description:''}
+  const ex=_batch.find(b=>b.barcode===barcode)
+  if(ex){ex.qty+=qty}else{_batch.push({barcode,name:part.name,part_number:part.part_number||'',description:part.description||'',qty})}
+  beep()
+  renderBatch()
+  // Ask to add another
+  toast(\`Added: \${part.name} (x\${qty})\`)
+  document.getElementById('sc-qty').value=1
+  _resolvedPart=null
+}
+function renderBatch(){
+  const bl=document.getElementById('batch-list');if(!bl)return
+  if(!_batch.length){bl.style.display='none';return}
+  bl.style.display='block'
+  document.getElementById('batch-cnt').textContent=_batch.reduce((s,b)=>s+b.qty,0)
+  document.getElementById('batch-items').innerHTML=_batch.map((b,i)=>\`<div class="batch-item">
+    <div class="bi-info"><div class="bi-name">\${b.name}</div><div class="bi-bc">\${b.barcode}\${b.part_number?' · #'+b.part_number:''}</div></div>
+    <div class="qty-ctrl"><button onclick="adjBatch(\${i},-1)">−</button><span>\${b.qty}</span><button onclick="adjBatch(\${i},1)">+</button></div>
+    <button style="background:none;border:none;cursor:pointer;color:#414e63;font-size:16px;padding:2px 5px" onclick="rmBatch(\${i})">×</button>
+  </div>\`).join('')
+}
+function adjBatch(i,d){_batch[i].qty=Math.max(1,_batch[i].qty+d);renderBatch()}
+function rmBatch(i){_batch.splice(i,1);renderBatch()}
+function clearBatch(){_batch=[];renderBatch()}
+async function commitBatch(){
+  const jobId=document.getElementById('sc-job')?.value;if(!jobId){toast('Select a job first','error');return}
+  if(!_batch.length){toast('Batch is empty','warn');return}
+  const btn=document.getElementById('commit-btn');btn.disabled=true;btn.textContent='Processing…'
+  const now=new Date().toISOString()
+  const statusMap={stage:'staged',out:'signed_out',return:'staged'}
+  try{
+    for(const item of _batch){
+      // Check if part already on job
+      const{data:existing}=await sb.from('job_parts').select('*').eq('job_id',jobId).eq('part_id',item.barcode).single()
+      if(existing){
+        // Update existing
+        const update={assigned_qty:existing.assigned_qty+item.qty,status:statusMap[_scanMode],updated_at:now}
+        if(_scanMode==='stage'){update.staged_by=ME?.full_name;update.staged_at=now}
+        if(_scanMode==='out'){update.checked_out_by=ME?.full_name;update.checked_out_at=now;update.taken_qty=(existing.taken_qty||0)+item.qty}
+        await sb.from('job_parts').update(update).eq('id',existing.id)
+      } else {
+        const row={id:uuid(),job_id:jobId,part_id:item.barcode,part_name:item.name,status:statusMap[_scanMode],assigned_qty:item.qty,taken_qty:_scanMode==='out'?item.qty:0,staged_by:_scanMode==='stage'?ME?.full_name:null,staged_at:_scanMode==='stage'?now:null,checked_out_by:_scanMode==='out'?ME?.full_name:null,checked_out_at:_scanMode==='out'?now:null,notes:item.description||'',created_at:now,updated_at:now}
+        await sb.from('job_parts').insert(row)
+      }
+      // Log scan event
+      await sb.from('scan_events').insert({id:uuid(),job_id:jobId,part_id:item.barcode,part_name:item.name,action:_scanMode==='stage'?'stage_in':_scanMode==='out'?'check_out':'return',qty:item.qty,scanned_by:ME?.full_name||'?',scanned_at:now,device_info:navigator.userAgent.slice(0,60)})
+      // Deduct from inventory on stage or checkout
+      if(_scanMode!=='return'){const{data:inv}=await sb.from('inventory').select('qty').eq('id',item.barcode).single();if(inv)await sb.from('inventory').update({qty:Math.max(0,inv.qty-item.qty),updated_at:now}).eq('id',item.barcode)}
+    }
+    const action=_scanMode==='stage'?'Staged':_scanMode==='out'?'Checked out':'Returned'
+    toast(\`\${action} \${_batch.length} part type(s) ✓\`)
+    clearBatch();loadJobPartsPanel();loadScanEvents()
+  }catch(e){toast(e.message,'error')}
+  btn.disabled=false;btn.textContent='Commit Batch to Job'
+}
+async function loadJobPartsPanel(){
+  const jobId=document.getElementById('sc-job')?.value;const el=document.getElementById('job-parts-panel');if(!el)return
+  if(!jobId){el.innerHTML='<div style="font-size:12px;color:#414e63">Select a job</div>';return}
+  const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',jobId).order('created_at',{ascending:false})
+  el.innerHTML=(parts||[]).length?\`<table class="tbl"><thead><tr><th>Part</th><th>Qty</th><th>Status</th><th>By</th></tr></thead><tbody>\${(parts||[]).map(p=>\`<tr><td style="font-weight:500;font-size:12px">\${p.part_name}</td><td>\${p.assigned_qty}</td><td><span class="badge \${p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-blue':'bg-green'}">\${p.status.replace('_',' ')}</span></td><td style="font-size:10px;color:#8a96ab">\${p.staged_by||p.checked_out_by||'—'}</td></tr>\`).join('')}</tbody></table>\`:'<div style="font-size:12px;color:#414e63">No parts on this job yet</div>'
+}
+async function loadScanEvents(){
+  const el=document.getElementById('scan-events-panel');if(!el)return
+  const{data:events}=await sb.from('scan_events').select('*').order('scanned_at',{ascending:false}).limit(15)
+  el.innerHTML=(events||[]).length?events.map(e=>\`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span class="badge \${e.action==='stage_in'?'bg-amber':e.action==='check_out'?'bg-blue':'bg-green'}" style="flex-shrink:0">\${e.action.replace('_',' ')}</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${e.part_name} ×\${e.qty}</div><div style="font-size:10px;color:#414e63">\${e.scanned_by||'?'} · \${fdt(e.scanned_at)}</div></div></div>\`).join(''):'<div style="font-size:12px;color:#414e63">No recent scans</div>'
+}
+
+// CAMERA SCANNING
+async function toggleCam(){
+  if(_camRunning){stopCam();return}
+  const wrap=document.getElementById('cam-wrap');if(!wrap)return
+  wrap.style.display='block'
+  document.getElementById('cam-toggle-btn').textContent='⏹ Stop Camera'
+  try{
+    await Quagga.init({inputStream:{name:'Live',type:'LiveStream',target:document.getElementById('cam-viewport'),constraints:{facingMode:'environment'}},decoder:{readers:['code_128_reader','ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_39_reader','itf_reader']},locate:true},err=>{if(err){toast('Camera error: '+err,'error');stopCam();return};Quagga.start();_camRunning=true;document.getElementById('cam-status').textContent='Ready — point at barcode'})
+    let lastCode='',lastTime=0
+    Quagga.onDetected(data=>{
+      const code=data.codeResult.code;const now=Date.now()
+      if(code===lastCode&&now-lastTime<2000)return
+      lastCode=code;lastTime=now
+      document.getElementById('sc-bc').value=code
+      liveResolveBC(code)
+      const match=allCatalog.find(c=>c.barcode===code)
+      if(match){addToBatch(code,match.name);document.getElementById('sc-bc').value='';document.getElementById('sc-resolve').style.display='none'}
+      else{beep();document.getElementById('cam-status').textContent='Found: '+code+' — not in catalog, set qty and add'}
+    })
+  }catch(e){toast('Camera failed: '+e.message,'error');stopCam()}
+}
+function stopCam(){if(!_camRunning)return;try{Quagga.stop()}catch{};_camRunning=false;const w=document.getElementById('cam-wrap');if(w)w.style.display='none';const b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera'}
+
+// ══════════════════════════════════════════
+// CATALOG PAGE
+// ══════════════════════════════════════════
+async function pgCatalog(){
+  document.getElementById('topbar-actions').innerHTML=\`
+    <label class="btn btn-sm" style="cursor:pointer">⬇ Import CSV<input type="file" accept=".csv" style="display:none" onchange="importCatalogCSV(this)"></label>
+    <button class="btn btn-sm" onclick="exportCatalogCSV()">⬆ Export CSV</button>
+    <button class="btn btn-p btn-sm" onclick="addCatalogModal()">+ Add Part</button>\`
+  const{data:cat}=await sb.from('catalog').select('*').order('name')
+  allCatalog=cat||[]
+  renderCatalogTable('')
+}
+function renderCatalogTable(q){
+  const f=allCatalog.filter(c=>!q||c.name.toLowerCase().includes(q.toLowerCase())||c.barcode.toLowerCase().includes(q.toLowerCase())||(c.part_number||'').toLowerCase().includes(q.toLowerCase())||(c.category||'').toLowerCase().includes(q.toLowerCase()))
+  document.getElementById('page-area').innerHTML=\`
+  <div style="margin-bottom:12px"><input class="fi" placeholder="Search catalog by name, barcode, or part #…" style="max-width:360px" oninput="renderCatalogTable(this.value)" value="\${q}"></div>
+  <div class="card" style="padding:0;overflow:hidden">
+  \${f.length?\`<table class="tbl"><thead><tr><th>Name</th><th>Barcode</th><th>Part #</th><th>Category</th><th>Description</th><th>Unit Cost</th><th>UOM</th><th>Vendor</th><th></th></tr></thead><tbody>
+  \${f.map(c=>\`<tr><td style="font-weight:500">\${c.name}</td><td style="font-size:10px;font-family:'DM Mono',monospace;color:#8a96ab">\${c.barcode}</td><td style="font-size:11px;color:#8a96ab">\${c.part_number||'—'}</td><td style="font-size:11px">\${c.category||'—'}</td><td style="font-size:11px;color:#8a96ab;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${c.description||'—'}</td><td style="font-size:11px">\${c.unit_cost?fm(c.unit_cost,2):'—'}</td><td style="font-size:11px;color:#8a96ab">\${c.unit_of_measure||'ea'}</td><td style="font-size:11px;color:#8a96ab">\${c.vendor||'—'}</td><td><button class="btn btn-sm" onclick="editCatalogModal('\${c.barcode}')">Edit</button><button class="btn btn-sm btn-ghost" style="color:#dc2626;margin-left:3px" onclick="delCatalog('\${c.barcode}')">Del</button></td></tr>\`).join('')}
+  </tbody></table>\`:empty('📋','No parts in catalog — add or import CSV')}
+  </div>\`
+}
+function addCatalogModal(){
+  modal('Add Part to Catalog',\`
+  <div class="fg"><label class="fl">Barcode *</label><input class="fi" id="ca-bc" placeholder="UPC, EAN, or custom barcode"></div>
+  <div class="fg"><label class="fl">Part Name *</label><input class="fi" id="ca-nm"></div>
+  <div class="two"><div class="fg"><label class="fl">Part Number</label><input class="fi" id="ca-pn" placeholder="Manufacturer #"></div><div class="fg"><label class="fl">Category</label><input class="fi" id="ca-cat" placeholder="Electrical, Plumbing…"></div></div>
+  <div class="fg"><label class="fl">Description</label><textarea class="ft" id="ca-desc" style="min-height:55px"></textarea></div>
+  <div class="three"><div class="fg"><label class="fl">Unit Cost ($)</label><input class="fi" type="number" id="ca-cost" step="0.01"></div><div class="fg"><label class="fl">Unit of Measure</label><select class="fs" id="ca-uom"><option value="each">Each</option><option value="ft">Foot</option><option value="lf">Linear Ft</option><option value="box">Box</option><option value="roll">Roll</option><option value="lb">Pound</option><option value="gal">Gallon</option></select></div><div class="fg"><label class="fl">Vendor</label><input class="fi" id="ca-vendor"></div></div>\`,
+  async()=>{
+    const bc=v('ca-bc').trim(),nm=v('ca-nm').trim()
+    if(!bc||!nm){toast('Barcode and name required','error');return}
+    const{error}=await sb.from('catalog').insert({barcode:bc,name:nm,part_number:v('ca-pn'),category:v('ca-cat'),description:v('ca-desc'),unit_cost:parseFloat(v('ca-cost'))||0,unit_of_measure:v('ca-uom')||'each',vendor:v('ca-vendor')})
+    if(error)toast(error.message,'error');else{closeModal();toast('Part added');pgCatalog()}
+  })
+}
+function editCatalogModal(bc){
+  const c=allCatalog.find(x=>x.barcode===bc);if(!c)return
+  modal('Edit Part — '+c.name,\`
+  <div style="font-size:11px;color:#414e63;margin-bottom:10px;font-family:'DM Mono',monospace">Barcode: \${c.barcode}</div>
+  <div class="fg"><label class="fl">Part Name *</label><input class="fi" id="ec-nm" value="\${c.name||''}"></div>
+  <div class="two"><div class="fg"><label class="fl">Part Number</label><input class="fi" id="ec-pn" value="\${c.part_number||''}"></div><div class="fg"><label class="fl">Category</label><input class="fi" id="ec-cat" value="\${c.category||''}"></div></div>
+  <div class="fg"><label class="fl">Description</label><textarea class="ft" id="ec-desc" style="min-height:55px">\${c.description||''}</textarea></div>
+  <div class="three"><div class="fg"><label class="fl">Unit Cost ($)</label><input class="fi" type="number" id="ec-cost" value="\${c.unit_cost||''}" step="0.01"></div><div class="fg"><label class="fl">UOM</label><input class="fi" id="ec-uom" value="\${c.unit_of_measure||'each'}"></div><div class="fg"><label class="fl">Vendor</label><input class="fi" id="ec-vendor" value="\${c.vendor||''}"></div></div>\`,
+  async()=>{
+    const{error}=await sb.from('catalog').update({name:v('ec-nm'),part_number:v('ec-pn'),category:v('ec-cat'),description:v('ec-desc'),unit_cost:parseFloat(v('ec-cost'))||0,unit_of_measure:v('ec-uom')||'each',vendor:v('ec-vendor')}).eq('barcode',bc)
+    if(error)toast(error.message,'error');else{closeModal();toast('Updated');pgCatalog()}
+  })
+}
+async function delCatalog(bc){if(!confirm('Delete this part from catalog?'))return;const{error}=await sb.from('catalog').delete().eq('barcode',bc);if(error)toast(error.message,'error');else{toast('Deleted');pgCatalog()}}
+async function importCatalogCSV(input){
+  const file=input.files[0];if(!file)return
+  const text=await file.text()
+  const lines=text.split('\\n').filter(l=>l.trim())
+  const hdrs=lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,'').toLowerCase())
+  let added=0,updated=0,errors=0
+  for(const line of lines.slice(1)){
+    const vals=line.split(',').map(v=>v.trim().replace(/^"|"$/g,''))
+    const row={}
+    hdrs.forEach((h,i)=>row[h]=vals[i]||'')
+    const bc=row['barcode']||row['upc']||row['part barcode']
+    const nm=row['name']||row['part name']||row['description']
+    if(!bc||!nm)continue
+    const data={barcode:bc,name:nm,part_number:row['part number']||row['part#']||'',category:row['category']||'',description:row['description']||row['notes']||'',unit_cost:parseFloat(row['unit cost']||row['cost']||row['price'])||0,unit_of_measure:row['uom']||row['unit']||'each',vendor:row['vendor']||row['supplier']||''}
+    const{error}=await sb.from('catalog').upsert(data,{onConflict:'barcode'})
+    if(error)errors++;else added++
+  }
+  toast(\`Imported \${added} parts\${errors?' ('+errors+' errors)':''}\`,errors?'warn':'success')
+  pgCatalog()
+  input.value=''
+}
+async function exportCatalogCSV(){
+  const{data:cat}=await sb.from('catalog').select('*').order('name')
+  const rows=[['Barcode','Name','Part Number','Category','Description','Unit Cost','UOM','Vendor']]
+  ;(cat||[]).forEach(c=>rows.push([c.barcode,c.name,c.part_number||'',c.category||'',c.description||'',c.unit_cost||0,c.unit_of_measure||'each',c.vendor||'']))
+  const csv=rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\\n')
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='FieldAxisHQ-Catalog-'+new Date().toISOString().split('T')[0]+'.csv';a.click();toast('Catalog exported')
+}
+
+// ══════════════════════════════════════════
+// INVENTORY PAGE
+// ══════════════════════════════════════════
+async function pgInventory(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="adjStockModal()">+ Adjust Stock</button>'
+  const{data:inv}=await sb.from('inventory').select('*').order('name')
+  const rows=inv||[]
+  document.getElementById('page-area').innerHTML=\`
+  <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat"><div class="stat-label">Total Items</div><div class="stat-value">\${rows.length}</div></div>
+    <div class="stat"><div class="stat-label">Low Stock</div><div class="stat-value" style="color:#dc2626">\${rows.filter(i=>i.min_qty>0&&i.qty<=i.min_qty).length}</div></div>
+    <div class="stat"><div class="stat-label">Out of Stock</div><div class="stat-value" style="color:#dc2626">\${rows.filter(i=>i.qty<=0).length}</div></div>
+  </div>
+  <div style="margin-bottom:12px"><input class="fi" placeholder="Search stock…" style="max-width:300px" id="inv-search" oninput="filterInv(this.value)"></div>
+  <div class="card" style="padding:0;overflow:hidden" id="inv-table-wrap">
+  \${renderInvTable(rows)}
+  </div>\`
+}
+function renderInvTable(rows){
+  return rows.length?\`<table class="tbl"><thead><tr><th>Name</th><th>Barcode/ID</th><th>Qty</th><th>Min Qty</th><th>Status</th><th></th></tr></thead><tbody>\${rows.map(i=>{const low=i.min_qty>0&&i.qty<=i.min_qty;const out=i.qty<=0;return\`<tr><td style="font-weight:500">\${i.name}</td><td style="font-size:10px;font-family:'DM Mono',monospace;color:#8a96ab">\${i.id}</td><td style="font-weight:600;color:\${out?'#dc2626':low?'#d97706':'#e8edf5'}">\${i.qty}</td><td style="color:#414e63">\${i.min_qty||0}</td><td>\${out?'<span class="badge bg-red">Out of Stock</span>':low?'<span class="badge bg-amber">Low Stock</span>':'<span class="badge bg-green">OK</span>'}</td><td><button class="btn btn-sm" onclick="adjStockModal('\${i.id}','\${(i.name||'').replace(/'/g,"\\\\'")}',\${i.qty},\${i.min_qty||0})">Adjust</button></td></tr>\`}).join('')}</tbody></table>\`:empty('📦','No inventory items')
+}
+let _invCache=[]
+async function pgInventoryLoad(){const{data}=await sb.from('inventory').select('*').order('name');_invCache=data||[];return _invCache}
+function filterInv(q){const el=document.getElementById('inv-table-wrap');if(!el)return;const rows=(window._invAllRows||[]).filter(i=>!q||(i.name||'').toLowerCase().includes(q.toLowerCase())||i.id.toLowerCase().includes(q.toLowerCase()));el.innerHTML=renderInvTable(rows)}
+function adjStockModal(id='',name='',qty=0,min=0){
+  const isNew=!id
+  modal(isNew?'Add Stock Item':'Adjust: '+name,\`
+  \${isNew?\`<div class="fg"><label class="fl">Barcode/ID *</label><input class="fi" id="iv-id" placeholder="Use same barcode as catalog"></div><div class="fg"><label class="fl">Name</label><input class="fi" id="iv-nm"></div>\`:''}
+  <div class="two">
+    <div class="fg"><label class="fl">\${isNew?'Starting Qty':'Add / Remove Qty'}</label><input class="fi" type="number" id="iv-qty" value="0"></div>
+    <div class="fg"><label class="fl">Min Qty Alert</label><input class="fi" type="number" id="iv-min" value="\${min}" min="0"></div>
+  </div>
+  \${!isNew?\`<div style="font-size:12px;color:#8a96ab;margin-bottom:8px">Current qty: <strong style="color:#e8edf5">\${qty}</strong> → New: <strong id="iv-preview" style="color:#60a5fa">\${qty}</strong></div>\`:''}\`,
+  async()=>{
+    const iid=isNew?v('iv-id').trim():id;if(!iid)return
+    const inm=isNew?v('iv-nm'):name
+    const delta=parseInt(v('iv-qty'))||0
+    const minQ=parseInt(v('iv-min'))||0
+    if(isNew){const{error}=await sb.from('inventory').insert({id:iid,name:inm,qty:delta,min_qty:minQ,updated_at:new Date().toISOString()});if(error){toast(error.message,'error');return}}
+    else{const{data:cur}=await sb.from('inventory').select('qty').eq('id',iid).single();const newQ=Math.max(0,(cur?.qty||0)+delta);await sb.from('inventory').update({qty:newQ,min_qty:minQ,updated_at:new Date().toISOString()}).eq('id',iid)}
+    closeModal();toast('Stock updated OK');pgInventory()
+  })
+  if(!isNew){setTimeout(()=>{const el=document.getElementById('iv-qty');if(el)el.addEventListener('input',()=>{const prev=document.getElementById('iv-preview');if(prev)prev.textContent=Math.max(0,qty+(parseInt(el.value)||0))})},50)}
+}
+
+// ══════════════════════════════════════════
+// ORDERS PAGE
+// ══════════════════════════════════════════
+async function pgOrders(){
+  const[{data:orders},{data:jobs}]=await Promise.all([
+    sb.from('orders').select('*,jobs(name)').order('created_at',{ascending:false}),
+    sb.from('jobs').select('id,name').eq('archived',false).order('name')
+  ])
+  const{data:cat}=await sb.from('catalog').select('*').order('name')
+  allCatalog=cat||[]
+  window._ordItems=[]
+  document.getElementById('page-area').innerHTML=\`
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">New Order Request</div>
+    <div class="two"><div class="fg"><label class="fl">Job *</label><select class="fs" id="ord-job"><option value="">— Select —</option>\${(jobs||[]).map(j=>\`<option value="\${j.id}">\${j.name}</option>\`).join('')}</select></div><div class="fg"><label class="fl">Notes</label><input class="fi" id="ord-notes"></div></div>
+    <div id="ord-items-display" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px"></div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input class="fi" id="ord-bc" placeholder="Barcode or part name" style="flex:1" oninput="liveResolveBC(this.value)">
+      <input class="fi" id="ord-qty" type="number" value="1" min="1" style="width:65px">
+      <button class="btn btn-p btn-sm" onclick="addOrdItem()">Add</button>
+    </div>
+    <button class="btn btn-p btn-full" onclick="submitOrder()">Submit Order</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+  \${(orders||[]).length?\`<table class="tbl"><thead><tr><th>Job</th><th>Items</th><th>By</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>\${(orders||[]).map(o=>{const items=typeof o.items==='string'?JSON.parse(o.items||'[]'):(o.items||[]);return\`<tr><td style="font-weight:500">\${(jobs||[]).find(j=>j.id===o.job_id)?.name||o.jobs?.name||o.job_id}</td><td style="font-size:11px;color:#8a96ab">\${items.length} type(s), \${items.reduce((s,i)=>s+(i.qty||0),0)} total</td><td style="font-size:11px">\${o.created_by||'—'}</td><td style="font-size:11px">\${fd(o.created_at)}</td><td><span class="badge \${o.status==='staged'?'bg-green':o.status==='approved'?'bg-blue':o.status==='rejected'?'bg-red':'bg-amber'}">\${o.status}</span></td><td style="display:flex;gap:5px">\${o.status==='pending'?\`<button class="btn btn-sm btn-g" onclick="approveOrder('\${o.id}')">Stage</button><button class="btn btn-sm btn-r" onclick="rejectOrder('\${o.id}')">Reject</button>\`:''}</td></tr>\`}).join('')}</tbody></table>\`:empty('🛒','No orders yet')}
+  </div>\`
+}
+function addOrdItem(){
+  if(!window._ordItems)window._ordItems=[]
+  const bc=v('ord-bc').trim(),qty=parseInt(v('ord-qty'))||1;if(!bc)return
+  const cat=allCatalog.find(c=>c.barcode===bc||c.name.toLowerCase()===bc.toLowerCase())
+  window._ordItems.push({partId:bc,name:cat?.name||bc,qty})
+  document.getElementById('ord-bc').value='';document.getElementById('ord-qty').value=1
+  document.getElementById('ord-items-display').innerHTML=window._ordItems.map((i,x)=>\`<div class="file-chip">\${i.name} ×\${i.qty}<span class="rm" onclick="window._ordItems.splice(\${x},1);document.getElementById('ord-items-display').innerHTML=window._ordItems.map((i,y)=>'<div class=file-chip>'+i.name+' ×'+i.qty+'</div>').join('')">×</span></div>\`).join('')
+}
+async function submitOrder(){
+  const jobId=v('ord-job');if(!jobId){toast('Select a job','error');return}
+  if(!window._ordItems?.length){toast('Add at least one part','warn');return}
+  const{data:job}=await sb.from('jobs').select('name').eq('id',jobId).single()
+  const{error}=await sb.from('orders').insert({id:uuid(),job_id:job?.name||jobId,items:window._ordItems,notes:v('ord-notes'),status:'pending',created_by:ME?.full_name,created_at:new Date().toISOString()})
+  if(error)toast(error.message,'error');else{toast('Order submitted');window._ordItems=[];pgOrders()}
+}
+async function approveOrder(id){await sb.from('orders').update({status:'staged',staged_by:ME?.full_name,staged_at:new Date().toISOString()}).eq('id',id);toast('Staged OK');pgOrders()}
+async function rejectOrder(id){const n=prompt('Reason for rejection:');if(n===null)return;await sb.from('orders').update({status:'rejected',rejected_by:ME?.full_name,rejection_note:n,rejected_at:new Date().toISOString()}).eq('id',id);toast('Rejected','warn');pgOrders()}
+
+// ══════════════════════════════════════════
+// GPS TRACKING PAGE
+// ══════════════════════════════════════════
+async function pgGPS(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="pgGPS()">↻ Refresh</button>'
+  const today=new Date().toISOString().split('T')[0]
+  const{data:ciRaw}=await sb.from('checkins').select('*').gte('checkin_at',today+'T00:00:00').order('checkin_at',{ascending:false})
+  const wIds=[...new Set((ciRaw||[]).map(c=>c.worker_id).filter(Boolean))]
+  const jIds=[...new Set((ciRaw||[]).map(c=>c.job_id).filter(Boolean))]
+  const[{data:gpsProf},{data:gpsJobs}]=await Promise.all([
+    wIds.length?sb.from('profiles').select('id,full_name,companies(name)').in('id',wIds):Promise.resolve({data:[]}),
+    jIds.length?sb.from('jobs').select('id,name').in('id',jIds):Promise.resolve({data:[]})
+  ])
+  const gpsWMap={}; (gpsProf||[]).forEach(p=>{gpsWMap[p.id]={name:p.full_name,company:p.companies?.name||'—'}})
+  const gpsJMap={}; (gpsJobs||[]).forEach(j=>gpsJMap[j.id]=j.name)
+  const ci=(ciRaw||[]).map(c=>({...c,workerName:gpsWMap[c.worker_id]?.name||'?',companyName:gpsWMap[c.worker_id]?.company||'—',jobName:gpsJMap[c.job_id]||'—'}))
+  document.getElementById('page-area').innerHTML=\`
+  <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat"><div class="stat-label">Currently On Site</div><div class="stat-value" style="color:#16a34a">\${(ci||[]).filter(c=>!c.checkout_at).length}</div></div>
+    <div class="stat"><div class="stat-label">Check-ins Today</div><div class="stat-value">\${(ci||[]).length}</div></div>
+    <div class="stat"><div class="stat-label">Total Hours Today</div><div class="stat-value">\${fh((ci||[]).reduce((s,c)=>s+(c.hours_logged||0),0))}</div></div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+  \${(ci||[]).length?\`<table class="tbl"><thead><tr><th>Worker</th><th>Company</th><th>Job</th><th>In</th><th>Out</th><th>Hours</th><th>Distance</th><th>GPS</th></tr></thead><tbody>\${(ci||[]).map(c=>\`<tr>
+    <td><div style="display:flex;align-items:center;gap:7px"><div class="av" style="width:22px;height:22px;font-size:8px;\${Object.entries(avS(c.profiles?.full_name)).map(([k,val])=>k+':'+val).join(';')}">\${ini(c.profiles?.full_name)}</div>\${c.workerName||'?'}</div></td>
+    <td style="font-size:11px;color:#8a96ab">\${c.companyName||'—'}</td>
+    <td>\${c.jobName||'—'}</td>
+    <td style="font-size:11px">\${ft(c.checkin_at)}</td>
+    <td style="font-size:11px">\${c.checkout_at?ft(c.checkout_at):'<span class="gps-live" style="font-size:9px"><span class="pulse"></span>On Site</span>'}</td>
+    <td style="font-weight:500">\${c.hours_logged?fh(c.hours_logged):'—'}</td>
+    <td>\${c.checkin_dist_ft!=null?\`<span class="badge bg-green">\${c.checkin_dist_ft}ft</span>\`:'—'}</td>
+    <td style="font-size:10px;color:#414e63;font-family:'DM Mono',monospace">\${c.checkin_lat?c.checkin_lat.toFixed(4)+','+c.checkin_lng.toFixed(4):'—'}</td>
+  </tr>\`).join('')}</tbody></table>\`:empty('📍','No check-ins today')}
+  </div>\`
+}
+
+// ══════════════════════════════════════════
+// HOURS PAGE
+// ══════════════════════════════════════════
+async function pgHours(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="exportHoursExcel()">⬆ Export Excel</button>'
+  const[{data:ciHoursRaw},{data:profiles}]=await Promise.all([
+    sb.from('checkins').select('*').not('hours_logged','is',null).order('checkin_at',{ascending:false}).limit(200),
+    sb.from('profiles').select('id,full_name,role,companies(name)').eq('is_active',true)
+  ])
+  const byTech={},byJob={}
+  ;(ci||[]).forEach(c=>{
+    const n=c.workerName||'?'
+    const j=c.jobName||c.job_id
+    if(!byTech[n])byTech[n]={name:n,role:c.workerRole||'—',company:c.workerCompany,hours:0,days:new Set()}
+    byTech[n].hours+=(c.hours_logged||0)
+    byTech[n].days.add(c.checkin_at?.split('T')[0])
+    if(!byJob[j])byJob[j]={name:j,hours:0,checkins:0}
+    byJob[j].hours+=(c.hours_logged||0)
+    byJob[j].checkins++
+  })
+  const techRows=Object.values(byTech).sort((a,b)=>b.hours-a.hours)
+  const jobRows=Object.values(byJob).sort((a,b)=>b.hours-a.hours)
+  document.getElementById('page-area').innerHTML=\`
+  <div class="two">
+    <div class="card"><div class="card-title">By Technician / Worker</div>
+    \${techRows.length?\`<table class="tbl"><thead><tr><th>Name</th><th>Role</th><th>Company</th><th>Days</th><th>Total Hours</th></tr></thead><tbody>\${techRows.map(t=>\`<tr><td style="font-weight:500">\${t.name}</td><td>\${roleBadge(t.role)}</td><td style="font-size:11px;color:#8a96ab">\${t.company}</td><td>\${t.days.size}</td><td style="font-weight:500;font-family:'DM Mono',monospace">\${fh(t.hours)}</td></tr>\`).join('')}</tbody></table>\`:empty('⏱','No hours data')}
+    </div>
+    <div class="card"><div class="card-title">By Job</div>
+    \${jobRows.length?\`<table class="tbl"><thead><tr><th>Job</th><th>Check-ins</th><th>Total Hours</th></tr></thead><tbody>\${jobRows.map(j=>\`<tr><td style="font-weight:500">\${j.name}</td><td>\${j.checkins}</td><td style="font-weight:500;font-family:'DM Mono',monospace">\${fh(j.hours)}</td></tr>\`).join('')}</tbody></table>\`:empty('⏱','No hours data')}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">All Check-in Records</div>
+    \${(ci||[]).length?\`<table class="tbl"><thead><tr><th>Worker</th><th>Job</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Dist</th></tr></thead><tbody>\${(ci||[]).slice(0,50).map(c=>\`<tr><td style="font-weight:500">\${c.workerName||'?'}</td><td>\${c.jobName||'—'}</td><td style="font-size:11px">\${fd(c.checkin_at)}</td><td style="font-size:11px">\${ft(c.checkin_at)}</td><td style="font-size:11px">\${c.checkout_at?ft(c.checkout_at):'Active'}</td><td style="font-weight:500">\${fh(c.hours_logged)}</td><td>\${c.checkin_dist_ft!=null?c.checkin_dist_ft+'ft':'—'}</td></tr>\`).join('')}</tbody></table>\`:empty('⏱','No check-in records')}
+  </div>\`
+}
+async function exportHoursExcel(){
+  const{data:ci}=await sb.from('checkins').select('*').not('hours_logged','is',null).order('checkin_at',{ascending:false})
+  const rows=(ci||[]).map(c=>({'Worker':c.workerName||'?','Role':c.workerRole||'—','Company':c.workerCompany,'Job':c.jobName||'—','Date':c.checkin_at?.split('T')[0],'Check-in':ft(c.checkin_at),'Check-out':c.checkout_at?ft(c.checkout_at):'—','Hours':c.hours_logged||0,'Distance (ft)':c.checkin_dist_ft||'—'}))
+  const ws=XLSX.utils.json_to_sheet(rows)
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Hours')
+  XLSX.writeFile(wb,'FieldAxisHQ-Hours-'+new Date().toISOString().split('T')[0]+'.xlsx')
+  toast('Hours exported')
+}
+
+// ══════════════════════════════════════════
+// SUB COMPANIES PAGE
+// ══════════════════════════════════════════
+async function pgCompanies(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="addCompanyModal()">+ Add Company</button>'
+  const[{data:cos},{data:profiles}]=await Promise.all([
+    sb.from('companies').select('*').eq('is_active',true).order('name'),
+    sb.from('profiles').select('*').eq('is_active',true)
+  ])
+  const byC={};(profiles||[]).forEach(p=>{if(p.company_id){if(!byC[p.company_id])byC[p.company_id]=[];byC[p.company_id].push(p)}})
+  document.getElementById('page-area').innerHTML=(cos||[]).map(co=>{
+    const ws=byC[co.id]||[]
+    const insExp=co.ins_expiry?daysAway(co.ins_expiry):null
+    const insStatus=insExp===null?'unknown':insExp<0?'expired':insExp<30?'expiring':'ok'
+    return\`<div class="card" style="margin-bottom:13px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+      <div><div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700">\${co.name}</div><div style="font-size:11px;color:#414e63;margin-top:2px">\${co.trade||''} \${co.license_num?'· Lic: '+co.license_num:''} \${co.email?'· '+co.email:''}</div></div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <span class="badge \${insStatus==='ok'?'bg-green':insStatus==='expiring'?'bg-amber':'bg-red'}">\${insStatus==='ok'?'GL Insurance OK':insStatus==='expiring'?'Ins Expiring Soon':'Ins Expired/Unknown'}</span>
+        \${co.ins_expiry?\`<span style="font-size:10px;color:#414e63">Exp: \${fd(co.ins_expiry)}</span>\`:''}
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
+      \${ws.map(w=>\`<div style="background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px;display:flex;gap:10px;align-items:flex-start">
+        <div class="av" style="width:38px;height:38px;font-size:13px;flex-shrink:0;\${Object.entries(avS(w.full_name)).map(([k,val])=>k+':'+val).join(';')}">\${ini(w.full_name)}</div>
+        <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12px">\${w.full_name}\${w.is_lead?' <span style="font-size:9px;color:#d97706">LEAD</span>':''}</div><div style="font-size:10px;color:#414e63;margin-top:1px">\${w.email||''}</div><div style="font-size:10px;color:#414e63">\${w.phone||''}</div><div style="margin-top:5px">\${roleBadge(w.role)}</div></div>
+      </div>\`).join('')}
+      <div style="background:#131c2e;border:1.5px dashed rgba(255,255,255,.08);border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:80px" onclick="addWorkerToCoModal('\${co.id}')">
+        <div style="text-align:center;color:#414e63"><div style="font-size:20px">+</div><div style="font-size:11px;margin-top:3px">Add Worker</div></div>
+      </div>
+    </div>
+    </div>\`
+  }).join('')||empty('🏢','No sub companies yet')
+}
+function addCompanyModal(){
+  modal('Add Sub Company',\`
+  <div class="fg"><label class="fl">Company Name *</label><input class="fi" id="nc-nm"></div>
+  <div class="two"><div class="fg"><label class="fl">Trade</label><input class="fi" id="nc-tr" placeholder="HVAC, Electrical…"></div><div class="fg"><label class="fl">License #</label><input class="fi" id="nc-lic"></div></div>
+  <div class="two"><div class="fg"><label class="fl">Email</label><input class="fi" id="nc-em" type="email"></div><div class="fg"><label class="fl">Phone</label><input class="fi" id="nc-ph"></div></div>
+  <div class="fg"><label class="fl">GL Insurance Expiry</label><input class="fi" id="nc-ins" type="date"></div>\`,
+  async()=>{const nm=v('nc-nm').trim();if(!nm)return;const{error}=await sb.from('companies').insert({id:uuid(),name:nm,trade:v('nc-tr'),license_num:v('nc-lic'),email:v('nc-em'),phone:v('nc-ph'),ins_expiry:v('nc-ins')||null,is_active:true,created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();toast('Company added');pgCompanies()}})
+}
+function addWorkerToCoModal(coId){
+  modal('Add Worker',\`
+  <div class="fg"><label class="fl">Full Name *</label><input class="fi" id="nw-nm"></div>
+  <div class="fg"><label class="fl">Email *</label><input class="fi" id="nw-em" type="email"></div>
+  <div class="fg"><label class="fl">Phone</label><input class="fi" id="nw-ph"></div>
+  <div class="fg"><label class="fl">Role</label><select class="fs" id="nw-rl"><option value="sub_worker">Worker</option><option value="sub_lead">Lead</option><option value="technician">Technician</option><option value="foreman">Foreman</option></select></div>\`,
+  async()=>{const nm=v('nw-nm').trim(),em=v('nw-em').trim();if(!nm||!em){toast('Name and email required','error');return};const{error}=await sb.from('profiles').insert({id:uuid(),company_id:coId,full_name:nm,email:em,phone:v('nw-ph'),role:v('nw-rl'),is_lead:v('nw-rl')==='sub_lead',is_active:true,created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();toast('Worker added — invite via Supabase Auth to set password');pgCompanies()}})
+}
+
+// ══════════════════════════════════════════
+// SAFETY TOPICS PAGE
+// ══════════════════════════════════════════
+async function checkSafetyBadge(){
+  try{const{count}=await sb.from('safety_assignments').select('id',{count:'exact',head:true}).is('acknowledged_at',null);const b=document.getElementById('nb-safety');if(b){b.textContent=count||0;b.style.display=count>0?'inline-block':'none'}}catch{}
+}
+async function pgSafety(){
+  document.getElementById('topbar-actions').innerHTML=
+    '<button class="btn btn-sm" onclick="exportSafetyCSV()">⬆ Export Report</button>'+
+    '<button class="btn btn-p btn-sm" onclick="newSafetyTopicModal()">+ New Topic</button>'
+  const[{data:topics},{data:allAcks},{data:allAssigns}]=await Promise.all([
+    sb.from('safety_topics').select('*').order('week_of',{ascending:false,nullsFirst:false}),
+    sb.from('safety_acks').select('*,profiles:profile_id(full_name,role,companies(name))').order('acknowledged_at',{ascending:false}),
+    sb.from('safety_assignments').select('*,profiles:profile_id(full_name,role,companies(name))').order('assigned_at',{ascending:false})
+  ])
+  // Stats
+  const totalTopics=(topics||[]).length
+  const totalAssigned=new Set((allAssigns||[]).map(a=>a.profile_id)).size
+  const totalAcked=new Set((allAcks||[]).map(a=>a.profile_id)).size
+  const pendingCount=(allAssigns||[]).filter(a=>{
+    return !((allAcks||[]).find(ak=>ak.topic_id===a.topic_id&&ak.profile_id===a.profile_id))
+  }).length
+  const pa=document.getElementById('page-area')
+  let html=
+    '<div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">'+
+    '<div class="stat"><div class="stat-label">Topics</div><div class="stat-value">'+totalTopics+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Assigned To</div><div class="stat-value">'+totalAssigned+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Completed</div><div class="stat-value" style="color:#16a34a">'+totalAcked+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Pending</div><div class="stat-value" style="color:'+(pendingCount?'#dc2626':'#16a34a')+'">'+pendingCount+'</div></div>'+
+    '</div>'
+  // Tab bar: Topics | Compliance Report
+  const svTopicCls=window._safetyView!=='report'?'btn-p':''
+  const svReportCls=window._safetyView==='report'?'btn-p':''
+  html+='<div style="display:flex;gap:8px;margin-bottom:13px">'+
+    '<button class="btn '+svTopicCls+'" onclick="window._safetyView=\\'topics\\';pgSafety()">Topics</button>'+
+    '<button class="btn '+svReportCls+'" onclick="window._safetyView=\\'report\\';pgSafety()">Compliance Report</button>'+
+    '</div>'
+  if(window._safetyView==='report'){
+    // Full compliance grid: employees vs topics
+    const{data:allProfiles}=await sb.from('profiles').select('id,full_name,role,companies(name)').eq('is_active',true).order('full_name')
+    const profiles=allProfiles||[]
+    const ackMap={} // ackMap[profile_id+topic_id] = ack record
+    ;(allAcks||[]).forEach(a=>{ackMap[a.profile_id+'_'+a.topic_id]=a})
+    const assignMap={}
+    ;(allAssigns||[]).forEach(a=>{assignMap[a.profile_id+'_'+a.topic_id]=a})
+    html+='<div class="card" style="padding:0;overflow:hidden;overflow-x:auto"><table class="tbl"><thead><tr>'
+    html+='<th style="min-width:150px;position:sticky;left:0;background:#131c2e;z-index:1">Employee</th>'
+    html+='<th>Role</th>'
+    ;(topics||[]).forEach(t=>{
+      html+='<th style="min-width:120px;font-size:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+t.title+'">'+t.title.substring(0,20)+(t.title.length>20?'…':'')+'</th>'
+    })
+    html+='</tr></thead><tbody>'
+    profiles.forEach(p=>{
+      const assignedTopics=(allAssigns||[]).filter(a=>a.profile_id===p.id)
+      if(!assignedTopics.length) return // skip unassigned employees
+      html+='<tr onclick="viewEmployeeModal(\\"'+p.id+'\\")" style="cursor:pointer">'
+      html+='<td style="position:sticky;left:0;background:#0c1220;font-weight:500">'+p.full_name+'<div style="font-size:9px;color:#414e63">'+(p.companies?.name||'Internal')+'</div></td>'
+      html+='<td>'+roleBadge(p.role)+'</td>'
+      ;(topics||[]).forEach(t=>{
+        const ack=ackMap[p.id+'_'+t.id]
+        const assigned=assignMap[p.id+'_'+t.id]
+        if(ack){
+          html+='<td title="Completed '+fdt(ack.acknowledged_at)+'"><span class="badge bg-green" style="font-size:9px">✓ '+fd(ack.acknowledged_at)+'</span></td>'
+        }else if(assigned){
+          const overdue=assigned.due_date&&new Date(assigned.due_date)<new Date()
+          html+='<td><span class="badge '+(overdue?'bg-red':'bg-amber')+'" style="font-size:9px">'+(overdue?'Overdue':'Pending')+'</span></td>'
+        }else{
+          html+='<td><span style="font-size:10px;color:#1a2540">—</span></td>'
+        }
+      })
+      html+='</tr>'
+    })
+    html+='</tbody></table></div>'
+  } else {
+    // Topics list view
+    html+=(topics||[]).map(t=>safetyTopicCard(t,allAcks||[],allAssigns||[])).join('')||empty('🛡','No safety topics yet')
+  }
+  pa.innerHTML=html
+}
 
 
+function safetyTopicCard(t, allAcks, allAssigns){
+  const tAcks=allAcks.filter(a=>a.topic_id===t.id)
+  const tAssigns=allAssigns.filter(a=>a.topic_id===t.id)
+  const tPending=tAssigns.filter(a=>!tAcks.find(ak=>ak.profile_id===a.profile_id))
+  const safeTitle=t.title.replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+  return '<div class="card" style="margin-bottom:10px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px">'+
+    '<div><div style="font-family:Syne,sans-serif;font-size:14px;font-weight:700">'+t.title+'</div>'+
+    '<div style="font-size:11px;color:#414e63;margin-top:2px">'+t.category+' · Week of '+fd(t.week_of)+' · By '+(t.created_by||'—')+'</div></div>'+
+    '<div style="display:flex;gap:6px">'+
+    '<button class="btn btn-sm" onclick="viewSafetyAcks(this.dataset.id)" data-id="'+t.id+'">View Acks</button>'+
+    '<button class="btn btn-sm btn-p" onclick="assignSafetyModal(this.dataset.id,this.dataset.title)" data-id="'+t.id+'" data-title="'+safeTitle+'">Assign</button>'+
+    '</div></div>'+
+    '<div style="font-size:12px;color:#8a96ab;line-height:1.6;margin-bottom:9px">'+t.content.substring(0,200)+(t.content.length>200?'…':'')+'</div>'+
+    '<div style="display:flex;gap:12px;font-size:11px">'+
+    '<span style="color:#16a34a">✓ '+tAcks.length+' completed</span>'+
+    '<span style="color:#414e63">/ '+tAssigns.length+' assigned</span>'+
+    (tPending.length?'<span style="color:#dc2626">⚠ '+tPending.length+' pending</span>':'')+
+    '</div></div>'
+}
+async function exportSafetyCSV(){
+  const[{data:topics},{data:acks},{data:assigns}]=await Promise.all([
+    sb.from('safety_topics').select('*').order('week_of',{ascending:false}),
+    sb.from('safety_acks').select('*,profiles:profile_id(full_name,role,companies(name))'),
+    sb.from('safety_assignments').select('*,profiles:profile_id(full_name,role)')
+  ])
+  const ackMap={}
+  ;(acks||[]).forEach(a=>{ackMap[a.profile_id+'_'+a.topic_id]=a})
+  const rows=[['Topic','Category','Week Of','Employee','Role','Assigned Date','Due Date','Status','Completed At']]
+  ;(assigns||[]).forEach(a=>{
+    const topic=(topics||[]).find(t=>t.id===a.topic_id)
+    const ack=ackMap[a.profile_id+'_'+a.topic_id]
+    rows.push([
+      topic?.title||'',topic?.category||'',fd(topic?.week_of),
+      a.profiles?.full_name||'',a.profiles?.role||'',
+      fd(a.assigned_at),fd(a.due_date),
+      ack?'Completed':'Pending',
+      ack?fdt(ack.acknowledged_at):''
+    ])
+  })
+  const csv=rows.map(r=>r.map(x=>'"'+String(x||'').replace(/"/g,'""')+'"').join(',')).join('\\n')
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='Safety-Training-Report-'+new Date().toISOString().split('T')[0]+'.csv';a.click();toast('Report exported')
+}
+
+async function assignSafetyModal(topicId,topicTitle){
+  const[{data:profiles},{data:already}]=await Promise.all([
+    sb.from('profiles').select('id,full_name,role,companies(name)').eq('is_active',true).order('full_name'),
+    sb.from('safety_assignments').select('assigned_to').eq('topic_id',topicId)
+  ])
+  const assigned=new Set((already||[]).map(a=>a.profile_id))
+  modal('Assign — '+topicTitle,\`
+  <div style="font-size:11px;color:#414e63;margin-bottom:10px">Select who must review this safety topic. Already assigned are pre-checked.</div>
+  <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="sa-due"></div>
+  <div style="max-height:300px;overflow-y:auto;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:6px">
+    <div style="padding:4px 6px;margin-bottom:5px"><label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px;color:#8a96ab"><input type="checkbox" id="sa-all" onchange="document.querySelectorAll('.sa-cb').forEach(cb=>cb.checked=this.checked)"> Select All</label></div>
+    \${(profiles||[]).map(p=>\`<label style="display:flex;align-items:center;gap:8px;padding:6px 7px;cursor:pointer;border-radius:5px;transition:.15s" onmouseover="this.style.background='#131c2e'" onmouseout="this.style.background=''">
+      <input type="checkbox" class="sa-cb" value="\${p.id}" data-name="\${p.full_name}" \${assigned.has(p.id)?'checked':''}>
+      <div class="av" style="width:22px;height:22px;font-size:8px;flex-shrink:0;\${Object.entries(avS(p.full_name)).map(([k,val])=>k+':'+val).join(';')}">\${ini(p.full_name)}</div>
+      <div style="flex:1"><div style="font-size:12px">\${p.full_name}</div><div style="font-size:10px;color:#414e63">\${p.role} · \${p.companies?.name||'Internal'}</div></div>
+    </label>\`).join('')}
+  </div>\`,
+  async()=>{
+    const selected=[...document.querySelectorAll('.sa-cb:checked')]
+    const due=v('sa-due')||null
+    let added=0
+    for(const cb of selected){
+      if(assigned.has(cb.value))continue // skip already assigned
+      await sb.from('safety_assignments').insert({id:uuid(),topic_id:topicId,profile_id:cb.value,assigned_name:cb.dataset.name,due_date:due,assigned_at:new Date().toISOString()})
+      added++
+    }
+    closeModal();toast(\`Assigned to \${selected.length} person(s)\${added<selected.length?' ('+(selected.length-added)+' already assigned)':''}\`);pgSafety()
+  })
+}
+async function viewSafetyAcks(topicId){
+  const[{data:acks},{data:assignments}]=await Promise.all([
+    sb.from('safety_acks').select('*').eq('topic_id',topicId).order('acknowledged_at',{ascending:false}),
+    sb.from('safety_assignments').select('*').eq('topic_id',topicId)
+  ])
+  const ackedIds=new Set((acks||[]).map(a=>a.user_name))
+  const pending=(assignments||[]).filter(a=>!ackedIds.has(a.assigned_name))
+  modal('Acknowledgements',\`
+  <div class="two" style="margin-bottom:12px">
+    <div style="background:rgba(22,163,74,.08);border-radius:7px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:300;color:#16a34a">\${(acks||[]).length}</div><div style="font-size:10px;color:#414e63">Acknowledged</div></div>
+    <div style="background:rgba(217,119,6,.08);border-radius:7px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:300;color:#d97706">\${pending.length}</div><div style="font-size:10px;color:#414e63">Pending</div></div>
+  </div>
+  \${(acks||[]).length?\`<div class="sec-hdr">Acknowledged</div>\${(acks||[]).map(a=>\`<div class="safety-ack-row"><span class="badge bg-green" style="flex-shrink:0">✓</span><div style="flex:1"><div style="font-size:12px;font-weight:500">\${a.user_name}</div><div style="font-size:10px;color:#414e63">\${fdt(a.acknowledged_at)}</div></div></div>\`).join('')}\`:''}
+  \${pending.length?\`<div class="sec-hdr" style="margin-top:10px">Pending Review</div>\${pending.map(a=>\`<div class="safety-ack-row"><span class="badge bg-amber" style="flex-shrink:0">⏳</span><div style="flex:1"><div style="font-size:12px;font-weight:500">\${a.assigned_name}</div><div style="font-size:10px;color:#414e63">Assigned \${fd(a.assigned_at)}\${a.due_date?' · Due '+fd(a.due_date):''}</div></div></div>\`).join('')}\`:''}\`,
+  ()=>closeModal(),'Close',false)
+  document.getElementById('modal-footer').innerHTML='<button class="btn" onclick="closeModal()">Close</button>'
+}
+
+// ══════════════════════════════════════════
+// FINANCIALS PAGE
+// ══════════════════════════════════════════
+async function pgFinancials(){
+  const[{data:jobs},{data:ci},{data:parts}]=await Promise.all([
+    sb.from('jobs').select('*').eq('archived',false).order('name'),
+    sb.from('checkins').select('job_id,hours_logged').not('hours_logged','is',null),
+    sb.from('job_parts').select('*').in('status',['signed_out','installed','staged'])
+  ])
+  const hrsByJob={};(ci||[]).forEach(c=>{hrsByJob[c.job_id]=(hrsByJob[c.job_id]||0)+(c.hours_logged||0)})
+  const matByJob={} // Material cost from parts catalog not available without join
+  let totC=0,totCost=0,totP=0
+  const rows=(jobs||[]).map(j=>{
+    const hrs=hrsByJob[j.id]||0
+    const labor=hrs*(j.labor_rate||0)
+    const mat=matByJob[j.id]||0
+    const cost=labor+mat
+    const cv=j.contract_value||0
+    const profit=cv-cost
+    const margin=cv>0?profit/cv*100:null
+    totC+=cv;totCost+=cost;totP+=profit
+    return{...j,hrs,labor,mat,cost,profit,margin}
+  })
+  document.getElementById('page-area').innerHTML=\`
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Total Contract</div><div class="stat-value" style="font-size:20px">\${fm(totC)}</div></div>
+    <div class="stat"><div class="stat-label">Total Cost</div><div class="stat-value" style="font-size:20px">\${fm(totCost)}</div></div>
+    <div class="stat"><div class="stat-label">Gross Profit</div><div class="stat-value" style="font-size:20px;color:\${totP>=0?'#16a34a':'#dc2626'}">\${fm(totP)}</div></div>
+    <div class="stat"><div class="stat-label">Avg Margin</div><div class="stat-value" style="font-size:20px;color:\${totC>0&&totP/totC>=.2?'#16a34a':totP/totC>=.1?'#d97706':'#dc2626'}">\${totC>0?((totP/totC)*100).toFixed(1)+'%':'—'}</div></div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+  <table class="tbl"><thead><tr><th>Job</th><th>Stage</th><th>Contract</th><th>Labor Hrs</th><th>Labor Cost</th><th>Material</th><th>Total Cost</th><th>Profit</th><th>Margin</th></tr></thead><tbody>
+  \${rows.map(j=>\`<tr onclick="openJob('\${j.id}')"><td style="font-weight:500">\${j.name}</td><td>\${stageBadge(j.phase)}</td><td>\${fm(j.contract_value)}</td><td style="font-family:'DM Mono',monospace;font-size:11px">\${fh(j.hrs)}</td><td>\${fm(j.labor)}</td><td>\${fm(j.mat)}</td><td>\${fm(j.cost)}</td><td style="color:\${j.profit>=0?'#16a34a':'#dc2626'};font-weight:500">\${fm(j.profit)}</td><td><span class="badge \${j.margin>=20?'bg-green':j.margin>=10?'bg-amber':'bg-red'}">\${j.margin!=null?j.margin.toFixed(1)+'%':'—'}</span></td></tr>\`).join('')}
+  </tbody></table>
+  </div>\`
+}
+
+// ══════════════════════════════════════════
+// REPORTS PAGE
+// ══════════════════════════════════════════
+async function pgReports(){
+  document.getElementById('page-area').innerHTML=\`
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:16px">
+    \${[
+      ['⏱','Labor & Hours','GPS check-in logs with times','labor'],
+      ['📦','Parts Report','All parts staged & checked out','parts'],
+      ['📋','Jobs Export','All jobs with all dates (Excel)','jobs'],
+      ['💰','Financial Summary','P&L per job (Excel)','fin'],
+      ['📍','GPS Log','All check-ins with coordinates','gps_csv'],
+      ['📊','Inventory Report','Stock levels and low-stock','inv_csv'],
+      ['📅','Daily Reports','All daily reports','daily_csv'],
+      ['🔍','Scan Events','Complete scan audit trail','scan_csv'],
+      ['🛡','Safety Report','Acknowledgement status','safety_csv']
+    ].map(([ico,ttl,sub,t])=>\`<div style="background:#0c1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px;cursor:pointer;transition:.15s" onmouseover="this.style.borderColor='rgba(255,255,255,.15)'" onmouseout="this.style.borderColor='rgba(255,255,255,.06)'" onclick="exportReport('\${t}')">
+      <div style="font-size:26px;margin-bottom:8px">\${ico}</div>
+      <div style="font-size:13px;font-weight:500;margin-bottom:3px">\${ttl}</div>
+      <div style="font-size:11px;color:#414e63">\${sub}</div>
+    </div>\`).join('')}
+  </div>\`
+}
+async function exportReport(type){
+  toast('Preparing export…','info')
+  if(type==='jobs'){
+    const{data}=await sb.from('jobs').select('*').order('created_at',{ascending:false})
+    const rows=(data||[]).map(j=>({'Job Name':j.name,'Address':j.address||'','GC Company':j.gc_company||'','GC Contact':j.gc_contact||'','GC Phone':j.gc_phone||'','Stage':STAGE_LABELS[j.phase]||j.phase,'% Complete':j.pct_complete||0,'Due Date':j.due_date||'','Expected On Site':j.expected_onsite_date||'','Next Visit':j.next_visit_date||'','Closeout':j.date_closeout||'','Completion':j.completion_date||'','Contract Value':j.contract_value||'','Labor Rate':j.labor_rate||'','GC Company2':j.gc_company||''}))
+    const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Jobs');XLSX.writeFile(wb,'Jobs-'+new Date().toISOString().split('T')[0]+'.xlsx');return toast('Jobs exported')
+  }
+  if(type==='fin'){
+    const{data:jobs}=await sb.from('jobs').select('*').order('name')
+    const{data:ci}=await sb.from('checkins').select('job_id,hours_logged').not('hours_logged','is',null)
+    const hrsByJob={};(ci||[]).forEach(c=>{hrsByJob[c.job_id]=(hrsByJob[c.job_id]||0)+(c.hours_logged||0)})
+    const rows=(jobs||[]).map(j=>{const hrs=hrsByJob[j.id]||0;const cost=hrs*(j.labor_rate||0);return{'Job':j.name,'Stage':j.phase,'Contract':j.contract_value||0,'Labor Hrs':hrs.toFixed(1),'Labor Cost':cost.toFixed(2),'Gross Profit':((j.contract_value||0)-cost).toFixed(2),'Margin %':j.contract_value>0?(((j.contract_value-cost)/j.contract_value)*100).toFixed(1)+'%':'—'}})
+    const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Financials');XLSX.writeFile(wb,'Financials-'+new Date().toISOString().split('T')[0]+'.xlsx');return toast('Financials exported')
+  }
+  // CSV exports
+  let csv='',fn=type+'.csv'
+  if(type==='labor'){const{data}=await sb.from('checkins').select('*').order('checkin_at',{ascending:false});csv='Worker,Role,Company,Job,Date,In,Out,Hours,Distance(ft)\\n'+(data||[]).map(c=>\`"\${c.worker_name||''}","\${c.workerRole||''}","\${c.company_name||''}","\${c.job_name||''}","\${c.checkin_at?.split('T')[0]||''}","\${ft(c.checkin_at)}","\${c.checkout_at?ft(c.checkout_at):''}",\${c.hours_logged||0},\${c.checkin_dist_ft||''}\`).join('\\n');fn='Labor-Report.csv'}
+  else if(type==='parts'){const{data}=await sb.from('job_parts').select('*,jobs(name)').order('created_at',{ascending:false});csv='Part Name,Barcode,Job,Status,Qty,Staged By,Staged At,Checked Out By,Checked Out At\\n'+(data||[]).map(p=>\`"\${p.part_name}","\${p.part_id}","\${p.jobs?.name||''}","\${p.status}",\${p.assigned_qty},"\${p.staged_by||''}","\${p.staged_at||''}","\${p.checked_out_by||''}","\${p.checked_out_at||''}"\`).join('\\n');fn='Parts-Report.csv'}
+  else if(type==='gps_csv'){const{data}=await sb.from('checkins').select('*').order('checkin_at',{ascending:false});csv='Worker,Job ID,Date,In,Out,Hours,Lat,Lng,Dist(ft)\\n'+(data||[]).map(c=>\`"\${c.worker_name||''}","\${c.job_id}","\${c.checkin_at?.split('T')[0]}","\${ft(c.checkin_at)}","\${c.checkout_at?ft(c.checkout_at):''}",\${c.hours_logged||0},\${c.checkin_lat||''},\${c.checkin_lng||''},\${c.checkin_dist_ft||''}\`).join('\\n');fn='GPS-Log.csv'}
+  else if(type==='inv_csv'){const{data}=await sb.from('inventory').select('*').order('name');csv='ID,Name,Qty,Min Qty,Status\\n'+(data||[]).map(i=>\`"\${i.id}","\${i.name}",\${i.qty},\${i.min_qty||0},"\${i.qty<=(i.min_qty||0)&&i.min_qty>0?'LOW STOCK':'OK'}"\`).join('\\n');fn='Inventory-Report.csv'}
+  else if(type==='daily_csv'){const{data}=await sb.from('daily_reports').select('*').order('report_date',{ascending:false});csv='Date,Job,Crew,Hours,Weather,Work Performed,Issues,Submitted By\\n'+(data||[]).map(r=>\`"\${r.report_date}","\${r.jobs?.name||''}",\${r.crew_count},\${r.hours_worked||0},"\${r.weather||''}","\${(r.work_performed||'').replace(/"/g,'""')}","\${(r.issues||'').replace(/"/g,'""')}","\${r.submitted_by||''}"\`).join('\\n');fn='Daily-Reports.csv'}
+  else if(type==='scan_csv'){const{data}=await sb.from('scan_events').select('*').order('scanned_at',{ascending:false});csv='Action,Part Name,Barcode,Qty,Job,Scanned By,Date/Time\\n'+(data||[]).map(e=>\`"\${e.action}","\${e.part_name}","\${e.part_id}",\${e.qty},"\${e.job_id}","\${e.scanned_by||'?'}","\${fdt(e.scanned_at)}"\`).join('\\n');fn='Scan-Events.csv'}
+  else if(type==='safety_csv'){const{data:topics}=await sb.from('safety_topics').select('*').order('week_of',{ascending:false});const{data:acks}=await sb.from('safety_acks').select('*');const{data:assigns}=await sb.from('safety_assignments').select('*');csv='Topic,Week Of,Person,Assigned Date,Acknowledged,Ack Date\\n'+(assigns||[]).map(a=>{const ack=(acks||[]).find(x=>x.topic_id===a.topic_id&&x.user_name===a.assigned_name);const topic=(topics||[]).find(t=>t.id===a.topic_id);return\`"\${topic?.title||''}","\${fd(topic?.week_of)}","\${a.assigned_name}","\${fd(a.assigned_at)}","\${ack?'YES':'NO'}","\${ack?fdt(ack.acknowledged_at):''}"\`}).join('\\n');fn='Safety-Report.csv'}
+  if(csv){const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=fn;a.click();toast('Downloading…')}
+}
+
+// ══════════════════════════════════════════
+// DOCUMENTS VAULT PAGE
+// ══════════════════════════════════════════
+async function pgDocuments(){
+  document.getElementById('topbar-actions').innerHTML='<label class="btn btn-p btn-sm" style="cursor:pointer">+ Upload Document<input type="file" style="display:none" multiple onchange="uploadGlobalDoc(this.files)"></label>'
+  const{data:docs}=await sb.from('job_documents').select('*,jobs(name)').order('created_at',{ascending:false})
+  document.getElementById('page-area').innerHTML=\`
+  <div style="margin-bottom:12px"><input class="fi" placeholder="Search documents…" style="max-width:300px" oninput="filterDocs(this.value)"></div>
+  <div class="card" style="padding:0;overflow:hidden" id="docs-table">
+  \${(docs||[]).length?\`<table class="tbl"><thead><tr><th>Name</th><th>Job</th><th>Category</th><th>Uploaded By</th><th>Date</th><th></th></tr></thead><tbody>\${(docs||[]).map(d=>\`<tr><td><div style="display:flex;align-items:center;gap:7px"><span style="font-size:16px">\${d.file_name?.match(/\\.pdf$/i)?'📄':d.file_name?.match(/\\.(png|jpg|jpeg)$/i)?'🖼':d.file_name?.match(/\\.(xls|xlsx)$/i)?'📊':'📎'}</span><div style="font-weight:500">\${d.name}</div></div></td><td style="font-size:11px">\${d.jobs?.name||'—'}</td><td><span class="badge bg-gray">\${d.category||'general'}</span></td><td style="font-size:11px;color:#8a96ab">\${d.uploaded_by||'—'}</td><td style="font-size:11px;color:#8a96ab">\${fd(d.created_at)}</td><td><a href="\${d.url}" target="_blank" class="btn btn-sm">View</a></td></tr>\`).join('')}</tbody></table>\`:empty('📁','No documents uploaded')}
+  </div>\`
+  window._docsAll=docs||[]
+}
+function filterDocs(q){const el=document.getElementById('docs-table');if(!el||!window._docsAll)return;const f=(window._docsAll||[]).filter(d=>!q||d.name.toLowerCase().includes(q.toLowerCase())||(d.jobs?.name||'').toLowerCase().includes(q.toLowerCase()));el.innerHTML=renderDocsTableHTML(f)}
+function renderDocsTableHTML(docs){return docs.length?\`<table class="tbl"><thead><tr><th>Name</th><th>Job</th><th>Category</th><th>By</th><th>Date</th><th></th></tr></thead><tbody>\${docs.map(d=>\`<tr><td style="font-weight:500">\${d.name}</td><td>\${d.jobs?.name||'—'}</td><td>\${d.category||'—'}</td><td style="font-size:11px;color:#8a96ab">\${d.uploaded_by||'—'}</td><td style="font-size:11px">\${fd(d.created_at)}</td><td><a href="\${d.url}" target="_blank" class="btn btn-sm">View</a></td></tr>\`).join('')}</tbody></table>\`:empty('📁','No documents found')}
+async function uploadGlobalDoc(files){
+  modal('Upload Document',\`<div class="fg"><label class="fl">Job (optional)</label><select class="fs" id="ud-job"><option value="">— No specific job —</option>\${allJobs.map(j=>\`<option value="\${j.id}">\${j.name}</option>\`).join('')}</select></div><div class="fg"><label class="fl">Category</label><select class="fs" id="ud-cat"><option value="general">General</option><option value="contract">Contract</option><option value="permit">Permit</option><option value="submittal">Submittal</option><option value="rfi">RFI</option><option value="plans">Plans</option><option value="insurance">Insurance</option><option value="lien_waiver">Lien Waiver</option></select></div>\`,
+  async()=>{
+    const jobId=v('ud-job')||null;const cat=v('ud-cat')
+    for(const f of files){
+      const path=\`documents/\${Date.now()}_\${f.name}\`
+      const{error}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true})
+      if(!error){const{data:{publicUrl}}=sb.storage.from('fieldtrack-plans').getPublicUrl(path);await sb.from('job_documents').insert({id:uuid(),job_id:jobId,name:f.name,file_name:f.name,category:cat,storage_path:path,url:publicUrl,uploaded_by:ME?.full_name,created_at:new Date().toISOString()})}
+    }
+    closeModal();toast('Uploaded');pgDocuments()
+  })
+}
+
+// ══════════════════════════════════════════
+// USERS PAGE
+// ══════════════════════════════════════════
+async function pgUsers(){
+  document.getElementById('topbar-actions').innerHTML=
+    '<button class="btn btn-sm" onclick="exportEmployeesCSV()">⬆ Export</button>'+
+    '<button class="btn btn-p btn-sm" onclick="addUserModal()">+ Add Employee</button>'
+  const[{data:users},{data:companies}]=await Promise.all([
+    sb.from('profiles').select('*,companies(name)').order('full_name'),
+    sb.from('companies').select('id,name').eq('is_active',true).order('name')
+  ])
+  const all=users||[]
+  const roles=[...new Set(all.map(u=>u.role).filter(Boolean))].sort()
+  const pa=document.getElementById('page-area')
+  pa.innerHTML=
+    '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'+
+    '<input class="fi" id="emp-search" placeholder="Search name or email…" style="max-width:220px" oninput="filterEmployees()">'+
+    '<select class="fs" id="emp-role" style="width:150px" onchange="filterEmployees()"><option value="">All Roles</option>'+roles.map(r=>'<option value="'+r+'">'+r.replace(/_/g,' ')+'</option>').join('')+'</select>'+
+    '<select class="fs" id="emp-co" style="width:160px" onchange="filterEmployees()"><option value="">All Companies</option>'+
+    (companies||[]).map(co=>'<option value="'+co.id+'">'+co.name+'</option>').join('')+
+    '<option value="internal">Internal</option></select>'+
+    '<select class="fs" id="emp-status" style="width:120px" onchange="filterEmployees()"><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select>'+
+    '</div>'+
+    '<div id="emp-table"></div>'+
+    '<div style="margin-top:11px;font-size:11px;color:#414e63" id="emp-count"></div>'
+  window._empAll=all
+  window._empCos=companies||[]
+  filterEmployees()
+}
+
+function filterEmployees(){
+  const q=(document.getElementById('emp-search')?.value||'').toLowerCase()
+  const role=document.getElementById('emp-role')?.value||''
+  const co=document.getElementById('emp-co')?.value||''
+  const status=document.getElementById('emp-status')?.value||''
+  const all=window._empAll||[]
+  const rows=all.filter(u=>{
+    if(q&&!u.full_name.toLowerCase().includes(q)&&!(u.email||'').toLowerCase().includes(q))return false
+    if(role&&u.role!==role)return false
+    if(co==='internal'&&u.company_id)return false
+    if(co&&co!=='internal'&&u.company_id!==co)return false
+    if(status==='active'&&!u.is_active)return false
+    if(status==='inactive'&&u.is_active)return false
+    return true
+  })
+  const el=document.getElementById('emp-table')
+  const cnt=document.getElementById('emp-count')
+  if(cnt)cnt.textContent=rows.length+' employee'+(rows.length!==1?'s':'')
+  if(!rows.length){if(el)el.innerHTML=empty('👥','No employees match filters');return}
+  let html='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr>'
+  html+='<th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Company</th><th>Emergency Contact</th><th>Status</th><th></th>'
+  html+='</tr></thead><tbody>'
+  for(const u of rows){
+    const avCss=Object.entries(avS(u.full_name)).map(([k,val])=>k+':'+val).join(';')
+    html+='<tr>'
+    html+='<td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:26px;height:26px;font-size:9px;'+avCss+'">'+ini(u.full_name)+'</div><div><div style="font-weight:500">'+u.full_name+'</div>'+(u.hire_date?'<div style="font-size:9px;color:#414e63">Hired '+fd(u.hire_date)+'</div>':'')+'</div></div></td>'
+    html+='<td style="font-size:11px;color:#8a96ab">'+(u.email||'—')+'</td>'
+    html+='<td style="font-size:11px;color:#8a96ab">'+(u.phone||'—')+'</td>'
+    html+='<td>'+roleBadge(u.role)+'</td>'
+    html+='<td style="font-size:11px">'+(u.companies?.name||'Internal')+'</td>'
+    html+='<td style="font-size:10px;color:#8a96ab">'+(u.emergency_contact||'—')+'<br>'+(u.emergency_phone?'<span style="color:#414e63">'+u.emergency_phone+'</span>':'')+'</td>'
+    html+='<td><span class="badge '+(u.is_active?'bg-green':'bg-gray')+'">'+(u.is_active?'Active':'Inactive')+'</span></td>'
+    html+='<td style="display:flex;gap:4px"><button class="btn btn-sm" data-id="'+u.id+'" onclick="viewEmployeeModal(this.dataset.id)">View</button><button class="btn btn-sm" data-id="'+u.id+'" data-role="'+u.role+'" data-active="'+u.is_active+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="editUserModal(this.dataset.id,this.dataset.role,this.dataset.active,this.dataset.name)">Edit</button></td>'
+    html+='</tr>'
+  }
+  html+='</tbody></table></div>'
+  if(el)el.innerHTML=html
+}
+
+async function exportEmployeesCSV(){
+  const all=window._empAll||[]
+  const rows=[['Name','Email','Phone','Role','Company','Hire Date','Emergency Contact','Emergency Phone','Status']]
+  all.forEach(u=>rows.push([u.full_name,u.email||'',u.phone||'',u.role,u.companies?.name||'Internal',u.hire_date||'',u.emergency_contact||'',u.emergency_phone||'',u.is_active?'Active':'Inactive']))
+  const csv=rows.map(r=>r.map(x=>'"'+String(x||'').replace(/"/g,'""')+'"').join(',')).join('\\n')
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='Employees-'+new Date().toISOString().split('T')[0]+'.csv';a.click();toast('Exported')
+}
+
+async function viewEmployeeModal(id){
+  const{data:u}=await sb.from('profiles').select('*,companies(name)').eq('id',id).single()
+  if(!u)return
+  // Get safety training history
+  const[{data:acks},{data:assigns}]=await Promise.all([
+    sb.from('safety_acks').select('*,safety_topics(title,week_of,category)').eq('profile_id',id).order('acknowledged_at',{ascending:false}),
+    sb.from('safety_assignments').select('*,safety_topics(title,week_of)').eq('profile_id',id).order('assigned_at',{ascending:false})
+  ])
+  const ackedIds=new Set((acks||[]).map(a=>a.topic_id))
+  const pending=(assigns||[]).filter(a=>!ackedIds.has(a.topic_id))
+  const avCss=Object.entries(avS(u.full_name)).map(([k,val])=>k+':'+val).join(';')
+  let html=
+    '<div style="display:flex;align-items:center;gap:13px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.07)">'+
+    '<div class="av" style="width:52px;height:52px;font-size:18px;flex-shrink:0;'+avCss+'">'+ini(u.full_name)+'</div>'+
+    '<div><div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700">'+u.full_name+'</div>'+
+    '<div style="margin-top:3px">'+roleBadge(u.role)+'</div>'+
+    '<div style="font-size:11px;color:#414e63;margin-top:3px">'+(u.companies?.name||'Internal')+(u.hire_date?' · Hired '+fd(u.hire_date):'')+'</div></div></div>'+
+    '<div class="two" style="margin-bottom:13px">'+
+    '<div><div class="fl">EMAIL</div><div style="font-size:13px">'+(u.email||'—')+'</div></div>'+
+    '<div><div class="fl">PHONE</div><div style="font-size:13px">'+(u.phone||'—')+'</div></div>'+
+    '</div>'+
+    '<div class="two" style="margin-bottom:13px">'+
+    '<div><div class="fl">EMERGENCY CONTACT</div><div style="font-size:13px">'+(u.emergency_contact||'—')+'</div></div>'+
+    '<div><div class="fl">EMERGENCY PHONE</div><div style="font-size:13px">'+(u.emergency_phone||'—')+'</div></div>'+
+    '</div>'+
+    '<div class="sec-hdr" style="margin-bottom:10px">Safety Training — '+
+    '<span style="color:#16a34a">'+(acks||[]).length+' completed</span> · '+
+    '<span style="color:'+(pending.length?'#dc2626':'#414e63')+'">'+pending.length+' pending</span></div>'
+  if(pending.length){
+    html+='<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);border-radius:7px;padding:9px 12px;margin-bottom:10px">'
+    html+='<div style="font-size:10px;color:#dc2626;font-weight:600;margin-bottom:6px">PENDING — NOT YET COMPLETED</div>'
+    html+=pending.map(a=>'<div style="font-size:12px;color:#f87171;padding:3px 0">⏳ '+a.safety_topics?.title+(a.due_date?' · Due '+fd(a.due_date):'')+'</div>').join('')
+    html+='</div>'
+  }
+  if((acks||[]).length){
+    html+='<div style="background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.15);border-radius:7px;padding:9px 12px">'
+    html+='<div style="font-size:10px;color:#16a34a;font-weight:600;margin-bottom:6px">COMPLETED</div>'
+    html+=(acks||[]).map(a=>'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px">✓ '+a.safety_topics?.title+'</span><span style="font-size:10px;color:#414e63">'+fdt(a.acknowledged_at)+'</span></div>').join('')
+    html+='</div>'
+  }
+  if(!(acks||[]).length&&!pending.length) html+='<div style="font-size:12px;color:#414e63">No safety training assigned yet</div>'
+  modal(u.full_name, html, ()=>closeModal(), 'Close', false)
+  const editBtn=document.createElement('button')
+  editBtn.className='btn btn-p btn-sm'
+  editBtn.textContent='Edit'
+  editBtn.onclick=()=>{closeModal();editUserModal(id,u.role,u.is_active,u.full_name)}
+  const closeBtn=document.createElement('button')
+  closeBtn.className='btn'
+  closeBtn.textContent='Close'
+  closeBtn.onclick=closeModal
+  const ft=document.getElementById('modal-footer')
+  ft.innerHTML=''
+  ft.appendChild(closeBtn)
+  ft.appendChild(editBtn)
+}
+
+function addUserModal(){
+  const coOpts=(window._empCos||[]).map(co=>'<option value="'+co.id+'">'+co.name+'</option>').join('')
+  const html=
+    '<div class="two"><div class="fg"><label class="fl">Full Name *</label><input class="fi" id="au-nm"></div>'+
+    '<div class="fg"><label class="fl">Email *</label><input class="fi" id="au-em" type="email" placeholder="They will get a password setup email"></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="au-ph"></div>'+
+    '<div class="fg"><label class="fl">Role *</label><select class="fs" id="au-rl">'+
+    '<option value="sub_worker">Field Worker</option><option value="sub_lead">Lead</option>'+
+    '<option value="technician">Technician</option><option value="stager">Stager</option>'+
+    '<option value="foreman">Foreman</option><option value="pm">Project Manager</option>'+
+    '<option value="admin">Admin</option></select></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Company</label><select class="fs" id="au-co">'+
+    '<option value="">Internal</option>'+coOpts+'</select></div>'+
+    '<div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="au-hire"></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Emergency Contact</label><input class="fi" id="au-ec"></div>'+
+    '<div class="fg"><label class="fl">Emergency Phone</label><input class="fi" id="au-ep"></div></div>'+
+    '<div id="au-status" style="display:none;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:7px;padding:9px 12px;font-size:12px;color:#16a34a;margin-top:4px"></div>'
+  modal('Add Employee', html, async()=>{
+    const nm=v('au-nm').trim(),em=v('au-em').trim()
+    if(!nm||!em){toast('Name and email required','error');return}
+    const btn=document.getElementById('modal-ok')
+    btn.disabled=true;btn.textContent='Adding…'
+    try{
+      // Try server route first (creates auth account + profile + sends password email)
+      const{data:{session}}=await sb.auth.getSession()
+      const res=await fetch('/api/invite-user',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+        body:JSON.stringify({email:em,full_name:nm,role:v('au-rl'),phone:v('au-ph'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep')})
+      })
+      const result=await res.json()
+      if(res.ok&&result.success){
+        closeModal()
+        toast('Employee added! Password setup email sent to '+em)
+        pgUsers()
+        return
+      }
+      // If service key not set, fall back to profile-only (no auth account)
+      console.warn('Invite route result:',result)
+      if(result.error?.includes('SUPABASE_SERVICE_KEY')||result.error?.includes('service')){
+        // Fallback: create auth user via signUp then insert profile
+        const tempPw=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2).toUpperCase()+'!9'
+        const{data:signUpData,error:signUpErr}=await sb.auth.signUp({email:em,password:tempPw,options:{data:{full_name:nm,role:v('au-rl')}}})
+        const authId=signUpData?.user?.id
+        if(signUpErr&&!authId){toast(signUpErr.message,'error');btn.disabled=false;btn.textContent='Save';return}
+        // Wait a moment then insert profile
+        await new Promise(r=>setTimeout(r,500))
+        const{error:profErr}=await sb.from('profiles').upsert({id:authId,full_name:nm,email:em,phone:v('au-ph'),role:v('au-rl'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep'),is_active:true,created_at:new Date().toISOString()},{onConflict:'id'})
+        if(profErr){toast(profErr.message,'error');btn.disabled=false;btn.textContent='Save';return}
+        closeModal()
+        toast('Employee added. They will get a confirmation email to set their password.','info')
+        pgUsers()
+        return
+      }
+      throw new Error(result.error||'Failed to create employee')
+    }catch(e){
+      toast(e.message,'error')
+      btn.disabled=false;btn.textContent='Save'
+    }
+  })
+}
+
+function editUserModal(id,role,active,name){
+  const coOpts=(window._empCos||[]).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')
+  const html=
+    '<div class="two"><div class="fg"><label class="fl">Full Name</label><input class="fi" id="eu-nm" value="'+name+'"></div>'+
+    '<div class="fg"><label class="fl">Phone</label><input class="fi" id="eu-ph"></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Role</label><select class="fs" id="eu-rl">'+
+    '<option value="sub_worker">Field Worker</option><option value="sub_lead">Lead</option>'+
+    '<option value="technician">Technician</option><option value="stager">Stager</option>'+
+    '<option value="foreman">Foreman</option><option value="pm">Project Manager</option>'+
+    '<option value="admin">Admin</option></select></div>'+
+    '<div class="fg"><label class="fl">Company</label><select class="fs" id="eu-co"><option value="">Internal</option>'+coOpts+'</select></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="eu-hire"></div>'+
+    '<div class="fg"><label class="fl">Status</label><select class="fs" id="eu-act"><option value="true">Active</option><option value="false">Inactive</option></select></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Emergency Contact</label><input class="fi" id="eu-ec"></div>'+
+    '<div class="fg"><label class="fl">Emergency Phone</label><input class="fi" id="eu-ep"></div></div>'
+  modal('Edit Employee — '+name, html, async()=>{
+    const u={full_name:v('eu-nm'),phone:v('eu-ph'),role:v('eu-rl'),company_id:v('eu-co')||null,hire_date:v('eu-hire')||null,emergency_contact:v('eu-ec'),emergency_phone:v('eu-ep'),is_active:v('eu-act')==='true'}
+    const{error}=await sb.from('profiles').update(u).eq('id',id)
+    if(error)toast(error.message,'error');else{closeModal();toast('Updated');pgUsers()}
+  })
+  // Populate fields from DB
+  sb.from('profiles').select('*').eq('id',id).single().then(({data:p})=>{
+    if(!p)return
+    setTimeout(()=>{
+      try{
+        document.getElementById('eu-ph').value=p.phone||''
+        document.getElementById('eu-rl').value=p.role||'sub_worker'
+        document.getElementById('eu-co').value=p.company_id||''
+        document.getElementById('eu-hire').value=p.hire_date||''
+        document.getElementById('eu-act').value=String(p.is_active)
+        document.getElementById('eu-ec').value=p.emergency_contact||''
+        document.getElementById('eu-ep').value=p.emergency_phone||''
+      }catch(e){}
+    },80)
+  })
+}
 
 
+// ══════════════════════════════════════════
+// JOB MAP PAGE
+// ══════════════════════════════════════════
+async function pgJobMap(){
+  document.getElementById('page-title').textContent='Job Map'
+  document.getElementById('topbar-actions').innerHTML=\`
+    <select class="fs" id="map-filter-pm" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All PMs</option></select>
+    <select class="fs" id="map-filter-gc" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All GC Companies</option></select>
+    <select class="fs" id="map-filter-stage" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All Stages</option>\${STAGES.map(s=>\`<option value="\${s}">\${STAGE_LABELS[s]}</option>\`).join('')}</select>
+    <select class="fs" id="map-filter-sub" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All Subs</option></select>\`
+
+  const{data:jobs}=await sb.from('jobs').select('*').eq('archived',false)
+  window._mapJobs=jobs||[]
+
+  // Populate filter dropdowns
+  const pms=[...new Set((jobs||[]).map(j=>j.project_manager).filter(Boolean))]
+  const gcs=[...new Set((jobs||[]).map(j=>j.gc_company).filter(Boolean))]
+  const subs=[...new Set((jobs||[]).map(j=>j.company_id).filter(Boolean))]
+  const{data:companies}=await sb.from('companies').select('id,name')
+  const coMap={}; (companies||[]).forEach(c=>coMap[c.id]=c.name)
+  document.getElementById('map-filter-pm').innerHTML='<option value="">All PMs</option>'+pms.map(p=>\`<option value="\${p}">\${p}</option>\`).join('')
+  document.getElementById('map-filter-gc').innerHTML='<option value="">All GC Companies</option>'+gcs.map(g=>\`<option value="\${g}">\${g}</option>\`).join('')
+  document.getElementById('map-filter-sub').innerHTML='<option value="">All Subs</option>'+subs.map(s=>\`<option value="\${s}">\${coMap[s]||s}</option>\`).join('')
+
+  document.getElementById('page-area').innerHTML=\`
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:13px;height:calc(100vh - 120px)">
+    <div style="position:relative;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">
+      <div id="map-container" style="width:100%;height:100%;background:#0c1220;display:flex;align-items:center;justify-content:center">
+        <div style="text-align:center;color:#414e63">
+          <div style="font-size:32px;margin-bottom:8px">🗺</div>
+          <div style="font-size:13px;font-weight:500;color:#8a96ab">Interactive Map</div>
+          <div style="font-size:11px;margin-top:4px">Loading OpenStreetMap…</div>
+        </div>
+      </div>
+      <div id="map-legend" style="position:absolute;bottom:12px;left:12px;background:rgba(6,10,16,.92);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 12px;font-size:11px"></div>
+    </div>
+    <div style="overflow-y:auto">
+      <div class="card" style="margin-bottom:10px"><div class="card-title">Jobs on Map</div><div id="map-job-list"></div></div>
+    </div>
+  </div>\`
+
+  // Load Leaflet map
+  if(!document.getElementById('leaflet-css')){
+    const link=document.createElement('link');link.id='leaflet-css';link.rel='stylesheet';link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(link)
+    const script=document.createElement('script');script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';script.onload=()=>initMap(jobs||[]);document.head.appendChild(script)
+  } else {
+    initMap(jobs||[])
+  }
+}
+
+function initMap(jobs){
+  const container=document.getElementById('map-container')
+  if(!container||!window.L)return
+  container.innerHTML='<div id="leaflet-map" style="width:100%;height:100%"></div>'
+  const map=window.L.map('leaflet-map').setView([33.4484,-112.0740],10)
+  window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(map)
+  window._leafletMap=map
+  window._mapMarkers=[]
+  addMapPins(jobs,map)
+  renderMapJobList(jobs)
+}
+
+const MAP_COLORS={not_started:'#8a96ab',in_progress:'#60a5fa',pre_test:'#d97706',pre_tested:'#2dd4bf',ready_for_final:'#a78bfa',complete:'#16a34a'}
+
+function addMapPins(jobs,map){
+  if(!window.L)return
+  // Clear existing
+  ;(window._mapMarkers||[]).forEach(m=>m.remove())
+  window._mapMarkers=[]
+  const withGPS=jobs.filter(j=>j.gps_lat&&j.gps_lng)
+  withGPS.forEach(j=>{
+    const color=MAP_COLORS[j.phase]||'#8a96ab'
+    const icon=window.L.divIcon({html:\`<div style="width:14px;height:14px;border-radius:50%;background:\${color};border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>\`,className:'',iconSize:[14,14],iconAnchor:[7,7]})
+    const marker=window.L.marker([j.gps_lat,j.gps_lng],{icon}).addTo(map)
+    marker.bindPopup(\`<div style="font-family:'DM Sans',sans-serif;min-width:200px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">\${j.name}</div><div style="font-size:11px;color:#666;margin-bottom:5px">\${j.address||''}</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px"><span style="background:\${color}22;color:\${color};padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600">\${STAGE_LABELS[j.phase]||j.phase}</span></div>\${j.project_manager?\`<div style="font-size:11px"><strong>PM:</strong> \${j.project_manager}</div>\`:''}\${j.gc_company?\`<div style="font-size:11px"><strong>GC:</strong> \${j.gc_company}</div>\`:''}\${j.due_date?\`<div style="font-size:11px"><strong>Due:</strong> \${fd(j.due_date)}</div>\`:''}<div style="margin-top:7px"><a href="javascript:openJob('\${j.id}')" style="color:#2563eb;font-size:11px;font-weight:600">Open Job →</a></div></div>\`)
+    window._mapMarkers.push(marker)
+  })
+  // Fit bounds
+  if(withGPS.length>0){const bounds=window.L.latLngBounds(withGPS.map(j=>[j.gps_lat,j.gps_lng]));map.fitBounds(bounds,{padding:[30,30]})}
+  // Legend
+  const el=document.getElementById('map-legend')
+  if(el)el.innerHTML=Object.entries(MAP_COLORS).map(([stage,color])=>\`<div style="display:flex;align-items:center;gap:6px;padding:2px 0"><div style="width:10px;height:10px;border-radius:50%;background:\${color}"></div><span style="color:#e8edf5">\${STAGE_LABELS[stage]}</span></div>\`).join('')+'<div style="margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.1);color:#414e63">'+withGPS.length+' of '+(window._mapJobs||jobs).length+' jobs have GPS</div>'
+}
+
+function renderMapJobList(jobs){
+  const el=document.getElementById('map-job-list');if(!el)return
+  el.innerHTML=jobs.map(j=>\`<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onclick="mapFlyTo('\${j.id}')">
+    <div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:\${MAP_COLORS[j.phase]||'#8a96ab'};flex-shrink:0"></div><div style="font-size:12px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${j.name}</div></div>
+    <div style="font-size:10px;color:#414e63;margin-top:1px;padding-left:15px">\${j.project_manager?j.project_manager+' · ':''} \${j.gc_company||''}</div>
+  </div>\`).join('')||'<div style="font-size:12px;color:#414e63">No jobs match filters</div>'
+}
+
+function mapFlyTo(jobId){
+  const j=(window._mapJobs||[]).find(x=>x.id===jobId);if(!j||!j.gps_lat)return
+  if(window._leafletMap)window._leafletMap.flyTo([j.gps_lat,j.gps_lng],16)
+}
+
+function filterMapPins(){
+  const pm=document.getElementById('map-filter-pm')?.value||''
+  const gc=document.getElementById('map-filter-gc')?.value||''
+  const stage=document.getElementById('map-filter-stage')?.value||''
+  const sub=document.getElementById('map-filter-sub')?.value||''
+  const filtered=(window._mapJobs||[]).filter(j=>
+    (!pm||j.project_manager===pm)&&
+    (!gc||j.gc_company===gc)&&
+    (!stage||j.phase===stage)&&
+    (!sub||j.company_id===sub)
+  )
+  if(window._leafletMap)addMapPins(filtered,window._leafletMap)
+  renderMapJobList(filtered)
+}
+
+// ══════════════════════════════════════════
+// SUB WORK ASSIGNMENT TAB (per job)
+// ══════════════════════════════════════════
+async function renderSubAssignTab(el){
+  const[{data:companies},{data:existing}]=await Promise.all([
+    sb.from('companies').select('*').eq('is_active',true).order('name'),
+    sb.from('job_sub_assignments').select('*').eq('job_id',currentJobId).order('created_at')
+  ])
+  el.innerHTML=\`
+  <div class="sec-hdr">Subcontractor Work Assignments <button class="btn btn-p btn-sm" onclick="addSubAssignModal()">+ Assign Sub</button></div>
+  \${(existing||[]).map(a=>\`<div style="background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px;margin-bottom:8px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div><div style="font-weight:600;font-size:13px">\${a.company_name||a.company_id||'—'}</div><div style="font-size:11px;color:#414e63;margin-top:2px">\${a.scope_of_work||'All work'}</div></div>
+      <span class="badge \${a.status==='complete'?'bg-green':a.status==='in_progress'?'bg-blue':'bg-amber'}">\${a.status||'assigned'}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:9px">
+      <div><div style="font-size:10px;color:#414e63">CONTRACT VALUE</div><div style="font-size:13px;font-weight:500">\${a.contract_value?fm(a.contract_value):'Not set'}</div></div>
+      <div><div style="font-size:10px;color:#414e63">START</div><div style="font-size:13px">\${fd(a.start_date)}</div></div>
+      <div><div style="font-size:10px;color:#414e63">DUE</div><div style="font-size:13px;color:\${isOD(a.due_date,a.status)?'#dc2626':'#e8edf5'}">\${fd(a.due_date)}</div></div>
+    </div>
+    \${a.notes?\`<div style="font-size:12px;color:#8a96ab;margin-bottom:8px">\${a.notes}</div>\`:''}
+    <div style="display:flex;gap:7px">
+      <button class="btn btn-sm btn-g" onclick="updateSubAssign('\${a.id}','in_progress')">In Progress</button>
+      <button class="btn btn-sm" onclick="updateSubAssign('\${a.id}','complete')">✓ Complete</button>
+      <button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="deleteSubAssign('\${a.id}')">Remove</button>
+    </div>
+  </div>\`).join('')||'<div style="font-size:12px;color:#414e63;padding:10px 0">No sub assignments yet</div>'}\`
+}
+async function addSubAssignModal(){
+  const{data:companies}=await sb.from('companies').select('id,name').eq('is_active',true).order('name')
+  modal('Assign Subcontractor',\`
+  <div class="fg"><label class="fl">Subcontractor *</label><select class="fs" id="sa-co"><option value="">— Select —</option>\${(companies||[]).map(c=>\`<option value="\${c.id}">\${c.name}</option>\`).join('')}</select></div>
+  <div class="fg"><label class="fl">Scope of Work *</label><textarea class="ft" id="sa-scope" placeholder="Describe the portion of work assigned to this sub…"></textarea></div>
+  <div class="two"><div class="fg"><label class="fl">Contract Value</label><input class="fi" type="number" id="sa-cv" step="0.01"></div><div class="fg"><label class="fl">Status</label><select class="fs" id="sa-status"><option value="assigned">Assigned</option><option value="in_progress">In Progress</option><option value="complete">Complete</option></select></div></div>
+  <div class="two"><div class="fg"><label class="fl">Start Date</label><input class="fi" type="date" id="sa-start"></div><div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="sa-due"></div></div>
+  <div class="fg"><label class="fl">Notes</label><textarea class="ft" id="sa-notes" style="min-height:55px"></textarea></div>\`,
+  async()=>{
+    const coId=v('sa-co');if(!coId){toast('Select a sub','error');return}
+    const scope=v('sa-scope').trim();if(!scope){toast('Scope required','error');return}
+    const{error}=await sb.from('job_sub_assignments').insert({id:uuid(),job_id:currentJobId,company_id:coId,scope_of_work:scope,contract_value:parseFloat(v('sa-cv'))||null,status:v('sa-status'),start_date:v('sa-start')||null,due_date:v('sa-due')||null,notes:v('sa-notes'),created_by:ME?.full_name,created_at:new Date().toISOString()})
+    if(error)toast(error.message,'error');else{closeModal();toast('Sub assigned');renderSubAssignTab(document.getElementById('jt-subs'))}
+  })
+}
+async function updateSubAssign(id,status){await sb.from('job_sub_assignments').update({status}).eq('id',id);toast('Updated');renderSubAssignTab(document.getElementById('jt-subs'))}
+async function deleteSubAssign(id){if(!confirm('Remove this assignment?'))return;await sb.from('job_sub_assignments').delete().eq('id',id);renderSubAssignTab(document.getElementById('jt-subs'))}
+
+// ══════════════════════════════════════════
+// PLAN MARKUP (enhanced — used for job walks AND job asbuilts)
+// markupType: 'walk' | 'job'
+// ══════════════════════════════════════════
+let _markupPlanId=null,_markupReturnFn=null
+
+function openPlanMarkup(planId,planUrl,fileName,returnFn){
+  _markupPlanId=planId;_markupReturnFn=returnFn
+  document.getElementById('page-title').textContent='Plan Markup — '+fileName
+  document.getElementById('topbar-actions').innerHTML=\`
+    <button class="btn btn-sm" onclick="if(_markupReturnFn)_markupReturnFn()">← Back</button>
+    <button class="btn btn-sm btn-p" onclick="saveMarkupData()">💾 Save</button>
+    <button class="btn btn-sm btn-g" onclick="downloadMarkupPNG()">⬇ Download PNG</button>\`
+
+  document.getElementById('page-area').innerHTML=\`
+  <div style="display:grid;grid-template-columns:1fr 260px;gap:13px;height:calc(100vh - 130px)">
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <!-- TOOLBAR -->
+      <div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:10px;color:#414e63;font-weight:600">MODE</span>
+        <button class="mt-btn active" id="mmt-dot" onclick="setMarkupMode('dot',this)">● Dot</button>
+        <button class="mt-btn" id="mmt-text" onclick="setMarkupMode('text',this)">T Text</button>
+        <button class="mt-btn" id="mmt-del" onclick="setMarkupMode('delete',this)">🗑 Delete</button>
+        <div style="width:1px;height:20px;background:rgba(255,255,255,.1);margin:0 4px"></div>
+        <span style="font-size:10px;color:#414e63;font-weight:600">COLOR</span>
+        <div id="color-swatches" style="display:flex;gap:5px">
+          \${['#dc2626','#d97706','#16a34a','#2563eb','#7c3aed','#0d9488','#ec4899','#f97316','#ffffff','#000000'].map((clr,i)=>\`<div onclick="setMarkupColor('\${clr}',this)" style="width:18px;height:18px;border-radius:50%;background:\${clr};cursor:pointer;border:2px solid \${i===0?'#fff':'transparent'};flex-shrink:0" data-color="\${clr}"></div>\`).join('')}
+        </div>
+        <div style="width:1px;height:20px;background:rgba(255,255,255,.1);margin:0 4px"></div>
+        <span style="font-size:10px;color:#414e63;font-weight:600">SIZE</span>
+        <select class="fi" id="dot-size" style="width:60px;padding:3px 6px;font-size:11px">
+          <option value="6">XS</option><option value="9">S</option><option value="13" selected>M</option><option value="18">L</option><option value="24">XL</option>
+        </select>
+        <button class="mt-btn" onclick="clearAllMarkup()" style="margin-left:auto;color:#dc2626">🗑 Clear All</button>
+      </div>
+      <!-- CANVAS -->
+      <div style="flex:1;overflow:auto;background:#1a2540;border-radius:9px;border:1px solid rgba(255,255,255,.07);cursor:crosshair;position:relative" id="canvas-scroll-wrap">
+        <canvas id="markup-canvas" style="display:block;max-width:100%"></canvas>
+        <div id="canvas-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#414e63;font-size:13px">Loading plan…</div>
+      </div>
+      <div style="font-size:10px;color:#414e63">Tip: Click to place dot/text • Click existing element in Delete mode to remove • Save often</div>
+    </div>
+    <!-- SIDEBAR -->
+    <div style="overflow-y:auto;display:flex;flex-direction:column;gap:10px">
+      <div class="card">
+        <div class="card-title">Legend <button class="btn btn-sm btn-p" onclick="addLegendEntry()" style="font-size:10px;padding:3px 8px">+</button></div>
+        <div id="legend-entries"></div>
+        <div style="font-size:10px;color:#414e63;margin-top:6px">Add entries to explain what your colored dots mean</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Text Boxes</div>
+        <div id="textbox-entries"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Dots (\${0})</div>
+        <div id="dot-count-display" style="font-size:11px;color:#414e63">0 dots placed</div>
+      </div>
+    </div>
+  </div>\`
+
+  loadMarkupData(planId,planUrl)
+}
+
+let _mMode='dot',_mColor='#dc2626',_mCanvas=null,_mCtx=null,_mImg=null,_mData={dots:[],textboxes:[],legend:[]}
+
+function setMarkupMode(m,btn){
+  _mMode=m
+  document.querySelectorAll('.mt-btn').forEach(b=>b.classList.remove('active'))
+  if(btn)btn.classList.add('active')
+  const canvas=document.getElementById('markup-canvas')
+  if(canvas)canvas.style.cursor=m==='delete'?'crosshair':m==='text'?'text':'crosshair'
+}
+function setMarkupColor(c,el){
+  _mColor=c
+  document.querySelectorAll('#color-swatches div').forEach(d=>d.style.border='2px solid transparent')
+  if(el)el.style.border='2px solid #fff'
+}
+
+async function loadMarkupData(planId,planUrl){
+  const{data:plan}=await sb.from('job_walk_plans').select('markup_json').eq('id',planId).single()
+  _mData=plan?.markup_json||{dots:[],textboxes:[],legend:[]}
+  // Load image
+  const canvas=document.getElementById('markup-canvas')
+  const ctx=canvas.getContext('2d')
+  _mCanvas=canvas;_mCtx=ctx
+  const img=new Image();img.crossOrigin='anonymous'
+  img.onload=()=>{
+    canvas.width=img.naturalWidth||1200;canvas.height=img.naturalHeight||800
+    canvas.style.width='100%'
+    _mImg=img
+    document.getElementById('canvas-loading').style.display='none'
+    redrawMarkup()
+    renderLegendEntries();renderTextboxEntries();updateDotCount()
+    // Attach click handler
+    canvas.onclick=handleMarkupClick
+  }
+  img.onerror=()=>{
+    canvas.width=1200;canvas.height=800;canvas.style.width='100%'
+    ctx.fillStyle='#1a2540';ctx.fillRect(0,0,1200,800)
+    ctx.fillStyle='#414e63';ctx.font='16px DM Sans,sans-serif';ctx.textAlign='center'
+    ctx.fillText('PDF/image preview not available',600,400)
+    ctx.fillText('Markup will still be saved. Use Download to view with annotations.',600,430)
+    _mImg=null
+    document.getElementById('canvas-loading').style.display='none'
+    redrawMarkup();canvas.onclick=handleMarkupClick
+  }
+  img.src=planUrl
+}
+
+function handleMarkupClick(e){
+  const canvas=document.getElementById('markup-canvas');if(!canvas)return
+  const rect=canvas.getBoundingClientRect()
+  const sx=canvas.width/rect.width,sy=canvas.height/rect.height
+  const cx=(e.clientX-rect.left)*sx,cy=(e.clientY-rect.top)*sy
+  if(_mMode==='dot'){
+    const sz=parseInt(document.getElementById('dot-size')?.value||13)
+    const id=uuid()
+    _mData.dots.push({id,x:cx,y:cy,color:_mColor,size:sz,label:''})
+    redrawMarkup();updateDotCount();beep()
+  } else if(_mMode==='text'){
+    const txt=prompt('Enter text to place on plan:');if(!txt)return
+    _mData.textboxes.push({id:uuid(),x:cx,y:cy,text:txt,color:_mColor,fontSize:14})
+    redrawMarkup();renderTextboxEntries()
+  } else if(_mMode==='delete'){
+    const hit=findMarkupHit(cx,cy)
+    if(hit){
+      if(hit.type==='dot')_mData.dots=_mData.dots.filter(d=>d.id!==hit.id)
+      else _mData.textboxes=_mData.textboxes.filter(t=>t.id!==hit.id)
+      redrawMarkup();renderLegendEntries();renderTextboxEntries();updateDotCount()
+      toast('Removed','info')
+    }
+  }
+}
+function findMarkupHit(cx,cy){
+  for(const d of _mData.dots){if(Math.sqrt((cx-d.x)**2+(cy-d.y)**2)<=d.size+5)return{...d,type:'dot'}}
+  for(const t of _mData.textboxes){if(cx>=t.x-5&&cx<=t.x+200&&cy>=t.y-t.fontSize-2&&cy<=t.y+5)return{...t,type:'text'}}
+  return null
+}
+function redrawMarkup(){
+  if(!_mCtx||!_mCanvas)return
+  _mCtx.clearRect(0,0,_mCanvas.width,_mCanvas.height)
+  if(_mImg)_mCtx.drawImage(_mImg,0,0)
+  else{_mCtx.fillStyle='#1a2540';_mCtx.fillRect(0,0,_mCanvas.width,_mCanvas.height)}
+  // Draw dots
+  for(const d of _mData.dots){
+    _mCtx.beginPath();_mCtx.arc(d.x,d.y,d.size/2,0,Math.PI*2)
+    _mCtx.fillStyle=d.color;_mCtx.fill()
+    _mCtx.strokeStyle='rgba(255,255,255,.75)';_mCtx.lineWidth=1.5;_mCtx.stroke()
+    if(d.label){_mCtx.fillStyle=d.color;_mCtx.font='bold 11px DM Sans,sans-serif';_mCtx.fillText(d.label,d.x+d.size/2+4,d.y+4)}
+  }
+  // Draw textboxes
+  for(const t of _mData.textboxes){
+    _mCtx.font=\`\${t.fontSize}px DM Sans,sans-serif\`
+    const w=_mCtx.measureText(t.text).width
+    _mCtx.fillStyle='rgba(0,0,0,.65)';_mCtx.fillRect(t.x-3,t.y-t.fontSize,w+6,t.fontSize+6)
+    _mCtx.fillStyle=t.color;_mCtx.fillText(t.text,t.x,t.y)
+  }
+}
+function updateDotCount(){const el=document.getElementById('dot-count-display');if(el)el.textContent=(_mData.dots||[]).length+' dots placed'}
+function renderLegendEntries(){
+  const el=document.getElementById('legend-entries');if(!el)return
+  const colorCounts={}
+  ;(_mData.dots||[]).forEach(d=>{colorCounts[d.color]=(colorCounts[d.color]||0)+1})
+  el.innerHTML=(_mData.legend||[]).map((l,i)=>\`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><div style="width:14px;height:14px;border-radius:50%;background:\${l.color};flex-shrink:0;border:1.5px solid rgba(255,255,255,.3)"></div><div style="font-size:10px;color:#414e63;flex-shrink:0">\${colorCounts[l.color]||0}×</div><input style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:5px;color:#e8edf5;font-size:11px;padding:3px 7px;font-family:inherit" value="\${l.label||''}" placeholder="What this color means…" oninput="_mData.legend[\${i}].label=this.value"><button onclick="_mData.legend.splice(\${i},1);renderLegendEntries()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:16px;flex-shrink:0">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No legend entries — click + to add</div>'
+}
+function addLegendEntry(){_mData.legend.push({id:uuid(),color:_mColor,label:''});renderLegendEntries()}
+function renderTextboxEntries(){
+  const el=document.getElementById('textbox-entries');if(!el)return
+  el.innerHTML=(_mData.textboxes||[]).map((t,i)=>\`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="width:8px;height:8px;border-radius:50%;background:\${t.color};flex-shrink:0"></div><div style="font-size:11px;flex:1;color:#8a96ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${t.text}</div><button onclick="_mData.textboxes.splice(\${i},1);renderTextboxEntries();redrawMarkup()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No text boxes</div>'
+}
+function clearAllMarkup(){if(!confirm('Clear all dots and text boxes?'))return;_mData.dots=[];_mData.textboxes=[];redrawMarkup();renderLegendEntries();renderTextboxEntries();updateDotCount();toast('Cleared','warn')}
+async function saveMarkupData(){
+  if(!_markupPlanId)return
+  const{error}=await sb.from('job_walk_plans').update({markup_json:_mData}).eq('id',_markupPlanId)
+  if(error)toast(error.message,'error');else toast('Markup saved')
+}
+function downloadMarkupPNG(){
+  const canvas=document.getElementById('markup-canvas');if(!canvas)return
+  const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='plan-markup-'+new Date().toISOString().split('T')[0]+'.png';a.click();toast('Downloading PNG…')
+}
+
+// Upload plans to job (as-builts)
+async function uploadJobAsbuilt(files){
+  for(const f of files){
+    const path=\`jobs/\${currentJobId}/asbuilts/\${Date.now()}_\${f.name}\`
+    const{error}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true})
+    if(!error){
+      const{data:{publicUrl}}=sb.storage.from('fieldtrack-plans').getPublicUrl(path)
+      await sb.from('job_walk_plans').insert({id:uuid(),job_walk_id:null,job_id:currentJobId,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],legend:[]},created_at:new Date().toISOString()})
+    }
+  }
+  toast('Plan uploaded OK');loadJT('jt-asbuilts')
+}
+
+async function renderAsbuiltsTab(el){
+  const{data:plans}=await sb.from('job_walk_plans').select('*').eq('job_id',currentJobId).is('job_walk_id',null).order('created_at',{ascending:false})
+  el.innerHTML=\`
+  <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+    <label class="btn btn-p btn-sm" style="cursor:pointer">+ Upload Plan / As-built<input type="file" style="display:none" multiple accept=".pdf,.png,.jpg,.jpeg,.dwg" onchange="uploadJobAsbuilt(this.files)"></label>
+    <span style="font-size:11px;color:#414e63">Upload plans, then click Markup to annotate with colored dots, text, and legend</span>
+  </div>
+  \${(plans||[]).length?plans.map(p=>\`<div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:7px">
+    <div style="font-size:22px">\${p.file_name?.match(/\\.pdf$/i)?'📄':'🖼'}</div>
+    <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${p.file_name}</div>
+    <div style="font-size:10px;color:#414e63;margin-top:1px">\${fd(p.created_at)} · \${(p.markup_json?.dots||[]).length} dots · \${(p.markup_json?.textboxes||[]).length} text boxes</div></div>
+    <button class="btn btn-sm btn-p" onclick="openPlanMarkup('\${p.id}','\${p.url}','\${p.file_name}',()=>loadJT('jt-asbuilts'))">✏ Markup</button>
+    <a href="\${p.url}" target="_blank" class="btn btn-sm">View</a>
+    <button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="deleteJobPlan('\${p.id}','\${p.storage_path||''}')">Del</button>
+  </div>\`).join(''):empty('📐','No plans uploaded yet — upload PDF or image files to begin markup')}\` 
+}
+async function deleteJobPlan(planId,storagePath){
+  if(!confirm('Delete this plan?'))return
+  if(storagePath)await sb.storage.from('fieldtrack-plans').remove([storagePath]).catch(()=>{})
+  await sb.from('job_walk_plans').delete().eq('id',planId)
+  toast('Deleted');loadJT('jt-asbuilts')
+}
+
+
+// ══════════════════════════════════════════
+// PM VISIT TRACKING
+// ══════════════════════════════════════════
+async function renderPmVisitsTab(el){
+  const{data:visits}=await sb.from('pm_visits').select('*').eq('job_id',currentJobId).order('visit_date',{ascending:false})
+  const j=currentJob
+  const nextVisitColor=j.next_pm_visit&&daysAway(j.next_pm_visit)<=0?'#dc2626':j.next_pm_visit&&daysAway(j.next_pm_visit)<=7?'#d97706':'#e8edf5'
+  const nextVisitText=j.next_pm_visit?(daysAway(j.next_pm_visit)===0?'Today':daysAway(j.next_pm_visit)<0?Math.abs(daysAway(j.next_pm_visit))+'d overdue':daysAway(j.next_pm_visit)+'d away'):''
+  let visitsHtml=''
+  for(const vis of (visits||[])){
+    const outColor=vis.outcome==='approved'?'bg-green':vis.outcome==='issues_found'?'bg-amber':'bg-gray'
+    visitsHtml+='<div style="padding:10px 12px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:7px">'
+    visitsHtml+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">'
+    visitsHtml+='<div><div style="font-weight:500;font-size:13px">PM Visit — '+fd(vis.visit_date)+'</div>'
+    visitsHtml+='<div style="font-size:11px;color:#414e63;margin-top:1px">'+(vis.pm_name||'')+'</div></div>'
+    visitsHtml+='<span class="badge '+outColor+'">'+(vis.outcome||'visited')+'</span></div>'
+    if(vis.observations)visitsHtml+='<div style="font-size:12px;color:#8a96ab;margin-bottom:6px">'+vis.observations+'</div>'
+    if(vis.issues)visitsHtml+='<div style="font-size:12px;color:#d97706;margin-bottom:6px">'+vis.issues+'</div>'
+    if(vis.next_visit_date)visitsHtml+='<div style="font-size:11px;color:#414e63">Next visit: '+fd(vis.next_visit_date)+'</div>'
+    visitsHtml+='</div>'
+  }
+  el.innerHTML=
+    '<div style="margin-bottom:13px;display:flex;gap:9px;align-items:flex-start">'+
+    '<div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">'+
+    '<div style="font-size:10px;color:#414e63;margin-bottom:3px">NEXT PM VISIT DUE</div>'+
+    '<div style="font-size:18px;font-weight:300;color:'+nextVisitColor+'">'+(j.next_pm_visit?fd(j.next_pm_visit):'Not scheduled')+'</div>'+
+    (nextVisitText?'<div style="font-size:11px;color:#414e63;margin-top:2px">'+nextVisitText+'</div>':'')+
+    '</div>'+
+    '<div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">'+
+    '<div style="font-size:10px;color:#414e63;margin-bottom:3px">PM ASSIGNED</div>'+
+    '<div style="font-size:14px;font-weight:500">'+(j.project_manager||'Not assigned')+'</div>'+
+    '<div style="font-size:11px;color:#414e63;margin-top:2px">'+(j.pm_visit_schedule||'No schedule set')+'</div>'+
+    '</div>'+
+    '<button class="btn btn-p btn-sm" onclick="logPmVisitModal()">+ Log Visit</button>'+
+    '</div>'+
+    '<div class="sec-hdr">Visit History</div>'+
+    (visitsHtml||empty('📋','No PM visits logged yet'))
+}
+
+async function logPmVisitModal(){
+  const pvHtml=
+    '<div class="two"><div class="fg"><label class="fl">Visit Date *</label><input class="fi" type="date" id="pmv-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '<div class="fg"><label class="fl">PM Name</label><input class="fi" id="pmv-pm" value="'+(currentJob?.project_manager||ME?.full_name||'')+'"></div></div>'+
+    '<div class="fg"><label class="fl">Observations</label><textarea class="ft" id="pmv-obs" placeholder="What was observed on site…"></textarea></div>'+
+    '<div class="fg"><label class="fl">Issues Found</label><textarea class="ft" id="pmv-iss" placeholder="Any problems or items requiring attention…"></textarea></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Outcome</label>'+
+    '<select class="fs" id="pmv-out"><option value="visited">Visited</option><option value="approved">Approved</option>'+
+    '<option value="issues_found">Issues Found</option><option value="reinspection_needed">Reinspection Needed</option></select></div>'+
+    '<div class="fg"><label class="fl">Next Visit Date</label><input class="fi" type="date" id="pmv-next"></div></div>'
+  modal('Log PM Visit', pvHtml,
+    async()=>{
+      const{error}=await sb.from('pm_visits').insert({id:uuid(),job_id:currentJobId,visit_date:v('pmv-date'),pm_name:v('pmv-pm'),observations:v('pmv-obs'),issues:v('pmv-iss'),outcome:v('pmv-out'),next_visit_date:v('pmv-next')||null,created_at:new Date().toISOString()})
+      if(error){toast(error.message,'error');return}
+      if(v('pmv-next'))await sb.from('jobs').update({next_pm_visit:v('pmv-next'),updated_at:new Date().toISOString()}).eq('id',currentJobId)
+      closeModal();toast('Visit logged');loadJT('jt-pmvisits')
+    }
+  )
+}
+
+</script>
+</body>
+</html>
+<script>
+// ══════════════════════════════════════════
+// NOTIFICATIONS PAGE + BADGE
+// ══════════════════════════════════════════
+async function loadNotifBadge(){
+  try{
+    const{count}=await sb.from('notifications').select('id',{count:'exact',head:true}).eq('read',false)
+    const el=document.getElementById('notif-badge')
+    if(el){el.textContent=count||0;el.style.display=(count||0)>0?'block':'none'}
+  }catch(e){}
+}
+
+async function pgNotifications(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm btn-ghost" onclick="markAllNotifsRead()">Mark all read</button>'
+  const{data:notifs}=await sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(100)
+  const el=document.getElementById('page-area')
+  if(!(notifs||[]).length){el.innerHTML=empty('🔔','No notifications');return}
+  const groups={parts_variance:[],safety:[],general:[]}
+  ;(notifs||[]).forEach(n=>{
+    if(n.type==='parts_variance')groups.parts_variance.push(n)
+    else if(n.type?.includes('safety'))groups.safety.push(n)
+    else groups.general.push(n)
+  })
+  let html=''
+  const renderGroup=(title,icon,items)=>{
+    if(!items.length)return''
+    return '<div class="card" style="margin-bottom:13px"><div class="card-title">'+icon+' '+title+' ('+items.length+')</div>'+
+      items.map(n=>'<div style="display:flex;gap:11px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start;opacity:'+(n.read?.7:1)+'">'+'<div style="flex-shrink:0;margin-top:2px"><div style="width:8px;height:8px;border-radius:50%;background:'+(n.read?'#414e63':'#dc2626')+'"></div></div>'+
+        '<div style="flex:1"><div style="font-size:13px;font-weight:'+(n.read?400:600)+'">'+n.title+'</div>'+
+        '<div style="font-size:12px;color:#8a96ab;margin-top:3px">'+n.message+'</div>'+
+        '<div style="font-size:10px;color:#414e63;margin-top:4px">'+fdt(n.created_at)+'</div>'+
+        (n.meta?.job_id?'<button class="btn btn-sm" style="margin-top:6px" onclick="openJob(\\''+n.meta.job_id+'\\')">View Job →</button>':'')+
+        '</div>'+
+        (!n.read?'<button class="btn btn-sm btn-ghost" onclick="markNotifRead(\\''+n.id+'\\')" style="flex-shrink:0">✓</button>':'')+
+        '</div>').join('')+
+      '</div>'
+  }
+  html+=renderGroup('Parts Variance','⚠',groups.parts_variance)
+  html+=renderGroup('Safety','🛡',groups.safety)
+  html+=renderGroup('General','🔔',groups.general)
+  el.innerHTML=html||empty('🔔','No notifications')
+  // Mark all as read after viewing
+  await sb.from('notifications').update({read:true}).eq('read',false)
+  loadNotifBadge()
+}
+
+async function markNotifRead(id){
+  await sb.from('notifications').update({read:true}).eq('id',id)
+  pgNotifications()
+}
+async function markAllNotifsRead(){
+  await sb.from('notifications').update({read:true}).eq('read',false)
+  toast('All marked read')
+  pgNotifications()
+}
+
+// Load badge on boot (called from DOMContentLoaded in main script)
+setTimeout(loadNotifBadge, 2000)
+setInterval(loadNotifBadge, 60000)
+</script>
+<script>
+// ══════════════════════════════════════════
+// DISPATCH BOARD
+// ══════════════════════════════════════════
+let _dispatchDate = new Date().toISOString().split('T')[0]
+let _dispatchData = { jobs:[], employees:[], companies:[], assignments:[] }
+let _dragJob = null
+
+async function pgDispatch(){
+  document.getElementById('topbar-actions').innerHTML =
+    '<button class="btn btn-sm" onclick="dispatchPrevDay()">← Prev</button>'+
+    '<input type="date" class="fi" id="dispatch-date" value="'+_dispatchDate+'" style="width:150px;padding:5px 10px" onchange="_dispatchDate=this.value;loadDispatchData()">'+
+    '<button class="btn btn-sm" onclick="dispatchNextDay()">Next →</button>'+
+    '<button class="btn btn-p btn-sm" onclick="loadDispatchData()">↻ Refresh</button>'
+
+  document.getElementById('page-area').innerHTML =
+    '<div style="display:grid;grid-template-columns:280px 1fr;gap:0;height:calc(100vh - 100px);overflow:hidden">' +
+    '<div id="dispatch-left" style="border-right:1px solid rgba(255,255,255,.07);overflow-y:auto;background:#060a10"></div>' +
+    '<div id="dispatch-right" style="overflow-y:auto;padding:14px"></div>' +
+    '</div>'
+
+  await loadDispatchData()
+}
+
+function dispatchPrevDay(){
+  const d=new Date(_dispatchDate);d.setDate(d.getDate()-1)
+  _dispatchDate=d.toISOString().split('T')[0]
+  document.getElementById('dispatch-date').value=_dispatchDate
+  loadDispatchData()
+}
+function dispatchNextDay(){
+  const d=new Date(_dispatchDate);d.setDate(d.getDate()+1)
+  _dispatchDate=d.toISOString().split('T')[0]
+  document.getElementById('dispatch-date').value=_dispatchDate
+  loadDispatchData()
+}
+
+async function loadDispatchData(){
+  const left=document.getElementById('dispatch-left')
+  const right=document.getElementById('dispatch-right')
+  if(!left||!right) return
+  left.innerHTML='<div class="loading"><div class="spin"></div></div>'
+  right.innerHTML='<div class="loading"><div class="spin"></div></div>'
+
+  const[{data:jobs},{data:employees},{data:companies},{data:assignments}]=await Promise.all([
+    sb.from('jobs').select('id,name,address,phase,gc_company,project_manager,due_date').eq('archived',false).neq('phase','complete').order('name'),
+    sb.from('profiles').select('id,full_name,role,phone,company_id,companies(name)').eq('is_active',true).in('role',['technician','foreman','sub_worker','sub_lead','stager']).order('full_name'),
+    sb.from('companies').select('id,name,trade').eq('is_active',true).order('name'),
+    sb.from('dispatch_assignments').select('*,jobs(name,address),profiles:profile_id(full_name,role),companies:company_id(name)').eq('dispatch_date',_dispatchDate)
+  ])
+
+  _dispatchData={jobs:jobs||[],employees:employees||[],companies:companies||[],assignments:assignments||[]}
+
+  // Figure out who/what is already assigned today
+  const assignedProfileIds=new Set((assignments||[]).filter(a=>a.profile_id).map(a=>a.profile_id))
+  const assignedCompanyIds=new Set((assignments||[]).filter(a=>a.company_id&&!a.profile_id).map(a=>a.company_id))
+  const assignedJobIds=new Set((assignments||[]).map(a=>a.job_id))
+
+  renderDispatchLeft(left, employees||[], companies||[], assignedProfileIds, assignedCompanyIds)
+  renderDispatchRight(right, employees||[], companies||[], assignments||[], jobs||[], assignedJobIds)
+}
+
+function renderDispatchLeft(el, employees, companies, assignedProfileIds, assignedCompanyIds){
+  const unassignedEmp=employees.filter(e=>!assignedProfileIds.has(e.id))
+  const unassignedCos=companies.filter(co=>!assignedCompanyIds.has(co.id))
+
+  // Group employees by company
+  const internal=unassignedEmp.filter(e=>!e.company_id)
+  const byCo={}
+  unassignedEmp.filter(e=>e.company_id).forEach(e=>{
+    if(!byCo[e.company_id])byCo[e.company_id]={name:e.companies?.name||'?',workers:[]}
+    byCo[e.company_id].workers.push(e)
+  })
+
+  let html='<div style="padding:12px 13px;border-bottom:1px solid rgba(255,255,255,.07)">'
+  html+='<div style="font-size:11px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">'+_dispatchDate+'</div>'
+  html+='<div style="font-size:10px;color:#414e63">'+(unassignedEmp.length)+' available · drag to assign</div>'
+  html+='</div>'
+
+  // Unassigned jobs pool at top
+  const unassignedJobs=_dispatchData.jobs.filter(j=>!new Set(_dispatchData.assignments.map(a=>a.job_id)).has(j.id))
+  if(unassignedJobs.length){
+    html+='<div style="padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.07)">'
+    html+='<div style="font-size:10px;font-weight:600;color:#d97706;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">📋 Unscheduled Jobs ('+unassignedJobs.length+')</div>'
+    html+=unassignedJobs.map(j=>
+      '<div class="dispatch-job-chip" draggable="true" data-job-id="'+j.id+'" data-job-name="'+j.name.replace(/"/g,'&quot;')+'" data-job-addr="'+(j.address||'').replace(/"/g,'&quot;')+'" onmousedown="startJobDrag(event,this)" '+
+      'style="background:#131c2e;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 10px;margin-bottom:5px;cursor:grab;user-select:none;transition:.15s" '+
+      'onmouseenter="this.style.borderColor=\\'rgba(37,99,235,.5)\\'" onmouseleave="this.style.borderColor=\\'rgba(255,255,255,.08)\\'">' +
+      '<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+j.name+'</div>'+
+      '<div style="font-size:10px;color:#414e63;margin-top:2px">'+stageBadge(j.phase)+'</div>'+
+      '</div>'
+    ).join('')
+    html+='</div>'
+  }
+
+  // Internal employees
+  if(internal.length){
+    html+='<div style="padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.07)">'
+    html+='<div style="font-size:10px;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">👷 Internal Team ('+internal.length+')</div>'
+    html+=internal.map(e=>dispatchPersonChip(e)).join('')
+    html+='</div>'
+  }
+
+  // Sub company groups
+  Object.values(byCo).forEach(group=>{
+    html+='<div style="padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.07)">'
+    html+='<div style="font-size:10px;font-weight:600;color:#a78bfa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">🏢 '+group.name+' ('+group.workers.length+')</div>'
+    html+=group.workers.map(e=>dispatchPersonChip(e)).join('')
+    html+='</div>'
+  })
+
+  if(!unassignedEmp.length&&!unassignedJobs.length){
+    html+='<div style="padding:20px 13px;text-align:center;color:#414e63;font-size:12px">Everyone assigned for today ✓</div>'
+  }
+
+  el.innerHTML=html
+}
+
+function dispatchPersonChip(e){
+  const avCss=Object.entries(avS(e.full_name)).map(([k,v])=>k+':'+v).join(';')
+  return '<div class="dispatch-person-chip" data-profile-id="'+e.id+'" data-profile-name="'+e.full_name.replace(/"/g,'&quot;')+'" '+
+    'style="display:flex;align-items:center;gap:8px;padding:7px 9px;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:7px;margin-bottom:5px;cursor:default">'+
+    '<div class="av" style="width:26px;height:26px;font-size:9px;flex-shrink:0;'+avCss+'">'+ini(e.full_name)+'</div>'+
+    '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+e.full_name+'</div>'+
+    '<div style="font-size:10px;color:#414e63">'+e.role+(e.phone?' · '+e.phone:'')+'</div></div>'+
+    '</div>'
+}
+
+function renderDispatchRight(el, employees, companies, assignments, jobs, assignedJobIds){
+  const dateLabel=new Date(_dispatchDate).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})
+  let html='<div style="font-family:\\'Syne\\',sans-serif;font-size:16px;font-weight:700;margin-bottom:14px">'+dateLabel+'</div>'
+
+  // Time slots header
+  const hours=['6am','7am','8am','9am','10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm']
+
+  // Rows: each employee who is assigned OR all employees (show full board)
+  const allEmp=employees
+  if(!allEmp.length){
+    el.innerHTML=html+'<div style="color:#414e63;font-size:13px">No employees to show. Add employees in the Users section.</div>'
+    return
+  }
+
+  html+='<div style="overflow-x:auto">'
+  html+='<table style="width:100%;border-collapse:collapse;min-width:900px">'
+  // Header row with times
+  html+='<thead><tr>'
+  html+='<th style="text-align:left;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.07);font-size:11px;color:#414e63;min-width:180px;position:sticky;left:0;background:#060a10;z-index:2">Employee</th>'
+  html+='<th style="text-align:left;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.07);font-size:10px;color:#414e63;min-width:400px">Schedule — drag a job from the left panel to assign</th>'
+  html+='</tr></thead><tbody>'
+
+  for(const emp of allEmp){
+    const empAssignments=assignments.filter(a=>a.profile_id===emp.id)
+    const avCss=Object.entries(avS(emp.full_name)).map(([k,v])=>k+':'+v).join(';')
+    html+='<tr style="border-bottom:1px solid rgba(255,255,255,.04)">'
+    // Employee cell
+    html+='<td style="padding:10px 12px;vertical-align:top;position:sticky;left:0;background:#060a10;z-index:1">'
+    html+='<div style="display:flex;align-items:center;gap:8px">'
+    html+='<div class="av" style="width:28px;height:28px;font-size:10px;flex-shrink:0;'+avCss+'">'+ini(emp.full_name)+'</div>'
+    html+='<div><div style="font-size:12px;font-weight:500">'+emp.full_name+'</div>'
+    html+='<div style="font-size:10px;color:#414e63">'+emp.role+'</div></div></div>'
+    html+='</td>'
+    // Schedule cell — drop zone + assigned jobs
+    html+='<td class="dispatch-drop-zone" data-profile-id="'+emp.id+'" data-profile-name="'+emp.full_name.replace(/"/g,'&quot;')+'" '+
+      'ondragover="event.preventDefault();this.style.background=\\'rgba(37,99,235,.08)\\'" '+
+      'ondragleave="this.style.background=\\'\\'" '+
+      'ondrop="handleDispatchDrop(event,this)" '+
+      'style="padding:8px 10px;vertical-align:top;min-height:60px;transition:.15s">'
+    if(empAssignments.length){
+      html+=empAssignments.map(a=>dispatchAssignmentCard(a)).join('')
+    } else {
+      html+='<div class="dispatch-empty-zone" style="border:1.5px dashed rgba(255,255,255,.07);border-radius:7px;padding:10px;text-align:center;color:#1a2540;font-size:11px;min-height:44px;display:flex;align-items:center;justify-content:center">Drop job here</div>'
+    }
+    html+='</td></tr>'
+  }
+
+  html+='</tbody></table></div>'
+  el.innerHTML=html
+}
+
+function dispatchAssignmentCard(a){
+  const statusColors={scheduled:'rgba(37,99,235,.12)',in_progress:'rgba(22,163,74,.12)',complete:'rgba(22,163,74,.08)',cancelled:'rgba(220,38,38,.08)'}
+  const statusBorder={scheduled:'rgba(37,99,235,.25)',in_progress:'rgba(22,163,74,.3)',complete:'rgba(22,163,74,.2)',cancelled:'rgba(220,38,38,.2)'}
+  const bg=statusColors[a.status]||statusColors.scheduled
+  const border=statusBorder[a.status]||statusBorder.scheduled
+  return '<div style="background:'+bg+';border:1px solid '+border+';border-radius:7px;padding:8px 10px;margin-bottom:5px;position:relative">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
+    '<div style="flex:1;min-width:0">'+
+    '<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.jobs?.name||'Job')+'</div>'+
+    (a.jobs?.address?'<div style="font-size:10px;color:#414e63;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.jobs.address+'</div>':'')+
+    '<div style="display:flex;align-items:center;gap:8px;margin-top:4px">'+
+    (a.start_time?'<span style="font-size:10px;color:#60a5fa">⏱ '+fmtDispatchTime(a.start_time)+(a.end_time?' – '+fmtDispatchTime(a.end_time):'')+'</span>':'')+
+    '<span class="badge bg-gray" style="font-size:9px">'+a.status+'</span>'+
+    '</div>'+
+    (a.notes?'<div style="font-size:10px;color:#8a96ab;margin-top:3px">'+a.notes+'</div>':'')+
+    '</div>'+
+    '<div style="display:flex;flex-direction:column;gap:4px;margin-left:8px;flex-shrink:0">'+
+    '<button onclick="editDispatchAssignment(\\''+a.id+'\\')" style="background:rgba(255,255,255,.08);border:none;border-radius:4px;padding:3px 7px;cursor:pointer;color:#8a96ab;font-size:10px">✏</button>'+
+    '<button onclick="removeDispatchAssignment(\\''+a.id+'\\')" style="background:rgba(220,38,38,.1);border:none;border-radius:4px;padding:3px 7px;cursor:pointer;color:#dc2626;font-size:10px">✕</button>'+
+    '</div></div></div>'
+}
+
+function fmtDispatchTime(t){
+  if(!t)return''
+  const[h,m]=t.split(':').map(Number)
+  const ampm=h>=12?'pm':'am'
+  const h12=h%12||12
+  return h12+(m?':'+String(m).padStart(2,'0'):'')+ampm
+}
+
+// ── DRAG & DROP ────────────────────────────────────────────────
+let _dragData=null
+
+function startJobDrag(e, el){
+  _dragData={job_id:el.dataset.jobId, job_name:el.dataset.jobName}
+  el.style.opacity='.5'
+  el.style.transform='scale(.97)'
+  // Make droppable with native drag
+  el.setAttribute('draggable','true')
+  el.addEventListener('dragend',()=>{el.style.opacity='';el.style.transform='';_dragData=null},{once:true})
+}
+
+function handleDispatchDrop(event, dropZone){
+  event.preventDefault()
+  dropZone.style.background=''
+  if(!_dragData?.job_id){
+    // Try native drag data
+    const jobId=event.dataTransfer.getData('job_id')
+    const jobName=event.dataTransfer.getData('job_name')
+    if(jobId) _dragData={job_id:jobId, job_name:jobName}
+    else return
+  }
+  const profileId=dropZone.dataset.profileId
+  const profileName=dropZone.dataset.profileName
+  openAssignModal(_dragData.job_id, _dragData.job_name, profileId, profileName)
+  _dragData=null
+}
+
+// Also handle dragstart on job chips for native HTML5 drag
+document.addEventListener('dragstart', e=>{
+  const chip=e.target.closest('.dispatch-job-chip')
+  if(chip){
+    _dragData={job_id:chip.dataset.jobId, job_name:chip.dataset.jobName}
+    e.dataTransfer.setData('job_id', chip.dataset.jobId)
+    e.dataTransfer.setData('job_name', chip.dataset.jobName)
+    e.dataTransfer.effectAllowed='move'
+  }
+})
+
+function openAssignModal(jobId, jobName, profileId, profileName){
+  const now=new Date()
+  const hh=String(now.getHours()).padStart(2,'0')
+  const mm=String(Math.round(now.getMinutes()/15)*15%60).padStart(2,'0')
+  const defStart=hh+':'+mm
+  const defEnd=String((now.getHours()+4)%24).padStart(2,'0')+':00'
+
+  const html=
+    '<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:7px;padding:10px 12px;margin-bottom:13px">'+
+    '<div style="font-size:11px;color:#414e63">ASSIGNING</div>'+
+    '<div style="font-size:14px;font-weight:600;margin-top:2px">'+jobName+'</div>'+
+    '<div style="font-size:12px;color:#8a96ab;margin-top:2px">→ '+profileName+'</div>'+
+    '</div>'+
+    '<div class="two">'+
+    '<div class="fg"><label class="fl">Start Time</label><input class="fi" type="time" id="da-start" value="'+defStart+'"></div>'+
+    '<div class="fg"><label class="fl">Projected End</label><input class="fi" type="time" id="da-end" value="'+defEnd+'"></div>'+
+    '</div>'+
+    '<div class="fg"><label class="fl">Notes</label><input class="fi" id="da-notes" placeholder="Special instructions, access codes…"></div>'+
+    '<div class="fg"><label class="fl">Status</label><select class="fs" id="da-status">'+
+    '<option value="scheduled">Scheduled</option>'+
+    '<option value="in_progress">In Progress</option>'+
+    '<option value="complete">Complete</option>'+
+    '<option value="cancelled">Cancelled</option>'+
+    '</select></div>'
+
+  modal('Assign to Schedule', html, async()=>{
+    const{error}=await sb.from('dispatch_assignments').insert({
+      id:uuid(), job_id:jobId, profile_id:profileId,
+      dispatch_date:_dispatchDate,
+      start_time:v('da-start')||null,
+      end_time:v('da-end')||null,
+      notes:v('da-notes'),
+      status:v('da-status'),
+      created_by:ME?.full_name,
+      created_at:new Date().toISOString(),
+      updated_at:new Date().toISOString()
+    })
+    if(error){toast(error.message,'error');return}
+    closeModal()
+    toast(profileName+' assigned to '+jobName)
+    await loadDispatchData()
+  }, 'Assign')
+}
+
+async function editDispatchAssignment(id){
+  const{data:a}=await sb.from('dispatch_assignments').select('*,jobs(name)').eq('id',id).single()
+  if(!a)return
+  const html=
+    '<div style="font-size:13px;font-weight:600;margin-bottom:12px">'+a.jobs?.name+'</div>'+
+    '<div class="two">'+
+    '<div class="fg"><label class="fl">Start Time</label><input class="fi" type="time" id="ea-start" value="'+(a.start_time||'')+'"></div>'+
+    '<div class="fg"><label class="fl">Projected End</label><input class="fi" type="time" id="ea-end" value="'+(a.end_time||'')+'"></div>'+
+    '</div>'+
+    '<div class="fg"><label class="fl">Notes</label><input class="fi" id="ea-notes" value="'+(a.notes||'').replace(/"/g,'&quot;')+'"></div>'+
+    '<div class="fg"><label class="fl">Status</label><select class="fs" id="ea-status">'+
+    '<option value="scheduled"'+(a.status==='scheduled'?' selected':'')+'>Scheduled</option>'+
+    '<option value="in_progress"'+(a.status==='in_progress'?' selected':'')+'>In Progress</option>'+
+    '<option value="complete"'+(a.status==='complete'?' selected':'')+'>Complete</option>'+
+    '<option value="cancelled"'+(a.status==='cancelled'?' selected':'')+'>Cancelled</option>'+
+    '</select></div>'
+
+  modal('Edit Assignment', html, async()=>{
+    const{error}=await sb.from('dispatch_assignments').update({
+      start_time:v('ea-start')||null,
+      end_time:v('ea-end')||null,
+      notes:v('ea-notes'),
+      status:v('ea-status'),
+      updated_at:new Date().toISOString()
+    }).eq('id',id)
+    if(error){toast(error.message,'error');return}
+    closeModal();toast('Updated');await loadDispatchData()
+  }, 'Save')
+}
+
+async function removeDispatchAssignment(id){
+  if(!confirm('Remove this assignment?'))return
+  await sb.from('dispatch_assignments').delete().eq('id',id)
+  toast('Removed','warn');await loadDispatchData()
+}
 
 async function updateOrderStatus(orderId, newStatus){
   const{error}=await sb.from('orders').update({status:newStatus,updated_at:new Date().toISOString()}).eq('id',orderId)
   if(error){toast(error.message,'error');return}
-  toast('Order marked '+newStatus)
-  pgOrders()
+  toast('Order marked '+newStatus);pgOrders()
 }
 
 async function stageOrderToJob(orderId, jobId){
   const{data:order}=await sb.from('orders').select('*').eq('id',orderId).single()
   if(!order){toast('Order not found','error');return}
   const items=typeof order.items==='string'?JSON.parse(order.items||'[]'):(order.items||[])
-  if(!items.length){toast('No items in order','error');return}
-  const jobName=(window._allOrderJobs||[]).find(j=>j.id===jobId)?.name||jobId
-  const preview=items.map(i=>'• '+i.name+' ×'+i.qty).join('\\n')
-  if(!confirm('Stage '+items.length+' part type(s) to:\\n'+jobName+'\\n\\n'+preview+'\\n\\nThis will add parts to the job and mark order Staged.'))return
+  const jobName=allJobs.find(j=>j.id===jobId)?.name||jobId
+  if(!confirm('Stage to '+jobName+'?'))return
   const now=new Date().toISOString()
   for(const item of items){
-    const{data:existing}=await sb.from('job_parts').select('*').eq('job_id',jobId).eq('part_id',item.barcode).maybeSingle()
-    if(existing){
-      await sb.from('job_parts').update({assigned_qty:existing.assigned_qty+item.qty,ordered_qty:(existing.ordered_qty||0)+item.qty,status:'staged',staged_by:ME?.full_name,staged_at:now,order_id:orderId,updated_at:now}).eq('id',existing.id)
+    const{data:ex}=await sb.from('job_parts').select('*').eq('job_id',jobId).eq('part_id',item.barcode).maybeSingle()
+    if(ex){
+      await sb.from('job_parts').update({assigned_qty:ex.assigned_qty+item.qty,ordered_qty:(ex.ordered_qty||0)+item.qty,status:'staged',staged_by:ME?.full_name,staged_at:now,updated_at:now}).eq('id',ex.id)
     } else {
-      await sb.from('job_parts').insert({id:uuid(),job_id:jobId,part_id:item.barcode,part_name:item.name,status:'staged',assigned_qty:item.qty,ordered_qty:item.qty,taken_qty:0,installed_qty:0,returned_qty:0,staged_by:ME?.full_name,staged_at:now,order_id:orderId,notes:item.description||'',created_at:now,updated_at:now})
+      await sb.from('job_parts').insert({id:uuid(),job_id:jobId,part_id:item.barcode,part_name:item.name,status:'staged',assigned_qty:item.qty,ordered_qty:item.qty,taken_qty:0,installed_qty:0,returned_qty:0,staged_by:ME?.full_name,staged_at:now,notes:item.description||'',created_at:now,updated_at:now})
     }
     const{data:inv}=await sb.from('inventory').select('qty').eq('id',item.barcode).maybeSingle()
     if(inv)await sb.from('inventory').update({qty:Math.max(0,inv.qty-item.qty),updated_at:now}).eq('id',item.barcode)
   }
   await sb.from('orders').update({status:'staged',staged_by:ME?.full_name,staged_at:now}).eq('id',orderId)
-  toast('Staged '+items.length+' part types to '+jobName)
-  pgOrders()
+  toast('Staged '+items.length+' parts to '+jobName);pgOrders()
 }
 
-function addOrdItem(){
-  const bc=v('ord-bc').trim();if(!bc){toast('Enter a barcode or part name','error');return}
-  const qty=parseInt(v('ord-qty'))||1
-  const part=allCatalog.find(x=>x.barcode===bc||x.name.toLowerCase()===bc.toLowerCase())||{barcode:bc,name:bc,description:''}
-  const ex=(window._ordItems||[]).find(i=>i.barcode===part.barcode)
-  if(ex){ex.qty+=qty}else{(window._ordItems=window._ordItems||[]).push({barcode:part.barcode,name:part.name,qty,description:part.description||''})}
-  document.getElementById('ord-bc').value=''
-  document.getElementById('ord-qty').value=1
-  renderOrdItems()
-}
-
-function renderOrdItems(){
-  const el=document.getElementById('ord-items-display');if(!el)return
-  el.innerHTML=(window._ordItems||[]).map((i,idx)=>
-    '<div style="display:inline-flex;align-items:center;gap:5px;background:#131c2e;border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:4px 8px;font-size:12px">'+
-    '<span>'+i.name+' ×'+i.qty+'</span>'+
-    '<button data-idx="'+idx+'" onclick="(window._ordItems||[]).splice(parseInt(this.dataset.idx),1);renderOrdItems()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px;padding:0 2px">×</button>'+
-    '</div>'
-  ).join('')
-}
-
-async function submitOrder(){
-  const jobId=v('ord-job');if(!jobId){toast('Select a job','error');return}
-  const items=window._ordItems||[];if(!items.length){toast('Add at least one item','error');return}
-  const{error}=await sb.from('orders').insert({id:uuid(),job_id:jobId,items:JSON.stringify(items),notes:v('ord-notes'),status:'pending',created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
-  if(error){toast(error.message,'error');return}
-  window._ordItems=[]
-  toast('Order submitted')
-  pgOrders()
-}
-
-// ══════════════════════════════════════════
-// PARTS CHECKOUT UI
-// ══════════════════════════════════════════
 async function toggleCheckoutUI(){
-  const ui=document.getElementById('checkout-ui')
-  const btn=document.getElementById('checkout-toggle-btn')
+  const ui=document.getElementById('checkout-ui'),btn=document.getElementById('checkout-toggle-btn')
   if(!ui)return
   const showing=ui.style.display!=='none'
   ui.style.display=showing?'none':'block'
-  if(btn)btn.textContent=showing?'📤 Sign Out Parts':'✕ Cancel Sign Out'
-  if(!showing) await loadCheckoutUI()
+  if(btn)btn.textContent=showing?'📤 Sign Out Parts':'✕ Cancel'
+  if(!showing)await loadCheckoutUI()
 }
-
 async function loadCheckoutUI(){
-  // Load staged parts for this job
-  const{data:parts}=await sb.from('job_parts').select('*')
-    .eq('job_id',currentJobId)
-    .in('status',['staged'])
-  // Load technicians
+  const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',currentJobId).eq('status','staged')
   const{data:techs}=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
-
-  // Populate tech dropdown
-  const techSel=document.getElementById('checkout-tech')
-  if(techSel){
-    techSel.innerHTML='<option value="">— Select technician —</option>'+
-      (techs||[]).map(t=>'<option value="'+t.full_name+'">'+t.full_name+' ('+t.role+')</option>').join('')
-  }
-
-  // Render parts with +/- counters
+  const ts=document.getElementById('checkout-tech')
+  if(ts)ts.innerHTML='<option value="">— Select —</option>'+(techs||[]).map(t=>'<option value="'+t.full_name+'">'+t.full_name+'</option>').join('')
   const el=document.getElementById('checkout-parts-list')
   if(!el)return
-  if(!(parts||[]).length){
-    el.innerHTML='<div style="font-size:12px;color:#414e63">No staged parts on this job — stage parts from an order first</div>'
-    return
-  }
-  let html='<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Staged Parts — set quantity to sign out</div>'
-  html+='<div style="background:#131c2e;border-radius:8px;overflow:hidden">'
+  if(!(parts||[]).length){el.innerHTML='<div style="font-size:12px;color:#414e63">No staged parts on this job</div>';return}
+  let html='<div style="background:#131c2e;border-radius:8px;overflow:hidden">'
   parts.forEach(p=>{
-    const available=p.assigned_qty-(p.taken_qty||0)
-    if(available<=0)return
-    html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)" data-part-id="'+p.id+'">'
-    html+='<div style="flex:1;min-width:0">'
-    html+='<div style="font-size:13px;font-weight:500">'+p.part_name+'</div>'
-    html+='<div style="font-size:10px;color:#414e63;margin-top:1px">'+p.part_id+' · '+available+' available ('+p.assigned_qty+' staged, '+(p.taken_qty||0)+' already out)</div>'
-    html+='</div>'
-    // +/- counter
-    html+='<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
-    html+='<button class="co-minus" data-pid="'+p.id+'" data-max="'+available+'" onclick="adjCheckout(this,-1)" '
-    html+='style="width:32px;height:32px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:18px;display:flex;align-items:center;justify-content:center">−</button>'
-    html+='<input type="number" class="co-qty fi" data-pid="'+p.id+'" data-max="'+available+'" value="0" min="0" max="'+available+'" '
-    html+='style="width:56px;text-align:center;padding:6px;font-size:15px;font-weight:600" onchange="clampCoQty(this)">'
-    html+='<button class="co-plus" data-pid="'+p.id+'" data-max="'+available+'" onclick="adjCheckout(this,1)" '
-    html+='style="width:32px;height:32px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#16a34a;font-size:18px;display:flex;align-items:center;justify-content:center">+</button>'
-    html+='</div></div>'
+    const av=p.assigned_qty-(p.taken_qty||0);if(av<=0)return
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+p.part_name+'</div><div style="font-size:10px;color:#414e63">'+av+' available</div></div>'
+    html+='<div style="display:flex;align-items:center;gap:6px"><button data-pid="'+p.id+'" data-max="'+av+'" onclick="adjCO(this,-1)" style="width:32px;height:32px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:18px">−</button>'
+    html+='<input type="number" class="co-qty fi" data-pid="'+p.id+'" data-max="'+av+'" value="0" min="0" max="'+av+'" style="width:56px;text-align:center;font-size:15px;font-weight:600">'
+    html+='<button data-pid="'+p.id+'" data-max="'+av+'" onclick="adjCO(this,1)" style="width:32px;height:32px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#16a34a;font-size:18px">+</button></div></div>'
   })
-  html+='</div>'
-  el.innerHTML=html
+  el.innerHTML=html+'</div>'
 }
-
-function adjCheckout(btn, delta){
-  const pid=btn.dataset.pid
-  const max=parseInt(btn.dataset.max)||99
-  const input=document.querySelector('.co-qty[data-pid="'+pid+'"]')
-  if(!input)return
-  const newVal=Math.min(max,Math.max(0,(parseInt(input.value)||0)+delta))
-  input.value=newVal
-  input.style.color=newVal>0?'#16a34a':'#8a96ab'
+function adjCO(btn,d){
+  const inp=document.querySelector('.co-qty[data-pid="'+btn.dataset.pid+'"]');if(!inp)return
+  const v=Math.min(parseInt(btn.dataset.max)||99,Math.max(0,(parseInt(inp.value)||0)+d))
+  inp.value=v;inp.style.color=v>0?'#16a34a':'#8a96ab'
 }
-
-function clampCoQty(input){
-  const max=parseInt(input.dataset.max)||99
-  input.value=Math.min(max,Math.max(0,parseInt(input.value)||0))
-  input.style.color=parseInt(input.value)>0?'#16a34a':'#8a96ab'
-}
-
 async function commitCheckout(){
   const tech=document.getElementById('checkout-tech')?.value
   if(!tech){toast('Select a technician','error');return}
   const inputs=document.querySelectorAll('.co-qty')
-  const items=[]
-  inputs.forEach(inp=>{
-    const qty=parseInt(inp.value)||0
-    if(qty>0)items.push({part_id:inp.dataset.pid, qty})
-  })
+  const items=[];inputs.forEach(i=>{const q=parseInt(i.value)||0;if(q>0)items.push({pid:i.dataset.pid,qty:q})})
   if(!items.length){toast('Set quantity for at least one part','error');return}
-
-  const now=new Date().toISOString()
-  let count=0
+  const now=new Date().toISOString();let count=0
   for(const item of items){
-    const{data:p}=await sb.from('job_parts').select('*').eq('id',item.part_id).single()
-    if(!p)continue
-    const newTaken=(p.taken_qty||0)+item.qty
-    const newStatus=newTaken>=(p.assigned_qty||0)?'signed_out':'staged'
-    await sb.from('job_parts').update({
-      taken_qty:newTaken,
-      status:newStatus,
-      checked_out_by:tech,
-      checked_out_at:now,
-      updated_at:now
-    }).eq('id',item.part_id)
-    await sb.from('scan_events').insert({
-      id:uuid(),job_id:currentJobId,part_id:p.part_id,part_name:p.part_name,
-      action:'check_out',qty:item.qty,scanned_by:ME?.full_name||'?',
-      scanned_at:now,device_info:'Admin checkout by '+tech
-    })
+    const{data:p}=await sb.from('job_parts').select('*').eq('id',item.pid).single();if(!p)continue
+    const nt=(p.taken_qty||0)+item.qty
+    await sb.from('job_parts').update({taken_qty:nt,status:nt>=(p.assigned_qty||0)?'signed_out':'staged',checked_out_by:tech,checked_out_at:now,updated_at:now}).eq('id',item.pid)
+    await sb.from('scan_events').insert({id:uuid(),job_id:currentJobId,part_id:p.part_id,part_name:p.part_name,action:'check_out',qty:item.qty,scanned_by:ME?.full_name||'?',scanned_at:now,device_info:'Admin checkout'})
     count+=item.qty
   }
   toast(count+' parts signed out to '+tech)
   document.getElementById('checkout-ui').style.display='none'
-  const btn=document.getElementById('checkout-toggle-btn')
-  if(btn)btn.textContent='📤 Sign Out Parts'
   loadJT('jt-parts')
 }
 </script>
-</body>
-</html>
 `
 const HTML_WORKER = `<!DOCTYPE html>
 <html lang="en">
