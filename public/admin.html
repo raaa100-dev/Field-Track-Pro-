@@ -15,7 +15,7 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 ::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:#1a2540;border-radius:2px}
 #sidebar{width:215px;min-width:215px;background:#0c1220;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;height:100vh;overflow-y:auto}
 .logo{padding:15px 14px 11px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
-.logo-mark{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;background:linear-gradient(135deg,#e8edf5,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-mark{font-family:Syne,sans-serif;font-size:15px;font-weight:800;background:linear-gradient(135deg,#e8edf5,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .logo-sub{font-size:9px;color:#414e63;letter-spacing:.12em;text-transform:uppercase;margin-top:1px}
 .nav-section{padding:9px 12px 2px;font-size:9px;font-weight:600;color:#414e63;letter-spacing:.1em;text-transform:uppercase}
 .nav-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer;color:#8a96ab;font-size:12px;margin:1px 5px;transition:.15s;user-select:none;white-space:nowrap}
@@ -25,10 +25,10 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .sidebar-foot{margin-top:auto;padding:9px;border-top:1px solid rgba(255,255,255,.06)}
 .user-pill{display:flex;align-items:center;gap:8px;padding:7px;background:#131c2e;border-radius:7px;cursor:pointer}
 .user-pill:hover{background:#1a2540}
-.av{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:'Syne',sans-serif;flex-shrink:0}
+.av{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:Syne,sans-serif;flex-shrink:0}
 #main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;min-width:0}
 .topbar{height:48px;padding:0 18px;background:#0c1220;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.topbar-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+.topbar-title{font-family:Syne,sans-serif;font-size:14px;font-weight:700}
 .tb-right{display:flex;gap:7px;align-items:center}
 #page-area{flex:1;overflow-y:auto;padding:18px}
 .btn{padding:7px 13px;border-radius:7px;font-size:12px;cursor:pointer;border:1px solid rgba(255,255,255,.1);background:#131c2e;color:#e8edf5;font-family:'DM Sans',sans-serif;transition:.15s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
@@ -69,7 +69,7 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .tab:hover{color:#8a96ab}.tab.active{color:#2563eb;border-bottom-color:#2563eb;font-weight:500}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .modal-box{background:#0c1220;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:22px;width:100%;max-width:580px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.9)}
-.modal-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.modal-title{font-family:Syne,sans-serif;font-size:15px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
 .modal-close{cursor:pointer;color:#414e63;font-size:20px;line-height:1;padding:2px 6px;border-radius:4px}.modal-close:hover{color:#e8edf5;background:#131c2e}
 .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:13px;border-top:1px solid rgba(255,255,255,.06)}
 .loading{padding:40px;text-align:center;color:#414e63;font-size:12px;display:flex;align-items:center;justify-content:center;gap:9px}
@@ -150,6 +150,7 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
     <div class="nav-item" onclick="P('jobs',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>All Jobs</div>
     <div class="nav-item" onclick="P('newjob',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/></svg>New Job</div>
     <div class="nav-item" onclick="P('schedule',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>Schedule</div>
+    <div class="nav-item" onclick="P('dispatch',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="6" height="5" rx="1"/><rect x="9" y="4" width="6" height="5" rx="1"/><path d="M4 9v4M12 9v4M1 13h6M9 13h6"/></svg>Dispatch Board</div>
     <div class="nav-item" onclick="pgJobMap()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 3l4 1.5L9 3l6 2v8l-6-2-4 1.5L1 11V3z"/><path d="M5 4.5v9M9 3v9"/></svg>Job Map</div>
     <div class="nav-section">Daily Ops</div>
     <div class="nav-item" onclick="P('daily',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v10H3z"/><path d="M3 7h10M7 3v10"/></svg>Daily Reports</div>
@@ -184,7 +185,12 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 <div id="main">
   <div class="topbar">
     <div class="topbar-title" id="page-title">Dashboard</div>
-    <div class="tb-right" id="topbar-actions"></div>
+    <div class="tb-right" id="topbar-actions">
+      <div style="position:relative;cursor:pointer" onclick="P('notifications',null)" title="Notifications">
+        <div style="font-size:18px;line-height:1;padding:4px 6px">🔔</div>
+        <div id="notif-badge" style="display:none;position:absolute;top:0;right:0;background:#dc2626;color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:99px;min-width:16px;text-align:center">0</div>
+      </div>
+    </div>
   </div>
   <div id="page-area"><div class="loading"><div class="spin"></div> Loading…</div></div>
 </div>
@@ -221,7 +227,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
 function doSignOut(){sb.auth.signOut();location.href='index.html'}
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const PAGE_TITLES={dashboard:'Dashboard',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
+const PAGE_TITLES={dashboard:'Dashboard',notifications:'Notifications',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
 function P(page,navEl){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
   if(navEl)navEl.classList.add('active')
@@ -229,7 +235,7 @@ function P(page,navEl){
   document.getElementById('topbar-actions').innerHTML=''
   const a=document.getElementById('page-area')
   a.innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
-  const map={dashboard:pgDash,jobs:pgJobs,newjob:pgNewJob,schedule:pgSchedule,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers}
+  const map={dashboard:pgDash,jobs:pgJobs,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications}
   if(map[page])map[page]()
   else a.innerHTML='<div class="empty">Coming soon</div>'
 }
@@ -259,9 +265,9 @@ function fm(n,d=0){if(n==null)return'—';return'$'+Number(n).toLocaleString('en
 function isOD(due,phase){return due&&phase!=='complete'&&new Date(due)<new Date()}
 function daysAway(d){if(!d)return null;return Math.round((new Date(d)-new Date())/86400000)}
 
-const STAGES=['not_started','in_progress','pre_test','pre_tested','ready_for_final','complete']
-const STAGE_LABELS={not_started:'Not Started',in_progress:'In Progress',pre_test:'Ready for Pre-test',pre_tested:'Pre-Tested',ready_for_final:'Ready for Final',complete:'Complete'}
-const STAGE_COLORS={not_started:'bg-gray',in_progress:'bg-blue',pre_test:'bg-amber',pre_tested:'bg-teal',ready_for_final:'bg-purple',complete:'bg-green'}
+const STAGES=['not_started','parts_ordered','parts_staged','in_progress','pre_test','pre_tested','ready_for_final','complete']
+const STAGE_LABELS={not_started:'Not Started',parts_ordered:'Parts Ordered',parts_staged:'Parts Staged',in_progress:'In Progress',pre_test:'Ready for Pre-test',pre_tested:'Pre-Tested',ready_for_final:'Ready for Final',complete:'Complete'}
+const STAGE_COLORS={not_started:'bg-gray',parts_ordered:'bg-orange',parts_staged:'bg-amber',in_progress:'bg-blue',pre_test:'bg-amber',pre_tested:'bg-teal',ready_for_final:'bg-purple',complete:'bg-green'}
 function stageBadge(p){return`<span class="badge ${STAGE_COLORS[p]||'bg-gray'}">${STAGE_LABELS[p]||p||'—'}</span>`}
 function roleBadge(r){const m={admin:'bg-purple',pm:'bg-blue',stager:'bg-amber',foreman:'bg-teal',technician:'bg-green',sub_lead:'bg-amber',sub_worker:'bg-gray'};return`<span class="badge ${m[r]||'bg-gray'}">${r||'—'}</span>`}
 function empty(icon,txt){return`<div class="empty"><div class="empty-icon">${icon}</div><div style="color:#414e63;font-size:12px">${txt}</div></div>`}
@@ -272,19 +278,33 @@ function ld(){return'<div class="loading"><div class="spin"></div> Loading…</d
 // ══════════════════════════════════════════
 async function pgDash(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="P(\'newjob\',null)">+ New Job</button>'
-  const[{data:jobs},{data:ci},{data:parts},{data:low},{data:safety}]=await Promise.all([
-    sb.from('jobs').select('*').eq('archived',false).order('created_at',{ascending:false}),
-    sb.from('checkins').select('*,profiles:worker_id(full_name),jobs(name)').is('checkout_at',null).order('checkin_at',{ascending:false}),
-    sb.from('job_parts').select('*').in('status',['staged','signed_out']),
-    sb.from('inventory').select('*').gt('min_qty',0),
-    sb.from('safety_assignments').select('*,safety_topics(title,week_of)').is('acknowledged_at',null).limit(5)
-  ])
+  try {
+  // Run queries individually so one failure doesn't break everything
+  const {data:jobs,error:jobsError} = await sb.from('jobs').select('*').order('created_at',{ascending:false})
+  if(jobsError) throw new Error('Jobs: '+jobsError.message)
+  const {data:ci} = await sb.from('checkins').select('id,job_id,worker_id,checkin_at,checkout_at').is('checkout_at',null).order('checkin_at',{ascending:false}).limit(20).catch(()=>({data:[]}))
+  const {data:parts} = await sb.from('job_parts').select('id,job_id,status,assigned_qty').in('status',['staged','signed_out']).catch(()=>({data:[]}))
+  const {data:low} = await sb.from('inventory').select('id,name,qty,min_qty').gt('min_qty',0).catch(()=>({data:[]}))
+  const {data:safety} = await sb.from('safety_topics').select('id,title,week_of').order('created_at',{ascending:false}).limit(5).catch(()=>({data:[]}))
+  // Load worker names for check-ins separately (avoid join issues)
+  let ciWithNames = ci||[]
+  if(ciWithNames.length){
+    const workerIds=[...new Set(ciWithNames.map(c=>c.worker_id).filter(Boolean))]
+    const jobIds=[...new Set(ciWithNames.map(c=>c.job_id).filter(Boolean))]
+    const [{data:wProfiles},{data:ciJobs}]=await Promise.all([
+      sb.from('profiles').select('id,full_name').in('id',workerIds),
+      sb.from('jobs').select('id,name').in('id',jobIds)
+    ]).catch(()=>[{data:[]},{data:[]}])
+    const wMap={}; (wProfiles||[]).forEach(p=>wMap[p.id]=p.full_name)
+    const jMap={}; (ciJobs||[]).forEach(j=>jMap[j.id]=j.name)
+    ciWithNames=ciWithNames.map(c=>({...c,workerName:wMap[c.worker_id]||'?',jobName:jMap[c.job_id]||''}))
+  }
   allJobs=jobs||[]
   const active=allJobs.filter(j=>j.phase!=='complete')
   const staged=(parts||[]).filter(p=>p.status==='staged')
   const out=(parts||[]).filter(p=>p.status==='signed_out')
   const lowStock=(low||[]).filter(i=>i.qty<=i.min_qty)
-  const checkins=ci||[]
+  const checkins=ciWithNames
   // Upcoming milestones in next 14 days
   const soon=[]
   allJobs.forEach(j=>{
@@ -317,7 +337,7 @@ async function pgDash(){
       </div>
       <div class="card">
         <div class="card-title">Live Check-ins</div>
-        ${checkins.length?checkins.slice(0,5).map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div class="av" style="width:22px;height:22px;font-size:8px;${Object.entries(avS(c.profiles?.full_name)).map(([k,v])=>k+':'+v).join(';')}">${ini(c.profiles?.full_name)}</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.profiles?.full_name||'?'}</div><div style="font-size:10px;color:#414e63">${c.jobs?.name||''} · ${ft(c.checkin_at)}</div></div><span class="gps-live" style="font-size:9px"><span class="pulse"></span></span></div>`).join(''):'<div style="font-size:12px;color:#414e63">No one on site</div>'}
+        ${checkins.length?checkins.slice(0,5).map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div class="av" style="width:22px;height:22px;font-size:8px;${Object.entries(avS(c.workerName)).map(([k,v])=>k+':'+v).join(';')}">${ini(c.workerName)}</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.workerName||'?'}</div><div style="font-size:10px;color:#414e63">${c.jobName||''} · ${ft(c.checkin_at)}</div></div><span class="gps-live" style="font-size:9px"><span class="pulse"></span></span></div>`).join(''):'<div style="font-size:12px;color:#414e63">No one on site</div>'}
       </div>
     </div>
     <div>
@@ -328,8 +348,11 @@ async function pgDash(){
       </div>
     </div>
   </div>`
+  } catch(e) {
+    console.error('Dashboard:',e)
+    document.getElementById('page-area').innerHTML='<div style="padding:20px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px"><div style="color:#dc2626;font-weight:600;margin-bottom:6px">⚠ Failed to load — database not ready</div><div style="font-size:12px;color:#f87171;word-break:break-all">'+e.message+'</div><div style="font-size:11px;color:#8a96ab;margin-top:8px">Run <strong>supabase-fix.sql</strong> in Supabase SQL Editor, then refresh.</div></div>'
+  }
 }
-
 // ══════════════════════════════════════════
 // ALL JOBS
 // ══════════════════════════════════════════
@@ -338,9 +361,15 @@ async function pgJobs(){
     <label class="btn btn-sm" style="cursor:pointer">⬇ Import Excel<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importJobsExcel(this)"></label>
     <button class="btn btn-sm" onclick="exportJobsExcel()">⬆ Export</button>
     <button class="btn btn-p btn-sm" onclick="P('newjob',null)">+ New Job</button>`
-  const{data:jobs}=await sb.from('jobs').select('*').order('created_at',{ascending:false})
-  allJobs=jobs||[]
-  renderJobsTable('')
+  try {
+    const{data:jobs,error}=await sb.from('jobs').select('*').order('created_at',{ascending:false})
+    if(error) throw error
+    allJobs=jobs||[]
+    renderJobsTable('')
+  } catch(e) {
+    const errMsg=e.message||String(e)
+    document.getElementById('page-area').innerHTML='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:18px;margin:0"><div style="font-weight:600;color:#dc2626;margin-bottom:6px">Failed to load jobs</div><div style="font-size:12px;color:#f87171;font-family:monospace;word-break:break-all;margin-bottom:8px">'+errMsg+'</div><div style="font-size:11px;color:#8a96ab">To fix: go to Supabase Dashboard → SQL Editor → run <strong>supabase-fix.sql</strong> from the zip, then refresh this page.</div></div>'
+  }
 }
 function renderJobsTable(q){
   const rows=allJobs.filter(j=>!q||j.name.toLowerCase().includes(q.toLowerCase())||(j.address||'').toLowerCase().includes(q.toLowerCase()))
@@ -402,7 +431,7 @@ function renderJobDetail(){
   const si=STAGES.indexOf(j.phase)
   document.getElementById('page-area').innerHTML=`
   <div style="margin-bottom:14px">
-    <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700">${j.name}</div>
+    <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">${j.name}</div>
     <div style="font-size:12px;color:#8a96ab;margin-top:3px">${j.address||''}</div>
     <div style="display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap">
       ${stageBadge(j.phase)}
@@ -475,7 +504,7 @@ function renderInfoTab(el,j){
     <div class="fg"><label class="fl">GC Company</label><input class="fi" id="ed-gc" value="${j.gc_company||''}"></div>
     <div class="two"><div class="fg"><label class="fl">GC Contact</label><input class="fi" id="ed-gcc" value="${j.gc_contact||''}"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="ed-gcp" value="${j.gc_phone||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="ed-sup" value="${j.super_name||''}"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="ed-supp" value="${j.super_phone||''}"></div></div>
-    <div class="fg"><label class="fl">Project Manager (Internal)</label><input class="fi" id="ed-pm" value="${j.project_manager||''}"></div>
+    <div class="fg"><label class="fl">Project Manager (Internal)</label><select class="fs" id="ed-pm"><option value="">— Unassigned —</option></select></div>
     <div class="two"><div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="ed-pmschedule"><option value="none">No visits</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">Milestones only</option></select></div><div class="fg"><label class="fl">Next PM Visit Due</label><input class="fi" type="date" id="ed-pmvisit" value="${j.next_pm_visit||''}"></div></div>
   </div>
   <div>
@@ -494,13 +523,25 @@ function renderInfoTab(el,j){
     <button class="btn btn-p" onclick="saveInfoTab()">Save Changes</button>
     <button class="btn btn-a" onclick="archiveJob()">Archive Job</button>
   </div>`
-  setTimeout(()=>{document.getElementById('ed-rad').value=j.gps_radius_ft||250;if(document.getElementById('ed-pmschedule'))document.getElementById('ed-pmschedule').value=j.pm_visit_schedule||'none'},50)
+  setTimeout(async()=>{
+    document.getElementById('ed-rad').value=j.gps_radius_ft||250
+    if(document.getElementById('ed-pmschedule'))document.getElementById('ed-pmschedule').value=j.pm_visit_schedule||'none'
+    // Populate PM dropdown from employee list
+    const{data:pmUsers}=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
+    const sel=document.getElementById('ed-pm')
+    if(sel&&pmUsers){
+      sel.innerHTML='<option value="">— Unassigned —</option>'+(pmUsers||[]).map(p=>'<option value="'+p.full_name+'"'+( j.project_manager===p.full_name?' selected':'')+'>'+p.full_name+' ('+p.role+')</option>').join('')
+      if(j.project_manager&&!(pmUsers||[]).find(p=>p.full_name===j.project_manager)){
+        sel.innerHTML+='<option value="'+j.project_manager+'" selected>'+j.project_manager+' (not in system)</option>'
+      }
+    }
+  },50)
 }
 async function saveInfoTab(){
   const u={name:v('ed-name'),address:v('ed-addr'),gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,date_start:v('ed-start')||null,due_date:v('ed-due')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
   const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
   if(error){toast(error.message,'error');return}
-  currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved ✓')
+  currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved')
 }
 async function archiveJob(){if(!confirm('Archive this job?'))return;await sb.from('jobs').update({archived:true}).eq('id',currentJobId);toast('Archived');P('jobs',null)}
 function renderScopeTab(el,j){
@@ -511,7 +552,7 @@ function renderScopeTab(el,j){
   <div class="two"><div class="fg"><label class="fl">Job Walk By</label><input class="fi" id="sc-jwb" value="${j.job_walk_by||''}"></div><div class="fg"><label class="fl">Job Walk Date</label><input class="fi" type="date" id="sc-jwd" value="${j.job_walk_date||''}"></div></div>
   <button class="btn btn-p" onclick="saveScope()">Save</button>`
 }
-async function saveScope(){const{error}=await sb.from('jobs').update({scope:v('sc-scope'),install_notes:v('sc-notes'),job_walk_notes:v('sc-jwn'),job_walk_by:v('sc-jwb'),job_walk_date:v('sc-jwd')||null,updated_at:new Date().toISOString()}).eq('id',currentJobId);if(error)toast(error.message,'error');else toast('Saved ✓')}
+async function saveScope(){const{error}=await sb.from('jobs').update({scope:v('sc-scope'),install_notes:v('sc-notes'),job_walk_notes:v('sc-jwn'),job_walk_by:v('sc-jwb'),job_walk_date:v('sc-jwd')||null,updated_at:new Date().toISOString()}).eq('id',currentJobId);if(error)toast(error.message,'error');else toast('Saved')}
 
 // ADDRESS AUTOCOMPLETE
 let _addrDeb=null
@@ -522,22 +563,24 @@ async function addrAC(val,ddId){
 }
 function selAddr(label,lat,lng,ddId){
   const dd=document.getElementById(ddId);if(dd)dd.style.display='none'
-  if(ddId==='ed-addr-dd'){document.getElementById('ed-addr').value=label;document.getElementById('ed-lat').value=lat;document.getElementById('ed-lng').value=lng;toast('GPS set ✓')}
-  if(ddId==='nj-addr-dd'){document.getElementById('nj-addr').value=label;document.getElementById('nj-lat').value=lat;document.getElementById('nj-lng').value=lng;document.getElementById('nj-gps-ok').style.display='block';document.getElementById('nj-coords').textContent=parseFloat(lat).toFixed(5)+', '+parseFloat(lng).toFixed(5);toast('GPS set ✓')}
+  if(ddId==='ed-addr-dd'){document.getElementById('ed-addr').value=label;document.getElementById('ed-lat').value=lat;document.getElementById('ed-lng').value=lng;toast('GPS set')}
+  if(ddId==='nj-addr-dd'){document.getElementById('nj-addr').value=label;document.getElementById('nj-lat').value=lat;document.getElementById('nj-lng').value=lng;document.getElementById('nj-gps-ok').style.display='block';document.getElementById('nj-coords').textContent=parseFloat(lat).toFixed(5)+', '+parseFloat(lng).toFixed(5);toast('GPS set')}
 }
 document.addEventListener('click',e=>{document.querySelectorAll('.addr-dd').forEach(dd=>{if(!dd.contains(e.target))dd.style.display='none'})})
 // WORKERS TAB
 async function renderWorkersTab(el){
   const[{data:workers},{data:ci}]=await Promise.all([
-    sb.from('job_workers').select('*,profiles:worker_id(id,full_name,email,is_lead)').eq('job_id',currentJobId).eq('is_active',true),
-    sb.from('checkins').select('*,profiles:worker_id(full_name)').eq('job_id',currentJobId).order('checkin_at',{ascending:false})
+    sb.from('job_workers').select('id,worker_id,is_active').eq('job_id',currentJobId).eq('is_active',true),
+    sb.from('checkins').select('*').eq('job_id',currentJobId).order('checkin_at',{ascending:false})
   ])
+  const wIds2=(workers||[]).map(w=>w.worker_id).filter(Boolean)
+  const{data:wProfiles}=wIds2.length?await sb.from('profiles').select('id,full_name,email,is_lead').in('id',wIds2):{data:[]}
   const totalHrs=(ci||[]).reduce((s,c)=>s+(c.hours_logged||0),0)
   el.innerHTML=`
   <div class="sec-hdr">Assigned Workers <button class="btn btn-sm btn-p" onclick="addWorkerModal()">+ Add</button></div>
-  ${(workers||[]).map(w=>`<div style="display:flex;align-items:center;gap:9px;padding:8px 10px;background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:7px;margin-bottom:6px"><div class="av" style="width:28px;height:28px;font-size:10px;${Object.entries(avS(w.profiles?.full_name)).map(([k,val])=>k+':'+val).join(';')}">${ini(w.profiles?.full_name)}</div><div style="flex:1"><div style="font-size:12px;font-weight:500">${w.profiles?.full_name||'?'}${w.profiles?.is_lead?' <span style="font-size:9px;color:#d97706">LEAD</span>':''}</div><div style="font-size:10px;color:#414e63">${w.profiles?.email||''}</div></div><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="removeWorker('${w.id}')">Remove</button></div>`).join('')||'<div style="font-size:12px;color:#414e63;margin-bottom:12px">No workers assigned</div>'}
+  ${(workers||[]).map(w=>{const p=wProfiles.find(x=>x.id===w.worker_id)||{};return`<div style="display:flex;align-items:center;gap:9px;padding:8px 10px;background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:7px;margin-bottom:6px"><div class="av" style="width:28px;height:28px;font-size:10px;${Object.entries(avS(p.full_name)).map(([k,val])=>k+':'+val).join(';')}">${ini(p.full_name)}</div><div style="flex:1"><div style="font-size:12px;font-weight:500">${p.full_name||'?'}${p.is_lead?' <span style="font-size:9px;color:#d97706">LEAD</span>':''}</div><div style="font-size:10px;color:#414e63">${p.email||''}</div></div><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="removeWorker('${w.id}')">Remove</button></div>`}).join('')||'<div style="font-size:12px;color:#414e63;margin-bottom:12px">No workers assigned</div>'}
   <div class="sec-hdr" style="margin-top:14px">GPS Check-in Log</div>
-  ${(ci||[]).length?`<table class="tbl"><thead><tr><th>Worker</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Distance</th></tr></thead><tbody>${(ci||[]).map(c=>`<tr><td>${c.profiles?.full_name||'?'}</td><td style="font-size:11px;color:#8a96ab">${fd(c.checkin_at)}</td><td style="font-size:11px">${ft(c.checkin_at)}</td><td style="font-size:11px">${c.checkout_at?ft(c.checkout_at):'<span class="gps-live" style="font-size:9px"><span class="pulse"></span>Active</span>'}</td><td style="font-weight:500">${c.hours_logged?fh(c.hours_logged):'—'}</td><td>${c.checkin_dist_ft!=null?`<span class="badge bg-green">${c.checkin_dist_ft}ft</span>`:'—'}</td></tr>`).join('')}</tbody></table>`:'<div style="font-size:12px;color:#414e63">No check-ins yet</div>'}
+  ${(ci||[]).length?`<table class="tbl"><thead><tr><th>Worker</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Distance</th></tr></thead><tbody>${(ci||[]).map(c=>`<tr><td>${c.workerName||'?'}</td><td style="font-size:11px;color:#8a96ab">${fd(c.checkin_at)}</td><td style="font-size:11px">${ft(c.checkin_at)}</td><td style="font-size:11px">${c.checkout_at?ft(c.checkout_at):'<span class="gps-live" style="font-size:9px"><span class="pulse"></span>Active</span>'}</td><td style="font-weight:500">${c.hours_logged?fh(c.hours_logged):'—'}</td><td>${c.checkin_dist_ft!=null?`<span class="badge bg-green">${c.checkin_dist_ft}ft</span>`:'—'}</td></tr>`).join('')}</tbody></table>`:'<div style="font-size:12px;color:#414e63">No check-ins yet</div>'}
   <div style="margin-top:11px;background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:10px 13px;display:flex;gap:20px">
     <div><div style="font-size:10px;color:#414e63">TOTAL HOURS</div><div style="font-size:20px;font-weight:300;margin-top:2px">${fh(totalHrs)}</div></div>
     <div><div style="font-size:10px;color:#414e63">EST LABOR COST</div><div style="font-size:20px;font-weight:300;margin-top:2px;color:#60a5fa">${fm(totalHrs*(currentJob?.labor_rate||0))}</div></div>
@@ -555,10 +598,27 @@ async function removeWorker(id){await sb.from('job_workers').update({is_active:f
 
 function buildPartsTable(parts){
   if(!parts||!parts.length) return empty('📦','No parts on this job yet — use Scan Parts to add')
-  return '<table class="tbl"><thead><tr><th>Part Name</th><th>Barcode</th><th>Qty</th><th>Status</th><th>Staged By</th><th>Staged At</th><th>Checked Out By</th><th>Checked Out At</th></tr></thead><tbody>'+
+  // Check for variance
+  const overParts=parts.filter(p=>(p.installed_qty||0)>p.assigned_qty)
+  const underParts=parts.filter(p=>p.status==='installed'&&(p.installed_qty||0)<p.assigned_qty)
+  let varHtml=''
+  if(overParts.length) varHtml+='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:9px 12px;margin-bottom:9px;font-size:12px;color:#dc2626">⚠ Over-issued: '+overParts.map(p=>p.part_name+' (assigned '+p.assigned_qty+', installed '+(p.installed_qty||0)+')').join(', ')+'</div>'
+  if(underParts.length) varHtml+='<div style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.2);border-radius:7px;padding:9px 12px;margin-bottom:9px;font-size:12px;color:#d97706">⚠ Under-installed: '+underParts.map(p=>p.part_name+' (assigned '+p.assigned_qty+', installed '+(p.installed_qty||0)+')').join(', ')+'</div>'
+  return varHtml+'<table class="tbl"><thead><tr><th>Part Name</th><th>Barcode</th><th>Assigned</th><th>Installed</th><th>Remaining</th><th>Status</th><th>Staged By</th><th>Checked Out By</th></tr></thead><tbody>'+
     parts.map(p=>{
-      const bc=p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-blue':p.status==='installed'?'bg-green':'bg-gray'
-      return '<tr><td style="font-weight:500">'+p.part_name+'</td><td style="font-size:10px;color:#414e63">'+p.part_id+'</td><td style="font-weight:500">'+p.assigned_qty+'</td><td><span class="badge '+bc+'">'+p.status.replace(/_/g,' ')+'</span></td><td style="font-size:11px;color:#8a96ab">'+(p.staged_by||'—')+'</td><td style="font-size:10px;color:#414e63">'+(p.staged_at?fdt(p.staged_at):'—')+'</td><td style="font-size:11px;color:#8a96ab">'+(p.checked_out_by||'—')+'</td><td style="font-size:10px;color:#414e63">'+(p.checked_out_at?fdt(p.checked_out_at):'—')+'</td></tr>'
+      const installed=p.installed_qty||0
+      const remaining=p.assigned_qty-installed
+      const pct=p.assigned_qty>0?Math.round(installed/p.assigned_qty*100):0
+      const bc=p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-blue':p.status==='installed'?'bg-green':p.status==='partial_install'?'bg-teal':'bg-gray'
+      const varColor=installed>p.assigned_qty?'color:#dc2626':remaining===0?'color:#16a34a':'color:#8a96ab'
+      return '<tr><td style="font-weight:500">'+p.part_name+'</td>'+
+        '<td style="font-size:10px;color:#414e63">'+p.part_id+'</td>'+
+        '<td style="font-weight:500">'+p.assigned_qty+'</td>'+
+        '<td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:50px"><div class="pb g" style="width:'+Math.min(100,pct)+'%"></div></div><span style="font-size:11px;'+varColor+'">'+installed+'</span></div></td>'+
+        '<td style="font-size:12px;'+varColor+'">'+remaining+'</td>'+
+        '<td><span class="badge '+bc+'">'+p.status.replace(/_/g,' ')+'</span></td>'+
+        '<td style="font-size:11px;color:#8a96ab">'+(p.staged_by||'—')+'</td>'+
+        '<td style="font-size:11px;color:#8a96ab">'+(p.checked_out_by||'—')+'</td></tr>'
     }).join('')+'</tbody></table>'
 }
 
@@ -568,7 +628,8 @@ async function renderPartsTab(el){
   el.innerHTML=`
   <div style="display:flex;gap:8px;margin-bottom:13px">
     <button class="btn btn-p btn-sm" onclick="P('scan',null)">📷 Go to Scanner</button>
-    <button class="btn btn-sm" onclick="loadJT('jt-parts')">Refresh</button>
+    <button class="btn btn-sm" onclick="loadJT('jt-parts')">↻ Refresh</button>
+    <button class="btn btn-a btn-sm" onclick="checkPartsVariance('${currentJobId}').then(()=>loadJT('jt-parts'))">⚠ Check Variance</button>
   </div>
   <div class="stats" style="grid-template-columns:repeat(4,1fr)">
     <div class="stat"><div class="stat-label">Staged</div><div class="stat-value" style="color:#d97706">${(parts||[]).filter(p=>p.status==='staged').length}</div></div>
@@ -592,7 +653,8 @@ async function renderJobDailyTab(el){
   <div style="margin-top:8px;display:flex;gap:8px"><button class="btn btn-sm" onclick="emailReport(${JSON.stringify(r).replace(/"/g,'&quot;')})">📧 Email Report</button><button class="btn btn-sm btn-ghost" onclick="dlDailyReport(${JSON.stringify(r).replace(/"/g,'&quot;')})">⬇ Download</button></div></div>`).join('')||empty('📋','No daily reports for this job')}` 
 }
 function dlDailyReport(r){
-  const content=`DAILY REPORT\n${'='.repeat(40)}\nJob: ${currentJob?.name}\nDate: ${fd(r.report_date)}\nSubmitted By: ${r.submitted_by||'—'}\nCrew Count: ${r.crew_count}\nHours Worked: ${fh(r.hours_worked)}\nWeather: ${r.weather} ${r.temp_high?r.temp_high+'°/'+r.temp_low+'°':''}\n\nWORK PERFORMED:\n${r.work_performed||'—'}\n\nMATERIALS USED:\n${r.materials_used||'—'}\n\nEQUIPMENT USED:\n${r.equipment_used||'—'}\n\nISSUES:\n${r.issues||'None'}\n\nVISITORS:\n${r.visitors||'None'}`
+  const jobName=_drJobs&&_drJobs[r.job_id]?_drJobs[r.job_id]:currentJob?.name||r.job_id||'Unknown'
+  const content=`DAILY REPORT\n${'='.repeat(40)}\nJob: ${jobName}\nDate: ${fd(r.report_date)}\nSubmitted By: ${r.submitted_by||'—'}\nCrew Count: ${r.crew_count}\nHours Worked: ${fh(r.hours_worked)}\nWeather: ${r.weather} ${r.temp_high?r.temp_high+'°/'+r.temp_low+'°':''}\n\nWORK PERFORMED:\n${r.work_performed||'—'}\n\nMATERIALS USED:\n${r.materials_used||'—'}\n\nEQUIPMENT USED:\n${r.equipment_used||'—'}\n\nISSUES:\n${r.issues||'None'}\n\nVISITORS:\n${r.visitors||'None'}`
   const a=document.createElement('a');a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(content);a.download='Daily-Report-'+r.report_date+'.txt';a.click()
 }
 function emailReport(r){
@@ -732,7 +794,7 @@ function renderTextboxList(){
 }
 async function saveMarkup(planId){
   const{error}=await sb.from('job_walk_plans').update({markup_json:_markup}).eq('id',planId)
-  if(error)toast(error.message,'error');else toast('Markup saved ✓')
+  if(error)toast(error.message,'error');else toast('Markup saved')
 }
 async function downloadMarkup(){
   const canvas=document.getElementById('markup-canvas');if(!canvas)return
@@ -841,7 +903,7 @@ async function addLog(){const c=v('log-txt').trim();if(!c)return;await sb.from('
 // NEW JOB PAGE
 // ══════════════════════════════════════════
 async function pgNewJob(){
-  const[{data:companies},{data:pmUsers}]=await Promise.all([sb.from('companies').select('id,name').eq('is_active',true).order('name'),sb.from('profiles').select('id,full_name').in('role',['admin','pm','foreman']).eq('is_active',true).order('full_name')])
+  const[{data:companies},{data:pmUsers}]=await Promise.all([sb.from('companies').select('id,name').eq('is_active',true).order('name'),sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')])
   document.getElementById('page-area').innerHTML=`<div class="two">
   <div>
     <div class="card">
@@ -880,10 +942,22 @@ async function pgNewJob(){
     </div>
     <button class="btn btn-p btn-full" id="nj-btn" onclick="submitNewJob()">Create Job</button>
   </div></div>`
+  populateNjPM(pmUsers)
 }
 async function populateNjPM(pmUsers){
   const sel=document.getElementById('nj-pm');if(!sel)return
-  sel.innerHTML='<option value="">— Assign PM —</option>'+(pmUsers||[]).map(p=>`<option value="${p.full_name}">${p.full_name}</option>`).join('')
+  let users=pmUsers
+  if(!users||!users.length){
+    const{data,error}=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
+    if(error){console.error('PM fetch error:',error);users=[]}
+    else users=data||[]
+  }
+  if(!users.length){
+    sel.innerHTML='<option value="">— No employees found —</option>'
+    console.warn('populateNjPM: no users returned. Add employees in the Users section.')
+    return
+  }
+  sel.innerHTML='<option value="">— Unassigned —</option>'+(users||[]).map(p=>'<option value="'+p.full_name+'">'+p.full_name+(p.role?' ('+p.role+')':'')+'</option>').join('')
 }
 async function loadNjWorkers(){const coId=v('nj-co');const wrap=document.getElementById('nj-workers');if(!wrap)return;if(!coId){wrap.innerHTML='<div style="font-size:11px;color:#414e63">Select a company first</div>';return};const{data}=await sb.from('profiles').select('id,full_name,is_lead').eq('company_id',coId).eq('is_active',true);wrap.innerHTML=(data||[]).map(w=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><input type="checkbox" id="w-${w.id}" value="${w.id}" ${w.is_lead?'checked':''}><label for="w-${w.id}" style="font-size:12px;color:#8a96ab">${w.full_name}${w.is_lead?' (Lead)':''}</label></div>`).join('')||'<div style="font-size:11px;color:#414e63">No workers</div>'}
 async function submitNewJob(){
@@ -895,7 +969,7 @@ async function submitNewJob(){
   const{data:created,error}=await sb.from('jobs').insert(job).select().single()
   if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Create Job';return}
   document.querySelectorAll('#nj-workers input[type=checkbox]:checked').forEach(async cb=>await sb.from('job_workers').insert({id:uuid(),job_id:created.id,worker_id:cb.value,is_active:true,added_by:ME?.full_name,added_at:new Date().toISOString()}))
-  toast('Job created! ✓');allJobs.unshift(created);openJob(created.id)
+  toast('Job created!');allJobs.unshift(created);openJob(created.id)
 }
 
 // ══════════════════════════════════════════
@@ -936,19 +1010,86 @@ async function pgSchedule(){
 // ══════════════════════════════════════════
 // DAILY REPORTS PAGE
 // ══════════════════════════════════════════
+let _drAll=[], _drJobs={}
 async function pgDaily(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="newDailyModal()">+ New Report</button>'
-  const{data:reports}=await sb.from('daily_reports').select('*,jobs(name)').order('report_date',{ascending:false}).limit(50)
-  document.getElementById('page-area').innerHTML=`
-  <div class="card" style="padding:0;overflow:hidden">
-  ${(reports||[]).length?`<table class="tbl"><thead><tr><th>Date</th><th>Job</th><th>Crew</th><th>Hours</th><th>Weather</th><th>Submitted By</th><th></th></tr></thead><tbody>${(reports||[]).map(r=>`<tr onclick="viewDailyReport('${r.id}')"><td style="font-weight:500">${fd(r.report_date)}</td><td>${r.jobs?.name||'—'}</td><td>${r.crew_count}</td><td>${fh(r.hours_worked)}</td><td style="font-size:11px">${r.weather||'—'} ${r.temp_high?r.temp_high+'°':''}</td><td style="font-size:11px;color:#8a96ab">${r.submitted_by||'—'}</td><td><button class="btn btn-sm" onclick="event.stopPropagation();dlDailyReportById('${r.id}')">⬇</button></td></tr>`).join('')}</tbody></table>`:empty('📋','No daily reports yet')}
-  </div>`
+  // Fetch reports with job names
+  const[{data:reports},{data:jobs}]=await Promise.all([
+    sb.from('daily_reports').select('*').order('report_date',{ascending:false}).limit(500),
+    sb.from('jobs').select('id,name').order('name')
+  ])
+  _drAll=reports||[]
+  _drJobs={}; (jobs||[]).forEach(j=>_drJobs[j.id]=j.name)
+  // Build employee list for filter
+  const employees=[...new Set(_drAll.map(r=>r.submitted_by).filter(Boolean))].sort()
+  const today=new Date().toISOString().split('T')[0]
+  const thirtyDaysAgo=new Date(Date.now()-30*864e5).toISOString().split('T')[0]
+  document.getElementById('page-area').innerHTML=
+    '<div style="background:#0c1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px;margin-bottom:13px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:flex-end">'+
+    '<div><label class="fl">Job</label><select class="fs" id="dr-f-job" onchange="filterDailyReports()"><option value="">All Jobs</option>'+
+    (jobs||[]).map(j=>'<option value="'+j.id+'">'+j.name+'</option>').join('')+
+    '</select></div>'+
+    '<div><label class="fl">From Date</label><input class="fi" type="date" id="dr-f-from" value="'+thirtyDaysAgo+'" onchange="filterDailyReports()"></div>'+
+    '<div><label class="fl">To Date</label><input class="fi" type="date" id="dr-f-to" value="'+today+'" onchange="filterDailyReports()"></div>'+
+    '<div><label class="fl">Employee</label><select class="fs" id="dr-f-emp" onchange="filterDailyReports()"><option value="">All Employees</option>'+
+    employees.map(e=>'<option value="'+e+'">'+e+'</option>').join('')+
+    '</select></div>'+
+    '<button class="btn btn-sm" onclick="clearDrFilters()">Clear</button>'+
+    '</div></div>'+
+    '<div id="dr-results"></div>'
+  filterDailyReports()
+}
+function clearDrFilters(){
+  const today=new Date().toISOString().split('T')[0]
+  const ago=new Date(Date.now()-30*864e5).toISOString().split('T')[0]
+  document.getElementById('dr-f-job').value=''
+  document.getElementById('dr-f-from').value=ago
+  document.getElementById('dr-f-to').value=today
+  document.getElementById('dr-f-emp').value=''
+  filterDailyReports()
+}
+function filterDailyReports(){
+  const jobId=document.getElementById('dr-f-job')?.value||''
+  const from=document.getElementById('dr-f-from')?.value||''
+  const to=document.getElementById('dr-f-to')?.value||''
+  const emp=document.getElementById('dr-f-emp')?.value||''
+  let rows=_drAll.filter(r=>{
+    if(jobId&&r.job_id!==jobId)return false
+    if(from&&r.report_date<from)return false
+    if(to&&r.report_date>to)return false
+    if(emp&&r.submitted_by!==emp)return false
+    return true
+  })
+  const el=document.getElementById('dr-results')
+  if(!el)return
+  if(!rows.length){el.innerHTML=empty('📋','No reports match your filters');return}
+  let html='<div style="font-size:11px;color:#414e63;margin-bottom:8px">'+rows.length+' report'+(rows.length!==1?'s':'')+' found</div>'
+  html+='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr>'
+  html+='<th>Date</th><th>Job</th><th>Submitted By</th><th>Crew</th><th>Hours</th><th>Weather</th><th>Issues</th><th></th>'
+  html+='</tr></thead><tbody>'
+  for(const r of rows){
+    const jobName=_drJobs[r.job_id]||r.job_id||'—'
+    const hasIssues=r.issues&&r.issues.trim()
+    html+='<tr onclick="viewDailyReport(\"'+r.id+'\")" style="cursor:pointer">'
+    html+='<td style="font-weight:500;white-space:nowrap">'+fd(r.report_date)+'</td>'
+    html+='<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+jobName+'</td>'
+    html+='<td style="font-size:12px">'+( r.submitted_by||'—')+'</td>'
+    html+='<td>'+r.crew_count+'</td>'
+    html+='<td>'+fh(r.hours_worked)+'</td>'
+    html+='<td style="font-size:11px;color:#8a96ab">'+(r.weather||'—')+(r.temp_high?' '+r.temp_high+'°':'')+'</td>'
+    html+='<td>'+(hasIssues?'<span class="badge bg-red">Yes</span>':'<span style="font-size:11px;color:#414e63">—</span>')+'</td>'
+    html+='<td><button class="btn btn-sm" onclick="event.stopPropagation();dlDailyReportById(\"'+r.id+'\")">⬇</button></td>'
+    html+='</tr>'
+  }
+  html+='</tbody></table></div>'
+  el.innerHTML=html
 }
 async function viewDailyReport(id){
-  const{data:r}=await sb.from('daily_reports').select('*,jobs(name)').eq('id',id).single()
+  const{data:r}=await sb.from('daily_reports').select('*').eq('id',id).single()
   modal('Daily Report — '+fd(r.report_date),`
   <div class="two" style="margin-bottom:12px">
-    <div><div class="fl">JOB</div><div style="font-weight:500">${r.jobs?.name||'—'}</div></div>
+    <div><div class="fl">JOB</div><div style="font-weight:500">${_drJobs[r.job_id]||r.job_id||'—'}</div></div>
     <div><div class="fl">DATE</div><div style="font-weight:500">${fd(r.report_date)}</div></div>
   </div>
   <div class="four" style="margin-bottom:12px">
@@ -958,39 +1099,111 @@ async function viewDailyReport(id){
     <div><div class="fl">TEMP</div><div style="font-weight:500">${r.temp_high?r.temp_high+'°/'+r.temp_low+'°':'—'}</div></div>
   </div>
   ${r.work_performed?`<div class="fg"><div class="fl">Work Performed</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap;background:#131c2e;padding:9px;border-radius:7px">${r.work_performed}</div></div>`:''}
-  ${r.materials_used?`<div class="fg"><div class="fl">Materials Used</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap;background:#131c2e;padding:9px;border-radius:7px">${r.materials_used}</div></div>`:''}
+  ${(r.installed_parts&&r.installed_parts.length)?`<div class="fg"><div class="fl" style="margin-bottom:7px">Parts Installed Today</div><div style="background:#131c2e;border-radius:7px;overflow:hidden">${r.installed_parts.map(p=>'<div style="display:flex;justify-content:space-between;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px">'+p.part_name+'</span><span style="font-size:12px;font-weight:600;color:#16a34a">'+p.installed_qty+' installed</span></div>').join('')}</div></div>`:''}
   ${r.equipment_used?`<div class="fg"><div class="fl">Equipment</div><div style="font-size:12px;color:#8a96ab">${r.equipment_used}</div></div>`:''}
   ${r.issues?`<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);border-radius:7px;padding:10px 12px;margin-bottom:9px"><div class="fl" style="color:#dc2626">Issues</div><div style="font-size:12px;color:#dc2626;white-space:pre-wrap">${r.issues}</div></div>`:''}
   ${r.visitors?`<div class="fg"><div class="fl">Visitors</div><div style="font-size:12px;color:#8a96ab">${r.visitors}</div></div>`:''}`,
   ()=>closeModal(),'Close',false)
   document.getElementById('modal-footer').innerHTML='<button class="btn" onclick="closeModal()">Close</button><button class="btn btn-sm" onclick="dlDailyReportById(\''+id+'\')">⬇ Download</button>'
 }
-async function dlDailyReportById(id){const{data:r}=await sb.from('daily_reports').select('*,jobs(name)').eq('id',id).single();dlDailyReport({...r,jobs:r.jobs})}
+async function dlDailyReportById(id){const{data:r}=await sb.from('daily_reports').select('*').eq('id',id).single();dlDailyReport({...r,jobs:r.jobs})}
 function newDailyModal(jobIdOverride){
-  let jobSel=''
-  if(allJobs.length>0&&!jobIdOverride)jobSel=`<div class="fg"><label class="fl">Job *</label><select class="fs" id="dr-job"><option value="">— Select —</option>${allJobs.map(j=>`<option value="${j.id}">${j.name}</option>`).join('')}</select></div>`
-  modal('New Daily Report',`
-  ${jobIdOverride?`<input type="hidden" id="dr-job" value="${jobIdOverride}">`:jobSel}
-  <div class="two">
-    <div class="fg"><label class="fl">Report Date</label><input class="fi" type="date" id="dr-date" value="${new Date().toISOString().split('T')[0]}"></div>
-    <div class="fg"><label class="fl">Crew Count</label><input class="fi" type="number" id="dr-crew" value="1" min="0"></div>
-  </div>
-  <div class="three">
-    <div class="fg"><label class="fl">Hours Worked</label><input class="fi" type="number" id="dr-hrs" step="0.5" min="0"></div>
-    <div class="fg"><label class="fl">Weather</label><input class="fi" id="dr-wx" placeholder="Sunny, Rainy…"></div>
-    <div class="fg"><label class="fl">Temp Hi/Lo (°F)</label><div style="display:flex;gap:5px"><input class="fi" type="number" id="dr-th" placeholder="Hi"><input class="fi" type="number" id="dr-tl" placeholder="Lo"></div></div>
-  </div>
-  <div class="fg"><label class="fl">Work Performed *</label><textarea class="ft" id="dr-work" style="min-height:90px" placeholder="Describe work completed today…"></textarea></div>
-  <div class="fg"><label class="fl">Materials Used</label><textarea class="ft" id="dr-mat"></textarea></div>
-  <div class="fg"><label class="fl">Equipment Used</label><input class="fi" id="dr-eq"></div>
-  <div class="fg"><label class="fl">Issues / Delays</label><textarea class="ft" id="dr-iss" placeholder="Any problems, delays, safety issues?"></textarea></div>
-  <div class="fg"><label class="fl">Visitors</label><input class="fi" id="dr-vis" placeholder="Inspectors, owner reps…"></div>`,
-  async()=>{
+  const jobSel=(!jobIdOverride&&allJobs.length)?
+    '<div class="fg"><label class="fl">Job *</label><select class="fs" id="dr-job" onchange="drLoadParts(this.value)"><option value="">— Select —</option>'+allJobs.map(j=>'<option value="'+j.id+'">'+j.name+'</option>').join('')+'</select></div>':
+    (jobIdOverride?'<input type="hidden" id="dr-job" value="'+jobIdOverride+'">':'')
+  const html=jobSel+
+    '<div class="two">'+
+    '<div class="fg"><label class="fl">Report Date</label><input class="fi" type="date" id="dr-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '<div class="fg"><label class="fl">Crew Count</label><input class="fi" type="number" id="dr-crew" value="1" min="0"></div>'+
+    '</div>'+
+    '<div class="three">'+
+    '<div class="fg"><label class="fl">Hours Worked</label><input class="fi" type="number" id="dr-hrs" step="0.5" min="0"></div>'+
+    '<div class="fg"><label class="fl">Weather</label><input class="fi" id="dr-wx" placeholder="Sunny, Rainy…"></div>'+
+    '<div class="fg"><label class="fl">Temp Hi/Lo (°F)</label><div style="display:flex;gap:5px"><input class="fi" type="number" id="dr-th" placeholder="Hi"><input class="fi" type="number" id="dr-tl" placeholder="Lo"></div></div>'+
+    '</div>'+
+    '<div class="fg"><label class="fl">Work Performed *</label><textarea class="ft" id="dr-work" style="min-height:80px" placeholder="Describe work completed today…"></textarea></div>'+
+    '<div id="dr-parts-section" style="margin-bottom:12px">'+
+    (jobIdOverride?'<div id="dr-parts-wrap"><div style="font-size:11px;color:#414e63">Loading parts…</div></div>':
+    '<div id="dr-parts-wrap"><div style="font-size:11px;color:#414e63">Select a job to see staged parts</div></div>')+
+    '</div>'+
+    '<div class="fg"><label class="fl">Equipment Used</label><input class="fi" id="dr-eq"></div>'+
+    '<div class="fg"><label class="fl">Issues / Delays</label><textarea class="ft" id="dr-iss" placeholder="Any problems, delays, safety issues?"></textarea></div>'+
+    '<div class="fg"><label class="fl">Visitors</label><input class="fi" id="dr-vis" placeholder="Inspectors, owner reps…"></div>'
+  modal('New Daily Report', html, async()=>{
     const jobId=v('dr-job');if(!jobId){toast('Select a job','error');return}
     const work=v('dr-work').trim();if(!work){toast('Work performed required','error');return}
-    const{error}=await sb.from('daily_reports').insert({id:uuid(),job_id:jobId,report_date:v('dr-date'),crew_count:parseInt(v('dr-crew'))||0,hours_worked:parseFloat(v('dr-hrs'))||0,weather:v('dr-wx'),temp_high:fN('dr-th'),temp_low:fN('dr-tl'),work_performed:work,materials_used:v('dr-mat'),equipment_used:v('dr-eq'),issues:v('dr-iss'),visitors:v('dr-vis'),submitted_by:ME?.full_name,submitted_at:new Date().toISOString(),created_at:new Date().toISOString()})
-    if(error)toast(error.message,'error');else{closeModal();toast('Report saved ✓');if(jobIdOverride)loadJT('jt-daily');else pgDaily()}
+    // Collect installed parts from the form
+    const installedParts=[]
+    document.querySelectorAll('.dr-part-row').forEach(row=>{
+      const partId=row.dataset.partId
+      const partName=row.dataset.partName
+      const available=parseInt(row.dataset.available)||0
+      const installed=parseInt(row.querySelector('.dr-part-qty')?.value)||0
+      if(installed>0) installedParts.push({part_id:partId,part_name:partName,installed_qty:installed,available_qty:available})
+    })
+    const{error}=await sb.from('daily_reports').insert({id:uuid(),job_id:jobId,report_date:v('dr-date'),crew_count:parseInt(v('dr-crew'))||0,hours_worked:parseFloat(v('dr-hrs'))||0,weather:v('dr-wx'),temp_high:fN('dr-th'),temp_low:fN('dr-tl'),work_performed:work,equipment_used:v('dr-eq'),issues:v('dr-iss'),visitors:v('dr-vis'),installed_parts:installedParts,submitted_by:ME?.full_name,submitted_at:new Date().toISOString(),created_at:new Date().toISOString()})
+    if(error){toast(error.message,'error');return}
+    // Update job_parts installed_qty and subtract from available
+    for(const ip of installedParts){
+      const{data:part}=await sb.from('job_parts').select('id,installed_qty,assigned_qty').eq('job_id',jobId).eq('part_id',ip.part_id).single()
+      if(part){
+        const newInstalled=(part.installed_qty||0)+ip.installed_qty
+        const newStatus=newInstalled>=part.assigned_qty?'installed':'partial_install'
+        await sb.from('job_parts').update({installed_qty:newInstalled,status:newStatus,updated_at:new Date().toISOString()}).eq('id',part.id)
+      }
+    }
+    // Check if job is complete - run over/under check
+    if(installedParts.length) await checkPartsVariance(jobId)
+    closeModal();toast('Report saved OK');if(jobIdOverride)loadJT('jt-daily');else pgDaily()
   })
+  // Load parts if job is pre-selected
+  if(jobIdOverride) setTimeout(()=>drLoadParts(jobIdOverride),100)
+}
+
+async function drLoadParts(jobId){
+  const wrap=document.getElementById('dr-parts-wrap');if(!wrap)return
+  if(!jobId){wrap.innerHTML='<div style="font-size:11px;color:#414e63">Select a job to see staged parts</div>';return}
+  wrap.innerHTML='<div style="font-size:11px;color:#414e63">Loading parts…</div>'
+  const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',jobId).in('status',['staged','signed_out','partial_install'])
+  if(!parts?.length){wrap.innerHTML='<div style="font-size:11px;color:#414e63;padding:8px 0">No staged parts on this job yet</div>';return}
+  let html='<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Parts Staged on Job — Enter Qty Installed Today</div>'
+  html+='<div style="background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;overflow:hidden">'
+  for(const p of parts){
+    const available=p.assigned_qty-(p.installed_qty||0)
+    if(available<=0) continue
+    html+='<div class="dr-part-row" data-part-id="'+p.part_id+'" data-part-name="'+p.part_name+'" data-available="'+available+'" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04)">'
+    html+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.part_name+'</div>'
+    html+='<div style="font-size:10px;color:#414e63">'+p.part_id+' · '+available+' available ('+( p.installed_qty||0)+' already installed)</div></div>'
+    html+='<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
+    html+='<button onclick="this.nextElementSibling.value=Math.max(0,parseInt(this.nextElementSibling.value||0)-1)" style="width:24px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:14px">−</button>'
+    html+='<input type="number" class="dr-part-qty fi" value="0" min="0" max="'+available+'" style="width:60px;text-align:center;padding:4px 6px">'
+    html+='<button onclick="this.previousElementSibling.value=Math.min('+available+',parseInt(this.previousElementSibling.value||0)+1)" style="width:24px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:14px">+</button>'
+    html+='</div></div>'
+  }
+  html+='</div>'
+  wrap.innerHTML=html
+}
+
+async function checkPartsVariance(jobId){
+  const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',jobId)
+  if(!parts?.length) return
+  const{data:job}=await sb.from('jobs').select('name,phase').eq('id',jobId).single()
+  const overParts=[],underParts=[]
+  for(const p of parts){
+    const installed=p.installed_qty||0
+    const assigned=p.assigned_qty||0
+    if(installed>assigned) overParts.push({name:p.part_name,over:installed-assigned,id:p.part_id})
+    else if(installed<assigned&&(job?.phase==='complete'||p.status==='installed'))
+      underParts.push({name:p.part_name,under:assigned-installed,id:p.part_id})
+  }
+  if(overParts.length||underParts.length){
+    const msg=[]
+    if(overParts.length) msg.push('OVER on: '+overParts.map(p=>p.name+' (+'+p.over+')').join(', '))
+    if(underParts.length) msg.push('UNDER on: '+underParts.map(p=>p.name+' (−'+p.under+')').join(', '))
+    // Save notification
+    await sb.from('notifications').insert({id:uuid(),type:'parts_variance',title:'Parts Variance — '+(job?.name||jobId),message:msg.join(' | '),meta:{job_id:jobId,over:overParts,under:underParts},read:false,created_at:new Date().toISOString()})
+    toast('Parts variance detected — check notifications','warn')
+  }
 }
 
 // ══════════════════════════════════════════
@@ -998,10 +1211,10 @@ function newDailyModal(jobIdOverride){
 // ══════════════════════════════════════════
 async function pgJobWalks(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="newWalkModal()">+ New Job Walk</button>'
-  const{data:walks}=await sb.from('job_walks').select('*,jobs(name)').order('walk_date',{ascending:false}).limit(40)
+  const{data:walks}=await sb.from('job_walks').select('*').order('walk_date',{ascending:false}).limit(40)
   document.getElementById('page-area').innerHTML=`
   <div class="card" style="padding:0;overflow:hidden">
-  ${(walks||[]).length?`<table class="tbl"><thead><tr><th>Date</th><th>Job</th><th>Walked By</th><th>Attendees</th><th>Status</th><th>Issues</th></tr></thead><tbody>${(walks||[]).map(w=>`<tr onclick="openJobWalk('${w.id}')"><td style="font-weight:500">${fd(w.walk_date)}</td><td>${w.jobs?.name||'—'}</td><td style="font-size:11px">${w.walked_by||'—'}</td><td style="font-size:11px;color:#8a96ab">${w.attendees||'—'}</td><td><span class="badge ${w.status==='complete'?'bg-green':'bg-amber'}">${w.status}</span></td><td style="font-size:11px;color:${w.issues_found?'#d97706':'#414e63'}">${w.issues_found?'Yes':'None'}</td></tr>`).join('')}</tbody></table>`:empty('🚶','No job walks recorded')}
+  ${(walks||[]).length?`<table class="tbl"><thead><tr><th>Date</th><th>Job</th><th>Walked By</th><th>Attendees</th><th>Status</th><th>Issues</th></tr></thead><tbody>${(walks||[]).map(w=>`<tr onclick="openJobWalk('${w.id}')"><td style="font-weight:500">${fd(w.walk_date)}</td><td>${w.job_id||'—'}</td><td style="font-size:11px">${w.walked_by||'—'}</td><td style="font-size:11px;color:#8a96ab">${w.attendees||'—'}</td><td><span class="badge ${w.status==='complete'?'bg-green':'bg-amber'}">${w.status}</span></td><td style="font-size:11px;color:${w.issues_found?'#d97706':'#414e63'}">${w.issues_found?'Yes':'None'}</td></tr>`).join('')}</tbody></table>`:empty('🚶','No job walks recorded')}
   </div>`
 }
 function newWalkModal(jobIdOverride){
@@ -1022,7 +1235,7 @@ function newWalkModal(jobIdOverride){
   async()=>{
     const jobId=v('wk-job');if(!jobId){toast('Select a job','error');return}
     const{data:walk,error}=await sb.from('job_walks').insert({id:uuid(),job_id:jobId,walk_date:v('wk-date'),walked_by:v('wk-by'),attendees:v('wk-att'),scope_notes:v('wk-scope'),measurements:v('wk-meas'),issues_found:v('wk-iss'),action_items:v('wk-act'),follow_up_date:v('wk-fup')||null,status:v('wk-status'),created_at:new Date().toISOString()}).select().single()
-    if(error)toast(error.message,'error');else{closeModal();toast('Job walk saved ✓');if(jobIdOverride)loadJT('jt-walks');else{openJobWalk(walk.id)}}
+    if(error)toast(error.message,'error');else{closeModal();toast('Job walk saved OK');if(jobIdOverride)loadJT('jt-walks');else{openJobWalk(walk.id)}}
   })
 }
 
@@ -1031,10 +1244,10 @@ function newWalkModal(jobIdOverride){
 // ══════════════════════════════════════════
 async function pgPunch(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="addPunchItem()">+ Add Item</button>'
-  const{data:items}=await sb.from('punch_list').select('*,jobs(name)').order('created_at',{ascending:false})
+  const{data:items}=await sb.from('punch_list').select('*').order('created_at',{ascending:false})
   document.getElementById('page-area').innerHTML=`
   <div class="card" style="padding:0;overflow:hidden">
-  ${(items||[]).length?`<table class="tbl"><thead><tr><th>Item</th><th>Job</th><th>Location</th><th>Assigned</th><th>Priority</th><th>Status</th><th>Due</th><th></th></tr></thead><tbody>${(items||[]).map(i=>`<tr><td style="font-weight:500">${i.item}</td><td style="font-size:11px">${i.jobs?.name||'—'}</td><td style="font-size:11px;color:#8a96ab">${i.location||'—'}</td><td style="font-size:11px">${i.assigned_to||'—'}</td><td><span class="badge ${i.priority==='urgent'?'bg-red':i.priority==='high'?'bg-amber':'bg-gray'}">${i.priority}</span></td><td><span class="badge ${i.status==='complete'?'bg-green':'bg-amber'}">${i.status}</span></td><td style="font-size:11px">${fd(i.due_date)}</td><td>${i.status!=='complete'?`<button class="btn btn-sm btn-g" onclick="completePunchGlobal('${i.id}')">Done</button>`:''}</td></tr>`).join('')}</tbody></table>`:empty('✅','No punch list items')}
+  ${(items||[]).length?`<table class="tbl"><thead><tr><th>Item</th><th>Job</th><th>Location</th><th>Assigned</th><th>Priority</th><th>Status</th><th>Due</th><th></th></tr></thead><tbody>${(items||[]).map(i=>`<tr><td style="font-weight:500">${i.item}</td><td style="font-size:11px">${i.job_id||'—'}</td><td style="font-size:11px;color:#8a96ab">${i.location||'—'}</td><td style="font-size:11px">${i.assigned_to||'—'}</td><td><span class="badge ${i.priority==='urgent'?'bg-red':i.priority==='high'?'bg-amber':'bg-gray'}">${i.priority}</span></td><td><span class="badge ${i.status==='complete'?'bg-green':'bg-amber'}">${i.status}</span></td><td style="font-size:11px">${fd(i.due_date)}</td><td>${i.status!=='complete'?`<button class="btn btn-sm btn-g" onclick="completePunchGlobal('${i.id}')">Done</button>`:''}</td></tr>`).join('')}</tbody></table>`:empty('✅','No punch list items')}
   </div>`
 }
 function addPunchItem(jobIdOverride,reloadTab){
@@ -1049,7 +1262,7 @@ function addPunchItem(jobIdOverride,reloadTab){
   <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="pl-due"></div></div>`,
   async()=>{const jobId=v('pl-job');if(!jobId){toast('Select a job','error');return};const item=v('pl-item').trim();if(!item)return;const{error}=await sb.from('punch_list').insert({id:uuid(),job_id:jobId,item,location:v('pl-loc'),assigned_to:v('pl-ass'),priority:v('pl-pri'),status:'open',due_date:v('pl-due')||null,created_by:ME?.full_name,created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();toast('Added');if(reloadTab)loadJT('jt-punch');else pgPunch()}})
 }
-async function completePunchGlobal(id){await sb.from('punch_list').update({status:'complete',completed_at:new Date().toISOString(),completed_by:ME?.full_name}).eq('id',id);toast('Done ✓');pgPunch()}
+async function completePunchGlobal(id){await sb.from('punch_list').update({status:'complete',completed_at:new Date().toISOString(),completed_by:ME?.full_name}).eq('id',id);toast('Done OK');pgPunch()}
 
 // ══════════════════════════════════════════
 // SCAN PARTS PAGE — Full barcode scanning
@@ -1213,7 +1426,7 @@ async function loadJobPartsPanel(){
 async function loadScanEvents(){
   const el=document.getElementById('scan-events-panel');if(!el)return
   const{data:events}=await sb.from('scan_events').select('*').order('scanned_at',{ascending:false}).limit(15)
-  el.innerHTML=(events||[]).length?events.map(e=>`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span class="badge ${e.action==='stage_in'?'bg-amber':e.action==='check_out'?'bg-blue':'bg-green'}" style="flex-shrink:0">${e.action.replace('_',' ')}</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.part_name} ×${e.qty}</div><div style="font-size:10px;color:#414e63">${e.scanned_by} · ${fdt(e.scanned_at)}</div></div></div>`).join(''):'<div style="font-size:12px;color:#414e63">No recent scans</div>'
+  el.innerHTML=(events||[]).length?events.map(e=>`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span class="badge ${e.action==='stage_in'?'bg-amber':e.action==='check_out'?'bg-blue':'bg-green'}" style="flex-shrink:0">${e.action.replace('_',' ')}</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.part_name} ×${e.qty}</div><div style="font-size:10px;color:#414e63">${e.scanned_by||'?'} · ${fdt(e.scanned_at)}</div></div></div>`).join(''):'<div style="font-size:12px;color:#414e63">No recent scans</div>'
 }
 
 // CAMERA SCANNING
@@ -1358,7 +1571,7 @@ function adjStockModal(id='',name='',qty=0,min=0){
     const minQ=parseInt(v('iv-min'))||0
     if(isNew){const{error}=await sb.from('inventory').insert({id:iid,name:inm,qty:delta,min_qty:minQ,updated_at:new Date().toISOString()});if(error){toast(error.message,'error');return}}
     else{const{data:cur}=await sb.from('inventory').select('qty').eq('id',iid).single();const newQ=Math.max(0,(cur?.qty||0)+delta);await sb.from('inventory').update({qty:newQ,min_qty:minQ,updated_at:new Date().toISOString()}).eq('id',iid)}
-    closeModal();toast('Stock updated ✓');pgInventory()
+    closeModal();toast('Stock updated OK');pgInventory()
   })
   if(!isNew){setTimeout(()=>{const el=document.getElementById('iv-qty');if(el)el.addEventListener('input',()=>{const prev=document.getElementById('iv-preview');if(prev)prev.textContent=Math.max(0,qty+(parseInt(el.value)||0))})},50)}
 }
@@ -1405,7 +1618,7 @@ async function submitOrder(){
   const{error}=await sb.from('orders').insert({id:uuid(),job_id:job?.name||jobId,items:window._ordItems,notes:v('ord-notes'),status:'pending',created_by:ME?.full_name,created_at:new Date().toISOString()})
   if(error)toast(error.message,'error');else{toast('Order submitted');window._ordItems=[];pgOrders()}
 }
-async function approveOrder(id){await sb.from('orders').update({status:'staged',staged_by:ME?.full_name,staged_at:new Date().toISOString()}).eq('id',id);toast('Staged ✓');pgOrders()}
+async function approveOrder(id){await sb.from('orders').update({status:'staged',staged_by:ME?.full_name,staged_at:new Date().toISOString()}).eq('id',id);toast('Staged OK');pgOrders()}
 async function rejectOrder(id){const n=prompt('Reason for rejection:');if(n===null)return;await sb.from('orders').update({status:'rejected',rejected_by:ME?.full_name,rejection_note:n,rejected_at:new Date().toISOString()}).eq('id',id);toast('Rejected','warn');pgOrders()}
 
 // ══════════════════════════════════════════
@@ -1414,7 +1627,16 @@ async function rejectOrder(id){const n=prompt('Reason for rejection:');if(n===nu
 async function pgGPS(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="pgGPS()">↻ Refresh</button>'
   const today=new Date().toISOString().split('T')[0]
-  const{data:ci}=await sb.from('checkins').select('*,jobs(name),profiles:worker_id(full_name,companies(name))').gte('checkin_at',today+'T00:00:00').order('checkin_at',{ascending:false})
+  const{data:ciRaw}=await sb.from('checkins').select('*').gte('checkin_at',today+'T00:00:00').order('checkin_at',{ascending:false})
+  const wIds=[...new Set((ciRaw||[]).map(c=>c.worker_id).filter(Boolean))]
+  const jIds=[...new Set((ciRaw||[]).map(c=>c.job_id).filter(Boolean))]
+  const[{data:gpsProf},{data:gpsJobs}]=await Promise.all([
+    wIds.length?sb.from('profiles').select('id,full_name,companies(name)').in('id',wIds):Promise.resolve({data:[]}),
+    jIds.length?sb.from('jobs').select('id,name').in('id',jIds):Promise.resolve({data:[]})
+  ])
+  const gpsWMap={}; (gpsProf||[]).forEach(p=>{gpsWMap[p.id]={name:p.full_name,company:p.companies?.name||'—'}})
+  const gpsJMap={}; (gpsJobs||[]).forEach(j=>gpsJMap[j.id]=j.name)
+  const ci=(ciRaw||[]).map(c=>({...c,workerName:gpsWMap[c.worker_id]?.name||'?',companyName:gpsWMap[c.worker_id]?.company||'—',jobName:gpsJMap[c.job_id]||'—'}))
   document.getElementById('page-area').innerHTML=`
   <div class="stats" style="grid-template-columns:repeat(3,1fr)">
     <div class="stat"><div class="stat-label">Currently On Site</div><div class="stat-value" style="color:#16a34a">${(ci||[]).filter(c=>!c.checkout_at).length}</div></div>
@@ -1423,9 +1645,9 @@ async function pgGPS(){
   </div>
   <div class="card" style="padding:0;overflow:hidden">
   ${(ci||[]).length?`<table class="tbl"><thead><tr><th>Worker</th><th>Company</th><th>Job</th><th>In</th><th>Out</th><th>Hours</th><th>Distance</th><th>GPS</th></tr></thead><tbody>${(ci||[]).map(c=>`<tr>
-    <td><div style="display:flex;align-items:center;gap:7px"><div class="av" style="width:22px;height:22px;font-size:8px;${Object.entries(avS(c.profiles?.full_name)).map(([k,val])=>k+':'+val).join(';')}">${ini(c.profiles?.full_name)}</div>${c.profiles?.full_name||'?'}</div></td>
-    <td style="font-size:11px;color:#8a96ab">${c.profiles?.companies?.name||'—'}</td>
-    <td>${c.jobs?.name||'—'}</td>
+    <td><div style="display:flex;align-items:center;gap:7px"><div class="av" style="width:22px;height:22px;font-size:8px;${Object.entries(avS(c.profiles?.full_name)).map(([k,val])=>k+':'+val).join(';')}">${ini(c.profiles?.full_name)}</div>${c.workerName||'?'}</div></td>
+    <td style="font-size:11px;color:#8a96ab">${c.companyName||'—'}</td>
+    <td>${c.jobName||'—'}</td>
     <td style="font-size:11px">${ft(c.checkin_at)}</td>
     <td style="font-size:11px">${c.checkout_at?ft(c.checkout_at):'<span class="gps-live" style="font-size:9px"><span class="pulse"></span>On Site</span>'}</td>
     <td style="font-weight:500">${c.hours_logged?fh(c.hours_logged):'—'}</td>
@@ -1440,15 +1662,15 @@ async function pgGPS(){
 // ══════════════════════════════════════════
 async function pgHours(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="exportHoursExcel()">⬆ Export Excel</button>'
-  const[{data:ci},{data:profiles}]=await Promise.all([
-    sb.from('checkins').select('*,jobs(name),profiles:worker_id(full_name,role,companies(name))').not('hours_logged','is',null).order('checkin_at',{ascending:false}),
+  const[{data:ciHoursRaw},{data:profiles}]=await Promise.all([
+    sb.from('checkins').select('*').not('hours_logged','is',null).order('checkin_at',{ascending:false}).limit(200),
     sb.from('profiles').select('id,full_name,role,companies(name)').eq('is_active',true)
   ])
   const byTech={},byJob={}
   ;(ci||[]).forEach(c=>{
-    const n=c.profiles?.full_name||'?'
-    const j=c.jobs?.name||c.job_id
-    if(!byTech[n])byTech[n]={name:n,role:c.profiles?.role||'—',company:c.profiles?.companies?.name||'Internal',hours:0,days:new Set()}
+    const n=c.workerName||'?'
+    const j=c.jobName||c.job_id
+    if(!byTech[n])byTech[n]={name:n,role:c.workerRole||'—',company:c.workerCompany,hours:0,days:new Set()}
     byTech[n].hours+=(c.hours_logged||0)
     byTech[n].days.add(c.checkin_at?.split('T')[0])
     if(!byJob[j])byJob[j]={name:j,hours:0,checkins:0}
@@ -1468,12 +1690,12 @@ async function pgHours(){
   </div>
   <div class="card">
     <div class="card-title">All Check-in Records</div>
-    ${(ci||[]).length?`<table class="tbl"><thead><tr><th>Worker</th><th>Job</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Dist</th></tr></thead><tbody>${(ci||[]).slice(0,50).map(c=>`<tr><td style="font-weight:500">${c.profiles?.full_name||'?'}</td><td>${c.jobs?.name||'—'}</td><td style="font-size:11px">${fd(c.checkin_at)}</td><td style="font-size:11px">${ft(c.checkin_at)}</td><td style="font-size:11px">${c.checkout_at?ft(c.checkout_at):'Active'}</td><td style="font-weight:500">${fh(c.hours_logged)}</td><td>${c.checkin_dist_ft!=null?c.checkin_dist_ft+'ft':'—'}</td></tr>`).join('')}</tbody></table>`:empty('⏱','No check-in records')}
+    ${(ci||[]).length?`<table class="tbl"><thead><tr><th>Worker</th><th>Job</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Dist</th></tr></thead><tbody>${(ci||[]).slice(0,50).map(c=>`<tr><td style="font-weight:500">${c.workerName||'?'}</td><td>${c.jobName||'—'}</td><td style="font-size:11px">${fd(c.checkin_at)}</td><td style="font-size:11px">${ft(c.checkin_at)}</td><td style="font-size:11px">${c.checkout_at?ft(c.checkout_at):'Active'}</td><td style="font-weight:500">${fh(c.hours_logged)}</td><td>${c.checkin_dist_ft!=null?c.checkin_dist_ft+'ft':'—'}</td></tr>`).join('')}</tbody></table>`:empty('⏱','No check-in records')}
   </div>`
 }
 async function exportHoursExcel(){
-  const{data:ci}=await sb.from('checkins').select('*,jobs(name),profiles:worker_id(full_name,role,companies(name))').not('hours_logged','is',null).order('checkin_at',{ascending:false})
-  const rows=(ci||[]).map(c=>({'Worker':c.profiles?.full_name||'?','Role':c.profiles?.role||'—','Company':c.profiles?.companies?.name||'Internal','Job':c.jobs?.name||'—','Date':c.checkin_at?.split('T')[0],'Check-in':ft(c.checkin_at),'Check-out':c.checkout_at?ft(c.checkout_at):'—','Hours':c.hours_logged||0,'Distance (ft)':c.checkin_dist_ft||'—'}))
+  const{data:ci}=await sb.from('checkins').select('*').not('hours_logged','is',null).order('checkin_at',{ascending:false})
+  const rows=(ci||[]).map(c=>({'Worker':c.workerName||'?','Role':c.workerRole||'—','Company':c.workerCompany,'Job':c.jobName||'—','Date':c.checkin_at?.split('T')[0],'Check-in':ft(c.checkin_at),'Check-out':c.checkout_at?ft(c.checkout_at):'—','Hours':c.hours_logged||0,'Distance (ft)':c.checkin_dist_ft||'—'}))
   const ws=XLSX.utils.json_to_sheet(rows)
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Hours')
   XLSX.writeFile(wb,'FieldAxisHQ-Hours-'+new Date().toISOString().split('T')[0]+'.xlsx')
@@ -1496,7 +1718,7 @@ async function pgCompanies(){
     const insStatus=insExp===null?'unknown':insExp<0?'expired':insExp<30?'expiring':'ok'
     return`<div class="card" style="margin-bottom:13px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-      <div><div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700">${co.name}</div><div style="font-size:11px;color:#414e63;margin-top:2px">${co.trade||''} ${co.license_num?'· Lic: '+co.license_num:''} ${co.email?'· '+co.email:''}</div></div>
+      <div><div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700">${co.name}</div><div style="font-size:11px;color:#414e63;margin-top:2px">${co.trade||''} ${co.license_num?'· Lic: '+co.license_num:''} ${co.email?'· '+co.email:''}</div></div>
       <div style="display:flex;gap:7px;align-items:center">
         <span class="badge ${insStatus==='ok'?'bg-green':insStatus==='expiring'?'bg-amber':'bg-red'}">${insStatus==='ok'?'GL Insurance OK':insStatus==='expiring'?'Ins Expiring Soon':'Ins Expired/Unknown'}</span>
         ${co.ins_expiry?`<span style="font-size:10px;color:#414e63">Exp: ${fd(co.ins_expiry)}</span>`:''}
@@ -1538,41 +1760,130 @@ async function checkSafetyBadge(){
   try{const{count}=await sb.from('safety_assignments').select('id',{count:'exact',head:true}).is('acknowledged_at',null);const b=document.getElementById('nb-safety');if(b){b.textContent=count||0;b.style.display=count>0?'inline-block':'none'}}catch{}
 }
 async function pgSafety(){
-  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="newSafetyTopicModal()">+ New Safety Topic</button>'
-  const{data:topics}=await sb.from('safety_topics').select('*').order('week_of',{ascending:false,nullsFirst:false})
-  document.getElementById('page-area').innerHTML=`
-  ${(topics||[]).map(t=>`<div class="safety-card">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px">
-      <div><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700">${t.title}</div><div style="font-size:11px;color:#414e63;margin-top:2px">${t.category||'General'} · Week of ${fd(t.week_of)} · By ${t.created_by||'—'}</div></div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-sm" onclick="viewSafetyAcks('${t.id}')">View Acks</button>
-        <button class="btn btn-sm btn-p" onclick="assignSafetyModal('${t.id}','${t.title.replace(/'/g,"\\'")}')">Assign</button>
-      </div>
-    </div>
-    <div style="font-size:12px;color:#8a96ab;line-height:1.6;margin-bottom:9px">${t.content.substring(0,300)}${t.content.length>300?'…':''}</div>
-    <div id="ack-summary-${t.id}"></div>
-  </div>`).join('')||empty('🛡','No safety topics yet — create your first one')}` 
-  // Load ack summaries
-  for(const t of topics||[]){
-    const{count:ackCount}=await sb.from('safety_acks').select('id',{count:'exact',head:true}).eq('topic_id',t.id)
-    const{count:assigned}=await sb.from('safety_assignments').select('id',{count:'exact',head:true}).eq('topic_id',t.id)
-    const el=document.getElementById('ack-summary-'+t.id)
-    if(el)el.innerHTML=`<div style="display:flex;gap:10px;font-size:11px"><span style="color:#16a34a">✓ ${ackCount||0} acknowledged</span><span style="color:#414e63">/ ${assigned||0} assigned</span>${(assigned||0)>(ackCount||0)?`<span style="color:#d97706">⚠ ${(assigned||0)-(ackCount||0)} pending</span>`:''}</div>`
+  document.getElementById('topbar-actions').innerHTML=
+    '<button class="btn btn-sm" onclick="exportSafetyCSV()">⬆ Export Report</button>'+
+    '<button class="btn btn-p btn-sm" onclick="newSafetyTopicModal()">+ New Topic</button>'
+  const[{data:topics},{data:allAcks},{data:allAssigns}]=await Promise.all([
+    sb.from('safety_topics').select('*').order('week_of',{ascending:false,nullsFirst:false}),
+    sb.from('safety_acks').select('*,profiles:profile_id(full_name,role,companies(name))').order('acknowledged_at',{ascending:false}),
+    sb.from('safety_assignments').select('*,profiles:profile_id(full_name,role,companies(name))').order('assigned_at',{ascending:false})
+  ])
+  // Stats
+  const totalTopics=(topics||[]).length
+  const totalAssigned=new Set((allAssigns||[]).map(a=>a.profile_id)).size
+  const totalAcked=new Set((allAcks||[]).map(a=>a.profile_id)).size
+  const pendingCount=(allAssigns||[]).filter(a=>{
+    return !((allAcks||[]).find(ak=>ak.topic_id===a.topic_id&&ak.profile_id===a.profile_id))
+  }).length
+  const pa=document.getElementById('page-area')
+  let html=
+    '<div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">'+
+    '<div class="stat"><div class="stat-label">Topics</div><div class="stat-value">'+totalTopics+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Assigned To</div><div class="stat-value">'+totalAssigned+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Completed</div><div class="stat-value" style="color:#16a34a">'+totalAcked+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Pending</div><div class="stat-value" style="color:'+(pendingCount?'#dc2626':'#16a34a')+'">'+pendingCount+'</div></div>'+
+    '</div>'
+  // Tab bar: Topics | Compliance Report
+  const svTopicCls=window._safetyView!=='report'?'btn-p':''
+  const svReportCls=window._safetyView==='report'?'btn-p':''
+  html+='<div style="display:flex;gap:8px;margin-bottom:13px">'+
+    '<button class="btn '+svTopicCls+'" onclick="window._safetyView=\'topics\';pgSafety()">Topics</button>'+
+    '<button class="btn '+svReportCls+'" onclick="window._safetyView=\'report\';pgSafety()">Compliance Report</button>'+
+    '</div>'
+  if(window._safetyView==='report'){
+    // Full compliance grid: employees vs topics
+    const{data:allProfiles}=await sb.from('profiles').select('id,full_name,role,companies(name)').eq('is_active',true).order('full_name')
+    const profiles=allProfiles||[]
+    const ackMap={} // ackMap[profile_id+topic_id] = ack record
+    ;(allAcks||[]).forEach(a=>{ackMap[a.profile_id+'_'+a.topic_id]=a})
+    const assignMap={}
+    ;(allAssigns||[]).forEach(a=>{assignMap[a.profile_id+'_'+a.topic_id]=a})
+    html+='<div class="card" style="padding:0;overflow:hidden;overflow-x:auto"><table class="tbl"><thead><tr>'
+    html+='<th style="min-width:150px;position:sticky;left:0;background:#131c2e;z-index:1">Employee</th>'
+    html+='<th>Role</th>'
+    ;(topics||[]).forEach(t=>{
+      html+='<th style="min-width:120px;font-size:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+t.title+'">'+t.title.substring(0,20)+(t.title.length>20?'…':'')+'</th>'
+    })
+    html+='</tr></thead><tbody>'
+    profiles.forEach(p=>{
+      const assignedTopics=(allAssigns||[]).filter(a=>a.profile_id===p.id)
+      if(!assignedTopics.length) return // skip unassigned employees
+      html+='<tr onclick="viewEmployeeModal(\"'+p.id+'\")" style="cursor:pointer">'
+      html+='<td style="position:sticky;left:0;background:#0c1220;font-weight:500">'+p.full_name+'<div style="font-size:9px;color:#414e63">'+(p.companies?.name||'Internal')+'</div></td>'
+      html+='<td>'+roleBadge(p.role)+'</td>'
+      ;(topics||[]).forEach(t=>{
+        const ack=ackMap[p.id+'_'+t.id]
+        const assigned=assignMap[p.id+'_'+t.id]
+        if(ack){
+          html+='<td title="Completed '+fdt(ack.acknowledged_at)+'"><span class="badge bg-green" style="font-size:9px">✓ '+fd(ack.acknowledged_at)+'</span></td>'
+        }else if(assigned){
+          const overdue=assigned.due_date&&new Date(assigned.due_date)<new Date()
+          html+='<td><span class="badge '+(overdue?'bg-red':'bg-amber')+'" style="font-size:9px">'+(overdue?'Overdue':'Pending')+'</span></td>'
+        }else{
+          html+='<td><span style="font-size:10px;color:#1a2540">—</span></td>'
+        }
+      })
+      html+='</tr>'
+    })
+    html+='</tbody></table></div>'
+  } else {
+    // Topics list view
+    html+=(topics||[]).map(t=>safetyTopicCard(t,allAcks||[],allAssigns||[])).join('')||empty('🛡','No safety topics yet')
   }
+  pa.innerHTML=html
 }
-function newSafetyTopicModal(){
-  modal('New Safety Topic',`
-  <div class="fg"><label class="fl">Title *</label><input class="fi" id="st-title" placeholder="e.g. Fall Protection Refresher"></div>
-  <div class="two"><div class="fg"><label class="fl">Category</label><select class="fs" id="st-cat"><option value="general">General Safety</option><option value="ppe">PPE</option><option value="fall_protection">Fall Protection</option><option value="electrical">Electrical Safety</option><option value="tool_safety">Tool Safety</option><option value="hazmat">Hazmat / Chemical</option><option value="emergency">Emergency Procedures</option><option value="vehicle">Vehicle / Driving</option></select></div><div class="fg"><label class="fl">Week Of</label><input class="fi" type="date" id="st-week"></div></div>
-  <div class="fg"><label class="fl">Content *</label><textarea class="ft" id="st-content" style="min-height:140px" placeholder="Safety topic content, instructions, requirements…"></textarea></div>`,
-  async()=>{const t=v('st-title').trim(),c=v('st-content').trim();if(!t||!c){toast('Title and content required','error');return};const{error}=await sb.from('safety_topics').insert({id:uuid(),title:t,content:c,category:v('st-cat'),week_of:v('st-week')||null,created_by:ME?.full_name,created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();toast('Safety topic created');pgSafety()}})
+
+
+function safetyTopicCard(t, allAcks, allAssigns){
+  const tAcks=allAcks.filter(a=>a.topic_id===t.id)
+  const tAssigns=allAssigns.filter(a=>a.topic_id===t.id)
+  const tPending=tAssigns.filter(a=>!tAcks.find(ak=>ak.profile_id===a.profile_id))
+  const safeTitle=t.title.replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+  return '<div class="card" style="margin-bottom:10px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px">'+
+    '<div><div style="font-family:Syne,sans-serif;font-size:14px;font-weight:700">'+t.title+'</div>'+
+    '<div style="font-size:11px;color:#414e63;margin-top:2px">'+t.category+' · Week of '+fd(t.week_of)+' · By '+(t.created_by||'—')+'</div></div>'+
+    '<div style="display:flex;gap:6px">'+
+    '<button class="btn btn-sm" onclick="viewSafetyAcks(this.dataset.id)" data-id="'+t.id+'">View Acks</button>'+
+    '<button class="btn btn-sm btn-p" onclick="assignSafetyModal(this.dataset.id,this.dataset.title)" data-id="'+t.id+'" data-title="'+safeTitle+'">Assign</button>'+
+    '</div></div>'+
+    '<div style="font-size:12px;color:#8a96ab;line-height:1.6;margin-bottom:9px">'+t.content.substring(0,200)+(t.content.length>200?'…':'')+'</div>'+
+    '<div style="display:flex;gap:12px;font-size:11px">'+
+    '<span style="color:#16a34a">✓ '+tAcks.length+' completed</span>'+
+    '<span style="color:#414e63">/ '+tAssigns.length+' assigned</span>'+
+    (tPending.length?'<span style="color:#dc2626">⚠ '+tPending.length+' pending</span>':'')+
+    '</div></div>'
 }
+async function exportSafetyCSV(){
+  const[{data:topics},{data:acks},{data:assigns}]=await Promise.all([
+    sb.from('safety_topics').select('*').order('week_of',{ascending:false}),
+    sb.from('safety_acks').select('*,profiles:profile_id(full_name,role,companies(name))'),
+    sb.from('safety_assignments').select('*,profiles:profile_id(full_name,role)')
+  ])
+  const ackMap={}
+  ;(acks||[]).forEach(a=>{ackMap[a.profile_id+'_'+a.topic_id]=a})
+  const rows=[['Topic','Category','Week Of','Employee','Role','Assigned Date','Due Date','Status','Completed At']]
+  ;(assigns||[]).forEach(a=>{
+    const topic=(topics||[]).find(t=>t.id===a.topic_id)
+    const ack=ackMap[a.profile_id+'_'+a.topic_id]
+    rows.push([
+      topic?.title||'',topic?.category||'',fd(topic?.week_of),
+      a.profiles?.full_name||'',a.profiles?.role||'',
+      fd(a.assigned_at),fd(a.due_date),
+      ack?'Completed':'Pending',
+      ack?fdt(ack.acknowledged_at):''
+    ])
+  })
+  const csv=rows.map(r=>r.map(x=>'"'+String(x||'').replace(/"/g,'""')+'"').join(',')).join('\n')
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='Safety-Training-Report-'+new Date().toISOString().split('T')[0]+'.csv';a.click();toast('Report exported')
+}
+
 async function assignSafetyModal(topicId,topicTitle){
   const[{data:profiles},{data:already}]=await Promise.all([
     sb.from('profiles').select('id,full_name,role,companies(name)').eq('is_active',true).order('full_name'),
     sb.from('safety_assignments').select('assigned_to').eq('topic_id',topicId)
   ])
-  const assigned=new Set((already||[]).map(a=>a.assigned_to))
+  const assigned=new Set((already||[]).map(a=>a.profile_id))
   modal('Assign — '+topicTitle,`
   <div style="font-size:11px;color:#414e63;margin-bottom:10px">Select who must review this safety topic. Already assigned are pre-checked.</div>
   <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="sa-due"></div>
@@ -1590,7 +1901,7 @@ async function assignSafetyModal(topicId,topicTitle){
     let added=0
     for(const cb of selected){
       if(assigned.has(cb.value))continue // skip already assigned
-      await sb.from('safety_assignments').insert({id:uuid(),topic_id:topicId,assigned_to:cb.value,assigned_name:cb.dataset.name,due_date:due,assigned_at:new Date().toISOString()})
+      await sb.from('safety_assignments').insert({id:uuid(),topic_id:topicId,profile_id:cb.value,assigned_name:cb.dataset.name,due_date:due,assigned_at:new Date().toISOString()})
       added++
     }
     closeModal();toast(`Assigned to ${selected.length} person(s)${added<selected.length?' ('+(selected.length-added)+' already assigned)':''}`);pgSafety()
@@ -1621,10 +1932,10 @@ async function pgFinancials(){
   const[{data:jobs},{data:ci},{data:parts}]=await Promise.all([
     sb.from('jobs').select('*').eq('archived',false).order('name'),
     sb.from('checkins').select('job_id,hours_logged').not('hours_logged','is',null),
-    sb.from('job_parts').select('*,catalog:part_id(unit_cost)').in('status',['signed_out','installed','staged'])
+    sb.from('job_parts').select('*').in('status',['signed_out','installed','staged'])
   ])
   const hrsByJob={};(ci||[]).forEach(c=>{hrsByJob[c.job_id]=(hrsByJob[c.job_id]||0)+(c.hours_logged||0)})
-  const matByJob={};(parts||[]).forEach(p=>{matByJob[p.job_id]=(matByJob[p.job_id]||0)+(p.catalog?.unit_cost||0)*p.assigned_qty})
+  const matByJob={} // Material cost from parts catalog not available without join
   let totC=0,totCost=0,totP=0
   const rows=(jobs||[]).map(j=>{
     const hrs=hrsByJob[j.id]||0
@@ -1690,12 +2001,12 @@ async function exportReport(type){
   }
   // CSV exports
   let csv='',fn=type+'.csv'
-  if(type==='labor'){const{data}=await sb.from('checkins').select('*,jobs(name),profiles:worker_id(full_name,role,companies(name))').order('checkin_at',{ascending:false});csv='Worker,Role,Company,Job,Date,In,Out,Hours,Distance(ft)\n'+(data||[]).map(c=>`"${c.profiles?.full_name||''}","${c.profiles?.role||''}","${c.profiles?.companies?.name||''}","${c.jobs?.name||''}","${c.checkin_at?.split('T')[0]||''}","${ft(c.checkin_at)}","${c.checkout_at?ft(c.checkout_at):''}",${c.hours_logged||0},${c.checkin_dist_ft||''}`).join('\n');fn='Labor-Report.csv'}
+  if(type==='labor'){const{data}=await sb.from('checkins').select('*').order('checkin_at',{ascending:false});csv='Worker,Role,Company,Job,Date,In,Out,Hours,Distance(ft)\n'+(data||[]).map(c=>`"${c.worker_name||''}","${c.workerRole||''}","${c.company_name||''}","${c.job_name||''}","${c.checkin_at?.split('T')[0]||''}","${ft(c.checkin_at)}","${c.checkout_at?ft(c.checkout_at):''}",${c.hours_logged||0},${c.checkin_dist_ft||''}`).join('\n');fn='Labor-Report.csv'}
   else if(type==='parts'){const{data}=await sb.from('job_parts').select('*,jobs(name)').order('created_at',{ascending:false});csv='Part Name,Barcode,Job,Status,Qty,Staged By,Staged At,Checked Out By,Checked Out At\n'+(data||[]).map(p=>`"${p.part_name}","${p.part_id}","${p.jobs?.name||''}","${p.status}",${p.assigned_qty},"${p.staged_by||''}","${p.staged_at||''}","${p.checked_out_by||''}","${p.checked_out_at||''}"`).join('\n');fn='Parts-Report.csv'}
-  else if(type==='gps_csv'){const{data}=await sb.from('checkins').select('*,profiles:worker_id(full_name)').order('checkin_at',{ascending:false});csv='Worker,Job ID,Date,In,Out,Hours,Lat,Lng,Dist(ft)\n'+(data||[]).map(c=>`"${c.profiles?.full_name||''}","${c.job_id}","${c.checkin_at?.split('T')[0]}","${ft(c.checkin_at)}","${c.checkout_at?ft(c.checkout_at):''}",${c.hours_logged||0},${c.checkin_lat||''},${c.checkin_lng||''},${c.checkin_dist_ft||''}`).join('\n');fn='GPS-Log.csv'}
+  else if(type==='gps_csv'){const{data}=await sb.from('checkins').select('*').order('checkin_at',{ascending:false});csv='Worker,Job ID,Date,In,Out,Hours,Lat,Lng,Dist(ft)\n'+(data||[]).map(c=>`"${c.worker_name||''}","${c.job_id}","${c.checkin_at?.split('T')[0]}","${ft(c.checkin_at)}","${c.checkout_at?ft(c.checkout_at):''}",${c.hours_logged||0},${c.checkin_lat||''},${c.checkin_lng||''},${c.checkin_dist_ft||''}`).join('\n');fn='GPS-Log.csv'}
   else if(type==='inv_csv'){const{data}=await sb.from('inventory').select('*').order('name');csv='ID,Name,Qty,Min Qty,Status\n'+(data||[]).map(i=>`"${i.id}","${i.name}",${i.qty},${i.min_qty||0},"${i.qty<=(i.min_qty||0)&&i.min_qty>0?'LOW STOCK':'OK'}"`).join('\n');fn='Inventory-Report.csv'}
-  else if(type==='daily_csv'){const{data}=await sb.from('daily_reports').select('*,jobs(name)').order('report_date',{ascending:false});csv='Date,Job,Crew,Hours,Weather,Work Performed,Issues,Submitted By\n'+(data||[]).map(r=>`"${r.report_date}","${r.jobs?.name||''}",${r.crew_count},${r.hours_worked||0},"${r.weather||''}","${(r.work_performed||'').replace(/"/g,'""')}","${(r.issues||'').replace(/"/g,'""')}","${r.submitted_by||''}"`).join('\n');fn='Daily-Reports.csv'}
-  else if(type==='scan_csv'){const{data}=await sb.from('scan_events').select('*').order('scanned_at',{ascending:false});csv='Action,Part Name,Barcode,Qty,Job,Scanned By,Date/Time\n'+(data||[]).map(e=>`"${e.action}","${e.part_name}","${e.part_id}",${e.qty},"${e.job_id}","${e.scanned_by}","${fdt(e.scanned_at)}"`).join('\n');fn='Scan-Events.csv'}
+  else if(type==='daily_csv'){const{data}=await sb.from('daily_reports').select('*').order('report_date',{ascending:false});csv='Date,Job,Crew,Hours,Weather,Work Performed,Issues,Submitted By\n'+(data||[]).map(r=>`"${r.report_date}","${r.jobs?.name||''}",${r.crew_count},${r.hours_worked||0},"${r.weather||''}","${(r.work_performed||'').replace(/"/g,'""')}","${(r.issues||'').replace(/"/g,'""')}","${r.submitted_by||''}"`).join('\n');fn='Daily-Reports.csv'}
+  else if(type==='scan_csv'){const{data}=await sb.from('scan_events').select('*').order('scanned_at',{ascending:false});csv='Action,Part Name,Barcode,Qty,Job,Scanned By,Date/Time\n'+(data||[]).map(e=>`"${e.action}","${e.part_name}","${e.part_id}",${e.qty},"${e.job_id}","${e.scanned_by||'?'}","${fdt(e.scanned_at)}"`).join('\n');fn='Scan-Events.csv'}
   else if(type==='safety_csv'){const{data:topics}=await sb.from('safety_topics').select('*').order('week_of',{ascending:false});const{data:acks}=await sb.from('safety_acks').select('*');const{data:assigns}=await sb.from('safety_assignments').select('*');csv='Topic,Week Of,Person,Assigned Date,Acknowledged,Ack Date\n'+(assigns||[]).map(a=>{const ack=(acks||[]).find(x=>x.topic_id===a.topic_id&&x.user_name===a.assigned_name);const topic=(topics||[]).find(t=>t.id===a.topic_id);return`"${topic?.title||''}","${fd(topic?.week_of)}","${a.assigned_name}","${fd(a.assigned_at)}","${ack?'YES':'NO'}","${ack?fdt(ack.acknowledged_at):''}"`}).join('\n');fn='Safety-Report.csv'}
   if(csv){const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=fn;a.click();toast('Downloading…')}
 }
@@ -1732,31 +2043,235 @@ async function uploadGlobalDoc(files){
 // USERS PAGE
 // ══════════════════════════════════════════
 async function pgUsers(){
-  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="addUserModal()">+ Add User</button>'
-  const{data}=await sb.from('profiles').select('*,companies(name)').order('created_at')
-  document.getElementById('page-area').innerHTML=`<div class="card" style="padding:0;overflow:hidden">
-  ${(data||[]).length?`<table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Company</th><th>Status</th><th></th></tr></thead><tbody>${(data||[]).map(u=>`<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:24px;height:24px;font-size:9px;${Object.entries(avS(u.full_name)).map(([k,val])=>k+':'+val).join(';')}">${ini(u.full_name)}</div><span style="font-weight:500">${u.full_name}</span></div></td><td style="font-size:11px;color:#8a96ab">${u.email||'—'}</td><td>${roleBadge(u.role)}</td><td style="font-size:11px">${u.companies?.name||'Internal'}</td><td><span class="badge ${u.is_active?'bg-green':'bg-gray'}">${u.is_active?'Active':'Inactive'}</span></td><td><button class="btn btn-sm" onclick="editUserModal('${u.id}','${u.role}','${u.is_active}','${u.full_name}')">Edit</button></td></tr>`).join('')}</tbody></table>`:empty('👥','No users')}
-  </div>`
+  document.getElementById('topbar-actions').innerHTML=
+    '<button class="btn btn-sm" onclick="exportEmployeesCSV()">⬆ Export</button>'+
+    '<button class="btn btn-p btn-sm" onclick="addUserModal()">+ Add Employee</button>'
+  const[{data:users},{data:companies}]=await Promise.all([
+    sb.from('profiles').select('*,companies(name)').order('full_name'),
+    sb.from('companies').select('id,name').eq('is_active',true).order('name')
+  ])
+  const all=users||[]
+  const roles=[...new Set(all.map(u=>u.role).filter(Boolean))].sort()
+  const pa=document.getElementById('page-area')
+  pa.innerHTML=
+    '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'+
+    '<input class="fi" id="emp-search" placeholder="Search name or email…" style="max-width:220px" oninput="filterEmployees()">'+
+    '<select class="fs" id="emp-role" style="width:150px" onchange="filterEmployees()"><option value="">All Roles</option>'+roles.map(r=>'<option value="'+r+'">'+r.replace(/_/g,' ')+'</option>').join('')+'</select>'+
+    '<select class="fs" id="emp-co" style="width:160px" onchange="filterEmployees()"><option value="">All Companies</option>'+
+    (companies||[]).map(co=>'<option value="'+co.id+'">'+co.name+'</option>').join('')+
+    '<option value="internal">Internal</option></select>'+
+    '<select class="fs" id="emp-status" style="width:120px" onchange="filterEmployees()"><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select>'+
+    '</div>'+
+    '<div id="emp-table"></div>'+
+    '<div style="margin-top:11px;font-size:11px;color:#414e63" id="emp-count"></div>'
+  window._empAll=all
+  window._empCos=companies||[]
+  filterEmployees()
 }
+
+function filterEmployees(){
+  const q=(document.getElementById('emp-search')?.value||'').toLowerCase()
+  const role=document.getElementById('emp-role')?.value||''
+  const co=document.getElementById('emp-co')?.value||''
+  const status=document.getElementById('emp-status')?.value||''
+  const all=window._empAll||[]
+  const rows=all.filter(u=>{
+    if(q&&!u.full_name.toLowerCase().includes(q)&&!(u.email||'').toLowerCase().includes(q))return false
+    if(role&&u.role!==role)return false
+    if(co==='internal'&&u.company_id)return false
+    if(co&&co!=='internal'&&u.company_id!==co)return false
+    if(status==='active'&&!u.is_active)return false
+    if(status==='inactive'&&u.is_active)return false
+    return true
+  })
+  const el=document.getElementById('emp-table')
+  const cnt=document.getElementById('emp-count')
+  if(cnt)cnt.textContent=rows.length+' employee'+(rows.length!==1?'s':'')
+  if(!rows.length){if(el)el.innerHTML=empty('👥','No employees match filters');return}
+  let html='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr>'
+  html+='<th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Company</th><th>Emergency Contact</th><th>Status</th><th></th>'
+  html+='</tr></thead><tbody>'
+  for(const u of rows){
+    const avCss=Object.entries(avS(u.full_name)).map(([k,val])=>k+':'+val).join(';')
+    html+='<tr>'
+    html+='<td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:26px;height:26px;font-size:9px;'+avCss+'">'+ini(u.full_name)+'</div><div><div style="font-weight:500">'+u.full_name+'</div>'+(u.hire_date?'<div style="font-size:9px;color:#414e63">Hired '+fd(u.hire_date)+'</div>':'')+'</div></div></td>'
+    html+='<td style="font-size:11px;color:#8a96ab">'+(u.email||'—')+'</td>'
+    html+='<td style="font-size:11px;color:#8a96ab">'+(u.phone||'—')+'</td>'
+    html+='<td>'+roleBadge(u.role)+'</td>'
+    html+='<td style="font-size:11px">'+(u.companies?.name||'Internal')+'</td>'
+    html+='<td style="font-size:10px;color:#8a96ab">'+(u.emergency_contact||'—')+'<br>'+(u.emergency_phone?'<span style="color:#414e63">'+u.emergency_phone+'</span>':'')+'</td>'
+    html+='<td><span class="badge '+(u.is_active?'bg-green':'bg-gray')+'">'+(u.is_active?'Active':'Inactive')+'</span></td>'
+    html+='<td style="display:flex;gap:4px"><button class="btn btn-sm" data-id="'+u.id+'" onclick="viewEmployeeModal(this.dataset.id)">View</button><button class="btn btn-sm" data-id="'+u.id+'" data-role="'+u.role+'" data-active="'+u.is_active+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="editUserModal(this.dataset.id,this.dataset.role,this.dataset.active,this.dataset.name)">Edit</button></td>'
+    html+='</tr>'
+  }
+  html+='</tbody></table></div>'
+  if(el)el.innerHTML=html
+}
+
+async function exportEmployeesCSV(){
+  const all=window._empAll||[]
+  const rows=[['Name','Email','Phone','Role','Company','Hire Date','Emergency Contact','Emergency Phone','Status']]
+  all.forEach(u=>rows.push([u.full_name,u.email||'',u.phone||'',u.role,u.companies?.name||'Internal',u.hire_date||'',u.emergency_contact||'',u.emergency_phone||'',u.is_active?'Active':'Inactive']))
+  const csv=rows.map(r=>r.map(x=>'"'+String(x||'').replace(/"/g,'""')+'"').join(',')).join('\n')
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='Employees-'+new Date().toISOString().split('T')[0]+'.csv';a.click();toast('Exported')
+}
+
+async function viewEmployeeModal(id){
+  const{data:u}=await sb.from('profiles').select('*,companies(name)').eq('id',id).single()
+  if(!u)return
+  // Get safety training history
+  const[{data:acks},{data:assigns}]=await Promise.all([
+    sb.from('safety_acks').select('*,safety_topics(title,week_of,category)').eq('profile_id',id).order('acknowledged_at',{ascending:false}),
+    sb.from('safety_assignments').select('*,safety_topics(title,week_of)').eq('profile_id',id).order('assigned_at',{ascending:false})
+  ])
+  const ackedIds=new Set((acks||[]).map(a=>a.topic_id))
+  const pending=(assigns||[]).filter(a=>!ackedIds.has(a.topic_id))
+  const avCss=Object.entries(avS(u.full_name)).map(([k,val])=>k+':'+val).join(';')
+  let html=
+    '<div style="display:flex;align-items:center;gap:13px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.07)">'+
+    '<div class="av" style="width:52px;height:52px;font-size:18px;flex-shrink:0;'+avCss+'">'+ini(u.full_name)+'</div>'+
+    '<div><div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700">'+u.full_name+'</div>'+
+    '<div style="margin-top:3px">'+roleBadge(u.role)+'</div>'+
+    '<div style="font-size:11px;color:#414e63;margin-top:3px">'+(u.companies?.name||'Internal')+(u.hire_date?' · Hired '+fd(u.hire_date):'')+'</div></div></div>'+
+    '<div class="two" style="margin-bottom:13px">'+
+    '<div><div class="fl">EMAIL</div><div style="font-size:13px">'+(u.email||'—')+'</div></div>'+
+    '<div><div class="fl">PHONE</div><div style="font-size:13px">'+(u.phone||'—')+'</div></div>'+
+    '</div>'+
+    '<div class="two" style="margin-bottom:13px">'+
+    '<div><div class="fl">EMERGENCY CONTACT</div><div style="font-size:13px">'+(u.emergency_contact||'—')+'</div></div>'+
+    '<div><div class="fl">EMERGENCY PHONE</div><div style="font-size:13px">'+(u.emergency_phone||'—')+'</div></div>'+
+    '</div>'+
+    '<div class="sec-hdr" style="margin-bottom:10px">Safety Training — '+
+    '<span style="color:#16a34a">'+(acks||[]).length+' completed</span> · '+
+    '<span style="color:'+(pending.length?'#dc2626':'#414e63')+'">'+pending.length+' pending</span></div>'
+  if(pending.length){
+    html+='<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);border-radius:7px;padding:9px 12px;margin-bottom:10px">'
+    html+='<div style="font-size:10px;color:#dc2626;font-weight:600;margin-bottom:6px">PENDING — NOT YET COMPLETED</div>'
+    html+=pending.map(a=>'<div style="font-size:12px;color:#f87171;padding:3px 0">⏳ '+a.safety_topics?.title+(a.due_date?' · Due '+fd(a.due_date):'')+'</div>').join('')
+    html+='</div>'
+  }
+  if((acks||[]).length){
+    html+='<div style="background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.15);border-radius:7px;padding:9px 12px">'
+    html+='<div style="font-size:10px;color:#16a34a;font-weight:600;margin-bottom:6px">COMPLETED</div>'
+    html+=(acks||[]).map(a=>'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px">✓ '+a.safety_topics?.title+'</span><span style="font-size:10px;color:#414e63">'+fdt(a.acknowledged_at)+'</span></div>').join('')
+    html+='</div>'
+  }
+  if(!(acks||[]).length&&!pending.length) html+='<div style="font-size:12px;color:#414e63">No safety training assigned yet</div>'
+  modal(u.full_name, html, ()=>closeModal(), 'Close', false)
+  const editBtn=document.createElement('button')
+  editBtn.className='btn btn-p btn-sm'
+  editBtn.textContent='Edit'
+  editBtn.onclick=()=>{closeModal();editUserModal(id,u.role,u.is_active,u.full_name)}
+  const closeBtn=document.createElement('button')
+  closeBtn.className='btn'
+  closeBtn.textContent='Close'
+  closeBtn.onclick=closeModal
+  const ft=document.getElementById('modal-footer')
+  ft.innerHTML=''
+  ft.appendChild(closeBtn)
+  ft.appendChild(editBtn)
+}
+
 function addUserModal(){
-  modal('Add User',`
-  <div class="fg"><label class="fl">Full Name *</label><input class="fi" id="au-nm"></div>
-  <div class="fg"><label class="fl">Email *</label><input class="fi" id="au-em" type="email"></div>
-  <div class="fg"><label class="fl">Role *</label><select class="fs" id="au-rl"><option value="sub_worker">Sub Worker</option><option value="sub_lead">Sub Lead</option><option value="technician">Technician</option><option value="stager">Stager</option><option value="foreman">Foreman</option><option value="pm">Project Manager</option><option value="admin">Admin</option></select></div>
-  <div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:7px;padding:10px 12px;font-size:11px;color:#8a96ab;margin-top:8px">ℹ After adding, go to your Supabase Dashboard → Authentication → Users → Invite User to send them a login link.</div>`,
-  async()=>{const nm=v('au-nm').trim(),em=v('au-em').trim();if(!nm||!em){toast('Name and email required','error');return};const{error}=await sb.from('profiles').insert({id:uuid(),full_name:nm,email:em,role:v('au-rl'),is_active:true,created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();toast('User added');pgUsers()}})
+  const coOpts=(window._empCos||[]).map(co=>'<option value="'+co.id+'">'+co.name+'</option>').join('')
+  const html=
+    '<div class="two"><div class="fg"><label class="fl">Full Name *</label><input class="fi" id="au-nm"></div>'+
+    '<div class="fg"><label class="fl">Email *</label><input class="fi" id="au-em" type="email" placeholder="They will get a password setup email"></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="au-ph"></div>'+
+    '<div class="fg"><label class="fl">Role *</label><select class="fs" id="au-rl">'+
+    '<option value="sub_worker">Field Worker</option><option value="sub_lead">Lead</option>'+
+    '<option value="technician">Technician</option><option value="stager">Stager</option>'+
+    '<option value="foreman">Foreman</option><option value="pm">Project Manager</option>'+
+    '<option value="admin">Admin</option></select></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Company</label><select class="fs" id="au-co">'+
+    '<option value="">Internal</option>'+coOpts+'</select></div>'+
+    '<div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="au-hire"></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Emergency Contact</label><input class="fi" id="au-ec"></div>'+
+    '<div class="fg"><label class="fl">Emergency Phone</label><input class="fi" id="au-ep"></div></div>'+
+    '<div id="au-status" style="display:none;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:7px;padding:9px 12px;font-size:12px;color:#16a34a;margin-top:4px"></div>'
+  modal('Add Employee', html, async()=>{
+    const nm=v('au-nm').trim(),em=v('au-em').trim()
+    if(!nm||!em){toast('Name and email required','error');return}
+    const btn=document.getElementById('modal-ok')
+    btn.disabled=true;btn.textContent='Adding…'
+    try{
+      // Try server route first (creates auth account + profile + sends password email)
+      const{data:{session}}=await sb.auth.getSession()
+      const res=await fetch('/api/invite-user',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+        body:JSON.stringify({email:em,full_name:nm,role:v('au-rl'),phone:v('au-ph'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep')})
+      })
+      const result=await res.json()
+      if(res.ok&&result.success){
+        closeModal()
+        toast('Employee added! Password setup email sent to '+em)
+        pgUsers()
+        return
+      }
+      // If service key not set, fall back to profile-only (no auth account)
+      console.warn('Invite route result:',result)
+      if(result.error?.includes('SUPABASE_SERVICE_KEY')||result.error?.includes('service')){
+        // Fallback: create auth user via signUp then insert profile
+        const tempPw=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2).toUpperCase()+'!9'
+        const{data:signUpData,error:signUpErr}=await sb.auth.signUp({email:em,password:tempPw,options:{data:{full_name:nm,role:v('au-rl')}}})
+        const authId=signUpData?.user?.id
+        if(signUpErr&&!authId){toast(signUpErr.message,'error');btn.disabled=false;btn.textContent='Save';return}
+        // Wait a moment then insert profile
+        await new Promise(r=>setTimeout(r,500))
+        const{error:profErr}=await sb.from('profiles').upsert({id:authId,full_name:nm,email:em,phone:v('au-ph'),role:v('au-rl'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep'),is_active:true,created_at:new Date().toISOString()},{onConflict:'id'})
+        if(profErr){toast(profErr.message,'error');btn.disabled=false;btn.textContent='Save';return}
+        closeModal()
+        toast('Employee added. They will get a confirmation email to set their password.','info')
+        pgUsers()
+        return
+      }
+      throw new Error(result.error||'Failed to create employee')
+    }catch(e){
+      toast(e.message,'error')
+      btn.disabled=false;btn.textContent='Save'
+    }
+  })
 }
+
 function editUserModal(id,role,active,name){
-  modal('Edit User — '+name,`
-  <div class="fg"><label class="fl">Role</label><select class="fs" id="eu-rl"><option value="sub_worker">Sub Worker</option><option value="sub_lead">Sub Lead</option><option value="technician">Technician</option><option value="stager">Stager</option><option value="foreman">Foreman</option><option value="pm">Project Manager</option><option value="admin">Admin</option></select></div>
-  <div class="fg"><label class="fl">Status</label><select class="fs" id="eu-act"><option value="true">Active</option><option value="false">Inactive</option></select></div>`,
-  async()=>{await sb.from('profiles').update({role:v('eu-rl'),is_active:v('eu-act')==='true'}).eq('id',id);closeModal();toast('Updated');pgUsers()})
-  setTimeout(()=>{try{document.getElementById('eu-rl').value=role;document.getElementById('eu-act').value=String(active)}catch{}},50)
+  const coOpts=(window._empCos||[]).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')
+  const html=
+    '<div class="two"><div class="fg"><label class="fl">Full Name</label><input class="fi" id="eu-nm" value="'+name+'"></div>'+
+    '<div class="fg"><label class="fl">Phone</label><input class="fi" id="eu-ph"></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Role</label><select class="fs" id="eu-rl">'+
+    '<option value="sub_worker">Field Worker</option><option value="sub_lead">Lead</option>'+
+    '<option value="technician">Technician</option><option value="stager">Stager</option>'+
+    '<option value="foreman">Foreman</option><option value="pm">Project Manager</option>'+
+    '<option value="admin">Admin</option></select></div>'+
+    '<div class="fg"><label class="fl">Company</label><select class="fs" id="eu-co"><option value="">Internal</option>'+coOpts+'</select></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="eu-hire"></div>'+
+    '<div class="fg"><label class="fl">Status</label><select class="fs" id="eu-act"><option value="true">Active</option><option value="false">Inactive</option></select></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Emergency Contact</label><input class="fi" id="eu-ec"></div>'+
+    '<div class="fg"><label class="fl">Emergency Phone</label><input class="fi" id="eu-ep"></div></div>'
+  modal('Edit Employee — '+name, html, async()=>{
+    const u={full_name:v('eu-nm'),phone:v('eu-ph'),role:v('eu-rl'),company_id:v('eu-co')||null,hire_date:v('eu-hire')||null,emergency_contact:v('eu-ec'),emergency_phone:v('eu-ep'),is_active:v('eu-act')==='true'}
+    const{error}=await sb.from('profiles').update(u).eq('id',id)
+    if(error)toast(error.message,'error');else{closeModal();toast('Updated');pgUsers()}
+  })
+  // Populate fields from DB
+  sb.from('profiles').select('*').eq('id',id).single().then(({data:p})=>{
+    if(!p)return
+    setTimeout(()=>{
+      try{
+        document.getElementById('eu-ph').value=p.phone||''
+        document.getElementById('eu-rl').value=p.role||'sub_worker'
+        document.getElementById('eu-co').value=p.company_id||''
+        document.getElementById('eu-hire').value=p.hire_date||''
+        document.getElementById('eu-act').value=String(p.is_active)
+        document.getElementById('eu-ec').value=p.emergency_contact||''
+        document.getElementById('eu-ep').value=p.emergency_phone||''
+      }catch(e){}
+    },80)
+  })
 }
-</script>
-</body>
-</html>
-<script>
+
+
 // ══════════════════════════════════════════
 // JOB MAP PAGE
 // ══════════════════════════════════════════
@@ -1875,13 +2390,13 @@ function filterMapPins(){
 async function renderSubAssignTab(el){
   const[{data:companies},{data:existing}]=await Promise.all([
     sb.from('companies').select('*').eq('is_active',true).order('name'),
-    sb.from('job_sub_assignments').select('*,companies:company_id(name)').eq('job_id',currentJobId).order('created_at')
+    sb.from('job_sub_assignments').select('*').eq('job_id',currentJobId).order('created_at')
   ])
   el.innerHTML=`
   <div class="sec-hdr">Subcontractor Work Assignments <button class="btn btn-p btn-sm" onclick="addSubAssignModal()">+ Assign Sub</button></div>
   ${(existing||[]).map(a=>`<div style="background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px;margin-bottom:8px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div><div style="font-weight:600;font-size:13px">${a.companies?.name||'—'}</div><div style="font-size:11px;color:#414e63;margin-top:2px">${a.scope_of_work||'All work'}</div></div>
+      <div><div style="font-weight:600;font-size:13px">${a.company_name||a.company_id||'—'}</div><div style="font-size:11px;color:#414e63;margin-top:2px">${a.scope_of_work||'All work'}</div></div>
       <span class="badge ${a.status==='complete'?'bg-green':a.status==='in_progress'?'bg-blue':'bg-amber'}">${a.status||'assigned'}</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:9px">
@@ -2089,7 +2604,7 @@ function clearAllMarkup(){if(!confirm('Clear all dots and text boxes?'))return;_
 async function saveMarkupData(){
   if(!_markupPlanId)return
   const{error}=await sb.from('job_walk_plans').update({markup_json:_mData}).eq('id',_markupPlanId)
-  if(error)toast(error.message,'error');else toast('Markup saved ✓')
+  if(error)toast(error.message,'error');else toast('Markup saved')
 }
 function downloadMarkupPNG(){
   const canvas=document.getElementById('markup-canvas');if(!canvas)return
@@ -2106,7 +2621,7 @@ async function uploadJobAsbuilt(files){
       await sb.from('job_walk_plans').insert({id:uuid(),job_walk_id:null,job_id:currentJobId,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],legend:[]},created_at:new Date().toISOString()})
     }
   }
-  toast('Plan uploaded ✓');loadJT('jt-asbuilts')
+  toast('Plan uploaded OK');loadJT('jt-asbuilts')
 }
 
 async function renderAsbuiltsTab(el){
@@ -2132,49 +2647,454 @@ async function deleteJobPlan(planId,storagePath){
   toast('Deleted');loadJT('jt-asbuilts')
 }
 
+
 // ══════════════════════════════════════════
 // PM VISIT TRACKING
 // ══════════════════════════════════════════
 async function renderPmVisitsTab(el){
   const{data:visits}=await sb.from('pm_visits').select('*').eq('job_id',currentJobId).order('visit_date',{ascending:false})
   const j=currentJob
-  el.innerHTML=`
-  <div style="margin-bottom:13px;display:flex;gap:9px;align-items:flex-start">
-    <div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">
-      <div style="font-size:10px;color:#414e63;margin-bottom:3px">NEXT PM VISIT DUE</div>
-      <div style="font-size:18px;font-weight:300;color:${j.next_pm_visit&&daysAway(j.next_pm_visit)<=0?'#dc2626':j.next_pm_visit&&daysAway(j.next_pm_visit)<=7?'#d97706':'#e8edf5'}">${j.next_pm_visit?fd(j.next_pm_visit):'Not scheduled'}</div>
-      ${j.next_pm_visit?`<div style="font-size:11px;color:#414e63;margin-top:2px">${daysAway(j.next_pm_visit)===0?'Today':daysAway(j.next_pm_visit)<0?Math.abs(daysAway(j.next_pm_visit))+'d overdue':daysAway(j.next_pm_visit)+'d away'}</div>`:''}
-    </div>
-    <div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">
-      <div style="font-size:10px;color:#414e63;margin-bottom:3px">PM ASSIGNED</div>
-      <div style="font-size:14px;font-weight:500">${j.project_manager||'Not assigned'}</div>
-      <div style="font-size:11px;color:#414e63;margin-top:2px">${j.pm_visit_schedule||'No schedule set'}</div>
-    </div>
-    <button class="btn btn-p btn-sm" onclick="logPmVisitModal()">+ Log Visit</button>
-  </div>
-  <div class="sec-hdr">Visit History</div>
-  ${(visits||[]).map(vis=>`<div style="padding:10px 12px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:7px">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">
-      <div><div style="font-weight:500;font-size:13px">PM Visit — ${fd(vis.visit_date)}</div><div style="font-size:11px;color:#414e63;margin-top:1px">${vis.pm_name||'—'}</div></div>
-      <span class="badge ${vis.outcome==='approved'?'bg-green':vis.outcome==='issues_found'?'bg-amber':'bg-gray'}">${vis.outcome||'visited'}</span>
-    </div>
-    ${vis.observations?`<div style="font-size:12px;color:#8a96ab;margin-bottom:6px">${vis.observations}</div>`:''}
-    ${vis.issues?`<div style="font-size:12px;color:#d97706;margin-bottom:6px">⚠ ${vis.issues}</div>`:''}
-    ${vis.next_visit_date?`<div style="font-size:11px;color:#414e63">Next visit scheduled: ${fd(vis.next_visit_date)}</div>`:''}
-  </div>`).join('')||empty('📋','No PM visits logged yet')}` 
+  const nextVisitColor=j.next_pm_visit&&daysAway(j.next_pm_visit)<=0?'#dc2626':j.next_pm_visit&&daysAway(j.next_pm_visit)<=7?'#d97706':'#e8edf5'
+  const nextVisitText=j.next_pm_visit?(daysAway(j.next_pm_visit)===0?'Today':daysAway(j.next_pm_visit)<0?Math.abs(daysAway(j.next_pm_visit))+'d overdue':daysAway(j.next_pm_visit)+'d away'):''
+  let visitsHtml=''
+  for(const vis of (visits||[])){
+    const outColor=vis.outcome==='approved'?'bg-green':vis.outcome==='issues_found'?'bg-amber':'bg-gray'
+    visitsHtml+='<div style="padding:10px 12px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:7px">'
+    visitsHtml+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">'
+    visitsHtml+='<div><div style="font-weight:500;font-size:13px">PM Visit — '+fd(vis.visit_date)+'</div>'
+    visitsHtml+='<div style="font-size:11px;color:#414e63;margin-top:1px">'+(vis.pm_name||'')+'</div></div>'
+    visitsHtml+='<span class="badge '+outColor+'">'+(vis.outcome||'visited')+'</span></div>'
+    if(vis.observations)visitsHtml+='<div style="font-size:12px;color:#8a96ab;margin-bottom:6px">'+vis.observations+'</div>'
+    if(vis.issues)visitsHtml+='<div style="font-size:12px;color:#d97706;margin-bottom:6px">'+vis.issues+'</div>'
+    if(vis.next_visit_date)visitsHtml+='<div style="font-size:11px;color:#414e63">Next visit: '+fd(vis.next_visit_date)+'</div>'
+    visitsHtml+='</div>'
+  }
+  el.innerHTML=
+    '<div style="margin-bottom:13px;display:flex;gap:9px;align-items:flex-start">'+
+    '<div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">'+
+    '<div style="font-size:10px;color:#414e63;margin-bottom:3px">NEXT PM VISIT DUE</div>'+
+    '<div style="font-size:18px;font-weight:300;color:'+nextVisitColor+'">'+(j.next_pm_visit?fd(j.next_pm_visit):'Not scheduled')+'</div>'+
+    (nextVisitText?'<div style="font-size:11px;color:#414e63;margin-top:2px">'+nextVisitText+'</div>':'')+
+    '</div>'+
+    '<div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">'+
+    '<div style="font-size:10px;color:#414e63;margin-bottom:3px">PM ASSIGNED</div>'+
+    '<div style="font-size:14px;font-weight:500">'+(j.project_manager||'Not assigned')+'</div>'+
+    '<div style="font-size:11px;color:#414e63;margin-top:2px">'+(j.pm_visit_schedule||'No schedule set')+'</div>'+
+    '</div>'+
+    '<button class="btn btn-p btn-sm" onclick="logPmVisitModal()">+ Log Visit</button>'+
+    '</div>'+
+    '<div class="sec-hdr">Visit History</div>'+
+    (visitsHtml||empty('📋','No PM visits logged yet'))
 }
+
 async function logPmVisitModal(){
-  modal('Log PM Visit',`
-  <div class="two"><div class="fg"><label class="fl">Visit Date *</label><input class="fi" type="date" id="pmv-date" value="${new Date().toISOString().split('T')[0]}"></div><div class="fg"><label class="fl">PM Name</label><input class="fi" id="pmv-pm" value="${currentJob?.project_manager||ME?.full_name||''}"></div></div>
-  <div class="fg"><label class="fl">Observations</label><textarea class="ft" id="pmv-obs" placeholder="What was observed on site…"></textarea></div>
-  <div class="fg"><label class="fl">Issues Found</label><textarea class="ft" id="pmv-iss" placeholder="Any problems or items requiring attention…"></textarea></div>
-  <div class="two"><div class="fg"><label class="fl">Outcome</label><select class="fs" id="pmv-out"><option value="visited">Visited</option><option value="approved">Approved</option><option value="issues_found">Issues Found</option><option value="reinspection_needed">Reinspection Needed</option></select></div><div class="fg"><label class="fl">Next Visit Date</label><input class="fi" type="date" id="pmv-next"></div></div>`,
-  async()=>{
-    const{error}=await sb.from('pm_visits').insert({id:uuid(),job_id:currentJobId,visit_date:v('pmv-date'),pm_name:v('pmv-pm'),observations:v('pmv-obs'),issues:v('pmv-iss'),outcome:v('pmv-out'),next_visit_date:v('pmv-next')||null,created_at:new Date().toISOString()})
-    if(error){toast(error.message,'error');return}
-    // Update next PM visit on job
-    if(v('pmv-next'))await sb.from('jobs').update({next_pm_visit:v('pmv-next'),updated_at:new Date().toISOString()}).eq('id',currentJobId)
-    closeModal();toast('Visit logged ✓');loadJT('jt-pmvisits')
+  const pvHtml=
+    '<div class="two"><div class="fg"><label class="fl">Visit Date *</label><input class="fi" type="date" id="pmv-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '<div class="fg"><label class="fl">PM Name</label><input class="fi" id="pmv-pm" value="'+(currentJob?.project_manager||ME?.full_name||'')+'"></div></div>'+
+    '<div class="fg"><label class="fl">Observations</label><textarea class="ft" id="pmv-obs" placeholder="What was observed on site…"></textarea></div>'+
+    '<div class="fg"><label class="fl">Issues Found</label><textarea class="ft" id="pmv-iss" placeholder="Any problems or items requiring attention…"></textarea></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Outcome</label>'+
+    '<select class="fs" id="pmv-out"><option value="visited">Visited</option><option value="approved">Approved</option>'+
+    '<option value="issues_found">Issues Found</option><option value="reinspection_needed">Reinspection Needed</option></select></div>'+
+    '<div class="fg"><label class="fl">Next Visit Date</label><input class="fi" type="date" id="pmv-next"></div></div>'
+  modal('Log PM Visit', pvHtml,
+    async()=>{
+      const{error}=await sb.from('pm_visits').insert({id:uuid(),job_id:currentJobId,visit_date:v('pmv-date'),pm_name:v('pmv-pm'),observations:v('pmv-obs'),issues:v('pmv-iss'),outcome:v('pmv-out'),next_visit_date:v('pmv-next')||null,created_at:new Date().toISOString()})
+      if(error){toast(error.message,'error');return}
+      if(v('pmv-next'))await sb.from('jobs').update({next_pm_visit:v('pmv-next'),updated_at:new Date().toISOString()}).eq('id',currentJobId)
+      closeModal();toast('Visit logged');loadJT('jt-pmvisits')
+    }
+  )
+}
+
+</script>
+</body>
+</html>
+<script>
+// ══════════════════════════════════════════
+// NOTIFICATIONS PAGE + BADGE
+// ══════════════════════════════════════════
+async function loadNotifBadge(){
+  try{
+    const{count}=await sb.from('notifications').select('id',{count:'exact',head:true}).eq('read',false)
+    const el=document.getElementById('notif-badge')
+    if(el){el.textContent=count||0;el.style.display=(count||0)>0?'block':'none'}
+  }catch(e){}
+}
+
+async function pgNotifications(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm btn-ghost" onclick="markAllNotifsRead()">Mark all read</button>'
+  const{data:notifs}=await sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(100)
+  const el=document.getElementById('page-area')
+  if(!(notifs||[]).length){el.innerHTML=empty('🔔','No notifications');return}
+  const groups={parts_variance:[],safety:[],general:[]}
+  ;(notifs||[]).forEach(n=>{
+    if(n.type==='parts_variance')groups.parts_variance.push(n)
+    else if(n.type?.includes('safety'))groups.safety.push(n)
+    else groups.general.push(n)
   })
+  let html=''
+  const renderGroup=(title,icon,items)=>{
+    if(!items.length)return''
+    return '<div class="card" style="margin-bottom:13px"><div class="card-title">'+icon+' '+title+' ('+items.length+')</div>'+
+      items.map(n=>'<div style="display:flex;gap:11px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start;opacity:'+(n.read?.7:1)+'">'+'<div style="flex-shrink:0;margin-top:2px"><div style="width:8px;height:8px;border-radius:50%;background:'+(n.read?'#414e63':'#dc2626')+'"></div></div>'+
+        '<div style="flex:1"><div style="font-size:13px;font-weight:'+(n.read?400:600)+'">'+n.title+'</div>'+
+        '<div style="font-size:12px;color:#8a96ab;margin-top:3px">'+n.message+'</div>'+
+        '<div style="font-size:10px;color:#414e63;margin-top:4px">'+fdt(n.created_at)+'</div>'+
+        (n.meta?.job_id?'<button class="btn btn-sm" style="margin-top:6px" onclick="openJob(\''+n.meta.job_id+'\')">View Job →</button>':'')+
+        '</div>'+
+        (!n.read?'<button class="btn btn-sm btn-ghost" onclick="markNotifRead(\''+n.id+'\')" style="flex-shrink:0">✓</button>':'')+
+        '</div>').join('')+
+      '</div>'
+  }
+  html+=renderGroup('Parts Variance','⚠',groups.parts_variance)
+  html+=renderGroup('Safety','🛡',groups.safety)
+  html+=renderGroup('General','🔔',groups.general)
+  el.innerHTML=html||empty('🔔','No notifications')
+  // Mark all as read after viewing
+  await sb.from('notifications').update({read:true}).eq('read',false)
+  loadNotifBadge()
+}
+
+async function markNotifRead(id){
+  await sb.from('notifications').update({read:true}).eq('id',id)
+  pgNotifications()
+}
+async function markAllNotifsRead(){
+  await sb.from('notifications').update({read:true}).eq('read',false)
+  toast('All marked read')
+  pgNotifications()
+}
+
+// Load badge on boot (called from DOMContentLoaded in main script)
+setTimeout(loadNotifBadge, 2000)
+setInterval(loadNotifBadge, 60000)
+</script>
+<script>
+// ══════════════════════════════════════════
+// DISPATCH BOARD
+// ══════════════════════════════════════════
+let _dispatchDate = new Date().toISOString().split('T')[0]
+let _dispatchData = { jobs:[], employees:[], companies:[], assignments:[] }
+let _dragJob = null
+
+async function pgDispatch(){
+  document.getElementById('topbar-actions').innerHTML =
+    '<button class="btn btn-sm" onclick="dispatchPrevDay()">← Prev</button>'+
+    '<input type="date" class="fi" id="dispatch-date" value="'+_dispatchDate+'" style="width:150px;padding:5px 10px" onchange="_dispatchDate=this.value;loadDispatchData()">'+
+    '<button class="btn btn-sm" onclick="dispatchNextDay()">Next →</button>'+
+    '<button class="btn btn-p btn-sm" onclick="loadDispatchData()">↻ Refresh</button>'
+
+  document.getElementById('page-area').innerHTML =
+    '<div style="display:grid;grid-template-columns:280px 1fr;gap:0;height:calc(100vh - 100px);overflow:hidden">' +
+    '<div id="dispatch-left" style="border-right:1px solid rgba(255,255,255,.07);overflow-y:auto;background:#060a10"></div>' +
+    '<div id="dispatch-right" style="overflow-y:auto;padding:14px"></div>' +
+    '</div>'
+
+  await loadDispatchData()
+}
+
+function dispatchPrevDay(){
+  const d=new Date(_dispatchDate);d.setDate(d.getDate()-1)
+  _dispatchDate=d.toISOString().split('T')[0]
+  document.getElementById('dispatch-date').value=_dispatchDate
+  loadDispatchData()
+}
+function dispatchNextDay(){
+  const d=new Date(_dispatchDate);d.setDate(d.getDate()+1)
+  _dispatchDate=d.toISOString().split('T')[0]
+  document.getElementById('dispatch-date').value=_dispatchDate
+  loadDispatchData()
+}
+
+async function loadDispatchData(){
+  const left=document.getElementById('dispatch-left')
+  const right=document.getElementById('dispatch-right')
+  if(!left||!right) return
+  left.innerHTML='<div class="loading"><div class="spin"></div></div>'
+  right.innerHTML='<div class="loading"><div class="spin"></div></div>'
+
+  const[{data:jobs},{data:employees},{data:companies},{data:assignments}]=await Promise.all([
+    sb.from('jobs').select('id,name,address,phase,gc_company,project_manager,due_date').eq('archived',false).neq('phase','complete').order('name'),
+    sb.from('profiles').select('id,full_name,role,phone,company_id,companies(name)').eq('is_active',true).in('role',['technician','foreman','sub_worker','sub_lead','stager']).order('full_name'),
+    sb.from('companies').select('id,name,trade').eq('is_active',true).order('name'),
+    sb.from('dispatch_assignments').select('*,jobs(name,address),profiles:profile_id(full_name,role),companies:company_id(name)').eq('dispatch_date',_dispatchDate)
+  ])
+
+  _dispatchData={jobs:jobs||[],employees:employees||[],companies:companies||[],assignments:assignments||[]}
+
+  // Figure out who/what is already assigned today
+  const assignedProfileIds=new Set((assignments||[]).filter(a=>a.profile_id).map(a=>a.profile_id))
+  const assignedCompanyIds=new Set((assignments||[]).filter(a=>a.company_id&&!a.profile_id).map(a=>a.company_id))
+  const assignedJobIds=new Set((assignments||[]).map(a=>a.job_id))
+
+  renderDispatchLeft(left, employees||[], companies||[], assignedProfileIds, assignedCompanyIds)
+  renderDispatchRight(right, employees||[], companies||[], assignments||[], jobs||[], assignedJobIds)
+}
+
+function renderDispatchLeft(el, employees, companies, assignedProfileIds, assignedCompanyIds){
+  const unassignedEmp=employees.filter(e=>!assignedProfileIds.has(e.id))
+  const unassignedCos=companies.filter(co=>!assignedCompanyIds.has(co.id))
+
+  // Group employees by company
+  const internal=unassignedEmp.filter(e=>!e.company_id)
+  const byCo={}
+  unassignedEmp.filter(e=>e.company_id).forEach(e=>{
+    if(!byCo[e.company_id])byCo[e.company_id]={name:e.companies?.name||'?',workers:[]}
+    byCo[e.company_id].workers.push(e)
+  })
+
+  let html='<div style="padding:12px 13px;border-bottom:1px solid rgba(255,255,255,.07)">'
+  html+='<div style="font-size:11px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">'+_dispatchDate+'</div>'
+  html+='<div style="font-size:10px;color:#414e63">'+(unassignedEmp.length)+' available · drag to assign</div>'
+  html+='</div>'
+
+  // Unassigned jobs pool at top
+  const unassignedJobs=_dispatchData.jobs.filter(j=>!new Set(_dispatchData.assignments.map(a=>a.job_id)).has(j.id))
+  if(unassignedJobs.length){
+    html+='<div style="padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.07)">'
+    html+='<div style="font-size:10px;font-weight:600;color:#d97706;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">📋 Unscheduled Jobs ('+unassignedJobs.length+')</div>'
+    html+=unassignedJobs.map(j=>
+      '<div class="dispatch-job-chip" draggable="true" data-job-id="'+j.id+'" data-job-name="'+j.name.replace(/"/g,'&quot;')+'" data-job-addr="'+(j.address||'').replace(/"/g,'&quot;')+'" onmousedown="startJobDrag(event,this)" '+
+      'style="background:#131c2e;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 10px;margin-bottom:5px;cursor:grab;user-select:none;transition:.15s" '+
+      'onmouseenter="this.style.borderColor=\'rgba(37,99,235,.5)\'" onmouseleave="this.style.borderColor=\'rgba(255,255,255,.08)\'">' +
+      '<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+j.name+'</div>'+
+      '<div style="font-size:10px;color:#414e63;margin-top:2px">'+stageBadge(j.phase)+'</div>'+
+      '</div>'
+    ).join('')
+    html+='</div>'
+  }
+
+  // Internal employees
+  if(internal.length){
+    html+='<div style="padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.07)">'
+    html+='<div style="font-size:10px;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">👷 Internal Team ('+internal.length+')</div>'
+    html+=internal.map(e=>dispatchPersonChip(e)).join('')
+    html+='</div>'
+  }
+
+  // Sub company groups
+  Object.values(byCo).forEach(group=>{
+    html+='<div style="padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.07)">'
+    html+='<div style="font-size:10px;font-weight:600;color:#a78bfa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">🏢 '+group.name+' ('+group.workers.length+')</div>'
+    html+=group.workers.map(e=>dispatchPersonChip(e)).join('')
+    html+='</div>'
+  })
+
+  if(!unassignedEmp.length&&!unassignedJobs.length){
+    html+='<div style="padding:20px 13px;text-align:center;color:#414e63;font-size:12px">Everyone assigned for today ✓</div>'
+  }
+
+  el.innerHTML=html
+}
+
+function dispatchPersonChip(e){
+  const avCss=Object.entries(avS(e.full_name)).map(([k,v])=>k+':'+v).join(';')
+  return '<div class="dispatch-person-chip" data-profile-id="'+e.id+'" data-profile-name="'+e.full_name.replace(/"/g,'&quot;')+'" '+
+    'style="display:flex;align-items:center;gap:8px;padding:7px 9px;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:7px;margin-bottom:5px;cursor:default">'+
+    '<div class="av" style="width:26px;height:26px;font-size:9px;flex-shrink:0;'+avCss+'">'+ini(e.full_name)+'</div>'+
+    '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+e.full_name+'</div>'+
+    '<div style="font-size:10px;color:#414e63">'+e.role+(e.phone?' · '+e.phone:'')+'</div></div>'+
+    '</div>'
+}
+
+function renderDispatchRight(el, employees, companies, assignments, jobs, assignedJobIds){
+  const dateLabel=new Date(_dispatchDate).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})
+  let html='<div style="font-family:\'Syne\',sans-serif;font-size:16px;font-weight:700;margin-bottom:14px">'+dateLabel+'</div>'
+
+  // Time slots header
+  const hours=['6am','7am','8am','9am','10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm']
+
+  // Rows: each employee who is assigned OR all employees (show full board)
+  const allEmp=employees
+  if(!allEmp.length){
+    el.innerHTML=html+'<div style="color:#414e63;font-size:13px">No employees to show. Add employees in the Users section.</div>'
+    return
+  }
+
+  html+='<div style="overflow-x:auto">'
+  html+='<table style="width:100%;border-collapse:collapse;min-width:900px">'
+  // Header row with times
+  html+='<thead><tr>'
+  html+='<th style="text-align:left;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.07);font-size:11px;color:#414e63;min-width:180px;position:sticky;left:0;background:#060a10;z-index:2">Employee</th>'
+  html+='<th style="text-align:left;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.07);font-size:10px;color:#414e63;min-width:400px">Schedule — drag a job from the left panel to assign</th>'
+  html+='</tr></thead><tbody>'
+
+  for(const emp of allEmp){
+    const empAssignments=assignments.filter(a=>a.profile_id===emp.id)
+    const avCss=Object.entries(avS(emp.full_name)).map(([k,v])=>k+':'+v).join(';')
+    html+='<tr style="border-bottom:1px solid rgba(255,255,255,.04)">'
+    // Employee cell
+    html+='<td style="padding:10px 12px;vertical-align:top;position:sticky;left:0;background:#060a10;z-index:1">'
+    html+='<div style="display:flex;align-items:center;gap:8px">'
+    html+='<div class="av" style="width:28px;height:28px;font-size:10px;flex-shrink:0;'+avCss+'">'+ini(emp.full_name)+'</div>'
+    html+='<div><div style="font-size:12px;font-weight:500">'+emp.full_name+'</div>'
+    html+='<div style="font-size:10px;color:#414e63">'+emp.role+'</div></div></div>'
+    html+='</td>'
+    // Schedule cell — drop zone + assigned jobs
+    html+='<td class="dispatch-drop-zone" data-profile-id="'+emp.id+'" data-profile-name="'+emp.full_name.replace(/"/g,'&quot;')+'" '+
+      'ondragover="event.preventDefault();this.style.background=\'rgba(37,99,235,.08)\'" '+
+      'ondragleave="this.style.background=\'\'" '+
+      'ondrop="handleDispatchDrop(event,this)" '+
+      'style="padding:8px 10px;vertical-align:top;min-height:60px;transition:.15s">'
+    if(empAssignments.length){
+      html+=empAssignments.map(a=>dispatchAssignmentCard(a)).join('')
+    } else {
+      html+='<div class="dispatch-empty-zone" style="border:1.5px dashed rgba(255,255,255,.07);border-radius:7px;padding:10px;text-align:center;color:#1a2540;font-size:11px;min-height:44px;display:flex;align-items:center;justify-content:center">Drop job here</div>'
+    }
+    html+='</td></tr>'
+  }
+
+  html+='</tbody></table></div>'
+  el.innerHTML=html
+}
+
+function dispatchAssignmentCard(a){
+  const statusColors={scheduled:'rgba(37,99,235,.12)',in_progress:'rgba(22,163,74,.12)',complete:'rgba(22,163,74,.08)',cancelled:'rgba(220,38,38,.08)'}
+  const statusBorder={scheduled:'rgba(37,99,235,.25)',in_progress:'rgba(22,163,74,.3)',complete:'rgba(22,163,74,.2)',cancelled:'rgba(220,38,38,.2)'}
+  const bg=statusColors[a.status]||statusColors.scheduled
+  const border=statusBorder[a.status]||statusBorder.scheduled
+  return '<div style="background:'+bg+';border:1px solid '+border+';border-radius:7px;padding:8px 10px;margin-bottom:5px;position:relative">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
+    '<div style="flex:1;min-width:0">'+
+    '<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.jobs?.name||'Job')+'</div>'+
+    (a.jobs?.address?'<div style="font-size:10px;color:#414e63;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.jobs.address+'</div>':'')+
+    '<div style="display:flex;align-items:center;gap:8px;margin-top:4px">'+
+    (a.start_time?'<span style="font-size:10px;color:#60a5fa">⏱ '+fmtDispatchTime(a.start_time)+(a.end_time?' – '+fmtDispatchTime(a.end_time):'')+'</span>':'')+
+    '<span class="badge bg-gray" style="font-size:9px">'+a.status+'</span>'+
+    '</div>'+
+    (a.notes?'<div style="font-size:10px;color:#8a96ab;margin-top:3px">'+a.notes+'</div>':'')+
+    '</div>'+
+    '<div style="display:flex;flex-direction:column;gap:4px;margin-left:8px;flex-shrink:0">'+
+    '<button onclick="editDispatchAssignment(\''+a.id+'\')" style="background:rgba(255,255,255,.08);border:none;border-radius:4px;padding:3px 7px;cursor:pointer;color:#8a96ab;font-size:10px">✏</button>'+
+    '<button onclick="removeDispatchAssignment(\''+a.id+'\')" style="background:rgba(220,38,38,.1);border:none;border-radius:4px;padding:3px 7px;cursor:pointer;color:#dc2626;font-size:10px">✕</button>'+
+    '</div></div></div>'
+}
+
+function fmtDispatchTime(t){
+  if(!t)return''
+  const[h,m]=t.split(':').map(Number)
+  const ampm=h>=12?'pm':'am'
+  const h12=h%12||12
+  return h12+(m?':'+String(m).padStart(2,'0'):'')+ampm
+}
+
+// ── DRAG & DROP ────────────────────────────────────────────────
+let _dragData=null
+
+function startJobDrag(e, el){
+  _dragData={job_id:el.dataset.jobId, job_name:el.dataset.jobName}
+  el.style.opacity='.5'
+  el.style.transform='scale(.97)'
+  // Make droppable with native drag
+  el.setAttribute('draggable','true')
+  el.addEventListener('dragend',()=>{el.style.opacity='';el.style.transform='';_dragData=null},{once:true})
+}
+
+function handleDispatchDrop(event, dropZone){
+  event.preventDefault()
+  dropZone.style.background=''
+  if(!_dragData?.job_id){
+    // Try native drag data
+    const jobId=event.dataTransfer.getData('job_id')
+    const jobName=event.dataTransfer.getData('job_name')
+    if(jobId) _dragData={job_id:jobId, job_name:jobName}
+    else return
+  }
+  const profileId=dropZone.dataset.profileId
+  const profileName=dropZone.dataset.profileName
+  openAssignModal(_dragData.job_id, _dragData.job_name, profileId, profileName)
+  _dragData=null
+}
+
+// Also handle dragstart on job chips for native HTML5 drag
+document.addEventListener('dragstart', e=>{
+  const chip=e.target.closest('.dispatch-job-chip')
+  if(chip){
+    _dragData={job_id:chip.dataset.jobId, job_name:chip.dataset.jobName}
+    e.dataTransfer.setData('job_id', chip.dataset.jobId)
+    e.dataTransfer.setData('job_name', chip.dataset.jobName)
+    e.dataTransfer.effectAllowed='move'
+  }
+})
+
+function openAssignModal(jobId, jobName, profileId, profileName){
+  const now=new Date()
+  const hh=String(now.getHours()).padStart(2,'0')
+  const mm=String(Math.round(now.getMinutes()/15)*15%60).padStart(2,'0')
+  const defStart=hh+':'+mm
+  const defEnd=String((now.getHours()+4)%24).padStart(2,'0')+':00'
+
+  const html=
+    '<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:7px;padding:10px 12px;margin-bottom:13px">'+
+    '<div style="font-size:11px;color:#414e63">ASSIGNING</div>'+
+    '<div style="font-size:14px;font-weight:600;margin-top:2px">'+jobName+'</div>'+
+    '<div style="font-size:12px;color:#8a96ab;margin-top:2px">→ '+profileName+'</div>'+
+    '</div>'+
+    '<div class="two">'+
+    '<div class="fg"><label class="fl">Start Time</label><input class="fi" type="time" id="da-start" value="'+defStart+'"></div>'+
+    '<div class="fg"><label class="fl">Projected End</label><input class="fi" type="time" id="da-end" value="'+defEnd+'"></div>'+
+    '</div>'+
+    '<div class="fg"><label class="fl">Notes</label><input class="fi" id="da-notes" placeholder="Special instructions, access codes…"></div>'+
+    '<div class="fg"><label class="fl">Status</label><select class="fs" id="da-status">'+
+    '<option value="scheduled">Scheduled</option>'+
+    '<option value="in_progress">In Progress</option>'+
+    '<option value="complete">Complete</option>'+
+    '<option value="cancelled">Cancelled</option>'+
+    '</select></div>'
+
+  modal('Assign to Schedule', html, async()=>{
+    const{error}=await sb.from('dispatch_assignments').insert({
+      id:uuid(), job_id:jobId, profile_id:profileId,
+      dispatch_date:_dispatchDate,
+      start_time:v('da-start')||null,
+      end_time:v('da-end')||null,
+      notes:v('da-notes'),
+      status:v('da-status'),
+      created_by:ME?.full_name,
+      created_at:new Date().toISOString(),
+      updated_at:new Date().toISOString()
+    })
+    if(error){toast(error.message,'error');return}
+    closeModal()
+    toast(profileName+' assigned to '+jobName)
+    await loadDispatchData()
+  }, 'Assign')
+}
+
+async function editDispatchAssignment(id){
+  const{data:a}=await sb.from('dispatch_assignments').select('*,jobs(name)').eq('id',id).single()
+  if(!a)return
+  const html=
+    '<div style="font-size:13px;font-weight:600;margin-bottom:12px">'+a.jobs?.name+'</div>'+
+    '<div class="two">'+
+    '<div class="fg"><label class="fl">Start Time</label><input class="fi" type="time" id="ea-start" value="'+(a.start_time||'')+'"></div>'+
+    '<div class="fg"><label class="fl">Projected End</label><input class="fi" type="time" id="ea-end" value="'+(a.end_time||'')+'"></div>'+
+    '</div>'+
+    '<div class="fg"><label class="fl">Notes</label><input class="fi" id="ea-notes" value="'+(a.notes||'').replace(/"/g,'&quot;')+'"></div>'+
+    '<div class="fg"><label class="fl">Status</label><select class="fs" id="ea-status">'+
+    '<option value="scheduled"'+(a.status==='scheduled'?' selected':'')+'>Scheduled</option>'+
+    '<option value="in_progress"'+(a.status==='in_progress'?' selected':'')+'>In Progress</option>'+
+    '<option value="complete"'+(a.status==='complete'?' selected':'')+'>Complete</option>'+
+    '<option value="cancelled"'+(a.status==='cancelled'?' selected':'')+'>Cancelled</option>'+
+    '</select></div>'
+
+  modal('Edit Assignment', html, async()=>{
+    const{error}=await sb.from('dispatch_assignments').update({
+      start_time:v('ea-start')||null,
+      end_time:v('ea-end')||null,
+      notes:v('ea-notes'),
+      status:v('ea-status'),
+      updated_at:new Date().toISOString()
+    }).eq('id',id)
+    if(error){toast(error.message,'error');return}
+    closeModal();toast('Updated');await loadDispatchData()
+  }, 'Save')
+}
+
+async function removeDispatchAssignment(id){
+  if(!confirm('Remove this assignment?'))return
+  await sb.from('dispatch_assignments').delete().eq('id',id)
+  toast('Removed','warn');await loadDispatchData()
 }
 </script>

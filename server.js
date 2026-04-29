@@ -280,6 +280,10 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
     <div class="nav-section">Safety</div>
     <div class="nav-item" onclick="P('safety',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2l6 3v5c0 3-6 6-6 6S2 13 2 10V5z"/><path d="M5.5 8l2 2 3-3"/></svg>Safety Topics<span class="nb" id="nb-safety" style="display:none">!</span></div>
     <div class="nav-section">Finance</div>
+    <div class="nav-item" onclick="P('fax_bids',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h10v12H3z"/><path d="M5 5h6M5 8h6M5 11h3"/><circle cx="12" cy="12" r="3" fill="#131c2e" stroke="currentColor"/><path d="M12 11v2M12 13h.01"/></svg>FieldAxisHQ Quote<span class="nb" id="nb-fax-bids" style="display:none">!</span></div>
+    <div class="nav-item" onclick="P('fax_bid_invoices',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="12" height="14" rx="1.5"/><path d="M5 5h6M5 8h6M5 11h3M11 11l1 1 2-2"/></svg>FAX Invoices</div>
+    <div class="nav-item" onclick="P('fax_bid_templates',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M4 7h8M4 10h5"/></svg>Quote Templates</div>
+    <div class="nav-item" onclick="P('fax_bid_reports',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13l3-4 3 2 3-5 3 2"/><circle cx="5" cy="9" r="1.2" fill="currentColor" stroke="none"/><circle cx="8" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="11" cy="6" r="1.2" fill="currentColor" stroke="none"/></svg>Quote Reports</div>
     <div class="nav-item" onclick="P('financials',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l3-4 3 2 3-5 3 3"/></svg>Financials</div>
     <div class="nav-item" onclick="P('reports',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 13V8m4 5V5m4 8V2"/></svg>Reports</div>
     <div class="nav-section">Admin</div>
@@ -339,7 +343,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
 function doSignOut(){sb.auth.signOut();location.href='index.html'}
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const PAGE_TITLES={dashboard:'Dashboard',notifications:'Notifications',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
+const PAGE_TITLES={dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
 function P(page,navEl){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
   if(navEl)navEl.classList.add('active')
@@ -347,7 +351,7 @@ function P(page,navEl){
   document.getElementById('topbar-actions').innerHTML=''
   const a=document.getElementById('page-area')
   a.innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
-  const map={dashboard:pgDash,jobs:pgJobs,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications}
+  const map={dashboard:pgDash,jobs:pgJobs,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications}
   if(map[page])map[page]()
   else a.innerHTML='<div class="empty">Coming soon</div>'
 }
@@ -3756,6 +3760,917 @@ function addEditOrdItem(){
   document.getElementById('eod-bc').focus()
 }
 </script>
+
+// ══════════════════════════════════════════════════════════════════════
+// FieldAxisHQ Quote — Quotes, Invoices, Templates, Reports
+// Inserted after existing admin code — no existing functions modified
+// ══════════════════════════════════════════════════════════════════════
+
+const FAX_TRADES = ['Demo','Framing','Drywall','Roofing','Concrete','Electrical','Plumbing','HVAC','Finish Carpentry','Painting','Flooring','Landscaping','Fire Alarm','Low Voltage','Other']
+const FAX_LOSS   = ['Price too high','Lost to competitor','Timing / availability','Scope changed','Project cancelled','No response from GC','Other']
+
+// ── STATUS BADGES ─────────────────────────────────────────────────────
+function faxBidStatusBadge(s){
+  const m={draft:['bg-gray','Draft'],sent:['bg-blue','Sent'],viewed:['bg-purple','Viewed'],awarded:['bg-green','Awarded'],declined:['bg-red','Declined'],paid:['bg-green','Paid'],overdue:['bg-red','Overdue']}
+  const [cls,lbl]=m[s]||['bg-gray',s||'—']
+  return \`<span class="badge \${cls}">\${lbl}</span>\`
+}
+function faxDeriveStatus(recipients){
+  if(!recipients||!recipients.length)return'draft'
+  if(recipients.some(r=>r.status==='awarded'))return'awarded'
+  if(recipients.every(r=>r.status==='declined'))return'declined'
+  if(recipients.some(r=>r.status==='viewed'))return'viewed'
+  if(recipients.some(r=>r.status==='sent'))return'sent'
+  return'draft'
+}
+function faxBidCalc(items,taxRate){
+  const sub=(items||[]).reduce((s,i)=>s+(parseFloat(i.qty)||0)*(parseFloat(i.rate)||0),0)
+  const tax=sub*(parseFloat(taxRate)||0)/100
+  return{subtotal:Math.round(sub*100)/100,tax:Math.round(tax*100)/100,total:Math.round((sub+tax)*100)/100}
+}
+
+// ── QUOTES LIST ───────────────────────────────────────────────────────
+async function pgFaxBids(){
+  const canEdit=['admin','pm','foreman','stager'].some(r=>r===window._faxRole)
+  document.getElementById('topbar-actions').innerHTML=canEdit?'<button class="btn btn-p btn-sm" onclick="faxNewBid()">+ New Quote</button>':''
+  try{
+    const{data:quotes}=await sb.from('fax_bids').select('*,fax_bid_recipients(*)').order('created_at',{ascending:false})
+    const{data:gcs}=await sb.from('gcs').select('id,company,name')
+    window._faxBidGcs=gcs||[]
+    window._faxBidQuotes=(quotes||[]).map(q=>({...q,status:faxDeriveStatus(q.fax_bid_recipients)}))
+    faxRenderBidList()
+  }catch(e){document.getElementById('page-area').innerHTML='<div class="empty">'+e.message+'</div>'}
+}
+function faxRenderBidList(){
+  const qs=window._faxBidQuotes||[]
+  const sf=document.getElementById('qf-search')?.value?.toLowerCase()||''
+  const stf=document.getElementById('qf-status-f')?.value||''
+  const tf=document.getElementById('qf-trade-f')?.value||''
+  const list=qs.filter(q=>{
+    if(sf&&!(q.number+q.project_name+q.project_address+(q.fax_bid_recipients||[]).map(r=>r.company+r.name).join('')).toLowerCase().includes(sf))return false
+    if(stf&&q.status!==stf)return false
+    if(tf&&q.trade!==tf)return false
+    return true
+  })
+  const open=qs.filter(q=>!['awarded','declined'].includes(q.status))
+  const awarded=qs.filter(q=>q.status==='awarded')
+  const closed=qs.filter(q=>['awarded','declined'].includes(q.status))
+  const winRate=closed.length?Math.round(awarded.length/closed.length*100):0
+  const pipeline=open.reduce((s,q)=>s+(q.total||0),0)
+  document.getElementById('page-area').innerHTML=\`
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px">
+  <div class="stat"><div class="stat-label">Pipeline</div><div class="stat-value" style="font-size:20px">\${fm(pipeline)}</div></div>
+  <div class="stat"><div class="stat-label">Open</div><div class="stat-value">\${open.length}</div></div>
+  <div class="stat"><div class="stat-label">Win Rate</div><div class="stat-value">\${winRate}%</div></div>
+  <div class="stat"><div class="stat-label">Awarded</div><div class="stat-value" style="color:#16a34a">\${fm(awarded.reduce((s,q)=>s+(q.total||0),0))}</div></div>
+</div>
+<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+  <input class="fi" id="qf-search" placeholder="Search quotes…" style="width:200px" oninput="faxRenderBidList()">
+  <select class="fs" id="qf-status-f" style="width:130px" onchange="faxRenderBidList()">
+    <option value="">All status</option>
+    \${['draft','sent','viewed','awarded','declined'].map(s=>\`<option>\${s}</option>\`).join('')}
+  </select>
+  <select class="fs" id="qf-trade-f" style="width:140px" onchange="faxRenderBidList()">
+    <option value="">All trades</option>
+    \${FAX_TRADES.map(t=>\`<option>\${t}</option>\`).join('')}
+  </select>
+  <button class="btn btn-ghost btn-sm" onclick="faxExportBidsCsv()">↓ CSV</button>
+  <select class="fs" id="qf-from-tmpl" style="width:180px" onchange="if(this.value){faxNewBid(this.value);this.value=''}">
+    <option value="">From template…</option>
+    \${(window._faxBidTemplates||[]).map(t=>\`<option value="\${t.id}">\${t.name}</option>\`).join('')}
+  </select>
+</div>
+\${list.length?
+  \`<table class="tbl"><thead><tr>
+    <th>Number</th><th>Project</th><th>Trade</th><th>Recipients</th><th>Total</th><th>Bid Due</th><th>Status</th><th></th>
+  </tr></thead><tbody>
+  \${list.map(q=>{
+    const recs=q.fax_bid_recipients||[]
+    return \`<tr onclick="faxOpenBid('\${q.id}')">
+      <td style="font-weight:500">\${q.number}</td>
+      <td>\${q.project_name||'—'}<div style="font-size:10px;color:#414e63">\${q.project_address||''}</div></td>
+      <td>\${q.trade||'—'}</td>
+      <td style="font-size:11px">\${recs.map(r=>r.company||r.name).join(', ')||'—'}</td>
+      <td style="font-weight:500">\${fm(q.total,2)}</td>
+      <td style="color:\${q.bid_due_date&&new Date(q.bid_due_date)<new Date()?'#dc2626':'#8a96ab'}">\${fd(q.bid_due_date)}</td>
+      <td>\${faxBidStatusBadge(q.status)}</td>
+      <td onclick="event.stopPropagation()"><button class="btn btn-sm btn-ghost" onclick="faxOpenBid('\${q.id}')">Open</button></td>
+    </tr>\`}).join('')}
+  </tbody></table>\`
+  :empty('📄','No quotes yet. Create one to get started.')}
+\`
+}
+
+// ── QUOTE EDITOR ──────────────────────────────────────────────────────
+async function faxNewBid(templateId){
+  // Load templates if not loaded
+  if(!window._faxBidTemplates){const{data:t}=await sb.from('fax_bid_templates').select('*');window._faxBidTemplates=t||[]}
+  if(!window._faxBidGcs){const{data:g}=await sb.from('gcs').select('*');window._faxBidGcs=g||[]}
+  if(!window._faxBidUsers){const{data:u}=await sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','foreman','stager','estimator']);window._faxBidUsers=u||[]}
+  // Auto quote number
+  const{data:last}=await sb.from('fax_bids').select('number').order('created_at',{ascending:false}).limit(1)
+  const lastN=parseInt((last?.[0]?.number||'Q-0000').replace(/\D/g,''))||0
+  const number='Q-'+String(lastN+1).padStart(4,'0')
+  let prefill={line_items:[],tax_rate:0,notes:'',terms:'',trade:''}
+  if(templateId){
+    const tmpl=(window._faxBidTemplates||[]).find(t=>t.id===templateId)
+    if(tmpl){prefill={...prefill,trade:tmpl.trade||'',project_description:tmpl.description||'',line_items:JSON.parse(JSON.stringify(tmpl.line_items||[])),tax_rate:tmpl.tax_rate||0,notes:tmpl.notes||'',terms:tmpl.terms||'',from_template_id:tmpl.id,expiry_date:tmpl.expiry_days?new Date(Date.now()+tmpl.expiry_days*86400000).toISOString().split('T')[0]:''}}
+  }
+  window._faxBidEditing={id:null,number,version:1,...prefill,project_name:'',project_address:'',project_city:'',project_state:'',project_zip:'',estimator_id:'',job_id:'',issue_date:new Date().toISOString().split('T')[0],expiry_date:prefill.expiry_date||'',bid_due_date:'',recipients:[]}
+  faxRenderBidEditor()
+}
+async function faxOpenBid(id){
+  if(!window._faxBidGcs){const{data:g}=await sb.from('gcs').select('*');window._faxBidGcs=g||[]}
+  if(!window._faxBidUsers){const{data:u}=await sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','foreman','stager','estimator']);window._faxBidUsers=u||[]}
+  const{data:q}=await sb.from('fax_bids').select('*').eq('id',id).single()
+  const{data:recs}=await sb.from('fax_bid_recipients').select('*').eq('quote_id',id).order('created_at',{ascending:true})
+  window._faxBidEditing={...q,recipients:recs||[]}
+  faxRenderBidEditor()
+}
+function faxRenderBidEditor(){
+  const q=window._faxBidEditing
+  const isNew=!q.id
+  const status=faxDeriveStatus(q.recipients)
+  const awarded=q.recipients?.find(r=>r.status==='awarded')
+  const jobs=window._allJobs||[]
+  document.getElementById('topbar-actions').innerHTML=\`
+    \${!isNew&&status==='awarded'?'<button class="btn btn-g btn-sm" onclick="faxGenerateInvoice()">→ Invoice</button>':''} 
+    <button class="btn btn-ghost btn-sm" onclick="faxSaveAsTemplate()">Save as Template</button>
+    <button class="btn btn-p btn-sm" onclick="faxSaveBid()">Save</button>
+    <button class="btn btn-ghost btn-sm" onclick="P('fax_bids',null)">← Back</button>
+  \`
+  document.getElementById('page-title').textContent=isNew?'New Quote':q.number+' — v'+q.version
+  const estimators=window._faxBidUsers||[]
+  document.getElementById('page-area').innerHTML=\`
+  \${!isNew&&status==='awarded'?'<div style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;color:#16a34a;font-size:13px;font-weight:500">✓ Awarded to '+( awarded?.company||awarded?.name||'')+'</div>':''}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+  <div>
+    <div class="card">
+      <div class="card-title">Project Details</div>
+      <div class="fg"><label class="fl">Project Name</label><input class="fi" id="qf-pname" value="\${q.project_name||''}"></div>
+      <div class="fg"><label class="fl">Description</label><textarea class="ft" id="qf-pdesc" style="min-height:50px">\${q.project_description||''}</textarea></div>
+      <div class="fg"><label class="fl">Address</label><input class="fi" id="qf-addr" value="\${q.project_address||''}"></div>
+      <div class="two">
+        <div class="fg"><label class="fl">City</label><input class="fi" id="qf-city" value="\${q.project_city||''}"></div>
+        <div class="fg"><label class="fl">State</label><input class="fi" id="qf-state" value="\${q.project_state||''}"></div>
+      </div>
+      <div class="two">
+        <div class="fg"><label class="fl">Trade</label>
+          <select class="fs" id="qf-trade"><option value="">— Select —</option>\${FAX_TRADES.map(t=>'<option '+(q.trade===t?'selected':'')+'>'+t+'</option>').join('')}</select></div>
+        <div class="fg"><label class="fl">Estimator</label>
+          <select class="fs" id="qf-est"><option value="">— Select —</option>\${estimators.map(u=>'<option value="'+u.id+'" '+(q.estimator_id===u.id?'selected':'')+'>'+(u.full_name||u.email||u.id)+'</option>').join('')}</select></div>
+      </div>
+      <div class="fg"><label class="fl">Link to Job (optional)</label>
+        <select class="fs" id="qf-job"><option value="">— No linked job —</option>\${jobs.map(j=>'<option value="'+j.id+'" '+(q.job_id===j.id?'selected':'')+'>'+(j.name||j.id)+'</option>').join('')}</select></div>
+      <div class="three">
+        <div class="fg"><label class="fl">Issue Date</label><input class="fi" type="date" id="qf-issue" value="\${q.issue_date||''}"></div>
+        <div class="fg"><label class="fl">Bid Due</label><input class="fi" type="date" id="qf-biddue" value="\${q.bid_due_date||''}"></div>
+        <div class="fg"><label class="fl">Expiry</label><input class="fi" type="date" id="qf-exp" value="\${q.expiry_date||''}"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Notes &amp; Terms</div>
+      <div class="fg"><label class="fl">Notes</label><textarea class="ft" id="qf-notes">\${q.notes||''}</textarea></div>
+      <div class="fg"><label class="fl">Terms &amp; Conditions</label><textarea class="ft" id="qf-terms">\${q.terms||''}</textarea></div>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <div class="card-title">Line Items
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm" onclick="faxAddLi()">+ Add</button>
+          <button class="btn btn-sm" onclick="faxInsertBlock()">Insert Scope Block</button>
+          <label class="btn btn-sm" style="cursor:pointer">CSV<input type="file" accept=".csv,.xlsx" style="display:none" onchange="faxImportLiFile(this)"></label>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 26px;gap:4px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.06em">
+        <div>Description</div><div style="text-align:right">Qty</div><div style="text-align:right">Rate</div><div style="text-align:right">Total</div><div></div>
+      </div>
+      <div id="qf-li-body"></div>
+      <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:10px;margin-top:8px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#8a96ab;margin-bottom:4px"><span>Subtotal</span><span id="qf-subtotal">—</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#8a96ab;margin-bottom:6px">
+          <span>Tax %</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="fi" type="number" id="qf-tax" value="\${q.tax_rate||0}" min="0" max="100" step="0.1" style="width:65px;padding:4px 7px;text-align:right" oninput="faxUpdateTotals()">
+            <span id="qf-taxamt">—</span>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:600;border-top:1px solid rgba(255,255,255,.06);padding-top:8px"><span>Total</span><span id="qf-total" style="color:#e8edf5">—</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Recipients
+        <div style="display:flex;gap:6px">
+          <select class="fs" id="qf-gc-pick" style="width:160px"><option value="">+ From GC list…</option>\${(window._faxBidGcs||[]).map(g=>'<option value="'+g.id+'">'+( g.company||g.name)+'</option>').join('')}</select>
+          <button class="btn btn-sm" onclick="faxAddRecipFromGC()">Add</button>
+        </div>
+      </div>
+      <div id="qf-recs-body"></div>
+      <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px">
+        <div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Or add manually</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:end">
+          <div><label class="fl">Name</label><input class="fi" id="qf-rn" placeholder="Contact name"></div>
+          <div><label class="fl">Company</label><input class="fi" id="qf-rc" placeholder="Company"></div>
+          <div><label class="fl">Email *</label><input class="fi" id="qf-re" type="email" placeholder="email@gc.com"></div>
+          <button class="btn btn-sm btn-p" onclick="faxAddRecipManual()" style="margin-bottom:0">Add</button>
+        </div>
+      </div>
+    </div>
+    \${!isNew&&q.revisions?.length?'<div class="card"><div class="card-title">Revision History</div>'+q.revisions.map(r=>'<div style="font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);color:#8a96ab">v'+r.version+' · '+fd(r.changed_at)+' · '+r.changed_by+' · Was '+fm(r.snapshot?.total,2)+'</div>').join('')+'</div>':''}
+  </div>
+  </div>
+  \`
+  faxRenderLiBody()
+  faxRenderRecsBody()
+  faxUpdateTotals()
+  // Load jobs for dropdown if not cached
+  if(!window._allJobs){sb.from('jobs').select('id,name').order('name',{ascending:true}).then(({data:j})=>{window._allJobs=j||[];const sel=document.getElementById('qf-job');if(sel){(j||[]).forEach(job=>{const o=document.createElement('option');o.value=job.id;o.textContent=job.name||job.id;if(q.job_id===job.id)o.selected=true;sel.appendChild(o)})}})}
+}
+
+// Line items
+function faxRenderLiBody(){
+  const q=window._faxBidEditing;const el=document.getElementById('qf-li-body');if(!el)return
+  if(!q.line_items?.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:8px 0">No line items yet</div>';return}
+  el.innerHTML=q.line_items.map((li,i)=>\`
+    <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 26px;gap:4px;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+      <input class="fi" value="\${li.description||''}" placeholder="Description" style="padding:5px 7px;font-size:12px" oninput="window._faxBidEditing.line_items[\${i}].description=this.value">
+      <input class="fi" type="number" value="\${li.qty||''}" placeholder="1" style="padding:5px 7px;font-size:12px;text-align:right" oninput="window._faxBidEditing.line_items[\${i}].qty=parseFloat(this.value)||0;faxUpdateTotals()">
+      <input class="fi" type="number" value="\${li.rate||''}" placeholder="0.00" step="0.01" style="padding:5px 7px;font-size:12px;text-align:right" oninput="window._faxBidEditing.line_items[\${i}].rate=parseFloat(this.value)||0;faxUpdateTotals()">
+      <div style="font-size:12px;text-align:right;padding-right:4px;color:#8a96ab">\${fm((li.qty||0)*(li.rate||0),2)}</div>
+      <button class="btn btn-sm btn-ghost" style="color:#dc2626;padding:2px 6px" onclick="window._faxBidEditing.line_items.splice(\${i},1);faxRenderLiBody();faxUpdateTotals()">×</button>
+    </div>\`).join('')
+}
+function faxAddLi(){window._faxBidEditing.line_items.push({id:uuid(),description:'',qty:1,rate:0});faxRenderLiBody();faxUpdateTotals()}
+function faxUpdateTotals(){
+  const q=window._faxBidEditing;if(!q)return
+  const tax=parseFloat(document.getElementById('qf-tax')?.value)||0
+  const t=faxBidCalc(q.line_items,tax)
+  const sub=document.getElementById('qf-subtotal');if(sub)sub.textContent=fm(t.subtotal,2)
+  const ta=document.getElementById('qf-taxamt');if(ta)ta.textContent=fm(t.tax,2)
+  const tot=document.getElementById('qf-total');if(tot)tot.textContent=fm(t.total,2)
+}
+function faxImportLiFile(input){
+  const file=input.files[0];if(!file)return
+  if(file.name.endsWith('.xlsx')||file.name.endsWith('.xls')){
+    const fr=new FileReader();fr.onload=e=>{
+      const wb=XLSX.read(e.target.result,{type:'array'})
+      const ws=wb.Sheets[wb.SheetNames[0]]
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''})
+      let hdr=null
+      rows.forEach(r=>{
+        if(!hdr){hdr=r.map(c=>String(c).toLowerCase().trim());return}
+        const di=['description','item','name'].map(k=>hdr.indexOf(k)).find(i=>i>=0)??0
+        const qi=['qty','quantity'].map(k=>hdr.indexOf(k)).find(i=>i>=0)??1
+        const ri=['rate','price','cost','unit'].map(k=>hdr.indexOf(k)).find(i=>i>=0)??2
+        const desc=String(r[di]||'').trim();if(!desc)return
+        window._faxBidEditing.line_items.push({id:uuid(),description:desc,qty:parseFloat(r[qi])||1,rate:parseFloat(r[ri])||0})
+      })
+      faxRenderLiBody();faxUpdateTotals();toast('Imported '+file.name)
+    };fr.readAsArrayBuffer(file)
+  }else{
+    const fr=new FileReader();fr.onload=e=>{
+      const lines=e.target.result.split('\\n').filter(l=>l.trim());let hdr=null
+      lines.forEach(line=>{
+        const cols=line.match(/("(?:[^"]|"")*"|[^,]*)/g).map(v=>v.replace(/^"|"$/g,'').replace(/""/g,'"'))
+        if(!hdr){hdr=cols.map(h=>h.trim().toLowerCase());return}
+        const di=['description','item','name'].map(k=>hdr.indexOf(k)).find(i=>i>=0)??0
+        const qi=['qty','quantity'].map(k=>hdr.indexOf(k)).find(i=>i>=0)??1
+        const ri=['rate','price','cost','unit'].map(k=>hdr.indexOf(k)).find(i=>i>=0)??2
+        const desc=cols[di]?.trim();if(!desc)return
+        window._faxBidEditing.line_items.push({id:uuid(),description:desc,qty:parseFloat(cols[qi])||1,rate:parseFloat(cols[ri])||0})
+      })
+      faxRenderLiBody();faxUpdateTotals();toast('Imported '+file.name)
+    };fr.readAsText(file)
+  }
+  input.value=''
+}
+async function faxInsertBlock(){
+  if(!window._faxBidScopeBlocks){const{data:b}=await sb.from('fax_bid_scope_blocks').select('*').order('name',{ascending:true});window._faxBidScopeBlocks=b||[]}
+  const blocks=window._faxBidScopeBlocks
+  modal('Insert Scope Block',blocks.length?
+    \`<div style="display:flex;flex-direction:column;gap:6px">\${blocks.map(b=>\`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#131c2e;border-radius:7px;cursor:pointer;border:1px solid rgba(255,255,255,.07)" onclick="faxPickBlock('\${b.id}')">
+      <div><div style="font-size:13px;font-weight:500">\${b.name}</div><div style="font-size:10px;color:#414e63">\${b.trade||'All trades'} · \${b.line_items?.length||0} items · \${fm((b.line_items||[]).reduce((s,i)=>s+(i.qty||0)*(i.rate||0),0),2)}</div></div>
+      <button class="btn btn-sm btn-p">Insert</button></div>\`).join('')}</div>\`
+    :'<div class="empty">No scope blocks yet. Create them in Templates.</div>',
+    null,'',true)
+}
+function faxPickBlock(id){
+  const b=(window._faxBidScopeBlocks||[]).find(x=>x.id===id);if(!b)return
+  const items=JSON.parse(JSON.stringify(b.line_items||[])).map(li=>({...li,id:uuid()}))
+  window._faxBidEditing.line_items.push(...items)
+  faxRenderLiBody();faxUpdateTotals();closeModal()
+  toast('Inserted "'+b.name+'" ('+items.length+' items)')
+}
+
+// Recipients
+function faxRenderRecsBody(){
+  const el=document.getElementById('qf-recs-body');if(!el)return
+  const recs=window._faxBidEditing.recipients||[]
+  if(!recs.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:6px 0">No recipients yet</div>';return}
+  el.innerHTML=recs.map((r,i)=>\`<div style="background:#131c2e;border-radius:7px;padding:9px 11px;margin-bottom:6px;border:1px solid rgba(255,255,255,.06)">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+      <div>
+        <div style="font-size:13px;font-weight:500">\${r.company||r.name}</div>
+        <div style="font-size:11px;color:#8a96ab">\${r.name}  \${r.email}</div>
+        \${r.signature_name?'<div style="font-size:10px;color:#16a34a;margin-top:3px">✓ Signed by '+r.signature_name+(r.signature_title?' ('+r.signature_title+')':'')+'</div>':''}
+        \${r.decline_reason?'<div style="font-size:10px;color:#dc2626;margin-top:3px">Declined: '+r.decline_reason+'</div>':''}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        \${faxBidStatusBadge(r.status||'draft')}
+        \${r.id?(\`<div style="display:flex;gap:4px;margin-top:4px">
+          \${['draft','sent'].includes(r.status)?'<button class="btn btn-sm btn-p" onclick="faxSendRecip(\''+r.id+'\')">Send</button>':''}
+          \${r.id?'<button class="btn btn-sm btn-ghost" onclick="faxCopyLink(\''+r.id+'\')">Copy Link</button>':''}
+          \${['draft','sent','viewed'].includes(r.status)?'<button class="btn btn-sm" style="color:#dc2626" onclick="faxDeclineRecip(\''+r.id+'\','+i+')">Decline</button>':''}
+        </div>\`):'<div style="font-size:10px;color:#414e63;margin-top:4px">Save first to send</div>'}
+      </div>
+    </div>
+    \${!r.id?'<button class="btn btn-ghost btn-sm" style="color:#dc2626;margin-top:5px" onclick="window._faxBidEditing.recipients.splice('+i+',1);faxRenderRecsBody()">Remove</button>':''}
+  </div>\`).join('')
+}
+function faxAddRecipFromGC(){
+  const sel=document.getElementById('qf-gc-pick');const id=sel?.value;if(!id)return
+  const gc=(window._faxBidGcs||[]).find(g=>g.id===id);if(!gc)return
+  window._faxBidEditing.recipients.push({gc_id:gc.id,name:gc.name||'',company:gc.company||'',email:gc.email||'',status:'draft'})
+  sel.value='';faxRenderRecsBody();toast('Added: '+(gc.company||gc.name))
+}
+function faxAddRecipManual(){
+  const name=(document.getElementById('qf-rn')?.value||'').trim()
+  const company=(document.getElementById('qf-rc')?.value||'').trim()
+  const email=(document.getElementById('qf-re')?.value||'').trim()
+  if(!email){toast('Email required','error');return}
+  window._faxBidEditing.recipients.push({name,company,email,status:'draft'})
+  document.getElementById('qf-rn').value='';document.getElementById('qf-rc').value='';document.getElementById('qf-re').value=''
+  faxRenderRecsBody()
+}
+async function faxSendRecip(recId){
+  if(!window._faxBidEditing?.id){toast('Save the quote first','warn');return}
+  try{
+    const r=await fetch('/api/qf/recipients/'+recId+'/send',{method:'POST',headers:{Authorization:'Bearer '+window._sbToken,'Content-Type':'application/json'}})
+    const d=await r.json()
+    if(d.error)throw new Error(d.error)
+    toast('Email sent!');faxOpenBid(window._faxBidEditing.id)
+  }catch(e){toast(e.message,'error')}
+}
+async function faxCopyLink(recId){
+  if(!window._faxBidEditing?.id){toast('Save the quote first','warn');return}
+  try{
+    const r=await fetch('/api/qf/recipients/'+recId+'/link',{headers:{Authorization:'Bearer '+window._sbToken}})
+    const d=await r.json()
+    navigator.clipboard?.writeText(d.url).then(()=>toast('Link copied!')).catch(()=>{prompt('Copy this award link:',d.url)})
+  }catch(e){toast(e.message,'error')}
+}
+async function faxDeclineRecip(recId,idx){
+  const reason=prompt('Decline reason:\\n'+FAX_LOSS.map((r,i)=>(i+1)+'. '+r).join('\\n'))||'Other'
+  const{error}=await sb.from('fax_bid_recipients').update({status:'declined',declined_at:new Date().toISOString(),decline_reason:reason}).eq('id',recId)
+  if(error){toast(error.message,'error');return}
+  window._faxBidEditing.recipients[idx]={...window._faxBidEditing.recipients[idx],status:'declined',decline_reason:reason}
+  faxRenderRecsBody();toast('Marked declined')
+}
+
+// Save quote
+async function faxSaveBid(){
+  const q=window._faxBidEditing;if(!q)return
+  q.project_name=document.getElementById('qf-pname')?.value.trim()||''
+  q.project_description=document.getElementById('qf-pdesc')?.value.trim()||''
+  q.project_address=document.getElementById('qf-addr')?.value.trim()||''
+  q.project_city=document.getElementById('qf-city')?.value.trim()||''
+  q.project_state=document.getElementById('qf-state')?.value.trim()||''
+  q.trade=document.getElementById('qf-trade')?.value||''
+  q.estimator_id=document.getElementById('qf-est')?.value||null
+  q.job_id=document.getElementById('qf-job')?.value||null
+  q.issue_date=document.getElementById('qf-issue')?.value||null
+  q.bid_due_date=document.getElementById('qf-biddue')?.value||null
+  q.expiry_date=document.getElementById('qf-exp')?.value||null
+  q.tax_rate=parseFloat(document.getElementById('qf-tax')?.value)||0
+  q.notes=document.getElementById('qf-notes')?.value.trim()||''
+  q.terms=document.getElementById('qf-terms')?.value.trim()||''
+  const tots=faxBidCalc(q.line_items,q.tax_rate)
+  Object.assign(q,tots)
+  try{
+    let savedId=q.id
+    if(q.id){
+      // Check if line items or tax changed for revision
+      const{data:cur}=await sb.from('fax_bids').select('line_items,tax_rate,subtotal,total,version,revisions').eq('id',q.id).single()
+      const revisions=cur?.revisions||[]
+      if(JSON.stringify(cur?.line_items)!==JSON.stringify(q.line_items)||cur?.tax_rate!==q.tax_rate){
+        revisions.push({version:cur.version,snapshot:{line_items:cur.line_items,tax_rate:cur.tax_rate,subtotal:cur.subtotal,total:cur.total},changed_by:window._faxUser?.full_name||'',changed_at:new Date().toISOString()})
+        q.revisions=revisions
+      }
+      const{error}=await sb.from('fax_bids').update({project_name:q.project_name,project_description:q.project_description,project_address:q.project_address,project_city:q.project_city,project_state:q.project_state,trade:q.trade,estimator_id:q.estimator_id,job_id:q.job_id,issue_date:q.issue_date,bid_due_date:q.bid_due_date,expiry_date:q.expiry_date,line_items:q.line_items,tax_rate:q.tax_rate,subtotal:q.subtotal,tax:q.tax,total:q.total,notes:q.notes,terms:q.terms,revisions:q.revisions,updated_at:new Date().toISOString()}).eq('id',q.id)
+      if(error)throw new Error(error.message)
+    }else{
+      const{data:ins,error}=await sb.from('fax_bids').insert({id:uuid(),number:q.number,version:1,project_name:q.project_name,project_description:q.project_description,project_address:q.project_address,project_city:q.project_city,project_state:q.project_state,project_zip:q.project_zip||'',trade:q.trade,estimator_id:q.estimator_id,job_id:q.job_id,issue_date:q.issue_date,bid_due_date:q.bid_due_date,expiry_date:q.expiry_date,line_items:q.line_items,tax_rate:q.tax_rate,subtotal:q.subtotal,tax:q.tax,total:q.total,notes:q.notes,terms:q.terms,from_template_id:q.from_template_id||null,revisions:[],created_at:new Date().toISOString(),updated_at:new Date().toISOString()}).select().single()
+      if(error)throw new Error(error.message)
+      savedId=ins.id;window._faxBidEditing.id=savedId;window._faxBidEditing.number=ins.number
+    }
+    // Save new recipients
+    const newRecs=q.recipients.filter(r=>!r.id)
+    for(const r of newRecs){
+      const{data:ins}=await sb.from('fax_bid_recipients').insert({id:uuid(),quote_id:savedId,gc_id:r.gc_id||null,name:r.name,company:r.company,email:r.email,status:'draft',token:Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b=>b.toString(16).padStart(2,'0')).join(''),created_at:new Date().toISOString()}).select().single()
+      if(ins){Object.assign(r,ins)}
+    }
+    toast('Saved: '+q.number)
+    faxRenderRecsBody()
+    // Refresh page title
+    document.getElementById('page-title').textContent=q.number+' — v'+q.version
+  }catch(e){toast(e.message,'error')}
+}
+async function faxSaveAsTemplate(){
+  const q=window._faxBidEditing;if(!q)return
+  const name=prompt('Template name:',q.project_name||q.trade||'New Template');if(!name)return
+  const{error}=await sb.from('fax_bid_templates').insert({id:uuid(),name,trade:q.trade||'',description:q.project_description||'',line_items:q.line_items||[],tax_rate:q.tax_rate||0,notes:q.notes||'',terms:q.terms||'',expiry_days:30,created_at:new Date().toISOString()})
+  if(error){toast(error.message,'error');return}
+  if(window._faxBidTemplates)window._faxBidTemplates=null // invalidate cache
+  toast('Template saved: '+name)
+}
+async function faxGenerateInvoice(){
+  const q=window._faxBidEditing;if(!q?.id)return
+  const awarded=q.recipients?.find(r=>r.status==='awarded')
+  // Generate invoice number
+  const{data:last}=await sb.from('fax_bid_invoices').select('number').order('created_at',{ascending:false}).limit(1)
+  const lastN=parseInt((last?.[0]?.number||'INV-0000').replace(/\D/g,''))||0
+  const number='INV-'+String(lastN+1).padStart(4,'0')
+  const tots=faxBidCalc(q.line_items,q.tax_rate)
+  const{data:inv,error}=await sb.from('fax_bid_invoices').insert({id:uuid(),number,quote_id:q.id,job_id:q.job_id,client_name:awarded?.name||'',client_company:awarded?.company||'',client_email:awarded?.email||'',project_name:q.project_name,project_address:q.project_address,project_city:q.project_city,project_state:q.project_state||'',project_zip:q.project_zip||'',issue_date:new Date().toISOString().split('T')[0],line_items:q.line_items,tax_rate:q.tax_rate,...tots,notes:q.notes,terms:q.terms,status:'draft',created_at:new Date().toISOString()}).select().single()
+  if(error){toast(error.message,'error');return}
+  toast('Invoice created: '+number)
+  P('fax_bid_invoices',null)
+}
+
+// ── INVOICES PAGE ─────────────────────────────────────────────────────
+async function pgFaxInvoices(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="faxNewInvoice()">+ New Invoice</button>'
+  const{data:invs}=await sb.from('fax_bid_invoices').select('*').order('created_at',{ascending:false})
+  const list=invs||[]
+  const unpaid=list.filter(i=>i.status!=='paid').reduce((s,i)=>s+(i.total||0),0)
+  document.getElementById('page-area').innerHTML=\`
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px">
+  <div class="stat"><div class="stat-label">Total Invoices</div><div class="stat-value">\${list.length}</div></div>
+  <div class="stat"><div class="stat-label">Unpaid</div><div class="stat-value" style="color:#d97706">\${fm(unpaid)}</div></div>
+  <div class="stat"><div class="stat-label">Paid</div><div class="stat-value" style="color:#16a34a">\${list.filter(i=>i.status==='paid').length}</div></div>
+  <div class="stat"><div class="stat-label">Draft</div><div class="stat-value">\${list.filter(i=>i.status==='draft').length}</div></div>
+</div>
+\${list.length?
+  \`<table class="tbl"><thead><tr><th>Number</th><th>Project</th><th>Client</th><th>Total</th><th>Due Date</th><th>Status</th><th></th></tr></thead><tbody>
+  \${list.map(inv=>\`<tr onclick="faxOpenInvoice('\${inv.id}')">
+    <td style="font-weight:500">\${inv.number}</td>
+    <td>\${inv.project_name||'—'}</td>
+    <td>\${inv.client_company||inv.client_name||'—'}</td>
+    <td style="font-weight:500">\${fm(inv.total,2)}</td>
+    <td style="color:\${inv.due_date&&new Date(inv.due_date)<new Date()&&inv.status!=='paid'?'#dc2626':'#8a96ab'}">\${fd(inv.due_date)}</td>
+    <td>\${faxBidStatusBadge(inv.status)}</td>
+    <td onclick="event.stopPropagation()"><button class="btn btn-sm btn-ghost" onclick="faxOpenInvoice('\${inv.id}')">Open</button></td>
+  </tr>\`).join('')}
+  </tbody></table>\`
+  :empty('🧾','No invoices yet')}
+\`
+}
+async function faxOpenInvoice(id){
+  const{data:inv}=await sb.from('fax_bid_invoices').select('*').eq('id',id).single()
+  window._faxBidInv=inv
+  faxRenderInvoiceEditor()
+}
+async function faxNewInvoice(){
+  const{data:last}=await sb.from('fax_bid_invoices').select('number').order('created_at',{ascending:false}).limit(1)
+  const lastN=parseInt((last?.[0]?.number||'INV-0000').replace(/\D/g,''))||0
+  window._faxBidInv={id:null,number:'INV-'+String(lastN+1).padStart(4,'0'),client_name:'',client_company:'',client_email:'',project_name:'',project_address:'',issue_date:new Date().toISOString().split('T')[0],due_date:'',line_items:[],tax_rate:0,notes:'',terms:'',status:'draft'}
+  faxRenderInvoiceEditor()
+}
+function faxRenderInvoiceEditor(){
+  const inv=window._faxBidInv
+  document.getElementById('topbar-actions').innerHTML=\`
+    \${inv.status!=='paid'?'<button class="btn btn-g btn-sm" onclick="faxMarkInvPaid()">Mark Paid</button>':''}
+    \${inv.status==='draft'?'<button class="btn btn-a btn-sm" onclick="faxMarkInvSent()">Mark Sent</button>':''}
+    <button class="btn btn-p btn-sm" onclick="faxSaveInvoice()">Save</button>
+    <button class="btn btn-ghost btn-sm" onclick="P('fax_bid_invoices',null)">← Back</button>
+  \`
+  document.getElementById('page-title').textContent=inv.id?inv.number+' — Invoice':'New Invoice'
+  document.getElementById('page-area').innerHTML=\`
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+  <div>
+    <div class="card">
+      <div class="card-title">Client &amp; Project</div>
+      <div class="two">
+        <div class="fg"><label class="fl">Client Name</label><input class="fi" id="qfi-cn" value="\${inv.client_name||''}"></div>
+        <div class="fg"><label class="fl">Company</label><input class="fi" id="qfi-co" value="\${inv.client_company||''}"></div>
+      </div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="qfi-em" type="email" value="\${inv.client_email||''}"></div>
+      <div class="fg"><label class="fl">Project Name</label><input class="fi" id="qfi-pn" value="\${inv.project_name||''}"></div>
+      <div class="fg"><label class="fl">Address</label><input class="fi" id="qfi-pa" value="\${inv.project_address||''}"></div>
+      <div class="two">
+        <div class="fg"><label class="fl">Issue Date</label><input class="fi" type="date" id="qfi-iss" value="\${inv.issue_date||''}"></div>
+        <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="qfi-due" value="\${inv.due_date||''}"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Notes &amp; Terms</div>
+      <div class="fg"><label class="fl">Notes</label><textarea class="ft" id="qfi-notes">\${inv.notes||''}</textarea></div>
+      <div class="fg"><label class="fl">Terms</label><textarea class="ft" id="qfi-terms">\${inv.terms||''}</textarea></div>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <div class="card-title">Line Items <button class="btn btn-sm" onclick="faxInvAddLi()">+ Add</button></div>
+      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 26px;gap:4px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.06em">
+        <div>Description</div><div style="text-align:right">Qty</div><div style="text-align:right">Rate</div><div style="text-align:right">Total</div><div></div>
+      </div>
+      <div id="qfi-li-body"></div>
+      <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:10px;margin-top:8px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#8a96ab;margin-bottom:4px"><span>Subtotal</span><span id="qfi-sub">—</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#8a96ab;margin-bottom:6px"><span>Tax %</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="fi" type="number" id="qfi-tax" value="\${inv.tax_rate||0}" step="0.1" style="width:65px;padding:4px 7px;text-align:right" oninput="faxInvUpdateTotals()">
+            <span id="qfi-taxamt">—</span>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:600;border-top:1px solid rgba(255,255,255,.06);padding-top:8px"><span>Total</span><span id="qfi-total" style="color:#e8edf5">—</span></div>
+      </div>
+    </div>
+  </div>
+  </div>\`
+  faxInvRenderLi();faxInvUpdateTotals()
+}
+function faxInvRenderLi(){
+  const el=document.getElementById('qfi-li-body');if(!el)return
+  const items=window._faxBidInv?.line_items||[]
+  if(!items.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:8px 0">No line items</div>';return}
+  el.innerHTML=items.map((li,i)=>\`<div style="display:grid;grid-template-columns:1fr 60px 80px 80px 26px;gap:4px;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+    <input class="fi" value="\${li.description||''}" style="padding:5px 7px;font-size:12px" oninput="window._faxBidInv.line_items[\${i}].description=this.value">
+    <input class="fi" type="number" value="\${li.qty||''}" style="padding:5px 7px;font-size:12px;text-align:right" oninput="window._faxBidInv.line_items[\${i}].qty=parseFloat(this.value)||0;faxInvUpdateTotals()">
+    <input class="fi" type="number" value="\${li.rate||''}" step="0.01" style="padding:5px 7px;font-size:12px;text-align:right" oninput="window._faxBidInv.line_items[\${i}].rate=parseFloat(this.value)||0;faxInvUpdateTotals()">
+    <div style="font-size:12px;text-align:right;padding-right:4px;color:#8a96ab">\${fm((li.qty||0)*(li.rate||0),2)}</div>
+    <button class="btn btn-sm btn-ghost" style="color:#dc2626;padding:2px 6px" onclick="window._faxBidInv.line_items.splice(\${i},1);faxInvRenderLi();faxInvUpdateTotals()">×</button>
+  </div>\`).join('')
+}
+function faxInvAddLi(){window._faxBidInv.line_items.push({id:uuid(),description:'',qty:1,rate:0});faxInvRenderLi();faxInvUpdateTotals()}
+function faxInvUpdateTotals(){
+  const inv=window._faxBidInv;if(!inv)return
+  const tax=parseFloat(document.getElementById('qfi-tax')?.value)||0
+  const t=faxBidCalc(inv.line_items,tax)
+  const sub=document.getElementById('qfi-sub');if(sub)sub.textContent=fm(t.subtotal,2)
+  const ta=document.getElementById('qfi-taxamt');if(ta)ta.textContent=fm(t.tax,2)
+  const tot=document.getElementById('qfi-total');if(tot)tot.textContent=fm(t.total,2)
+}
+async function faxSaveInvoice(){
+  const inv=window._faxBidInv
+  inv.client_name=document.getElementById('qfi-cn')?.value.trim()||''
+  inv.client_company=document.getElementById('qfi-co')?.value.trim()||''
+  inv.client_email=document.getElementById('qfi-em')?.value.trim()||''
+  inv.project_name=document.getElementById('qfi-pn')?.value.trim()||''
+  inv.project_address=document.getElementById('qfi-pa')?.value.trim()||''
+  inv.issue_date=document.getElementById('qfi-iss')?.value||null
+  inv.due_date=document.getElementById('qfi-due')?.value||null
+  inv.tax_rate=parseFloat(document.getElementById('qfi-tax')?.value)||0
+  inv.notes=document.getElementById('qfi-notes')?.value.trim()||''
+  inv.terms=document.getElementById('qfi-terms')?.value.trim()||''
+  const tots=faxBidCalc(inv.line_items,inv.tax_rate);Object.assign(inv,tots)
+  const{error}=inv.id?await sb.from('fax_bid_invoices').update({...inv,updated_at:new Date().toISOString()}).eq('id',inv.id)
+    :await sb.from('fax_bid_invoices').insert({...inv,id:uuid(),created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+  if(error){toast(error.message,'error');return}
+  toast('Saved: '+inv.number)
+}
+async function faxMarkInvPaid(){
+  const{error}=await sb.from('fax_bid_invoices').update({status:'paid',paid_at:new Date().toISOString()}).eq('id',window._faxBidInv.id)
+  if(error){toast(error.message,'error');return}
+  window._faxBidInv.status='paid';faxRenderInvoiceEditor();toast('Marked paid')
+}
+async function faxMarkInvSent(){
+  const{error}=await sb.from('fax_bid_invoices').update({status:'sent'}).eq('id',window._faxBidInv.id)
+  if(error){toast(error.message,'error');return}
+  window._faxBidInv.status='sent';faxRenderInvoiceEditor();toast('Marked sent')
+}
+
+// ── TEMPLATES PAGE ─────────────────────────────────────────────────────
+async function pgFaxBidTemplates(){
+  document.getElementById('topbar-actions').innerHTML=\`
+    <button class="btn btn-p btn-sm" onclick="faxNewTemplate()">+ New Template</button>
+    <button class="btn btn-sm" onclick="faxNewScopeBlock()">+ New Scope Block</button>
+    <button class="btn btn-ghost btn-sm" onclick="faxExportTemplates()">↓ Export</button>
+    <label class="btn btn-ghost btn-sm" style="cursor:pointer">↑ Import<input type="file" accept=".json" style="display:none" onchange="faxImportTemplates(this)"></label>
+  \`
+  const[{data:tmpls},{data:blocks}]=await Promise.all([
+    sb.from('fax_bid_templates').select('*').order('name',{ascending:true}),
+    sb.from('fax_bid_scope_blocks').select('*').order('name',{ascending:true})
+  ])
+  window._faxBidTemplates=tmpls||[];window._faxBidScopeBlocks=blocks||[]
+  document.getElementById('page-area').innerHTML=\`
+<div class="tab-bar" id="tmpl-tabs">
+  <div class="tab active" onclick="faxTmplTab('qt',this)">Quote Templates (\${(tmpls||[]).length})</div>
+  <div class="tab" onclick="faxTmplTab('sb',this)">Scope Blocks (\${(blocks||[]).length})</div>
+</div>
+<div id="tmpl-body" style="margin-top:14px"></div>\`
+  faxRenderTemplateList('qt')
+}
+function faxTmplTab(tab,el){
+  document.querySelectorAll('#tmpl-tabs .tab').forEach(t=>t.classList.remove('active'))
+  el.classList.add('active')
+  faxRenderTemplateList(tab)
+}
+function faxRenderTemplateList(tab){
+  const el=document.getElementById('tmpl-body');if(!el)return
+  if(tab==='qt'){
+    const t=window._faxBidTemplates||[]
+    el.innerHTML=t.length?
+      \`<table class="tbl"><thead><tr><th>Name</th><th>Trade</th><th>Items</th><th>Subtotal</th><th></th></tr></thead><tbody>
+      \${t.map(tmpl=>\`<tr>
+        <td style="font-weight:500">\${tmpl.name}</td>
+        <td>\${tmpl.trade||'—'}</td>
+        <td>\${tmpl.line_items?.length||0}</td>
+        <td>\${fm((tmpl.line_items||[]).reduce((s,i)=>s+(i.qty||0)*(i.rate||0),0),2)}</td>
+        <td style="display:flex;gap:5px">
+          <button class="btn btn-sm btn-p" onclick="faxNewBid('\${tmpl.id}')">Use →</button>
+          <button class="btn btn-sm" onclick="faxEditTemplate('\${tmpl.id}')">Edit</button>
+          <button class="btn btn-sm btn-r" onclick="faxDelTemplate('\${tmpl.id}')">Del</button>
+        </td>
+      </tr>\`).join('')}</tbody></table>\`
+      :empty('📋','No quote templates yet')
+  }else{
+    const b=window._faxBidScopeBlocks||[]
+    el.innerHTML=b.length?
+      \`<table class="tbl"><thead><tr><th>Name</th><th>Trade</th><th>Items</th><th>Subtotal</th><th></th></tr></thead><tbody>
+      \${b.map(blk=>\`<tr>
+        <td style="font-weight:500">\${blk.name}</td>
+        <td>\${blk.trade||'—'}</td>
+        <td>\${blk.line_items?.length||0}</td>
+        <td>\${fm((blk.line_items||[]).reduce((s,i)=>s+(i.qty||0)*(i.rate||0),0),2)}</td>
+        <td style="display:flex;gap:5px">
+          <button class="btn btn-sm" onclick="faxEditScopeBlock('\${blk.id}')">Edit</button>
+          <button class="btn btn-sm btn-r" onclick="faxDelScopeBlock('\${blk.id}')">Del</button>
+        </td>
+      </tr>\`).join('')}</tbody></table>\`
+      :empty('📦','No scope blocks yet')
+  }
+}
+function faxTmplEditorModal(data,type,onSave){
+  const isSB=type==='scopeblock'
+  window._faxBidTmplItems=JSON.parse(JSON.stringify(data.line_items||[]))
+  modal(data.id?(isSB?'Edit Scope Block':'Edit Template'):(isSB?'New Scope Block':'New Template'),
+    \`<div class="fg"><label class="fl">Name *</label><input class="fi" id="tm-name" value="\${data.name||''}"></div>
+    <div class="fg"><label class="fl">Trade</label><select class="fs" id="tm-trade"><option value="">All trades</option>\${FAX_TRADES.map(t=>'<option '+(data.trade===t?'selected':'')+'>'+t+'</option>').join('')}</select></div>
+    \${!isSB?\`<div class="fg"><label class="fl">Description (pre-fills project)</label><textarea class="ft" id="tm-desc" style="min-height:50px">\${data.description||''}</textarea></div>
+    <div class="two"><div class="fg"><label class="fl">Expiry days</label><input class="fi" type="number" id="tm-exp" value="\${data.expiry_days||30}"></div>
+    <div class="fg"><label class="fl">Tax rate %</label><input class="fi" type="number" id="tm-tax" value="\${data.tax_rate||0}" step="0.1"></div></div>
+    <div class="fg"><label class="fl">Notes</label><textarea class="ft" id="tm-notes">\${data.notes||''}</textarea></div>
+    <div class="fg"><label class="fl">Terms</label><textarea class="ft" id="tm-terms">\${data.terms||''}</textarea></div>\`:''}
+    <div class="sec-hdr">Line Items <button class="btn btn-sm" onclick="window._faxBidTmplItems.push({id:'li'+Date.now(),description:'',qty:1,rate:0});faxTmplRenderLi()">+ Add</button></div>
+    <div id="tm-li-body"></div>\`,
+    ()=>onSave(),'Save')
+  faxTmplRenderLi()
+}
+function faxTmplRenderLi(){
+  const el=document.getElementById('tm-li-body');if(!el)return
+  el.innerHTML=(window._faxBidTmplItems||[]).map((li,i)=>\`<div style="display:grid;grid-template-columns:1fr 55px 75px 26px;gap:4px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+    <input class="fi" value="\${li.description||''}" style="padding:4px 6px;font-size:12px" oninput="window._faxBidTmplItems[\${i}].description=this.value">
+    <input class="fi" type="number" value="\${li.qty||''}" style="padding:4px 6px;font-size:12px;text-align:right" oninput="window._faxBidTmplItems[\${i}].qty=parseFloat(this.value)||0">
+    <input class="fi" type="number" value="\${li.rate||''}" step="0.01" style="padding:4px 6px;font-size:12px;text-align:right" oninput="window._faxBidTmplItems[\${i}].rate=parseFloat(this.value)||0">
+    <button class="btn btn-sm btn-ghost" style="color:#dc2626;padding:2px 5px" onclick="window._faxBidTmplItems.splice(\${i},1);faxTmplRenderLi()">×</button>
+  </div>\`).join('')||'<div style="font-size:11px;color:#414e63;padding:5px 0">No items</div>'
+}
+function faxNewTemplate(){faxTmplEditorModal({},'template',async()=>{
+  const name=document.getElementById('tm-name')?.value.trim();if(!name){toast('Name required','error');return}
+  const{error}=await sb.from('fax_bid_templates').insert({id:uuid(),name,trade:document.getElementById('tm-trade')?.value||'',description:document.getElementById('tm-desc')?.value.trim()||'',line_items:window._faxBidTmplItems||[],tax_rate:parseFloat(document.getElementById('tm-tax')?.value)||0,notes:document.getElementById('tm-notes')?.value.trim()||'',terms:document.getElementById('tm-terms')?.value.trim()||'',expiry_days:parseInt(document.getElementById('tm-exp')?.value)||30,created_at:new Date().toISOString()})
+  if(error){toast(error.message,'error');return}
+  closeModal();pgFaxBidTemplates();toast('Template created')
+})}
+function faxEditTemplate(id){
+  const tmpl=(window._faxBidTemplates||[]).find(t=>t.id===id);if(!tmpl)return
+  faxTmplEditorModal(tmpl,'template',async()=>{
+    const name=document.getElementById('tm-name')?.value.trim();if(!name){toast('Name required','error');return}
+    const{error}=await sb.from('fax_bid_templates').update({name,trade:document.getElementById('tm-trade')?.value||'',description:document.getElementById('tm-desc')?.value.trim()||'',line_items:window._faxBidTmplItems||[],tax_rate:parseFloat(document.getElementById('tm-tax')?.value)||0,notes:document.getElementById('tm-notes')?.value.trim()||'',terms:document.getElementById('tm-terms')?.value.trim()||'',expiry_days:parseInt(document.getElementById('tm-exp')?.value)||30}).eq('id',id)
+    if(error){toast(error.message,'error');return}
+    closeModal();pgFaxBidTemplates();toast('Updated')
+  })
+}
+async function faxDelTemplate(id){if(!confirm('Delete template?'))return;await sb.from('fax_bid_templates').delete().eq('id',id);pgFaxBidTemplates();toast('Deleted')}
+function faxNewScopeBlock(){faxTmplEditorModal({},'scopeblock',async()=>{
+  const name=document.getElementById('tm-name')?.value.trim();if(!name){toast('Name required','error');return}
+  const{error}=await sb.from('fax_bid_scope_blocks').insert({id:uuid(),name,trade:document.getElementById('tm-trade')?.value||'',line_items:window._faxBidTmplItems||[],created_at:new Date().toISOString()})
+  if(error){toast(error.message,'error');return}
+  closeModal();pgFaxBidTemplates();toast('Scope block created')
+})}
+function faxEditScopeBlock(id){
+  const blk=(window._faxBidScopeBlocks||[]).find(b=>b.id===id);if(!blk)return
+  faxTmplEditorModal(blk,'scopeblock',async()=>{
+    const name=document.getElementById('tm-name')?.value.trim();if(!name){toast('Name required','error');return}
+    const{error}=await sb.from('fax_bid_scope_blocks').update({name,trade:document.getElementById('tm-trade')?.value||'',line_items:window._faxBidTmplItems||[]}).eq('id',id)
+    if(error){toast(error.message,'error');return}
+    closeModal();pgFaxBidTemplates();toast('Updated')
+  })
+}
+async function faxDelScopeBlock(id){if(!confirm('Delete scope block?'))return;await sb.from('fax_bid_scope_blocks').delete().eq('id',id);pgFaxBidTemplates();toast('Deleted')}
+async function faxExportTemplates(){
+  const[{data:t},{data:b}]=await Promise.all([sb.from('fax_bid_templates').select('*'),sb.from('fax_bid_scope_blocks').select('*')])
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({templates:t||[],scopeblocks:b||[]},null,2)],{type:'application/json'}));a.download='fieldaxishq_fax_bid_templates.json';a.click()
+  toast('Exported')
+}
+async function faxImportTemplates(input){
+  const file=input.files[0];if(!file)return
+  const fr=new FileReader();fr.onload=async e=>{
+    try{const d=JSON.parse(e.target.result);let count=0
+    for(const t of d.templates||[]){await sb.from('fax_bid_templates').upsert({...t,id:uuid()});count++}
+    for(const b of d.scopeblocks||[]){await sb.from('fax_bid_scope_blocks').upsert({...b,id:uuid()});count++}
+    pgFaxBidTemplates();toast('Imported '+count+' items')}
+    catch(ex){toast('Import error: '+ex.message,'error')}
+  };fr.readAsText(file);input.value=''
+}
+
+// ── REPORTS PAGE ──────────────────────────────────────────────────────
+async function pgFaxBidReports(){
+  document.getElementById('topbar-actions').innerHTML=\`
+    \${['all','30','90','365'].map(p=>'<button class="btn btn-sm '+(window._faxBidRptPeriod===p?'btn-p':'btn-ghost')+'" onclick="window._faxBidRptPeriod=\\''+p+'\\';pgFaxBidReports()">'+(p==='all'?'All time':'Last '+p+'d')+'</button>').join('')}
+  \`
+  document.getElementById('page-area').innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
+  const since=window._faxBidRptPeriod&&window._faxBidRptPeriod!=='all'?new Date(Date.now()-parseInt(window._faxBidRptPeriod)*86400000).toISOString():null
+  let qq=sb.from('fax_bids').select('*,fax_bid_recipients(*)').order('created_at',{ascending:false})
+  if(since)qq=qq.gte('created_at',since)
+  const[{data:quotes},{data:invs},{data:users}]=await Promise.all([qq,
+    since?sb.from('fax_bid_invoices').select('*').gte('created_at',since):sb.from('fax_bid_invoices').select('*'),
+    sb.from('profiles').select('id,full_name').in('role',['admin','pm','foreman','stager','estimator'])
+  ])
+  const qs=(quotes||[]).map(q=>({...q,status:faxDeriveStatus(q.fax_bid_recipients)}))
+  const awarded=qs.filter(q=>q.status==='awarded')
+  const closed=qs.filter(q=>['awarded','declined'].includes(q.status))
+  const winRate=closed.length?Math.round(awarded.length/closed.length*100):0
+  const awardedVol=awarded.reduce((s,q)=>s+(q.total||0),0)
+  const pipeline=qs.filter(q=>!['awarded','declined'].includes(q.status)).reduce((s,q)=>s+(q.total||0),0)
+  const unpaid=(invs||[]).filter(i=>i.status!=='paid').reduce((s,i)=>s+(i.total||0),0)
+  // Loss reasons
+  const lossR={};qs.forEach(q=>q.fax_bid_recipients?.filter(r=>r.status==='declined'&&r.decline_reason).forEach(r=>{lossR[r.decline_reason]=(lossR[r.decline_reason]||0)+1}))
+  const maxLoss=Math.max(1,...Object.values(lossR))
+  // By trade
+  const byTrade={};qs.forEach(q=>{const t=q.trade||'Other';if(!byTrade[t])byTrade[t]={n:0,won:0,vol:0};byTrade[t].n++;if(q.status==='awarded'){byTrade[t].won++;byTrade[t].vol+=q.total||0}})
+  // Estimator leaderboard
+  const uMap={};(users||[]).forEach(u=>uMap[u.id]=u.full_name||u.id)
+  const byEst={};awarded.forEach(q=>{const e=q.estimator_id||'Unknown';if(!byEst[e])byEst[e]={name:uMap[e]||e,n:0,vol:0};byEst[e].n++;byEst[e].vol+=q.total||0})
+  // GC win rates from recipients
+  const byGC={};qs.forEach(q=>q.fax_bid_recipients?.forEach(r=>{const k=r.company||r.name||r.email;if(!byGC[k])byGC[k]={name:k,sent:0,won:0};byGC[k].sent++;if(r.status==='awarded')byGC[k].won++}))
+  document.getElementById('page-area').innerHTML=\`
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:18px">
+  <div class="stat"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#16a34a">\${winRate}%</div></div>
+  <div class="stat"><div class="stat-label">Pipeline</div><div class="stat-value" style="font-size:18px">\${fm(pipeline)}</div></div>
+  <div class="stat"><div class="stat-label">Awarded Volume</div><div class="stat-value" style="font-size:18px;color:#16a34a">\${fm(awardedVol)}</div></div>
+  <div class="stat"><div class="stat-label">Unpaid Invoices</div><div class="stat-value" style="font-size:18px;color:#d97706">\${fm(unpaid)}</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<div>
+  <div class="card">
+    <div class="card-title">Estimator Leaderboard</div>
+    \${Object.values(byEst).sort((a,b)=>b.vol-a.vol).map((e,i)=>\`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+      <div style="font-size:11px;color:#414e63;width:16px;text-align:center">#\${i+1}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">\${e.name}</div><div style="font-size:10px;color:#8a96ab">\${e.n} won</div></div>
+      <div style="font-size:14px;font-weight:600;color:#16a34a">\${fm(e.vol)}</div>
+    </div>\`).join('')||\`<div class="empty" style="padding:20px">No awarded quotes yet</div>\`}
+  </div>
+  <div class="card">
+    <div class="card-title">Why We Lose</div>
+    \${Object.keys(lossR).length?Object.entries(lossR).sort((a,b)=>b[1]-a[1]).map(([reason,count])=>\`
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>\${reason}</span><span style="color:#8a96ab">\${count}</span></div>
+        <div class="pbar"><div class="pb r" style="width:\${Math.round(count/maxLoss*100)}%"></div></div>
+      </div>\`).join(''):'<div class="empty" style="padding:20px">No declined quotes yet</div>'}
+  </div>
+</div>
+<div>
+  <div class="card">
+    <div class="card-title">By Trade</div>
+    \${Object.values(byTrade).sort((a,b)=>b.vol-a.vol).map(t=>\`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">\${t.name||'?'}</div><div style="font-size:10px;color:#8a96ab">\${t.n} quotes · \${t.won} won</div></div>
+      <div style="text-align:right"><div style="font-size:12px;font-weight:600;color:#16a34a">\${t.n?Math.round(t.won/t.n*100):0}%</div><div style="font-size:10px;color:#8a96ab">\${fm(t.vol)}</div></div>
+    </div>\`).join('')||\`<div class="empty" style="padding:20px">No data yet</div>\`}
+  </div>
+  <div class="card">
+    <div class="card-title">GC Win Rates</div>
+    \${Object.values(byGC).sort((a,b)=>b.won-a.won).slice(0,8).map(g=>\`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">\${g.name}</div><div style="font-size:10px;color:#8a96ab">\${g.sent} sent · \${g.won} won</div></div>
+      <div style="font-size:14px;font-weight:600;color:\${g.won>0?'#16a34a':'#414e63'}">\${g.sent?Math.round(g.won/g.sent*100):0}%</div>
+    </div>\`).join('')||\`<div class="empty" style="padding:20px">No data yet</div>\`}
+  </div>
+</div>
+</div>\`
+}
+
+// ── EXPORT QUOTES CSV ─────────────────────────────────────────────────
+function faxExportBidsCsv(){
+  const rows=[['Number','Project','Address','Trade','Estimator','Status','Total','Bid Due','Recipients']]
+  const uMap={};(window._faxBidUsers||[]).forEach(u=>uMap[u.id]=u.full_name||u.id)
+  ;(window._faxBidQuotes||[]).forEach(q=>{rows.push([q.number,q.project_name,q.project_address,q.trade,uMap[q.estimator_id]||'',q.status,q.total,q.bid_due_date||'',(q.fax_bid_recipients||[]).map(r=>r.company||r.name).join('; ')])})
+  const csv=rows.map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('\\n')
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='fieldaxishq_bids.csv';a.click()
+  toast('Exported')
+}
+
+// ── PUBLIC AWARD PAGE ─────────────────────────────────────────────────
+// Called when user opens /award/:token URL
+async function loadAwardPage(token){
+  const body=document.getElementById('award-body');if(!body)return
+  body.innerHTML='<div style="text-align:center;padding:60px 20px"><div style="font-size:24px;margin-bottom:12px">⏳</div><div style="color:#8a96ab">Loading quote…</div></div>'
+  try{
+    const r=await fetch('/api/qf/award/'+token)
+    const d=await r.json()
+    if(d.error){body.innerHTML='<div style="text-align:center;padding:60px 20px"><div style="font-size:40px">❌</div><h2 style="margin-top:12px">'+d.error+'</h2></div>';return}
+    const{quote:q,recipient:rec,branding,awardedElsewhere}=d
+    const accent=branding?.accent_color||'#2563eb'
+    const tots=faxBidCalc(q.line_items,q.tax_rate)
+    body.innerHTML=\`
+<div style="max-width:680px;margin:0 auto;font-family:'DM Sans',sans-serif">
+  <div style="background:\${accent};color:#fff;padding:22px 26px;border-radius:12px 12px 0 0">
+    \${branding?.logo_data_url?'<img src="'+branding.logo_data_url+'" style="height:40px;margin-bottom:10px;display:block">':''}
+    <div style="font-size:20px;font-weight:700">\${branding?.company_name||'FieldAxisHQ'}</div>
+    \${branding?.tagline?'<div style="font-size:12px;opacity:.8;margin-top:3px">'+branding.tagline+'</div>':''}
+    \${branding?.address?'<div style="font-size:11px;opacity:.65;margin-top:4px">'+branding.address+'</div>':''}
+  </div>
+  <div style="background:#0c1220;border:1px solid rgba(255,255,255,.08);border-top:none;padding:24px 26px;border-radius:0 0 12px 12px;color:#e8edf5">
+    <div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Quote \${q.number} · v\${q.version}</div>
+    <div style="font-size:24px;font-weight:700;margin-bottom:5px">\${q.project_name||'Project'}</div>
+    \${q.project_address?'<div style="color:#8a96ab;font-size:13px;margin-bottom:4px">📍 '+q.project_address+(q.project_city?', '+q.project_city:'')+(q.project_state?' '+q.project_state:'')+'</div>':''}
+    \${q.trade?'<div style="font-size:12px;color:#414e63;margin-bottom:14px">'+q.trade+'</div>':''}
+    \${q.bid_due_date?'<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:8px 12px;font-size:12px;color:#f87171;margin-bottom:14px">⏰ Bid due: '+q.bid_due_date+'</div>':''}
+    \${q.project_description?'<div style="font-size:13px;color:#8a96ab;line-height:1.6;margin-bottom:16px">'+q.project_description+'</div>':''}
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px">
+      <thead><tr style="border-bottom:1px solid rgba(255,255,255,.1)">
+        <th style="text-align:left;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Item</th>
+        <th style="text-align:right;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600">Qty</th>
+        <th style="text-align:right;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600">Rate</th>
+        <th style="text-align:right;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600">Total</th>
+      </tr></thead>
+      <tbody>\${(q.line_items||[]).map(li=>'<tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:8px">'+li.description+'</td><td style="text-align:right;padding:8px;color:#8a96ab">'+li.qty+'</td><td style="text-align:right;padding:8px;color:#8a96ab">$'+Number(li.rate||0).toFixed(2)+'</td><td style="text-align:right;padding:8px;font-weight:500">$'+Number((li.qty||0)*(li.rate||0)).toFixed(2)+'</td></tr>').join('')}</tbody>
+    </table>
+    <div style="text-align:right;font-size:13px;color:#8a96ab;margin-bottom:3px">Subtotal: $\${tots.subtotal.toFixed(2)}</div>
+    \${q.tax_rate>0?'<div style="text-align:right;font-size:13px;color:#8a96ab;margin-bottom:3px">Tax ('+q.tax_rate+'%): $'+tots.tax.toFixed(2)+'</div>':''}
+    <div style="text-align:right;font-size:22px;font-weight:700;border-top:1px solid rgba(255,255,255,.1);padding-top:10px;margin-bottom:20px">Total: $\${tots.total.toFixed(2)}</div>
+    \${q.notes?'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Notes</div><div style="font-size:13px;color:#8a96ab;line-height:1.6">'+q.notes+'</div></div>':''}
+    \${q.terms?'<div style="margin-bottom:20px"><div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Terms</div><div style="font-size:12px;color:#414e63;line-height:1.6">'+q.terms+'</div></div>':''}
+    <div id="award-actions">
+    \${rec.status==='awarded'?
+      '<div style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.2);border-radius:10px;padding:18px;text-align:center"><div style="font-size:28px;margin-bottom:8px">✅</div><div style="font-size:16px;font-weight:700;color:#16a34a">You have awarded this bid</div><div style="font-size:13px;color:#8a96ab;margin-top:4px">Signed by '+rec.signature_name+(rec.signature_title?' ('+rec.signature_title+')':'')+'</div></div>'
+      :awardedElsewhere?
+      '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:18px;text-align:center;color:#8a96ab"><div style="font-size:28px;margin-bottom:8px">🔒</div><div style="font-weight:600">This bid has been awarded to another party</div></div>'
+      :\`<div style="display:flex;gap:10px">
+          <button onclick="showAwardModal('\${token}')" style="flex:2;padding:14px;background:\${accent};border:none;border-radius:9px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✓ Award This Bid</button>
+          <button onclick="showDeclineModal('\${token}')" style="flex:1;padding:14px;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.2);border-radius:9px;color:#f87171;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif">Decline</button>
+        </div>\`}
+    </div>
+  </div>
+</div>\`
+  }catch(e){body.innerHTML='<div style="text-align:center;padding:60px"><h2>Error</h2><p>'+e.message+'</p></div>'}
+}
+function showAwardModal(token){
+  const overlay=document.createElement('div');overlay.id='award-modal'
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9000;display:flex;align-items:flex-end;justify-content:center;padding:20px'
+  overlay.innerHTML=\`<div style="background:#0c1220;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:22px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto">
+    <div style="font-size:17px;font-weight:700;margin-bottom:16px;color:#e8edf5">Award This Bid</div>
+    <div class="fg"><label class="fl">Full Name *</label><input class="fi" id="aw-name" placeholder="Your full name"></div>
+    <div class="fg"><label class="fl">Title</label><input class="fi" id="aw-title" placeholder="e.g. Project Manager"></div>
+    <div class="fg"><label class="fl">Email</label><input class="fi" id="aw-email" type="email" placeholder="your@company.com"></div>
+    <div class="fg"><label class="fl">Signature * <span style="font-weight:400;color:#414e63">— draw below</span></label>
+      <canvas id="sig-canvas" width="440" height="100" style="width:100%;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:#060a10;cursor:crosshair;touch-action:none"></canvas>
+      <button onclick="clearSig()" style="font-size:11px;color:#414e63;background:none;border:none;cursor:pointer;padding:4px 0">Clear</button>
+    </div>
+    <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer;font-size:13px;color:#8a96ab">
+      <input type="checkbox" id="aw-agree" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
+      I agree to award this bid and authorize the work described above.
+    </label>
+    <div style="display:flex;gap:8px">
+      <button onclick="submitAward('\${token}')" style="flex:2;padding:13px;background:#2563eb;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Submit Award</button>
+      <button onclick="document.getElementById('award-modal').remove()" style="flex:1;padding:13px;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#e8edf5;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif">Cancel</button>
+    </div>
+  </div>\`
+  document.body.appendChild(overlay)
+  // Setup canvas drawing
+  const canvas=document.getElementById('sig-canvas');const ctx=canvas.getContext('2d');let drawing=false
+  function pos(e){const r=canvas.getBoundingClientRect(),sx=canvas.width/r.width,sy=canvas.height/r.height;const s=e.touches?e.touches[0]:e;return{x:(s.clientX-r.left)*sx,y:(s.clientY-r.top)*sy}}
+  canvas.onmousedown=canvas.ontouchstart=e=>{e.preventDefault();drawing=true;ctx.beginPath();const p=pos(e);ctx.moveTo(p.x,p.y)}
+  canvas.onmousemove=canvas.ontouchmove=e=>{e.preventDefault();if(!drawing)return;const p=pos(e);ctx.lineWidth=2;ctx.strokeStyle='#60a5fa';ctx.lineCap='round';ctx.lineTo(p.x,p.y);ctx.stroke()}
+  canvas.onmouseup=canvas.ontouchend=()=>drawing=false
+}
+function clearSig(){const c=document.getElementById('sig-canvas');if(c)c.getContext('2d').clearRect(0,0,c.width,c.height)}
+async function submitAward(token){
+  const name=(document.getElementById('aw-name')?.value||'').trim()
+  if(!name){alert('Full name required');return}
+  const canvas=document.getElementById('sig-canvas')
+  if(!canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data.some(d=>d!==0)){alert('Please sign above');return}
+  if(!document.getElementById('aw-agree')?.checked){alert('Please check the agreement box');return}
+  const sig=canvas.toDataURL('image/png')
+  const r=await fetch('/api/qf/award/'+token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({signature_name:name,signature_title:(document.getElementById('aw-title')?.value||'').trim(),signature_email:(document.getElementById('aw-email')?.value||'').trim(),signature_image:sig})})
+  const d=await r.json()
+  if(d.error){alert(d.error);return}
+  document.getElementById('award-modal')?.remove()
+  loadAwardPage(token)
+}
+function showDeclineModal(token){
+  const reason=prompt('Reason for declining?\\n'+FAX_LOSS.map((r,i)=>(i+1)+'. '+r).join('\\n'));
+  if(!reason)return
+  fetch('/api/qf/award/'+token+'/decline',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decline_reason:reason})})
+    .then(r=>r.json()).then(d=>{if(d.ok)loadAwardPage(token);else alert(d.error||'Error')})
+}
+
+// Expose token for admin to retrieve
+window._sbToken=null
+document.addEventListener('DOMContentLoaded',()=>{
+  if(typeof sb!=='undefined')sb.auth.getSession().then(({data:{session}})=>{if(session)window._sbToken=session.access_token;if(session)window._faxUser={full_name:session.user.user_metadata?.full_name||''};if(session)window._faxRole=session.user.role||'authenticated'})
+})
+
 `
 const HTML_WORKER = `<!DOCTYPE html>
 <html lang="en">
@@ -4750,6 +5665,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/admin.html')                { res.writeHead(200, h); return res.end(HTML_ADMIN) }
     if (p === '/worker.html')               { res.writeHead(200, h); return res.end(HTML_WORKER) }
     if (p === '/fax-shared.js')             { res.writeHead(200, j); return res.end(HTML_FAXJS) }
+    if (/^\/award\/[a-f0-9]{64}$/.test(p)) { res.writeHead(200, h); return res.end(HTML_AWARD) }
     // Filesystem fallback for other assets
     const cleanPath = p.replace(/^\//, '')
     const ctMap = {'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.ico':'image/x-icon','.svg':'image/svg+xml'}
@@ -5582,8 +6498,206 @@ const server = http.createServer(async (req, res) => {
     return json(res, 200, { success: true, user_id: authUserId, message: 'Employee created. Password reset email sent to ' + email });
   }
 
+
+  // ── FIELDAXISHQ BID ENGINE API ROUTES ──────────────────────────────────────────────────
+  // GET /api/qf/award/:token — public, no auth
+  const awardM = p.match(/^\/api\/qf\/award\/([a-f0-9]{64})$/);
+  if (awardM && method === 'GET') {
+    try {
+      const token = awardM[1];
+      const recs = await dbGet('fax_bid_recipients', { token: 'eq.' + token, select: '*' });
+      const rec = recs[0]; if (!rec) return json(res, 404, { error: 'Invalid or expired link' });
+      if (rec.status === 'sent') {
+        await dbUpdate('fax_bid_recipients', { status: 'viewed', viewed_at: new Date().toISOString() }, { id: 'eq.' + rec.id });
+        rec.status = 'viewed';
+      }
+      const quote = (await dbGet('fax_bids', { id: 'eq.' + rec.quote_id, select: '*' }))[0];
+      if (!quote) return json(res, 404, { error: 'Quote not found' });
+      const branding = (await dbGet('fax_bid_branding', { select: '*' }).catch(() => []))[0];
+      const allRecs = await dbGet('fax_bid_recipients', { quote_id: 'eq.' + rec.quote_id, select: 'id,status' });
+      const awardedElsewhere = allRecs.some(r => r.id !== rec.id && r.status === 'awarded');
+      return json(res, 200, { quote, recipient: rec, branding: branding || {}, awardedElsewhere });
+    } catch(e) { return json(res, 500, { error: e.message }); }
+  }
+
+  // POST /api/qf/award/:token — submit award signature (public, no auth)
+  if (awardM && method === 'POST') {
+    try {
+      const token = awardM[1];
+      const rec = (await dbGet('fax_bid_recipients', { token: 'eq.' + token, select: '*' }))[0];
+      if (!rec) return json(res, 404, { error: 'Invalid link' });
+      if (rec.status === 'awarded') return json(res, 400, { error: 'Already awarded' });
+      const allRecs = await dbGet('fax_bid_recipients', { quote_id: 'eq.' + rec.quote_id, select: 'id,status' });
+      if (allRecs.some(r => r.id !== rec.id && r.status === 'awarded')) return json(res, 400, { error: 'This bid has been awarded to another party' });
+      const b = await readBody(req);
+      if (!b.signature_name || !b.signature_image) return json(res, 400, { error: 'Signature required' });
+      await dbUpdate('fax_bid_recipients', { status: 'awarded', awarded_at: new Date().toISOString(), signature_name: b.signature_name, signature_title: b.signature_title || '', signature_email: b.signature_email || '', signature_image: b.signature_image, signature_timestamp: new Date().toISOString() }, { id: 'eq.' + rec.id });
+      return json(res, 200, { ok: true });
+    } catch(e) { return json(res, 500, { error: e.message }); }
+  }
+
+  // POST /api/qf/award/:token/decline — decline from public page
+  const awardDecM = p.match(/^\/api\/qf\/award\/([a-f0-9]{64})\/decline$/);
+  if (awardDecM && method === 'POST') {
+    try {
+      const token = awardDecM[1];
+      const rec = (await dbGet('fax_bid_recipients', { token: 'eq.' + token, select: '*' }))[0];
+      if (!rec) return json(res, 404, { error: 'Invalid link' });
+      const b = await readBody(req);
+      await dbUpdate('fax_bid_recipients', { status: 'declined', declined_at: new Date().toISOString(), decline_reason: b.decline_reason || '' }, { id: 'eq.' + rec.id });
+      return json(res, 200, { ok: true });
+    } catch(e) { return json(res, 500, { error: e.message }); }
+  }
+
+  // POST /api/qf/recipients/:id/send — send email to recipient
+  const recipSendM = p.match(/^\/api\/qf\/recipients\/([^/]+)\/send$/);
+  if (recipSendM && method === 'POST') {
+    const u = await getUser(req); if (!requireAuth(res, u)) return;
+    try {
+      const rec = (await dbGet('fax_bid_recipients', { id: 'eq.' + recipSendM[1], select: '*' }))[0];
+      if (!rec) return json(res, 404, { error: 'Recipient not found' });
+      const quote = (await dbGet('fax_bids', { id: 'eq.' + rec.quote_id, select: '*' }))[0];
+      const branding = (await dbGet('fax_bid_branding', { select: '*' }).catch(() => []))[0] || {};
+      const emailCfg = (await dbGet('fax_bid_email_config', { select: '*' }).catch(() => []))[0] || {};
+      const appUrl = process.env.APP_URL || 'https://' + (process.env.RENDER_EXTERNAL_HOSTNAME || 'localhost:3000');
+      const awardUrl = appUrl + '/award/' + rec.token;
+      if (!emailCfg.resend_api_key) return json(res, 400, { error: 'Resend API key not configured. Set it in Quote Settings.' });
+      const co = branding.company_name || 'FieldAxisHQ';
+      const html = `<!DOCTYPE html><html><body style="font-family:'DM Sans',sans-serif;max-width:600px;margin:0 auto;background:#060a10;color:#e8edf5;padding:20px">
+        <div style="background:${branding.accent_color||'#2563eb'};color:#fff;padding:20px 24px;border-radius:10px 10px 0 0">
+          ${branding.logo_data_url ? '<img src="'+branding.logo_data_url+'" style="height:36px;margin-bottom:8px;display:block">' : ''}
+          <div style="font-size:18px;font-weight:700">${co}</div>
+          ${branding.tagline ? '<div style="font-size:12px;opacity:.8;margin-top:3px">'+branding.tagline+'</div>' : ''}
+        </div>
+        <div style="background:#0c1220;border:1px solid rgba(255,255,255,.08);border-top:none;padding:22px 24px;border-radius:0 0 10px 10px">
+          <p>Hi ${rec.name},</p>
+          <p style="margin:12px 0">You have received a bid from <strong>${co}</strong> for:</p>
+          <p style="font-size:20px;font-weight:700;margin:8px 0">${quote.project_name || 'Project'}</p>
+          ${quote.project_address ? '<p style="color:#8a96ab;font-size:13px">'+quote.project_address+'</p>' : ''}
+          <p style="margin:10px 0"><strong>Quote #${quote.number}</strong> · Total: <strong>$${(quote.total||0).toLocaleString('en-US',{minimumFractionDigits:2})}</strong></p>
+          ${quote.bid_due_date ? '<p style="color:#f87171;font-size:13px">Bid due: '+quote.bid_due_date+'</p>' : ''}
+          <div style="margin:20px 0">
+            <a href="${awardUrl}" style="display:inline-block;background:${branding.accent_color||'#2563eb'};color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px">Review &amp; Award Bid</a>
+          </div>
+          <p style="color:#414e63;font-size:12px">This link is unique to you. Once the bid is awarded to another party, this link will show as closed.</p>
+        </div>
+      </body></html>`;
+      const emailRes = await new Promise((resolve, reject) => {
+        const body = JSON.stringify({ from: `${emailCfg.from_name||co} <${emailCfg.from_email||'noreply@example.com'}>`, to: [rec.email], subject: `Bid from ${co}: ${quote.project_name||quote.number}`, html });
+        const opts = { hostname: 'api.resend.com', path: '/emails', method: 'POST', headers: { 'Authorization': 'Bearer ' + emailCfg.resend_api_key, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } };
+        const r = require('https').request(opts, resp => { let d = ''; resp.on('data', c => d += c); resp.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({}); }}); });
+        r.on('error', reject); r.write(body); r.end();
+      });
+      if (emailRes.statusCode >= 400 || emailRes.error) throw new Error(emailRes.message || emailRes.error || 'Email send failed');
+      await dbUpdate('fax_bid_recipients', { status: 'sent', sent_at: new Date().toISOString() }, { id: 'eq.' + recipSendM[1] });
+      return json(res, 200, { ok: true, awardUrl });
+    } catch(e) { return json(res, 500, { error: e.message }); }
+  }
+
+  // GET /api/qf/recipients/:id/link — get award URL
+  const recipLinkM = p.match(/^\/api\/qf\/recipients\/([^/]+)\/link$/);
+  if (recipLinkM && method === 'GET') {
+    const u = await getUser(req); if (!requireAuth(res, u)) return;
+    try {
+      const rec = (await dbGet('fax_bid_recipients', { id: 'eq.' + recipLinkM[1], select: 'token' }))[0];
+      if (!rec) return json(res, 404, { error: 'Not found' });
+      const appUrl = process.env.APP_URL || 'https://' + (process.env.RENDER_EXTERNAL_HOSTNAME || 'localhost:3000');
+      return json(res, 200, { url: appUrl + '/award/' + rec.token });
+    } catch(e) { return json(res, 500, { error: e.message }); }
+  }
+
     json(res, 404, { error: 'Not found: ' + p });
 });
+
+// ── AWARD PAGE HTML ───────────────────────────────────────────────────────────
+const HTML_AWARD = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FieldAxisHQ — Review Bid</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#060a10;color:#e8edf5;font-family:'DM Sans',sans-serif;min-height:100vh;padding:20px 12px}
+.fi{width:100%;padding:10px 13px;background:#131c2e;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e8edf5;font-size:14px;font-family:'DM Sans',sans-serif}
+.fi:focus{outline:none;border-color:#2563eb}.fl{font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px}.fg{margin-bottom:12px}
+</style>
+</head>
+<body>
+<div id="award-body"><div style="text-align:center;padding:60px 20px;color:#414e63">Loading…</div></div>
+<script>
+const token = window.location.pathname.split('/').pop()
+async function faxBidCalc(items,taxRate){const sub=(items||[]).reduce((s,i)=>s+(parseFloat(i.qty)||0)*(parseFloat(i.rate)||0),0);const tax=sub*(parseFloat(taxRate)||0)/100;return{subtotal:Math.round(sub*100)/100,tax:Math.round(tax*100)/100,total:Math.round((sub+tax)*100)/100}}
+const FAX_LOSS=['Price too high','Lost to competitor','Timing / availability','Scope changed','Project cancelled','No response from GC','Other']
+window.onload=()=>loadAwardPage(token)
+async function loadAwardPage(token){
+  const body=document.getElementById('award-body');
+  body.innerHTML='<div style="text-align:center;padding:60px 20px"><div style="font-size:24px;margin-bottom:12px">⏳</div><div style="color:#8a96ab">Loading quote…</div></div>'
+  try{
+    const r=await fetch('/api/qf/award/'+token)
+    const d=await r.json()
+    if(d.error){body.innerHTML='<div style="text-align:center;padding:60px 20px"><div style="font-size:40px">❌</div><h2 style="margin-top:12px;color:#e8edf5">'+d.error+'</h2></div>';return}
+    const{quote:q,recipient:rec,branding,awardedElsewhere}=d
+    const accent=branding?.accent_color||'#2563eb'
+    const tots=await faxBidCalc(q.line_items,q.tax_rate)
+    body.innerHTML='<div style="max-width:680px;margin:0 auto">'+
+      '<div style="background:'+accent+';color:#fff;padding:22px 26px;border-radius:12px 12px 0 0">'+
+      (branding?.logo_data_url?'<img src="'+branding.logo_data_url+'" style="height:40px;margin-bottom:10px;display:block">':'')+
+      '<div style="font-size:20px;font-weight:700">'+(branding?.company_name||'FieldAxisHQ')+'</div>'+
+      (branding?.tagline?'<div style="font-size:12px;opacity:.8;margin-top:3px">'+branding.tagline+'</div>':'')+
+      '</div>'+
+      '<div style="background:#0c1220;border:1px solid rgba(255,255,255,.08);border-top:none;padding:24px 26px;border-radius:0 0 12px 12px;color:#e8edf5">'+
+      '<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Quote '+q.number+' · v'+q.version+'</div>'+
+      '<div style="font-size:24px;font-weight:700;margin-bottom:5px">'+(q.project_name||'Project')+'</div>'+
+      (q.project_address?'<div style="color:#8a96ab;font-size:13px;margin-bottom:14px">📍 '+q.project_address+(q.project_city?', '+q.project_city:'')+(q.project_state?' '+q.project_state:'')+'</div>':'')+
+      (q.bid_due_date?'<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:8px 12px;font-size:12px;color:#f87171;margin-bottom:14px">⏰ Bid due: '+q.bid_due_date+'</div>':'')+
+      (q.project_description?'<div style="font-size:13px;color:#8a96ab;line-height:1.6;margin-bottom:16px">'+q.project_description+'</div>':'')+
+      '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px">'+
+      '<thead><tr style="border-bottom:1px solid rgba(255,255,255,.1)"><th style="text-align:left;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600;text-transform:uppercase">Item</th><th style="text-align:right;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600">Qty</th><th style="text-align:right;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600">Rate</th><th style="text-align:right;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600">Total</th></tr></thead>'+
+      '<tbody>'+(q.line_items||[]).map(li=>'<tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:8px">'+li.description+'</td><td style="text-align:right;padding:8px;color:#8a96ab">'+li.qty+'</td><td style="text-align:right;padding:8px;color:#8a96ab">$'+Number(li.rate||0).toFixed(2)+'</td><td style="text-align:right;padding:8px;font-weight:500">$'+Number((li.qty||0)*(li.rate||0)).toFixed(2)+'</td></tr>').join('')+'</tbody></table>'+
+      '<div style="text-align:right;font-size:13px;color:#8a96ab;margin-bottom:3px">Subtotal: $'+tots.subtotal.toFixed(2)+'</div>'+
+      (q.tax_rate>0?'<div style="text-align:right;font-size:13px;color:#8a96ab;margin-bottom:3px">Tax ('+q.tax_rate+'%): $'+tots.tax.toFixed(2)+'</div>':'')+
+      '<div style="text-align:right;font-size:22px;font-weight:700;border-top:1px solid rgba(255,255,255,.1);padding-top:10px;margin-bottom:20px">Total: $'+tots.total.toFixed(2)+'</div>'+
+      (q.notes?'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Notes</div><div style="font-size:13px;color:#8a96ab;line-height:1.6">'+q.notes+'</div></div>':'')+
+      (q.terms?'<div style="margin-bottom:20px"><div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Terms</div><div style="font-size:12px;color:#414e63;line-height:1.6">'+q.terms+'</div></div>':'')+
+      '<div id="award-actions">'+
+      (rec.status==='awarded'?
+        '<div style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.2);border-radius:10px;padding:18px;text-align:center"><div style="font-size:28px;margin-bottom:8px">✅</div><div style="font-size:16px;font-weight:700;color:#16a34a">You have awarded this bid</div><div style="font-size:13px;color:#8a96ab;margin-top:4px">Signed by '+rec.signature_name+(rec.signature_title?' ('+rec.signature_title+')':'')+'</div></div>'
+        :awardedElsewhere?
+        '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:18px;text-align:center;color:#8a96ab"><div style="font-size:28px;margin-bottom:8px">🔒</div><div style="font-weight:600">This bid has been awarded to another party</div></div>'
+        :'<div style="display:flex;gap:10px"><button onclick="showAwardModal()" style="flex:2;padding:14px;background:'+accent+';border:none;border-radius:9px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">✓ Award This Bid</button><button onclick="showDeclineModal()" style="flex:1;padding:14px;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.2);border-radius:9px;color:#f87171;font-size:14px;cursor:pointer;font-family:DM Sans,sans-serif">Decline</button></div>')+
+      '</div></div></div>'
+  }catch(e){body.innerHTML='<div style="text-align:center;padding:60px;color:#e8edf5"><h2>Error</h2><p style="color:#8a96ab">'+e.message+'</p></div>'}
+}
+function showAwardModal(){
+  const ov=document.createElement('div');ov.id='aw-ov';ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9000;display:flex;align-items:flex-end;justify-content:center;padding:16px'
+  ov.innerHTML='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:22px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto"><div style="font-size:17px;font-weight:700;margin-bottom:16px;color:#e8edf5">Award This Bid</div><div class="fg"><label class="fl">Full Name *</label><input class="fi" id="aw-name" placeholder="Your full name"></div><div class="fg"><label class="fl">Title</label><input class="fi" id="aw-title" placeholder="e.g. Project Manager"></div><div class="fg"><label class="fl">Email</label><input class="fi" id="aw-email" type="email" placeholder="your@company.com"></div><div class="fg"><label class="fl">Signature * — draw below</label><canvas id="sig-c" width="440" height="100" style="width:100%;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:#060a10;cursor:crosshair;touch-action:none"></canvas><button onclick="document.getElementById(\'sig-c\').getContext(\'2d\').clearRect(0,0,440,100)" style="font-size:11px;color:#414e63;background:none;border:none;cursor:pointer;padding:4px 0">Clear</button></div><label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer;font-size:13px;color:#8a96ab"><input type="checkbox" id="aw-agree" style="margin-top:2px;width:16px;height:16px;flex-shrink:0"> I agree to award this bid and authorize the work described above.</label><div style="display:flex;gap:8px"><button onclick="submitAward()" style="flex:2;padding:13px;background:#2563eb;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Submit Award</button><button onclick="document.getElementById(\'aw-ov\').remove()" style="flex:1;padding:13px;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#e8edf5;font-size:13px;cursor:pointer;font-family:DM Sans,sans-serif">Cancel</button></div></div>'
+  document.body.appendChild(ov)
+  const c=document.getElementById('sig-c');const ctx=c.getContext('2d');let dr=false
+  function gp(e){const r=c.getBoundingClientRect(),sx=c.width/r.width,sy=c.height/r.height;const s=e.touches?e.touches[0]:e;return{x:(s.clientX-r.left)*sx,y:(s.clientY-r.top)*sy}}
+  c.onmousedown=c.ontouchstart=e=>{e.preventDefault();dr=true;ctx.beginPath();const p=gp(e);ctx.moveTo(p.x,p.y)}
+  c.onmousemove=c.ontouchmove=e=>{e.preventDefault();if(!dr)return;const p=gp(e);ctx.lineWidth=2;ctx.strokeStyle='#60a5fa';ctx.lineCap='round';ctx.lineTo(p.x,p.y);ctx.stroke()}
+  c.onmouseup=c.ontouchend=()=>dr=false
+}
+async function submitAward(){
+  const name=(document.getElementById('aw-name')?.value||'').trim()
+  if(!name){alert('Full name required');return}
+  const c=document.getElementById('sig-c')
+  if(!c.getContext('2d').getImageData(0,0,c.width,c.height).data.some(d=>d!==0)){alert('Please sign above');return}
+  if(!document.getElementById('aw-agree')?.checked){alert('Please check the agreement box');return}
+  const r=await fetch('/api/qf/award/'+token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({signature_name:name,signature_title:(document.getElementById('aw-title')?.value||'').trim(),signature_email:(document.getElementById('aw-email')?.value||'').trim(),signature_image:c.toDataURL()})})
+  const d=await r.json()
+  if(d.error){alert(d.error);return}
+  document.getElementById('aw-ov')?.remove()
+  loadAwardPage(token)
+}
+function showDeclineModal(){
+  const r=prompt('Reason:\n'+FAX_LOSS.map((x,i)=>(i+1)+'. '+x).join('\n'));if(!r)return
+  fetch('/api/qf/award/'+token+'/decline',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decline_reason:r})}).then(x=>x.json()).then(d=>{if(d.ok)loadAwardPage(token);else alert(d.error||'Error')})
+}
+</script>
+</body>
+</html>`;
+
 
 server.listen(PORT, '0.0.0.0', async () => {
   console.log('\n╔════════════════════════════════════════╗');

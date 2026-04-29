@@ -200,9 +200,17 @@ body{display:flex;flex-direction:column}
 </div><!-- end screens -->
 
 <!-- BOTTOM NAV -->
+<!-- SAFETY SCREEN -->
+<div class="sc" id="sc-safety" style="padding:14px;overflow-y:auto;flex:1">
+  <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:13px">🛡 Safety Training</div>
+  <div id="safety-pending" style="margin-bottom:16px"></div>
+  <div id="safety-completed"></div>
+</div>
+
 <div class="bot-nav">
   <div class="bnav-item active" id="bnav-jobs" onclick="showScreen('jobs')"><div class="bnav-icon">🏗</div><div class="bnav-lbl">Jobs</div></div>
   <div class="bnav-item" id="bnav-scan" onclick="showScreen('scan')"><div class="bnav-icon">🔍</div><div class="bnav-lbl">Parts</div></div>
+  <div class="bnav-item" id="bnav-safety" onclick="showScreen('safety')" style="position:relative"><div class="bnav-icon">🛡</div><div class="bnav-lbl">Safety</div><div id="safety-badge" style="display:none;position:absolute;top:4px;right:8px;background:#dc2626;color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:99px">!</div></div>
   <div class="bnav-item" id="bnav-notif" onclick="showScreen('notif')"><div class="bnav-icon">🔔</div><div class="bnav-lbl">Alerts</div></div>
   <div class="bnav-item" id="bnav-profile" onclick="showScreen('profile')"><div class="bnav-icon">👤</div><div class="bnav-lbl">Me</div></div>
 </div>
@@ -227,9 +235,20 @@ let checkinStart = null
 // ── BOOT ─────────────────────────────────
 window.addEventListener('load', async () => {
   const session = await requireAuth(sb); if (!session) return
-  const { data: profile } = await sb.from('profiles').select('*,companies(name)').eq('id', session.user.id).single()
+  // Try to get profile, handle 406/404 gracefully
+  let profile = null
+  try {
+    const { data, error } = await sb.from('profiles').select('*,companies(name)').eq('id', session.user.id).maybeSingle()
+    if (!error) profile = data
+  } catch(e) { console.warn('Profile fetch failed:', e.message) }
+  // If no profile exists, create one automatically
+  if (!profile) {
+    const newProfile = { id: session.user.id, full_name: session.user.email.split('@')[0], email: session.user.email, role: 'sub_worker', is_active: true }
+    try { await sb.from('profiles').insert(newProfile) } catch(e) {}
+    profile = newProfile
+  }
   MY = profile
-  const name = profile?.full_name || session.user.email
+  const name = MY.full_name || session.user.email
   const av = document.getElementById('user-av')
   av.textContent = initials(name); av.style.cssText += ';' + avStyle(name)
   const pfav = document.getElementById('pf-av')
@@ -241,6 +260,7 @@ window.addEventListener('load', async () => {
   await loadJobs()
   await checkActiveCheckins()
   loadNotifBadge()
+  loadSafetyBadge()
 })
 
 // ── GPS ──────────────────────────────────
@@ -268,13 +288,23 @@ function showScreen(id) {
   document.getElementById('bnav-' + id)?.classList.add('active')
   if (id === 'notif') loadNotifs()
   if (id === 'scan') loadJobsIntoWkSelect()
+  if (id === 'safety') loadSafetyTopics()
 }
 
 // ── JOBS ──────────────────────────────────
 async function loadJobs() {
   try {
-    const { data: assignments } = await sb.from('job_workers').select('job_id,jobs(*)').eq('worker_id', MY.id).eq('is_active', true)
-    myJobs = (assignments || []).map(a => a.jobs).filter(Boolean).filter(j => !j.archived && j.phase !== 'complete')
+    // Get job IDs assigned to this worker
+    const { data: assignments, error: aErr } = await sb.from('job_workers').select('job_id').eq('worker_id', MY.id).eq('is_active', true)
+    if (aErr) throw aErr
+    const jobIds = (assignments || []).map(a => a.job_id).filter(Boolean)
+    let allMyJobs = []
+    if (jobIds.length) {
+      const { data: jobData, error: jErr } = await sb.from('jobs').select('*').in('id', jobIds)
+      if (jErr) throw jErr
+      allMyJobs = jobData || []
+    }
+    myJobs = allMyJobs.filter(j => !j.archived && j.phase !== 'complete')
     if (!myJobs.length) { document.getElementById('jobs-list').innerHTML = '<div class="empty">No jobs assigned to you yet.</div>'; return }
     // Check active check-ins
     const { data: cis } = await sb.from('checkins').select('job_id').eq('worker_id', MY.id).is('checkout_at', null)
@@ -457,19 +487,83 @@ async function doCheckout() {
 }
 
 async function checkActiveCheckins() {
+  if (!MY?.id) return
   const { data } = await sb.from('checkins').select('id').eq('worker_id', MY.id).is('checkout_at', null)
-  if ((data||[]).length) document.getElementById('checkin-indicator').style.display = 'block'
+  if ((data||[]).length) { const el = document.getElementById('checkin-indicator'); if(el) el.style.display = 'block' }
+}
+
+// ── SAFETY TRAINING ──────────────────────
+async function loadSafetyTopics(){
+  if(!MY?.id) return
+  const[{data:assigns},{data:acks}]=await Promise.all([
+    sb.from('safety_assignments').select('*,safety_topics(id,title,content,category,week_of)').eq('profile_id',MY.id).order('assigned_at',{ascending:false}),
+    sb.from('safety_acks').select('topic_id,acknowledged_at').eq('profile_id',MY.id)
+  ])
+  const ackedIds=new Set((acks||[]).map(a=>a.topic_id))
+  const pending=(assigns||[]).filter(a=>a.safety_topics&&!ackedIds.has(a.topic_id))
+  const completed=(assigns||[]).filter(a=>a.safety_topics&&ackedIds.has(a.topic_id))
+  // Update badge
+  const badge=document.getElementById('safety-badge')
+  if(badge){badge.style.display=pending.length?'block':'none'}
+  // Render pending
+  const pendEl=document.getElementById('safety-pending')
+  if(pendEl){
+    if(pending.length){
+      pendEl.innerHTML='<div style="font-size:11px;font-weight:600;color:#dc2626;margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">'+pending.length+' Required — Action Needed</div>'+
+        pending.map(a=>{
+          const t=a.safety_topics
+          return '<div style="background:#0c1220;border:1px solid rgba(220,38,38,.25);border-radius:10px;padding:14px;margin-bottom:9px">'+
+            '<div style="font-weight:600;font-size:14px;margin-bottom:4px">'+t.title+'</div>'+
+            '<div style="font-size:11px;color:#414e63;margin-bottom:9px">'+t.category+' · Week of '+fmtDate(t.week_of)+(a.due_date?' · Due '+fmtDate(a.due_date):'')+'</div>'+
+            '<div style="font-size:13px;color:#8a96ab;line-height:1.6;margin-bottom:12px;background:#131c2e;padding:11px;border-radius:7px;white-space:pre-wrap">'+t.content+'</div>'+
+            '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:12px">'+
+            '<input type="checkbox" id="ack-'+t.id+'" style="width:18px;height:18px;margin-top:1px;accent-color:#16a34a;flex-shrink:0">'+
+            '<div><div style="font-size:13px;font-weight:600;color:#16a34a">I have read and understand this safety topic</div>'+
+            '<div style="font-size:11px;color:#8a96ab;margin-top:2px">Check this box to confirm you have reviewed the above content</div></div></label>'+
+            '<button class="btn btn-p" style="width:100%;justify-content:center;margin-top:9px" onclick="acknowledgeSafety(''+t.id+'',''+a.id+'')">Submit Acknowledgement</button>'+
+            '</div>'
+        }).join('')
+    } else {
+      pendEl.innerHTML='<div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:10px;padding:14px;text-align:center"><div style="font-size:22px;margin-bottom:6px">✅</div><div style="font-weight:600;color:#16a34a">All safety training complete!</div></div>'
+    }
+  }
+  // Render completed
+  const compEl=document.getElementById('safety-completed')
+  if(compEl&&completed.length){
+    const ackByTopic={}
+    ;(acks||[]).forEach(a=>{ackByTopic[a.topic_id]=a})
+    compEl.innerHTML='<div style="font-size:11px;font-weight:600;color:#414e63;margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Completed ('+completed.length+')</div>'+
+      completed.map(a=>{
+        const t=a.safety_topics
+        const ack=ackByTopic[t.id]
+        return '<div style="background:#0c1220;border:1px solid rgba(22,163,74,.15);border-radius:10px;padding:12px;margin-bottom:7px;display:flex;align-items:center;gap:11px">'+
+          '<div style="font-size:22px;flex-shrink:0">✅</div>'+
+          '<div style="flex:1;min-width:0"><div style="font-weight:500;font-size:13px">'+t.title+'</div>'+
+          '<div style="font-size:11px;color:#414e63;margin-top:2px">'+t.category+' · Completed '+fmtDateTime(ack?.acknowledged_at)+'</div></div>'+
+          '</div>'
+      }).join('')
+  }
+}
+
+async function acknowledgeSafety(topicId, assignmentId){
+  const cb=document.getElementById('ack-'+topicId)
+  if(!cb?.checked){toast('Please check the box to confirm you have read the content','warn');return}
+  const btn=event.target
+  btn.disabled=true;btn.textContent='Saving…'
+  try{
+    // Insert ack record
+    const{error}=await sb.from('safety_acks').insert({id:uuid(),topic_id:topicId,profile_id:MY.id,user_name:MY.full_name,acknowledged_at:new Date().toISOString()})
+    if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Submit Acknowledgement';return}
+    toast('Safety topic acknowledged ✓','success')
+    // Reload the screen
+    await loadSafetyTopics()
+  }catch(e){toast(e.message,'error');btn.disabled=false;btn.textContent='Submit Acknowledgement'}
 }
 
 // ── PART STATUS UPDATE ────────────────────
 async function updateMyPartStatus(partId, status) {
   try {
-    const { data: { session } } = await sb.auth.getSession()
-    await fetch('/api/jobs/' + currentJobId + '/parts/' + partId, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
-      body: JSON.stringify({ status })
-    })
+    await sb.from('job_parts').update({ status, updated_at: new Date().toISOString() }).eq('id', partId)
     toast('Status updated', 'success')
   } catch(e) { toast(e.message, 'error') }
 }
@@ -563,21 +657,41 @@ async function wkLookup(val) {
 
 // ── NOTIFICATIONS ─────────────────────────
 async function loadNotifs() {
-  const { data: { session } } = await sb.auth.getSession()
-  const res = await fetch('/api/notifications', { headers: { 'Authorization': 'Bearer ' + session?.access_token } })
-  const notifs = await res.json()
-  document.getElementById('wk-notif-list').innerHTML = (notifs||[]).length
-    ? notifs.map(n => `<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;gap:9px"><div style="width:7px;height:7px;border-radius:50%;background:${n.read?'var(--bg4)':'var(--accent)'};flex-shrink:0;margin-top:4px"></div><div><div style="font-size:13px;font-weight:500">${n.title}</div><div style="font-size:12px;color:var(--text3);margin-top:2px">${n.message}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">${fmtDateTime(n.created_at)}</div></div></div>`).join('')
-    : '<div class="empty">No notifications</div>'
+  try {
+    const { data } = await sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(30)
+    const el = document.getElementById('notif-list')
+    if (!el) return
+    const notifs = data||[]
+    el.innerHTML = notifs.length ? notifs.map(n =>
+      `<div style="padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:9px;align-items:flex-start;${n.read?'opacity:.55':''}">
+        <div style="font-size:18px;flex-shrink:0">${n.type==='alert'?'⚠':n.type==='checkin'?'📍':'🔔'}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:${n.read?400:600}">${n.title}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${n.message||''}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">${fmtDate(n.created_at)}</div></div>
+      </div>`).join('') : '<div class="empty">No notifications</div>'
+    // Mark all as read
+    if (notifs.filter(n=>!n.read).length) await sb.from('notifications').update({read:true}).eq('read',false)
+  } catch(e) { console.error('notifs:', e) }
+}
+async function loadSafetyBadge(){
+  if(!MY?.id) return
+  try{
+    const[{data:assigns},{data:acks}]=await Promise.all([
+      sb.from('safety_assignments').select('topic_id').eq('profile_id',MY.id),
+      sb.from('safety_acks').select('topic_id').eq('profile_id',MY.id)
+    ])
+    const ackedIds=new Set((acks||[]).map(a=>a.topic_id))
+    const pending=(assigns||[]).filter(a=>!ackedIds.has(a.topic_id)).length
+    const badge=document.getElementById('safety-badge')
+    if(badge){badge.style.display=pending?'block':'none';badge.textContent=pending}
+  }catch(e){}
 }
 async function loadNotifBadge() {
   try {
-    const { data: { session } } = await sb.auth.getSession()
-    const res = await fetch('/api/notifications', { headers: { 'Authorization': 'Bearer ' + session?.access_token } })
-    const n = await res.json()
-    const u = (n||[]).filter(x => !x.read).length
-    document.getElementById('notif-dot').style.display = u > 0 ? 'block' : 'none'
-  } catch {}
+    const { count } = await sb.from('notifications').select('id',{count:'exact',head:true}).eq('read',false)
+    const el = document.getElementById('notif-badge')
+    if (el) { el.textContent = count||0; el.style.display = (count||0)>0 ? 'flex' : 'none' }
+  } catch(e) {}
 }
 
 // ── PROFILE / SETTINGS ────────────────────
