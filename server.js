@@ -3787,6 +3787,8 @@ function faxBidCalc(items,taxRate){
   return{subtotal:Math.round(sub*100)/100,tax:Math.round(tax*100)/100,total:Math.round((sub+tax)*100)/100}
 }
 
+function faxTmplAddLi(){window._faxBidTmplItems.push({id:'li'+Date.now(),description:'',qty:1,rate:0});faxTmplRenderLi()}
+
 function faxNavBids(){var el=document.querySelector('.nav-item[onclick*="fax_bids"]');P("fax_bids",el)}
 function faxNavInvoices(){var el=document.querySelector('.nav-item[onclick*="fax_bid_invoices"]');P("fax_bid_invoices",el)}
 function faxTmplTabQt(el){faxTmplTab("qt",el)}
@@ -4358,7 +4360,7 @@ function faxTmplEditorModal(data,type,onSave){
     h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="tm-notes">'+(data.notes||'')+'</textarea></div>'
     h+='<div class="fg"><label class="fl">Terms</label><textarea class="ft" id="tm-terms">'+(data.terms||'')+'</textarea></div>'
   }
-  h+='<div class="sec-hdr">Line Items <button class="btn btn-sm" onclick="window._faxBidTmplItems.push({id:\'li\'+Date.now(),description:\'\',qty:1,rate:0});faxTmplRenderLi()">+ Add</button></div>'
+  h+='<div class="sec-hdr">Line Items <button class="btn btn-sm" onclick="faxTmplAddLi()">+ Add</button></div>'
   h+='<div id="tm-li-body"></div>'
   modal(data.id?(isSB?'Edit Scope Block':'Edit Template'):(isSB?'New Scope Block':'New Template'),h,function(){onSave()},'Save')
   faxTmplRenderLi()
