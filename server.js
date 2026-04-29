@@ -377,9 +377,14 @@ function fm(n,d=0){if(n==null)return'—';return'$'+Number(n).toLocaleString('en
 function isOD(due,phase){return due&&phase!=='complete'&&new Date(due)<new Date()}
 function daysAway(d){if(!d)return null;return Math.round((new Date(d)-new Date())/86400000)}
 
-const STAGES=['not_started','parts_ordered','parts_staged','in_progress','pre_test','pre_tested','ready_for_final','complete']
-const STAGE_LABELS={not_started:'Not Started',parts_ordered:'Parts Ordered',parts_staged:'Parts Staged',in_progress:'In Progress',pre_test:'Ready for Pre-test',pre_tested:'Pre-Tested',ready_for_final:'Ready for Final',complete:'Complete'}
-const STAGE_COLORS={not_started:'bg-gray',parts_ordered:'bg-orange',parts_staged:'bg-amber',in_progress:'bg-blue',pre_test:'bg-amber',pre_tested:'bg-teal',ready_for_final:'bg-purple',complete:'bg-green'}
+const STAGES=['not_started','make_safe','prewire','roughed_in','trimmed','ready_for_pretest','ready_for_final','complete']
+const STAGE_LABELS={not_started:'Not Started',make_safe:'Make Safe',prewire:'Pre-Wire',roughed_in:'Roughed In',trimmed:'Trimmed Out',ready_for_pretest:'Ready for Pre-test',ready_for_final:'Ready for Final',complete:'Complete'}
+const STAGE_COLORS={not_started:'bg-gray',make_safe:'bg-red',prewire:'bg-orange',roughed_in:'bg-blue',trimmed:'bg-teal',ready_for_pretest:'bg-amber',ready_for_final:'bg-purple',complete:'bg-green'}
+// Parts statuses displayed on job cards
+const PARTS_STATUS_LABELS={ordered:'Ordered',staged:'Staged',delivered:'Delivered to Site',partial:'Partial',none:'None'}
+// Permit statuses
+const PERMIT_STATUS_LABELS={not_required:'Not Required',pending:'Pending',submitted:'Submitted',approved:'Approved',rejected:'Rejected',expired:'Expired'}
+const PERMIT_STATUS_COLORS={not_required:'bg-gray',pending:'bg-amber',submitted:'bg-blue',approved:'bg-green',rejected:'bg-red',expired:'bg-red'}
 function stageBadge(p){return\`<span class="badge \${STAGE_COLORS[p]||'bg-gray'}">\${STAGE_LABELS[p]||p||'—'}</span>\`}
 function roleBadge(r){const m={admin:'bg-purple',pm:'bg-blue',stager:'bg-amber',foreman:'bg-teal',technician:'bg-green',sub_lead:'bg-amber',sub_worker:'bg-gray'};return\`<span class="badge \${m[r]||'bg-gray'}">\${r||'—'}</span>\`}
 function empty(icon,txt){return\`<div class="empty"><div class="empty-icon">\${icon}</div><div style="color:#414e63;font-size:12px">\${txt}</div></div>\`}
@@ -394,6 +399,7 @@ async function pgDash(){
   // Run queries individually so one failure doesn't break everything
   const {data:jobs,error:jobsError} = await sb.from('jobs').select('*').order('created_at',{ascending:false})
   if(jobsError) throw new Error('Jobs: '+jobsError.message)
+  await loadJobsWithPartsStatus()
   const {data:ci} = await sb.from('checkins').select('id,job_id,worker_id,checkin_at,checkout_at').is('checkout_at',null).order('checkin_at',{ascending:false}).limit(20)
   const {data:parts} = await sb.from('job_parts').select('id,job_id,status,assigned_qty,ordered_qty,taken_qty,installed_qty')
   const {data:orders} = await sb.from('orders').select('id,status,job_id').order('created_at',{ascending:false})
@@ -490,17 +496,84 @@ async function pgJobs(){
     document.getElementById('page-area').innerHTML='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:18px;margin:0"><div style="font-weight:600;color:#dc2626;margin-bottom:6px">Failed to load jobs</div><div style="font-size:12px;color:#f87171;font-family:monospace;word-break:break-all;margin-bottom:8px">'+errMsg+'</div><div style="font-size:11px;color:#8a96ab">To fix: go to Supabase Dashboard → SQL Editor → run <strong>supabase-fix.sql</strong> from the zip, then refresh this page.</div></div>'
   }
 }
+
+// ── JOB STATUS HELPERS ────────────────────────────────────────
+// Returns parts status badge for a job based on cached job_parts data
+// We store a snapshot on the job object itself for fast table rendering
+function jobPartsStatus(j){
+  // Use pre-computed snapshot if available (set by loadJobsWithParts)
+  const s=j._parts_status||'none'
+  const colors={ordered:'bg-blue',staged:'bg-amber',delivered:'bg-green',partial:'bg-orange',none:'bg-gray'}
+  const labels={ordered:'Parts Ordered',staged:'Parts Staged',delivered:'On Site',partial:'Partial',none:'No Parts'}
+  return{status:s,badge:'<span class="badge '+(colors[s]||'bg-gray')+'">'+(labels[s]||s)+'</span>'}
+}
+
+// Load jobs and enrich with parts status snapshot
+async function loadJobsWithPartsStatus(){
+  const{data:jobs}=await sb.from('jobs').select('*').eq('archived',false).order('created_at',{ascending:false})
+  const{data:parts}=await sb.from('job_parts').select('job_id,status')
+  allJobs=jobs||[]
+  // Build parts map per job
+  const partsMap={}
+  ;(parts||[]).forEach(p=>{
+    if(!partsMap[p.job_id])partsMap[p.job_id]=[]
+    partsMap[p.job_id].push(p.status)
+  })
+  // Determine overall parts status per job
+  allJobs.forEach(j=>{
+    const ps=partsMap[j.id]||[]
+    if(!ps.length){j._parts_status='none';return}
+    const hasDelivered=ps.some(s=>s==='signed_out'||s==='installed'||s==='partial_install')
+    const allStaged=ps.every(s=>['staged','signed_out','installed','partial_install'].includes(s))
+    const anyOrdered=ps.some(s=>s==='ordered')
+    const anyStaged=ps.some(s=>s==='staged')
+    if(hasDelivered) j._parts_status='delivered'
+    else if(allStaged) j._parts_status='staged'
+    else if(anyStaged) j._parts_status='partial'
+    else if(anyOrdered) j._parts_status='ordered'
+    else j._parts_status='none'
+  })
+}
 function renderJobsTable(q){
   const rows=allJobs.filter(j=>!q||j.name.toLowerCase().includes(q.toLowerCase())||(j.address||'').toLowerCase().includes(q.toLowerCase()))
   document.getElementById('page-area').innerHTML=\`
-  <div style="margin-bottom:12px;display:flex;gap:8px">
+  <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
     <input class="fi" placeholder="Search jobs…" style="max-width:280px" oninput="renderJobsTable(this.value)" value="\${q}">
-    <select class="fs" style="width:160px" onchange="filterJobsByStage(this.value)"><option value="">All Stages</option>\${STAGES.map(s=>\`<option value="\${s}">\${STAGE_LABELS[s]}</option>\`).join('')}</select>
+    <select class="fs" style="width:180px" onchange="filterJobsByStage(this.value)">
+      <option value="">All Stages</option>
+      \${STAGES.map(s=>\`<option value="\${s}">\${STAGE_LABELS[s]}</option>\`).join('')}
+    </select>
   </div>
   <div class="card" style="padding:0;overflow:hidden">
-  \${rows.length?\`<table class="tbl"><thead><tr><th>Job</th><th>GC</th><th>Stage</th><th>Due Date</th><th>Next Visit</th><th>Project Manager</th><th>Contract</th><th>Progress</th></tr></thead><tbody>\${rows.map(j=>\`<tr onclick="openJob('\${j.id}')"><td><div style="font-weight:500">\${j.name}</div><div style="font-size:10px;color:#414e63">\${j.address||''}</div></td><td style="font-size:11px;color:#8a96ab">\${j.gc_company||'—'}</td><td>\${stageBadge(j.phase)}</td><td style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">\${fd(j.due_date)}</td><td style="font-size:11px;color:\${daysAway(j.next_visit_date)!=null&&daysAway(j.next_visit_date)<=7?'#d97706':'#8a96ab'}">\${fd(j.next_visit_date)}</td><td style="font-size:11px">\${j.project_manager||'—'}</td><td style="font-size:11px">\${j.contract_value?fm(j.contract_value):'—'}</td><td><div class="pbar" style="width:70px"><div class="pb g" style="width:\${j.pct_complete||0}%"></div></div><div style="font-size:9px;color:#414e63;margin-top:2px">\${j.pct_complete||0}%</div></td></tr>\`).join('')}</tbody></table>\`:empty('📋','No jobs found')}
+  \${rows.length?\`<table class="tbl"><thead><tr>
+    <th>Job</th>
+    <th>Job Status</th>
+    <th>Parts Status</th>
+    <th>Permit</th>
+    <th>PM</th>
+    <th>Due Date</th>
+    <th>Progress</th>
+    <th></th>
+  </tr></thead><tbody>
+  \${rows.map(j=>{
+    const ps=jobPartsStatus(j)
+    const permit=j.permit_status||'not_required'
+    return \`<tr onclick="openJob('\${j.id}')" style="cursor:pointer">
+      <td><div style="font-weight:500">\${j.name}</div><div style="font-size:10px;color:#414e63">\${j.address||''}</div></td>
+      <td>\${stageBadge(j.phase)}</td>
+      <td>\${ps.badge}</td>
+      <td><span class="badge \${PERMIT_STATUS_COLORS[permit]||'bg-gray'}">\${PERMIT_STATUS_LABELS[permit]||permit}</span></td>
+      <td style="font-size:12px">\${j.project_manager||'—'}</td>
+      <td style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">\${j.due_date?fd(j.due_date):'—'}</td>
+      <td><div style="display:flex;align-items:center;gap:5px"><div class="pbar"><div class="pb" style="width:\${j.pct_complete||0}%"></div></div><span style="font-size:10px">\${j.pct_complete||0}%</span></div></td>
+      <td><button class="btn btn-sm" onclick="event.stopPropagation();openJob('\${j.id}')">Open</button></td>
+    </tr>\`
+  }).join('')}
+  </tbody></table>\`
+  :empty('🏗','No jobs found')}
   </div>\`
 }
+
 function filterJobsByStage(stage){
   const rows=stage?allJobs.filter(j=>j.phase===stage):allJobs
   const a=document.getElementById('page-area')
@@ -638,6 +711,22 @@ function renderInfoTab(el,j){
     <div class="two"><div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="ed-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="ed-mb" value="\${j.material_budget||''}"></div></div>
   </div>
   </div>
+  <div class="sec-hdr" style="margin-top:14px">Permit Status</div>
+  <div class="two" style="margin-bottom:4px">
+    <div class="fg"><label class="fl">Permit Status</label>
+      <select class="fs" id="ed-permit-status">
+        <option value="not_required" \\\${(j.permit_status||'not_required')==='not_required'?'selected':''}>Not Required</option>
+        <option value="pending" \\\${j.permit_status==='pending'?'selected':''}>Pending</option>
+        <option value="submitted" \\\${j.permit_status==='submitted'?'selected':''}>Submitted</option>
+        <option value="approved" \\\${j.permit_status==='approved'?'selected':''}>Approved</option>
+        <option value="rejected" \\\${j.permit_status==='rejected'?'selected':''}>Rejected</option>
+        <option value="expired" \\\${j.permit_status==='expired'?'selected':''}>Expired</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Permit Number</label>
+      <input class="fi" id="ed-permit-number" placeholder="e.g. E-2024-001" value="\\\${j.permit_number||''}">
+    </div>
+  </div>
   <div style="display:flex;gap:8px;margin-top:4px">
     <button class="btn btn-p" onclick="saveInfoTab()">Save Changes</button>
     <button class="btn btn-a" onclick="archiveJob()">Archive Job</button>
@@ -657,7 +746,7 @@ function renderInfoTab(el,j){
   },50)
 }
 async function saveInfoTab(){
-  const u={name:v('ed-name'),address:v('ed-addr'),gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,date_start:v('ed-start')||null,due_date:v('ed-due')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
+  const u={name:v('ed-name'),address:v('ed-addr'),gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,permit_status:v('ed-permit-status')||'not_required',permit_number:v('ed-permit-number')||null,date_start:v('ed-start')||null,due_date:v('ed-due')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
   const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
   if(error){toast(error.message,'error');return}
   currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved')
@@ -2534,7 +2623,7 @@ function initMap(jobs){
   renderMapJobList(jobs)
 }
 
-const MAP_COLORS={not_started:'#8a96ab',in_progress:'#60a5fa',pre_test:'#d97706',pre_tested:'#2dd4bf',ready_for_final:'#a78bfa',complete:'#16a34a'}
+const MAP_COLORS={not_started:'#64748b',make_safe:'#ef4444',prewire:'#f97316',roughed_in:'#3b82f6',trimmed:'#06b6d4',ready_for_pretest:'#eab308',ready_for_final:'#a855f7',complete:'#16a34a'}
 
 function addMapPins(jobs,map){
   if(!window.L)return
