@@ -4295,8 +4295,8 @@ async function pgFaxBidTemplates(){
   var r2=await sb.from('fax_bid_scope_blocks').select('*').order('name',{ascending:true})
   window._faxBidTemplates=r1.data||[];window._faxBidScopeBlocks=r2.data||[]
   var h='<div class="tab-bar" id="tmpl-tabs">'
-  h+='<div class="tab active" onclick="faxTmplTab(\'qt\',this)">Quote Templates ('+( r1.data||[]).length+')</div>'
-  h+='<div class="tab" onclick="faxTmplTab(\'sb\',this)">Scope Blocks ('+(r2.data||[]).length+')</div>'
+  h+='<div class="tab active" onclick="faxTmplTabQt(this)">Quote Templates ('+(r1.data||[]).length+')</div>'
+  h+='<div class="tab" onclick="faxTmplTabSb(this)">Scope Blocks ('+(r2.data||[]).length+')</div>'
   h+='</div><div id="tmpl-body" style="margin-top:14px"></div>'
   document.getElementById('page-area').innerHTML=h
   faxRenderTemplateList('qt')
@@ -4405,7 +4405,7 @@ async function pgFaxBidReports(){
   var period=window._faxBidRptPeriod||'all'
   var h='<div style="display:flex;gap:6px;margin-bottom:16px">'
   ;[['all','All time'],['30','Last 30d'],['90','Last 90d'],['365','Last year']].forEach(function(p){
-    h+='<button class="btn btn-sm '+(period===p[0]?'btn-p':'btn-ghost')+'" onclick="window._faxBidRptPeriod=\''+p[0]+'\';pgFaxBidReports()">'+p[1]+'</button>'
+    h+='<button class="btn btn-sm '+(period===p[0]?'btn-p':'btn-ghost')+'" data-period="'+p[0]+'" onclick="faxSetRptPeriod(this)">'+p[1]+'</button>'
   })
   h+='</div><div class="loading"><div class="spin"></div> Loading...</div>'
   document.getElementById('page-area').innerHTML=h
@@ -4428,7 +4428,7 @@ async function pgFaxBidReports(){
   var byEst={};awarded.forEach(function(q){var e=q.estimator_id||'Unknown';if(!byEst[e])byEst[e]={name:uMap[e]||e,n:0,vol:0};byEst[e].n++;byEst[e].vol+=q.total||0})
   var byGC={};qs.forEach(function(q){(q.fax_bid_recipients||[]).forEach(function(r){var k=r.company||r.name||r.email;if(!byGC[k])byGC[k]={name:k,sent:0,won:0};byGC[k].sent++;if(r.status==='awarded')byGC[k].won++})})
   h='<div style="display:flex;gap:6px;margin-bottom:16px">'
-  ;[['all','All time'],['30','Last 30d'],['90','Last 90d'],['365','Last year']].forEach(function(p){h+='<button class="btn btn-sm '+(period===p[0]?'btn-p':'btn-ghost')+'" onclick="window._faxBidRptPeriod=\''+p[0]+'\';pgFaxBidReports()">'+p[1]+'</button>'})
+    h+='<button class="btn btn-sm '+(period===p[0]?'btn-p':'btn-ghost')+'" data-period="'+p[0]+'" onclick="faxSetRptPeriod(this)">'+p[1]+'</button>'
   h+='</div>'
   h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:18px">'
   h+='<div class="stat"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#16a34a">'+winRate+'%</div></div>'
