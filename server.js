@@ -769,17 +769,37 @@ async function renderPartsTab(el){
 // DAILY REPORTS TAB (per job)
 async function renderJobDailyTab(el){
   const{data:reports}=await sb.from('daily_reports').select('*').eq('job_id',currentJobId).order('report_date',{ascending:false})
-  el.innerHTML=\`
-  <div style="margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="newDailyModal('\${currentJobId}')">+ New Daily Report</button></div>
-  \${(reports||[]).map(r=>\`<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px"><div><div style="font-weight:600;font-size:13px">\${fd(r.report_date)}</div><div style="font-size:11px;color:#414e63">By \${r.submitted_by||'—'} · \${r.crew_count} crew · \${fh(r.hours_worked)} worked</div></div><span class="badge bg-blue">\${r.weather||'N/A'} \${r.temp_high?r.temp_high+'°/'+r.temp_low+'°':''}</span></div>
-  \${r.work_performed?\`<div style="margin-bottom:8px"><div style="font-size:10px;color:#414e63;margin-bottom:3px">WORK PERFORMED</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap">\${r.work_performed}</div></div>\`:''}
-  \${r.issues?\`<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);border-radius:7px;padding:8px 10px;font-size:12px;color:#dc2626">\${r.issues}</div>\`:''}
-  <div style="margin-top:8px;display:flex;gap:8px"><button class="btn btn-sm" onclick="emailReport(\${JSON.stringify(r).replace(/"/g,'&quot;')})">📧 Email Report</button><button class="btn btn-sm btn-ghost" onclick="dlDailyReport(\${JSON.stringify(r).replace(/"/g,'&quot;')})">⬇ Download</button></div></div>\`).join('')||empty('📋','No daily reports for this job')}\` 
+  const rows=reports||[]
+  let html='<div style="margin-bottom:12px"><button class="btn btn-p btn-sm" data-jid="'+currentJobId+'" onclick="newDailyModal(this.dataset.jid)">+ New Daily Report</button></div>'
+  if(!rows.length){el.innerHTML=html+empty('📋','No daily reports for this job');return}
+  html+='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr>'
+  html+='<th>Date</th><th>Submitted By</th><th>Crew</th><th>Hours</th><th>Weather</th><th>Issues</th><th></th>'
+  html+='</tr></thead><tbody>'
+  for(const r of rows){
+    const hasIssues=r.issues&&r.issues.trim()
+    html+='<tr data-rid="'+r.id+'" onclick="viewDailyReport(this.dataset.rid)" style="cursor:pointer">'
+    html+='<td style="font-weight:500;white-space:nowrap">'+fd(r.report_date)+'</td>'
+    html+='<td style="font-size:12px">'+(r.submitted_by||'—')+'</td>'
+    html+='<td>'+r.crew_count+'</td>'
+    html+='<td>'+fh(r.hours_worked)+'</td>'
+    html+='<td style="font-size:11px;color:#8a96ab">'+(r.weather||'—')+(r.temp_high?' '+r.temp_high+'°':'')+'</td>'
+    html+='<td>'+(hasIssues?'<span class="badge bg-red">Yes</span>':'<span style="font-size:11px;color:#414e63">—</span>')+'</td>'
+    html+='<td style="display:flex;gap:4px" onclick="event.stopPropagation()">'
+    html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="dlDailyReportById(this.dataset.rid)">⬇</button>'
+    html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="emailDrById(this.dataset.rid)">📧</button>'
+    html+='</td></tr>'
+  }
+  html+='</tbody></table></div>'
+  el.innerHTML=html
 }
 function dlDailyReport(r){
   const jobName=_drJobs&&_drJobs[r.job_id]?_drJobs[r.job_id]:currentJob?.name||r.job_id||'Unknown'
   const content=\`DAILY REPORT\\n\${'='.repeat(40)}\\nJob: \${jobName}\\nDate: \${fd(r.report_date)}\\nSubmitted By: \${r.submitted_by||'—'}\\nCrew Count: \${r.crew_count}\\nHours Worked: \${fh(r.hours_worked)}\\nWeather: \${r.weather} \${r.temp_high?r.temp_high+'°/'+r.temp_low+'°':''}\\n\\nWORK PERFORMED:\\n\${r.work_performed||'—'}\\n\\nMATERIALS USED:\\n\${r.materials_used||'—'}\\n\\nEQUIPMENT USED:\\n\${r.equipment_used||'—'}\\n\\nISSUES:\\n\${r.issues||'None'}\\n\\nVISITORS:\\n\${r.visitors||'None'}\`
   const a=document.createElement('a');a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(content);a.download='Daily-Report-'+r.report_date+'.txt';a.click()
+}
+async function emailDrById(id){
+  const{data:r}=await sb.from('daily_reports').select('*').eq('id',id).single()
+  if(r)emailReport(r)
 }
 function emailReport(r){
   const subject=encodeURIComponent('Daily Report — '+currentJob?.name+' — '+fd(r.report_date))
@@ -1179,7 +1199,7 @@ function filterDailyReports(){
   const from=document.getElementById('dr-f-from')?.value||''
   const to=document.getElementById('dr-f-to')?.value||''
   const emp=document.getElementById('dr-f-emp')?.value||''
-  let rows=_drAll.filter(r=>{
+  const rows=(_drAll||[]).filter(r=>{
     if(jobId&&r.job_id!==jobId)return false
     if(from&&r.report_date<from)return false
     if(to&&r.report_date>to)return false
@@ -1194,22 +1214,25 @@ function filterDailyReports(){
   html+='<th>Date</th><th>Job</th><th>Submitted By</th><th>Crew</th><th>Hours</th><th>Weather</th><th>Issues</th><th></th>'
   html+='</tr></thead><tbody>'
   for(const r of rows){
-    const jobName=_drJobs[r.job_id]||r.job_id||'—'
+    const jobName=(_drJobs||{})[r.job_id]||r.job_id||'—'
     const hasIssues=r.issues&&r.issues.trim()
-    html+='<tr onclick="viewDailyReport(\\"'+r.id+'\\")" style="cursor:pointer">'
+    html+='<tr data-rid="'+r.id+'" onclick="viewDailyReport(this.dataset.rid)" style="cursor:pointer">'
     html+='<td style="font-weight:500;white-space:nowrap">'+fd(r.report_date)+'</td>'
     html+='<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+jobName+'</td>'
-    html+='<td style="font-size:12px">'+( r.submitted_by||'—')+'</td>'
+    html+='<td style="font-size:12px">'+(r.submitted_by||'—')+'</td>'
     html+='<td>'+r.crew_count+'</td>'
     html+='<td>'+fh(r.hours_worked)+'</td>'
     html+='<td style="font-size:11px;color:#8a96ab">'+(r.weather||'—')+(r.temp_high?' '+r.temp_high+'°':'')+'</td>'
     html+='<td>'+(hasIssues?'<span class="badge bg-red">Yes</span>':'<span style="font-size:11px;color:#414e63">—</span>')+'</td>'
-    html+='<td><button class="btn btn-sm" onclick="event.stopPropagation();dlDailyReportById(\\"'+r.id+'\\")">⬇</button></td>'
-    html+='</tr>'
+    html+='<td style="display:flex;gap:4px" onclick="event.stopPropagation()">'
+    html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="dlDailyReportById(this.dataset.rid)">⬇</button>'
+    html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="emailDrById(this.dataset.rid)">📧</button>'
+    html+='</td></tr>'
   }
   html+='</tbody></table></div>'
   el.innerHTML=html
 }
+
 async function viewDailyReport(id){
   const{data:r}=await sb.from('daily_reports').select('*').eq('id',id).single()
   modal('Daily Report — '+fd(r.report_date),\`
