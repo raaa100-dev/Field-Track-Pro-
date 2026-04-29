@@ -3341,6 +3341,114 @@ async function commitCheckout(){
   document.getElementById('checkout-ui').style.display='none'
   loadJT('jt-parts')
 }
+
+// ══════════════════════════════════════════
+// ORDERS — ADD ITEMS + SUBMIT
+// ══════════════════════════════════════════
+function addOrdItem(){
+  const bc=(document.getElementById('ord-bc')?.value||'').trim()
+  if(!bc){toast('Enter a barcode or part name','error');return}
+  const qty=parseInt(document.getElementById('ord-qty')?.value)||1
+  const match=allCatalog.find(x=>x.barcode===bc||x.name.toLowerCase()===bc.toLowerCase())
+  const part=match||{barcode:bc,name:bc,description:'',part_number:''}
+  window._ordItems=window._ordItems||[]
+  const ex=window._ordItems.find(i=>i.barcode===part.barcode)
+  if(ex){ex.qty+=qty}
+  else{window._ordItems.push({barcode:part.barcode,name:part.name,qty,description:part.description||'',part_number:part.part_number||''})}
+  document.getElementById('ord-bc').value=''
+  document.getElementById('ord-qty').value=1
+  // Clear resolve dropdown
+  const res=document.getElementById('sc-resolve');if(res)res.style.display='none'
+  renderOrdItems()
+  document.getElementById('ord-bc').focus()
+}
+
+function renderOrdItems(){
+  const el=document.getElementById('ord-items-display');if(!el)return
+  const items=window._ordItems||[]
+  if(!items.length){el.innerHTML='';return}
+  el.innerHTML=items.map((i,x)=>
+    '<div style="display:inline-flex;align-items:center;gap:6px;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:5px 10px;font-size:12px;margin:2px">'+
+    '<span style="font-weight:500">'+i.name+'</span>'+
+    '<span style="color:#414e63">×'+i.qty+'</span>'+
+    '<button data-idx="'+x+'" onclick="window._ordItems.splice(parseInt(this.dataset.idx),1);renderOrdItems()" '+
+    'style="background:none;border:none;cursor:pointer;color:#414e63;font-size:15px;padding:0 2px;line-height:1">×</button>'+
+    '</div>'
+  ).join('')
+}
+
+async function submitOrder(){
+  const jobId=document.getElementById('ord-job')?.value
+  if(!jobId){toast('Select a job first','error');return}
+  const items=window._ordItems||[]
+  if(!items.length){toast('Add at least one part to the order','error');return}
+  const notes=document.getElementById('ord-notes')?.value||''
+  const orderId=uuid()
+  const now=new Date().toISOString()
+  const btn=document.getElementById('ord-submit-btn')
+  if(btn){btn.disabled=true;btn.textContent='Submitting…'}
+  // Save order
+  const{error}=await sb.from('orders').insert({
+    id:orderId,job_id:jobId,
+    items:JSON.stringify(items),
+    notes,status:'pending',
+    created_by:ME?.full_name,
+    created_at:now,updated_at:now
+  })
+  if(error){toast(error.message,'error');if(btn){btn.disabled=false;btn.textContent='Submit Order'}return}
+  // Create job_parts as 'ordered' so they show on job immediately
+  for(const item of items){
+    const{data:ex}=await sb.from('job_parts').select('*').eq('job_id',jobId).eq('part_id',item.barcode).maybeSingle()
+    if(ex){
+      await sb.from('job_parts').update({
+        assigned_qty:ex.assigned_qty+item.qty,
+        ordered_qty:(ex.ordered_qty||0)+item.qty,
+        order_id:orderId,updated_at:now
+      }).eq('id',ex.id)
+    } else {
+      await sb.from('job_parts').insert({
+        id:uuid(),job_id:jobId,
+        part_id:item.barcode,part_name:item.name,
+        status:'ordered',
+        assigned_qty:item.qty,ordered_qty:item.qty,
+        taken_qty:0,installed_qty:0,returned_qty:0,
+        order_id:orderId,
+        notes:item.description||'',created_at:now,updated_at:now
+      })
+    }
+  }
+  window._ordItems=[]
+  renderOrdItems()
+  toast('Order submitted — '+items.length+' part type(s) added to job as Ordered')
+  pgOrders(jobId)
+}
+
+// ══════════════════════════════════════════
+// PARTS FLOW — STAGE / SIGN OUT / INSTALL
+// ══════════════════════════════════════════
+// Called from Orders page: marks order as staged and updates job_parts to 'staged'
+async function stageOrderToJob(orderId, jobId){
+  const{data:order}=await sb.from('orders').select('*').eq('id',orderId).single()
+  if(!order){toast('Order not found','error');return}
+  const items=typeof order.items==='string'?JSON.parse(order.items||'[]'):(order.items||[])
+  const jobName=(window._allOrderJobs||allJobs||[]).find(j=>j.id===jobId)?.name||jobId
+  if(!confirm('Mark parts as STAGED for:\\n'+jobName+'\\n\\nThis means parts are physically in the warehouse ready for pickup.'))return
+  const now=new Date().toISOString()
+  for(const item of items){
+    await sb.from('job_parts').update({
+      status:'staged',staged_by:ME?.full_name,staged_at:now,updated_at:now
+    }).eq('job_id',jobId).eq('part_id',item.barcode)
+  }
+  await sb.from('orders').update({status:'staged',staged_by:ME?.full_name,staged_at:now,updated_at:now}).eq('id',orderId)
+  toast('Parts staged for '+jobName)
+  pgOrders(jobId)
+}
+
+async function updateOrderStatus(orderId, newStatus){
+  await sb.from('orders').update({status:newStatus,updated_at:new Date().toISOString()}).eq('id',orderId)
+  toast('Order updated to '+newStatus)
+  pgOrders(window._ordFilterJobId||null)
+}
 </script>
 `
 const HTML_WORKER = `<!DOCTYPE html>
