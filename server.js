@@ -3806,7 +3806,7 @@ function faxNewBidFromTmpl(sel){if(sel.value){faxNewBid(sel.value);sel.value=""}
 
 async function pgFaxBids(){
   var canEdit=['admin','pm','foreman','stager'].indexOf(window._faxRole||'')>=0
-  document.getElementById('topbar-actions').innerHTML=canEdit?'<button class="btn btn-p btn-sm" onclick="faxNewBid()">+ New Quote</button> <button class="btn btn-a btn-sm" onclick="faxQuickQuote()">📞 Quick Quote</button> <button class=\"btn btn-sm\" onclick=\"faxUploadPdfQuote()\">PDF Quote</button>':''
+  document.getElementById('topbar-actions').innerHTML=canEdit?'<button class="btn btn-p btn-sm" onclick="faxNewBid()">+ New Quote</button> <button class="btn btn-a btn-sm" onclick="faxQuickQuote()">📞 Quick Quote</button> <button class="btn btn-sm" onclick="faxUploadPdfQuote()">📄 PDF Quote</button>':''
   try{
     var r1=await sb.from('fax_bids').select('*,fax_bid_recipients(*)').order('created_at',{ascending:false})
     var r2=await sb.from('gcs').select('id,company,name')
