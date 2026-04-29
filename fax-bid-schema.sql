@@ -182,3 +182,10 @@ CREATE POLICY "fax_bb_all"     ON fax_bid_branding    FOR ALL USING (auth.role()
 CREATE POLICY "fax_be_all"     ON fax_bid_email_config FOR ALL USING (auth.role()='authenticated');
 
 SELECT 'FieldAxisHQ Bid Engine schema complete' AS status;
+
+-- ── PDF Quote additions (run after initial schema) ──────────────────────────
+ALTER TABLE fax_bids ADD COLUMN IF NOT EXISTS pdf_url       text DEFAULT NULL;
+ALTER TABLE fax_bids ADD COLUMN IF NOT EXISTS pdf_filename  text DEFAULT NULL;
+ALTER TABLE fax_bids ADD COLUMN IF NOT EXISTS quote_type    text DEFAULT 'standard';
+
+SELECT 'PDF Quote columns added' AS status;

@@ -3806,7 +3806,7 @@ function faxNewBidFromTmpl(sel){if(sel.value){faxNewBid(sel.value);sel.value=""}
 
 async function pgFaxBids(){
   var canEdit=['admin','pm','foreman','stager'].indexOf(window._faxRole||'')>=0
-  document.getElementById('topbar-actions').innerHTML=canEdit?'<button class="btn btn-p btn-sm" onclick="faxNewBid()">+ New Quote</button> <button class="btn btn-a btn-sm" onclick="faxQuickQuote()">📞 Quick Quote</button>':''
+  document.getElementById('topbar-actions').innerHTML=canEdit?'<button class="btn btn-p btn-sm" onclick="faxNewBid()">+ New Quote</button> <button class="btn btn-a btn-sm" onclick="faxQuickQuote()">📞 Quick Quote</button> <button class=\"btn btn-sm\" onclick=\"faxUploadPdfQuote()\">PDF Quote</button>':''
   try{
     var r1=await sb.from('fax_bids').select('*,fax_bid_recipients(*)').order('created_at',{ascending:false})
     var r2=await sb.from('gcs').select('id,company,name')
@@ -3916,7 +3916,8 @@ function faxRenderBidEditor(){
   var awardedBanner=(!isNew&&status==='awarded')?'<div style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;color:#16a34a;font-size:13px;font-weight:500">✓ Awarded to '+(awarded?awarded.company||awarded.name:'')+'</div>':''
   var estOpts=estimators.map(function(u){return'<option value="'+u.id+'" '+(q.estimator_id===u.id?'selected':'')+'>'+(u.full_name||u.id)+'</option>'}).join('')
   var tradeOpts='<option value="">— Select —</option>'+FAX_TRADES.map(function(t){return'<option '+(q.trade===t?'selected':'')+'>'+t+'</option>'}).join('')
-  var h=awardedBanner
+  var pdfBanner=q.pdf_url?'<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">'+'<span style="font-size:20px">📄</span>'+'<div style="flex:1"><div style="font-size:13px;font-weight:600;color:#60a5fa">'+(q.pdf_filename||'Uploaded PDF Quote')+'</div>'+'<div style="font-size:11px;color:#8a96ab">PDF-based quote</div></div>'+'<a href="'+q.pdf_url+'" target="_blank" class="btn btn-sm btn-b">View PDF</a>'+'<label class="btn btn-sm" style="cursor:pointer">Replace PDF<input type="file" accept=".pdf" style="display:none" onchange="faxReplacePdf(this)"></label>'+'</div>':''
+  var h=awardedBanner+pdfBanner
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">'
   h+='<div>'
   h+='<div class="card"><div class="card-title">Project Details</div>'
@@ -4135,6 +4136,12 @@ async function faxSaveBid(){
   var tots=faxBidCalc(q.line_items,q.tax_rate)
   Object.assign(q,tots)
   try{
+    // Upload replacement PDF if selected
+    if(window._faxPdfFile){
+      toast('Uploading PDF...')
+      var up=await uploadToCloudinary(window._faxPdfFile,'fieldaxishq/quotes')
+      if(up&&up.url){q.pdf_url=up.url;q.pdf_filename=window._faxPdfFile.name;q.quote_type='pdf';window._faxPdfFile=null}
+    }
     var savedId=q.id
     if(q.id){
       var cur=await sb.from('fax_bids').select('line_items,tax_rate,subtotal,total,version,revisions').eq('id',q.id).single()
@@ -4143,7 +4150,7 @@ async function faxSaveBid(){
         revisions.push({version:(cur.data||{}).version,snapshot:{line_items:(cur.data||{}).line_items,tax_rate:(cur.data||{}).tax_rate,total:(cur.data||{}).total},changed_by:(window._faxUser||{}).full_name||'',changed_at:new Date().toISOString()})
         q.revisions=revisions
       }
-      var res=await sb.from('fax_bids').update({project_name:q.project_name,project_description:q.project_description,project_address:q.project_address,project_city:q.project_city,project_state:q.project_state,trade:q.trade,estimator_id:q.estimator_id,job_id:q.job_id,issue_date:q.issue_date,bid_due_date:q.bid_due_date,expiry_date:q.expiry_date,line_items:q.line_items,tax_rate:q.tax_rate,subtotal:q.subtotal,tax:q.tax,total:q.total,notes:q.notes,terms:q.terms,revisions:q.revisions||[],updated_at:new Date().toISOString()}).eq('id',q.id)
+      var res=await sb.from('fax_bids').update({project_name:q.project_name,project_description:q.project_description,project_address:q.project_address,project_city:q.project_city,project_state:q.project_state,trade:q.trade,estimator_id:q.estimator_id,job_id:q.job_id,issue_date:q.issue_date,bid_due_date:q.bid_due_date,expiry_date:q.expiry_date,line_items:q.line_items,tax_rate:q.tax_rate,subtotal:q.subtotal,tax:q.tax,total:q.total,notes:q.notes,terms:q.terms,revisions:q.revisions||[],pdf_url:q.pdf_url||null,pdf_filename:q.pdf_filename||null,quote_type:q.quote_type||null,updated_at:new Date().toISOString()}).eq('id',q.id)
       if(res.error)throw new Error(res.error.message)
     }else{
       var newId=uuid()
@@ -4719,6 +4726,143 @@ async function faxDoAssign(userId, userName){
   if(sel)sel.value=userId
 }
 
+
+
+// ══════════════════════════════════════════
+// PDF QUOTE UPLOAD
+// ══════════════════════════════════════════
+function faxUploadPdfQuote(){
+  var h='<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#8a96ab">'
+  h+='Upload a quote you built elsewhere (Excel, Word, etc.). The GC gets a link where they can view your PDF and sign to award it.'
+  h+='</div>'
+  h+='<div class="fg"><label class="fl">PDF File *</label>'
+  h+='<div id="pdf-dropzone" style="border:1.5px dashed rgba(255,255,255,.15);border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:.15s" ondragover="event.preventDefault();this.style.borderColor=\'#2563eb\'" ondragleave="this.style.borderColor=\'rgba(255,255,255,.15)\'" ondrop="faxPdfDrop(event)">'
+  h+='<div style="font-size:24px;margin-bottom:8px">📄</div>'
+  h+='<div style="font-size:13px;color:#8a96ab;margin-bottom:8px">Drag PDF here or click to browse</div>'
+  h+='<label class="btn btn-sm btn-b" style="cursor:pointer">Browse<input type="file" id="pdf-file-input" accept=".pdf" style="display:none" onchange="faxPdfSelected(this)"></label>'
+  h+='<div id="pdf-file-name" style="font-size:12px;color:#16a34a;margin-top:8px"></div>'
+  h+='</div></div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">Quote Number</label><input class="fi" id="pdf-number" placeholder="Auto-generated if blank"></div>'
+  h+='<div class="fg"><label class="fl">Total Value *</label><input class="fi" type="number" id="pdf-total" placeholder="0.00" step="0.01" min="0"></div>'
+  h+='</div>'
+  h+='<div class="fg"><label class="fl">Project Name *</label><input class="fi" id="pdf-project" placeholder="Project name or address"></div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">Trade</label><select class="fs" id="pdf-trade"><option value="">— Select —</option>'
+  FAX_TRADES.forEach(function(t){h+='<option>'+t+'</option>'})
+  h+='</select></div>'
+  h+='<div class="fg"><label class="fl">Bid Due Date</label><input class="fi" type="date" id="pdf-due"></div>'
+  h+='</div>'
+  h+='<div class="fg"><label class="fl">Estimator</label><select class="fs" id="pdf-est"><option value="">— Select —</option>'
+  ;(window._faxBidUsers||[]).forEach(function(u){h+='<option value="'+u.id+'">'+(u.full_name||u.id)+'</option>'})
+  h+='</select></div>'
+  h+='<div class="fg"><label class="fl">Notes (optional)</label><textarea class="ft" id="pdf-notes" style="min-height:50px" placeholder="Any notes for the GC..."></textarea></div>'
+  modal('Upload PDF Quote', h, faxSubmitPdfQuote, 'Upload & Create Quote')
+  // Load users if needed
+  if(!window._faxBidUsers){
+    sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','foreman','stager','estimator']).then(function(r){
+      window._faxBidUsers=r.data||[]
+      var sel=document.getElementById('pdf-est')
+      if(sel){(r.data||[]).forEach(function(u){var o=document.createElement('option');o.value=u.id;o.textContent=u.full_name||u.id;sel.appendChild(o)})}
+    })
+  }
+}
+
+function faxPdfDrop(event){
+  event.preventDefault()
+  var file=(event.dataTransfer.files||[])[0]
+  if(file)faxSetPdfFile(file)
+}
+function faxPdfSelected(input){
+  var file=(input.files||[])[0]
+  if(file)faxSetPdfFile(file)
+}
+function faxSetPdfFile(file){
+  if(!file.name.toLowerCase().endsWith('.pdf')){toast('Please select a PDF file','error');return}
+  window._faxPdfFile=file
+  var el=document.getElementById('pdf-file-name')
+  if(el)el.textContent='✓ '+file.name+' ('+Math.round(file.size/1024)+'KB)'
+  var dz=document.getElementById('pdf-dropzone')
+  if(dz)dz.style.borderColor='#16a34a'
+}
+
+async function faxSubmitPdfQuote(){
+  var file=window._faxPdfFile
+  if(!file){toast('Please select a PDF file','error');return}
+  var project=(document.getElementById('pdf-project').value||'').trim()
+  if(!project){toast('Project name required','error');return}
+  var total=parseFloat(document.getElementById('pdf-total').value)||0
+  if(!total){toast('Total value required','error');return}
+
+  // Show progress
+  var okBtn=document.getElementById('modal-ok')
+  if(okBtn){okBtn.disabled=true;okBtn.textContent='Uploading PDF...'}
+
+  try{
+    // Upload PDF to Cloudinary
+    var uploaded=await uploadToCloudinary(file,'fieldaxishq/quotes')
+    if(!uploaded||!uploaded.url)throw new Error('Upload failed - check Cloudinary config')
+
+    // Auto quote number
+    var rNum=await sb.from('fax_bids').select('number').order('created_at',{ascending:false}).limit(1)
+    var lastN=parseInt(((rNum.data||[])[0]||{}).number||'Q-0000')-0||0
+    var numInput=(document.getElementById('pdf-number').value||'').trim()
+    var number=numInput||('Q-'+String(lastN+1).padStart(4,'0'))
+
+    var newId=uuid()
+    var res=await sb.from('fax_bids').insert({
+      id:newId,
+      number:number,
+      version:1,
+      project_name:project,
+      project_description:'',
+      project_address:'',
+      project_city:'',
+      project_state:'',
+      project_zip:'',
+      trade:document.getElementById('pdf-trade').value||'',
+      estimator_id:document.getElementById('pdf-est').value||null,
+      job_id:null,
+      issue_date:new Date().toISOString().split('T')[0],
+      bid_due_date:document.getElementById('pdf-due').value||null,
+      expiry_date:null,
+      line_items:[],
+      tax_rate:0,
+      subtotal:total,
+      tax:0,
+      total:total,
+      notes:document.getElementById('pdf-notes').value||'',
+      terms:'',
+      pdf_url:uploaded.url,
+      pdf_filename:file.name,
+      quote_type:'pdf',
+      revisions:[],
+      created_at:new Date().toISOString(),
+      updated_at:new Date().toISOString()
+    })
+    if(res.error)throw new Error(res.error.message)
+
+    window._faxPdfFile=null
+    closeModal()
+    toast('PDF quote created: '+number)
+    faxOpenBid(newId)
+  }catch(e){
+    toast(e.message,'error')
+    if(okBtn){okBtn.disabled=false;okBtn.textContent='Upload & Create Quote'}
+  }
+}
+
+
+
+function faxReplacePdf(input){
+  var file=(input.files||[])[0]
+  if(!file)return
+  if(!file.name.toLowerCase().endsWith('.pdf')){toast('Please select a PDF file','error');return}
+  var q=window._faxBidEditing
+  if(!q||!q.id){toast('Save quote first','error');return}
+  window._faxPdfFile=file
+  toast('PDF selected. Click Save to upload and replace.')
+}
 
 </script>
 `
@@ -6701,6 +6845,7 @@ async function loadAwardPage(token){
       (q.project_address?'<div style="color:#8a96ab;font-size:13px;margin-bottom:14px">📍 '+q.project_address+(q.project_city?', '+q.project_city:'')+(q.project_state?' '+q.project_state:'')+'</div>':'')+
       (q.bid_due_date?'<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:8px 12px;font-size:12px;color:#f87171;margin-bottom:14px">⏰ Bid due: '+q.bid_due_date+'</div>':'')+
       (q.project_description?'<div style="font-size:13px;color:#8a96ab;line-height:1.6;margin-bottom:16px">'+q.project_description+'</div>':'')+
+      +(q.pdf_url?'<div style="margin-bottom:14px">'+'<a href="'+q.pdf_url+'" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:#0c1220;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#60a5fa;text-decoration:none;font-size:13px;font-weight:500">📄 View Full Quote PDF</a></div>':'')
       '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px">'+
       '<thead><tr style="border-bottom:1px solid rgba(255,255,255,.1)"><th style="text-align:left;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600;text-transform:uppercase">Item</th><th style="text-align:right;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600">Qty</th><th style="text-align:right;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600">Rate</th><th style="text-align:right;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600">Total</th></tr></thead>'+
       '<tbody>'+(q.line_items||[]).map(li=>'<tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:8px">'+li.description+'</td><td style="text-align:right;padding:8px;color:#8a96ab">'+li.qty+'</td><td style="text-align:right;padding:8px;color:#8a96ab">$'+Number(li.rate||0).toFixed(2)+'</td><td style="text-align:right;padding:8px;font-weight:500">$'+Number((li.qty||0)*(li.rate||0)).toFixed(2)+'</td></tr>').join('')+'</tbody></table>'+
