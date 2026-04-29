@@ -3759,7 +3759,7 @@ function addEditOrdItem(){
   if(window._rebuildEditItems)window._rebuildEditItems()
   document.getElementById('eod-bc').focus()
 }
-</script>
+
 
 // ══════════════════════════════════════════════════════════════════════
 // FieldAxisHQ Quote — Quotes, Invoices, Templates, Reports
@@ -4671,6 +4671,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(typeof sb!=='undefined')sb.auth.getSession().then(({data:{session}})=>{if(session)window._sbToken=session.access_token;if(session)window._faxUser={full_name:session.user.user_metadata?.full_name||''};if(session)window._faxRole=session.user.role||'authenticated'})
 })
 
+</script>
 `
 const HTML_WORKER = `<!DOCTYPE html>
 <html lang="en">
