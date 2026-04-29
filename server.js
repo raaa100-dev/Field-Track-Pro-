@@ -3787,6 +3787,21 @@ function faxBidCalc(items,taxRate){
   return{subtotal:Math.round(sub*100)/100,tax:Math.round(tax*100)/100,total:Math.round((sub+tax)*100)/100}
 }
 
+function faxNavBids(){var el=document.querySelector('.nav-item[onclick*="fax_bids"]');P("fax_bids",el)}
+function faxNavInvoices(){var el=document.querySelector('.nav-item[onclick*="fax_bid_invoices"]');P("fax_bid_invoices",el)}
+function faxTmplTabQt(el){faxTmplTab("qt",el)}
+function faxTmplTabSb(el){faxTmplTab("sb",el)}
+function faxSetRptPeriod(btn){window._faxBidRptPeriod=btn.getAttribute("data-period");pgFaxBidReports()}
+function faxOpenBidById(el){var id=el.getAttribute("data-bidid");if(id)faxOpenBid(id)}
+function faxOpenInvById(el){var id=el.getAttribute("data-invid");if(id)faxOpenInvoice(id)}
+function faxPickBlockById(el){var id=el.getAttribute("data-blockid");if(id)faxPickBlock(id)}
+function faxUseTemplateById(el){var id=el.getAttribute("data-tmplid");if(id)faxNewBid(id)}
+function faxEditTemplateById(el){var id=el.getAttribute("data-tmplid");if(id)faxEditTemplate(id)}
+function faxDelTemplateById(el){var id=el.getAttribute("data-tmplid");if(id)faxDelTemplate(id)}
+function faxEditBlkById(el){var id=el.getAttribute("data-blkid");if(id)faxEditScopeBlock(id)}
+function faxDelBlkById(el){var id=el.getAttribute("data-blkid");if(id)faxDelScopeBlock(id)}
+function faxNewBidFromTmpl(sel){if(sel.value){faxNewBid(sel.value);sel.value=""}}
+
 async function pgFaxBids(){
   var canEdit=['admin','pm','foreman','stager'].indexOf(window._faxRole||'')>=0
   document.getElementById('topbar-actions').innerHTML=canEdit?'<button class="btn btn-p btn-sm" onclick="faxNewBid()">+ New Quote</button>':''
@@ -3891,7 +3906,7 @@ function faxRenderBidEditor(){
     ((!isNew&&status==='awarded')?'<button class="btn btn-g btn-sm" onclick="faxGenerateInvoice()">→ Invoice</button> ':'')+
     '<button class="btn btn-ghost btn-sm" onclick="faxSaveAsTemplate()">Save as Template</button> '+
     '<button class="btn btn-p btn-sm" onclick="faxSaveBid()">Save</button> '+
-    '<button class="btn btn-ghost btn-sm" onclick="P(\'fax_bids\',null)">← Back</button>'
+    '<button class="btn btn-ghost btn-sm" onclick="faxNavBids()">← Back</button>'
   document.getElementById('page-title').textContent=isNew?'New Quote':q.number+' — v'+q.version
   var awardedBanner=(!isNew&&status==='awarded')?'<div style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;color:#16a34a;font-size:13px;font-weight:500">✓ Awarded to '+(awarded?awarded.company||awarded.name:'')+'</div>':''
   var estOpts=estimators.map(function(u){return'<option value="'+u.id+'" '+(q.estimator_id===u.id?'selected':'')+'>'+(u.full_name||u.id)+'</option>'}).join('')
@@ -4206,7 +4221,7 @@ function faxRenderInvoiceEditor(){
     (inv.id&&inv.status!=='paid'?'<button class="btn btn-g btn-sm" onclick="faxMarkInvPaid()">Mark Paid</button> ':'')+
     (inv.id&&inv.status==='draft'?'<button class="btn btn-a btn-sm" onclick="faxMarkInvSent()">Mark Sent</button> ':'')+
     '<button class="btn btn-p btn-sm" onclick="faxSaveInvoice()">Save</button> '+
-    '<button class="btn btn-ghost btn-sm" onclick="P(\'fax_bid_invoices\',null)">← Back</button>'
+    '<button class="btn btn-ghost btn-sm" onclick="faxNavInvoices()">← Back</button>'
   document.getElementById('page-title').textContent=inv.id?inv.number+' — Invoice':'New Invoice'
   var h='<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">'
   h+='<div><div class="card"><div class="card-title">Client &amp; Project</div>'
