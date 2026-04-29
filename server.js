@@ -3839,7 +3839,7 @@ function faxRenderBidList(){
     list.forEach(function(q){
       var recs=q.fax_bid_recipients||[]
       var dueColor=q.bid_due_date&&new Date(q.bid_due_date)<new Date()?'#dc2626':'#8a96ab'
-      h+='<tr onclick="faxOpenBid(\''+q.id+'\')" style="cursor:pointer">'
+      h+='<tr data-bidid="'+q.id+'" onclick="faxOpenBidById(this)" style="cursor:pointer">';
       h+='<td style="font-weight:500">'+q.number+'</td>'
       h+='<td>'+( q.project_name||'—')+'<div style="font-size:10px;color:#414e63">'+(q.project_address||'')+'</div></td>'
       h+='<td>'+(q.trade||'—')+'</td>'
@@ -4007,7 +4007,9 @@ async function faxInsertBlock(){
   var blocks=window._faxBidScopeBlocks
   var h=blocks.length?'<div style="display:flex;flex-direction:column;gap:6px">':''
   blocks.forEach(function(b){
-    h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#131c2e;border-radius:7px;cursor:pointer;border:1px solid rgba(255,255,255,.07)" onclick="faxPickBlock(\''+b.id+'\')">'
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#131c2e;border-radius:7px;cursor:pointer;border:1px solid rgba(255,255,255,.07)" data-blockid="'+b.id+'" onclick="faxPickBlockById(this)">'
+    h+='<div><div style="font-size:13px;font-weight:500">'+b.name+'</div><div style="font-size:10px;color:#414e63">'+(b.trade||'All trades')+' · '+(b.line_items||[]).length+' items</div></div>'
+    h+='<button class="btn btn-sm btn-p">Insert</button></div>'
     h+='<div><div style="font-size:13px;font-weight:500">'+b.name+'</div><div style="font-size:10px;color:#414e63">'+(b.trade||'All trades')+' · '+(b.line_items||[]).length+' items</div></div>'
     h+='<button class="btn btn-sm btn-p">Insert</button></div>'
   })
@@ -4175,7 +4177,7 @@ async function pgFaxInvoices(){
     h+='<table class="tbl"><thead><tr><th>Number</th><th>Project</th><th>Client</th><th>Total</th><th>Due Date</th><th>Status</th></tr></thead><tbody>'
     list.forEach(function(inv){
       var dueColor=inv.due_date&&new Date(inv.due_date)<new Date()&&inv.status!=='paid'?'#dc2626':'#8a96ab'
-      h+='<tr onclick="faxOpenInvoice(\''+inv.id+'\')" style="cursor:pointer">'
+      h+='<tr data-invid="'+inv.id+'" onclick="faxOpenInvById(this)" style="cursor:pointer">';
       h+='<td style="font-weight:500">'+inv.number+'</td>'
       h+='<td>'+(inv.project_name||'—')+'</td>'
       h+='<td>'+(inv.client_company||inv.client_name||'—')+'</td>'
@@ -4313,7 +4315,7 @@ function faxRenderTemplateList(tab){
       h+='<tr><td style="font-weight:500">'+tmpl.name+'</td><td>'+(tmpl.trade||'—')+'</td>'
       h+='<td>'+(tmpl.line_items||[]).length+'</td>'
       h+='<td>'+fm((tmpl.line_items||[]).reduce(function(s,i){return s+(i.qty||0)*(i.rate||0)},0),2)+'</td>'
-      h+='<td style="display:flex;gap:5px"><button class="btn btn-sm btn-p" onclick="faxNewBid(\''+tmpl.id+'\')">Use →</button><button class="btn btn-sm" onclick="faxEditTemplate(\''+tmpl.id+'\')">Edit</button><button class="btn btn-sm btn-r" onclick="faxDelTemplate(\''+tmpl.id+'\')">Del</button></td></tr>'
+      h+='<td style="display:flex;gap:5px"><button class="btn btn-sm btn-p" data-tmplid="'+tmpl.id+'" onclick="faxUseTemplateById(this)">Use →</button><button class="btn btn-sm" data-tmplid="'+tmpl.id+'" onclick="faxEditTemplateById(this)">Edit</button><button class="btn btn-sm btn-r" data-tmplid="'+tmpl.id+'" onclick="faxDelTemplateById(this)">Del</button></td></tr>'
     })
     el.innerHTML=h+'</tbody></table>'
   }else{
@@ -4324,7 +4326,7 @@ function faxRenderTemplateList(tab){
       h+='<tr><td style="font-weight:500">'+blk.name+'</td><td>'+(blk.trade||'—')+'</td>'
       h+='<td>'+(blk.line_items||[]).length+'</td>'
       h+='<td>'+fm((blk.line_items||[]).reduce(function(s,i){return s+(i.qty||0)*(i.rate||0)},0),2)+'</td>'
-      h+='<td style="display:flex;gap:5px"><button class="btn btn-sm" onclick="faxEditScopeBlock(\''+blk.id+'\')">Edit</button><button class="btn btn-sm btn-r" onclick="faxDelScopeBlock(\''+blk.id+'\')">Del</button></td></tr>'
+      h+='<td style="display:flex;gap:5px"><button class="btn btn-sm" data-blkid="'+blk.id+'" onclick="faxEditBlkById(this)">Edit</button><button class="btn btn-sm btn-r" data-blkid="'+blk.id+'" onclick="faxDelBlkById(this)">Del</button></td></tr>'
     })
     el.innerHTML=h+'</tbody></table>'
   }
