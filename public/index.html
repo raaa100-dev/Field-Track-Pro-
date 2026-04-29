@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="Field Ops"/>
+<meta name="apple-mobile-web-app-title" content="Field Access HQ"/>
 <meta name="theme-color" content="#ffffff"/>
-<title>Field Operations Platform</title>
+<title>Field Access HQ</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -188,7 +188,7 @@ canvas.markup-canvas{border-radius:var(--rs);width:100%;touch-action:none;border
     <div class="login-card">
       <div class="login-logo">&#127959;</div>
       <div class="login-title">Field Ops</div>
-      <div class="login-sub">Warehouse &amp; Project Management</div>
+      <div class="login-sub">Field Access HQ</div>
       <div class="login-err" id="login-err"></div>
       <div class="fl nt">Username</div>
       <input type="text" id="l-user" placeholder="Username" autocomplete="username" style="margin-bottom:10px" onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()"/>
@@ -201,7 +201,7 @@ canvas.markup-canvas{border-radius:var(--rs);width:100%;touch-action:none;border
 </div>
 <div id="app" style="display:none;flex:1;flex-direction:column;overflow:hidden">
 <div class="hdr">
-  <div class="hdr-text"><h1>Field Ops</h1><p id="hdr-sub">Loading</p></div>
+  <div class="hdr-text"><h1>Field Access HQ</h1><p id="hdr-sub">Loading</p></div>
   <div class="icon-btn" onclick="show('notif')">&#128276;<span class="badge-dot" id="notif-badge"></span></div>
   <div class="icon-btn" onclick="show('schedule')" title="Schedule">&#128197;</div>
   <div class="user-pill" id="user-pill" onclick="doLogout()">--</div>
@@ -224,7 +224,7 @@ canvas.markup-canvas{border-radius:var(--rs);width:100%;touch-action:none;border
 <div class="screens">
 
 <!-- DASHBOARD -->
-<div id="sc-dash" class="sc active">
+<div id="sc-dash" class="sc">
   <div id="dash-alerts"></div>
   <div class="sum-cards">
     <div class="sum-card blue"><div class="sv" id="ds-jobs">--</div><div class="sl">Active jobs</div></div>
@@ -1833,7 +1833,7 @@ init();
 </script>
 <script src="/quoteflow.js"></script>
 <script>
-const _m={name:'Field Ops',short_name:'Field Ops',start_url:'/',display:'standalone',background_color:'#ffffff',theme_color:'#ffffff'};
+const _m={name:'Field Access HQ',short_name:'Field Access HQ',start_url:'/',display:'standalone',background_color:'#ffffff',theme_color:'#ffffff'};
 const _b=new Blob([JSON.stringify(_m)],{type:'application/json'});
 const _l=document.createElement('link');_l.rel='manifest';_l.href=URL.createObjectURL(_b);document.head.appendChild(_l);
 </script>

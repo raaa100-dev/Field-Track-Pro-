@@ -1007,7 +1007,7 @@ async function qfRenderAwardPage(token, container) {
 <div style="max-width:640px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,sans-serif">
   <div style="background:${accent};color:#fff;padding:20px 24px">
     ${branding?.logo_data_url?`<img src="${branding.logo_data_url}" style="height:44px;margin-bottom:8px;display:block"/>`:''}
-    <div style="font-size:20px;font-weight:700">${branding?.name||'Field Ops'}</div>
+    <div style="font-size:20px;font-weight:700">${branding?.name||'Field Access HQ'}</div>
     ${branding?.header_text?`<div style="font-size:13px;opacity:.85">${branding.header_text}</div>`:''}
     ${branding?.address?`<div style="font-size:12px;opacity:.75;margin-top:4px">${branding.address}</div>`:''}
   </div>
