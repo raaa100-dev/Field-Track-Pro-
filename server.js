@@ -395,7 +395,8 @@ async function pgDash(){
   const {data:jobs,error:jobsError} = await sb.from('jobs').select('*').order('created_at',{ascending:false})
   if(jobsError) throw new Error('Jobs: '+jobsError.message)
   const {data:ci} = await sb.from('checkins').select('id,job_id,worker_id,checkin_at,checkout_at').is('checkout_at',null).order('checkin_at',{ascending:false}).limit(20)
-  const {data:parts} = await sb.from('job_parts').select('id,job_id,status,assigned_qty').in('status',['staged','signed_out'])
+  const {data:parts} = await sb.from('job_parts').select('id,job_id,status,assigned_qty,ordered_qty,taken_qty,installed_qty')
+  const {data:orders} = await sb.from('orders').select('id,status,job_id').order('created_at',{ascending:false})
   const {data:low} = await sb.from('inventory').select('id,name,qty,min_qty').gt('min_qty',0)
   const {data:safety} = await sb.from('safety_topics').select('id,title,week_of').order('created_at',{ascending:false}).limit(5)
   // Load worker names for check-ins separately (avoid join issues)
@@ -412,9 +413,15 @@ async function pgDash(){
     ciWithNames=ciWithNames.map(c=>({...c,workerName:wMap[c.worker_id]||'?',jobName:jMap[c.job_id]||''}))
   }
   allJobs=jobs||[]
-  const active=allJobs.filter(j=>j.phase!=='complete')
-  const staged=(parts||[]).filter(p=>p.status==='staged')
-  const out=(parts||[]).filter(p=>p.status==='signed_out')
+  const active=allJobs.filter(j=>j.phase!=='complete'&&!j.archived)
+  const allParts=parts||[]
+  const orderedParts=allParts.filter(p=>p.status==='ordered')
+  const staged=allParts.filter(p=>p.status==='staged')
+  const out=allParts.filter(p=>p.status==='signed_out')
+  const installed=allParts.filter(p=>p.status==='installed'||p.status==='partial_install')
+  const pendingOrders=(orders||[]).filter(o=>o.status==='pending').length
+  const orderedOrders=(orders||[]).filter(o=>o.status==='ordered').length
+  const stagedOrders=(orders||[]).filter(o=>o.status==='staged').length
   const lowStock=(low||[]).filter(i=>i.qty<=i.min_qty)
   const checkins=ciWithNames
   // Upcoming milestones in next 14 days
@@ -425,10 +432,10 @@ async function pgDash(){
   })
   soon.sort((a,b)=>a.da-b.da)
   document.getElementById('page-area').innerHTML=\`
-  <div class="stats">
-    <div class="stat"><div class="stat-label">Active Jobs</div><div class="stat-value">\${active.length}</div><div style="font-size:10px;color:#414e63;margin-top:2px">\${active.filter(j=>isOD(j.due_date,j.phase)).length} overdue</div></div>
-    <div class="stat"><div class="stat-label">Parts Staged</div><div class="stat-value" style="color:#d97706">\${staged.length}</div></div>
-    <div class="stat"><div class="stat-label">Checked Out</div><div class="stat-value" style="color:#60a5fa">\${out.length}</div></div>
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat" style="cursor:pointer" onclick="P('jobs',null)"><div class="stat-label">Active Jobs</div><div class="stat-value">\${active.length}</div><div style="font-size:10px;color:\${active.filter(j=>isOD(j.due_date,j.phase)).length>0?'#dc2626':'#414e63'};margin-top:2px">\${active.filter(j=>isOD(j.due_date,j.phase)).length} overdue</div></div>
+    <div class="stat" style="cursor:pointer" onclick="P('orders',null)"><div class="stat-label">Orders</div><div class="stat-value" style="color:#d97706">\${pendingOrders+orderedOrders}</div><div style="font-size:10px;color:#414e63;margin-top:2px">\${pendingOrders} pending · \${orderedOrders} ordered · \${stagedOrders} staged</div></div>
+    <div class="stat"><div class="stat-label">Parts Pipeline</div><div class="stat-value" style="color:#a855f7">\${out.length}</div><div style="font-size:10px;color:#414e63;margin-top:2px">\${staged.length} staged · \${out.length} checked out · \${installed.length} installed</div></div>
     <div class="stat"><div class="stat-label">On Site Now</div><div class="stat-value" style="color:#16a34a">\${checkins.length}</div></div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr 280px;gap:13px">
@@ -3265,6 +3272,37 @@ async function removeDispatchAssignment(id){
   toast('Removed','warn');await loadDispatchData()
 }
 
+
+// ══════════════════════════════════════════
+// AUTO-ADVANCE JOB PHASE BASED ON PARTS
+// ══════════════════════════════════════════
+async function autoUpdateJobPhase(jobId){
+  // Get all parts for this job
+  const{data:parts}=await sb.from('job_parts').select('status,assigned_qty,ordered_qty,taken_qty,installed_qty').eq('job_id',jobId)
+  const{data:job}=await sb.from('jobs').select('phase').eq('id',jobId).single()
+  if(!parts||!parts.length||!job)return
+
+  // Don't auto-advance if job is already in progress or beyond
+  const activeStages=['in_progress','pre_test','pre_tested','ready_for_final','complete']
+  if(activeStages.includes(job.phase))return
+
+  const total=parts.length
+  const ordered=parts.filter(p=>['ordered','staged','signed_out','partial_install','installed'].includes(p.status)).length
+  const staged=parts.filter(p=>['staged','signed_out','partial_install','installed'].includes(p.status)).length
+  const allOrdered=ordered===total
+  const allStaged=staged===total
+
+  let newPhase=null
+  if(allStaged&&job.phase==='parts_ordered') newPhase='parts_staged'
+  else if(allOrdered&&job.phase==='not_started') newPhase='parts_ordered'
+
+  if(newPhase){
+    await sb.from('jobs').update({phase:newPhase,updated_at:new Date().toISOString()}).eq('id',jobId)
+    // Update local allJobs cache
+    const j=allJobs.find(x=>x.id===jobId);if(j)j.phase=newPhase
+    toast('Job status auto-updated to: '+STAGE_LABELS[newPhase])
+  }
+}
 async function updateOrderStatus(orderId, newStatus){
   const{error}=await sb.from('orders').update({status:newStatus,updated_at:new Date().toISOString()}).eq('id',orderId)
   if(error){toast(error.message,'error');return}
@@ -3441,9 +3479,41 @@ async function stageOrderToJob(orderId, jobId){
   }
   await sb.from('orders').update({status:'staged',staged_by:ME?.full_name,staged_at:now,updated_at:now}).eq('id',orderId)
   toast('Parts staged for '+jobName)
+  await autoUpdateJobPhase(jobId)
   pgOrders(jobId)
 }
 
+
+// ══════════════════════════════════════════
+// AUTO-ADVANCE JOB PHASE BASED ON PARTS
+// ══════════════════════════════════════════
+async function autoUpdateJobPhase(jobId){
+  // Get all parts for this job
+  const{data:parts}=await sb.from('job_parts').select('status,assigned_qty,ordered_qty,taken_qty,installed_qty').eq('job_id',jobId)
+  const{data:job}=await sb.from('jobs').select('phase').eq('id',jobId).single()
+  if(!parts||!parts.length||!job)return
+
+  // Don't auto-advance if job is already in progress or beyond
+  const activeStages=['in_progress','pre_test','pre_tested','ready_for_final','complete']
+  if(activeStages.includes(job.phase))return
+
+  const total=parts.length
+  const ordered=parts.filter(p=>['ordered','staged','signed_out','partial_install','installed'].includes(p.status)).length
+  const staged=parts.filter(p=>['staged','signed_out','partial_install','installed'].includes(p.status)).length
+  const allOrdered=ordered===total
+  const allStaged=staged===total
+
+  let newPhase=null
+  if(allStaged&&job.phase==='parts_ordered') newPhase='parts_staged'
+  else if(allOrdered&&job.phase==='not_started') newPhase='parts_ordered'
+
+  if(newPhase){
+    await sb.from('jobs').update({phase:newPhase,updated_at:new Date().toISOString()}).eq('id',jobId)
+    // Update local allJobs cache
+    const j=allJobs.find(x=>x.id===jobId);if(j)j.phase=newPhase
+    toast('Job status auto-updated to: '+STAGE_LABELS[newPhase])
+  }
+}
 async function updateOrderStatus(orderId, newStatus){
   await sb.from('orders').update({status:newStatus,updated_at:new Date().toISOString()}).eq('id',orderId)
   toast('Order updated to '+newStatus)
