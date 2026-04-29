@@ -3806,7 +3806,7 @@ function faxNewBidFromTmpl(sel){if(sel.value){faxNewBid(sel.value);sel.value=""}
 
 async function pgFaxBids(){
   var canEdit=['admin','pm','foreman','stager'].indexOf(window._faxRole||'')>=0
-  document.getElementById('topbar-actions').innerHTML=canEdit?'<button class="btn btn-p btn-sm" onclick="faxNewBid()">+ New Quote</button>':''
+  document.getElementById('topbar-actions').innerHTML=canEdit?'<button class="btn btn-p btn-sm" onclick="faxNewBid()">+ New Quote</button> <button class="btn btn-a btn-sm" onclick="faxQuickQuote()">📞 Quick Quote</button>':''
   try{
     var r1=await sb.from('fax_bids').select('*,fax_bid_recipients(*)').order('created_at',{ascending:false})
     var r2=await sb.from('gcs').select('id,company,name')
@@ -3906,6 +3906,9 @@ function faxRenderBidEditor(){
   var estimators=window._faxBidUsers||[]
   document.getElementById('topbar-actions').innerHTML=
     ((!isNew&&status==='awarded')?'<button class="btn btn-g btn-sm" onclick="faxGenerateInvoice()">→ Invoice</button> ':'')+
+    '<button class="btn btn-sm btn-b" onclick="faxPrintQuote()">🖨 Print</button> '+
+    (!isNew?'<button class="btn btn-sm btn-b" onclick="faxLinkJobId()">🔗 Link Job</button> ':'')+
+    (!isNew?'<button class="btn btn-sm" onclick="faxAssignEstimator()">👤 Assign</button> ':'')+
     '<button class="btn btn-ghost btn-sm" onclick="faxSaveAsTemplate()">Save as Template</button> '+
     '<button class="btn btn-p btn-sm" onclick="faxSaveBid()">Save</button> '+
     '<button class="btn btn-ghost btn-sm" onclick="faxNavBids()">← Back</button>'
@@ -4493,6 +4496,230 @@ document.addEventListener('DOMContentLoaded',function(){
     if(session){window._sbToken=session.access_token;window._faxUser={full_name:(session.user.user_metadata||{}).full_name||''};window._faxRole=session.user.role||'authenticated'}
   })
 })
+
+// ══════════════════════════════════════════
+// QUICK QUOTE — Phone-in / walk-in customer
+// ══════════════════════════════════════════
+function faxQuickQuote(){
+  var h='<div class="fg"><label class="fl">Customer Name *</label><input class="fi" id="qq-name" placeholder="John Smith"></div>'
+  h+='<div class="fg"><label class="fl">Phone</label><input class="fi" id="qq-phone" type="tel" placeholder="(555) 000-0000"></div>'
+  h+='<div class="fg"><label class="fl">Email (optional)</label><input class="fi" id="qq-email" type="email" placeholder="customer@email.com"></div>'
+  h+='<div class="fg"><label class="fl">Company (optional)</label><input class="fi" id="qq-co" placeholder="ABC Construction"></div>'
+  h+='<div class="fg"><label class="fl">Job Description *</label><textarea class="ft" id="qq-desc" placeholder="Describe the scope of work..."></textarea></div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">Trade</label><select class="fs" id="qq-trade"><option value="">— Select —</option>'
+  FAX_TRADES.forEach(function(t){h+='<option>'+t+'</option>'})
+  h+='</select></div>'
+  h+='<div class="fg"><label class="fl">Bid Due Date</label><input class="fi" type="date" id="qq-due"></div>'
+  h+='</div>'
+  modal('Quick Quote — Phone/Walk-in', h, async function(){
+    var name=(document.getElementById('qq-name').value||'').trim()
+    if(!name){toast('Customer name required','error');return}
+    var desc=(document.getElementById('qq-desc').value||'').trim()
+    if(!desc){toast('Job description required','error');return}
+    // Auto number
+    var rNum=await sb.from('fax_bids').select('number').order('created_at',{ascending:false}).limit(1)
+    var lastN=parseInt(((rNum.data||[])[0]||{}).number||'Q-0000')-0||0
+    var number='Q-'+String(lastN+1).padStart(4,'0')
+    var newId=uuid()
+    var token=Array.from(crypto.getRandomValues(new Uint8Array(32))).map(function(b){return b.toString(16).padStart(2,'0')}).join('')
+    // Create bid
+    var res=await sb.from('fax_bids').insert({
+      id:newId,number:number,version:1,
+      project_name:name+' — '+(document.getElementById('qq-trade').value||'Quote'),
+      project_description:desc,
+      trade:document.getElementById('qq-trade').value||'',
+      bid_due_date:document.getElementById('qq-due').value||null,
+      line_items:[],tax_rate:0,subtotal:0,tax:0,total:0,
+      notes:'',terms:'',revisions:[],
+      created_at:new Date().toISOString(),updated_at:new Date().toISOString()
+    })
+    if(res.error){toast(res.error.message,'error');return}
+    // Create recipient
+    var phone=(document.getElementById('qq-phone').value||'').trim()
+    var email=(document.getElementById('qq-email').value||'').trim()
+    var co=(document.getElementById('qq-co').value||'').trim()
+    var recRes=await sb.from('fax_bid_recipients').insert({
+      id:uuid(),quote_id:newId,name:name,company:co,
+      email:email||('noemail+'+Date.now()+'@fieldaxishq.local'),
+      status:'draft',token:token,created_at:new Date().toISOString()
+    })
+    closeModal()
+    toast('Quick quote created: '+number)
+    // Open the bid for editing / sending
+    faxOpenBid(newId)
+    // If they have email, offer to send immediately
+    if(email&&recRes.data){
+      setTimeout(function(){
+        if(confirm('Send quote link to '+email+' now?')){
+          faxSendRecipIdx(0)
+        }
+      },500)
+    }
+  },'Create Quote')
+}
+
+// ══════════════════════════════════════════
+// PRINT / PDF — Printable quote
+// ══════════════════════════════════════════
+function faxPrintQuote(){
+  var q=window._faxBidEditing
+  if(!q){toast('Open a quote first','error');return}
+  var tots=faxBidCalc(q.line_items,q.tax_rate)
+  var awarded=(q.recipients||[]).filter(function(r){return r.status==='awarded'})[0]
+  var win=window.open('','_blank','width=850,height=1100')
+  var rows=''
+  ;(q.line_items||[]).forEach(function(li){
+    rows+='<tr><td style="padding:8px 10px;border-bottom:1px solid #e5e7eb">'+li.description+'</td>'
+    rows+='<td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">'+li.qty+'</td>'
+    rows+='<td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">$'+Number(li.rate||0).toFixed(2)+'</td>'
+    rows+='<td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:500">$'+Number((li.qty||0)*(li.rate||0)).toFixed(2)+'</td></tr>'
+  })
+  var recList=(q.recipients||[]).map(function(r){return r.company||r.name}).filter(Boolean).join(', ')
+  win.document.write('<!DOCTYPE html><html><head><title>Quote '+q.number+'</title>'
+    +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:13px;color:#111;padding:32px}@media print{body{padding:16px}}'
+    +'.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid #111}'
+    +'.co-name{font-size:22px;font-weight:700}.quote-num{font-size:13px;color:#666;margin-top:4px}'
+    +'.section{margin-bottom:20px}.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#666;margin-bottom:6px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}'
+    +'table{width:100%;border-collapse:collapse}th{background:#f9fafb;padding:8px 10px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#666;border-bottom:2px solid #e5e7eb}'
+    +'.total-row{display:flex;justify-content:space-between;padding:5px 10px;font-size:13px}'
+    +'.total-row.grand{font-size:16px;font-weight:700;border-top:2px solid #111;margin-top:4px;padding-top:8px}'
+    +'.footer{margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#666}'
+    +'.sig-block{margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px}'
+    +'.sig-line{border-top:1px solid #111;padding-top:6px;font-size:11px;color:#666;margin-top:40px}'
+    +'</style></head><body>'
+    +'<div class="hdr"><div><div class="co-name">FieldAxisHQ</div></div>'
+    +'<div style="text-align:right"><div style="font-size:18px;font-weight:700">QUOTE</div>'
+    +'<div class="quote-num">#'+q.number+' &nbsp;·&nbsp; v'+q.version+'</div>'
+    +'<div style="font-size:12px;color:#666;margin-top:4px">Date: '+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+'</div>'
+    +(q.bid_due_date?'<div style="font-size:12px;color:#dc2626;margin-top:2px">Bid Due: '+q.bid_due_date+'</div>':'')
+    +'</div></div>'
+    +'<div class="section"><div class="section-title">Project</div>'
+    +'<div style="font-size:16px;font-weight:600;margin-bottom:4px">'+(q.project_name||'—')+'</div>'
+    +(q.project_address?'<div style="color:#444">'+q.project_address+(q.project_city?', '+q.project_city:'')+(q.project_state?' '+q.project_state:'')+'</div>':'')
+    +(q.trade?'<div style="color:#666;font-size:12px;margin-top:3px">Trade: '+q.trade+'</div>':'')
+    +(q.project_description?'<div style="margin-top:8px;color:#444;line-height:1.5">'+q.project_description+'</div>':'')
+    +'</div>'
+    +(recList?'<div class="section"><div class="section-title">Prepared For</div><div style="font-size:14px;font-weight:500">'+recList+'</div></div>':'')
+    +'<div class="section"><table><thead><tr><th>Description</th><th style="text-align:right">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Total</th></tr></thead><tbody>'
+    +rows+'</tbody></table>'
+    +'<div style="margin-top:12px;max-width:300px;margin-left:auto">'
+    +'<div class="total-row"><span>Subtotal</span><span>$'+tots.subtotal.toFixed(2)+'</span></div>'
+    +(q.tax_rate>0?'<div class="total-row"><span>Tax ('+q.tax_rate+'%)</span><span>$'+tots.tax.toFixed(2)+'</span></div>':'')
+    +'<div class="total-row grand"><span>Total</span><span>$'+tots.total.toFixed(2)+'</span></div>'
+    +'</div></div>'
+    +(q.notes?'<div class="section"><div class="section-title">Notes</div><div style="color:#444;line-height:1.6">'+q.notes+'</div></div>':'')
+    +(q.terms?'<div class="section"><div class="section-title">Terms &amp; Conditions</div><div style="color:#666;font-size:12px;line-height:1.6">'+q.terms+'</div></div>':'')
+    +(awarded?'<div class="section"><div class="section-title">Award Signature</div>'
+      +'<div style="margin-top:8px"><strong>'+awarded.signature_name+'</strong>'+(awarded.signature_title?' — '+awarded.signature_title:'')+'</div>'
+      +(awarded.signature_image?'<img src="'+awarded.signature_image+'" style="height:60px;margin-top:8px;border-bottom:1px solid #111">':'')
+      +'<div style="font-size:11px;color:#666;margin-top:4px">Signed: '+new Date(awarded.awarded_at||'').toLocaleString()+'</div>'
+      +'</div>':'')
+    +'<div class="sig-block"><div><div class="sig-line">Authorized Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date</div></div>'
+    +'<div><div class="sig-line">Customer Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date</div></div></div>'
+    +'<div class="footer">This quote is valid for 30 days from the date issued. Prices subject to change after expiration.</div>'
+    +'</body></html>')
+  win.document.close()
+  setTimeout(function(){win.print()},400)
+}
+
+// ══════════════════════════════════════════
+// LINK JOB ID — After award, link to job
+// ══════════════════════════════════════════
+async function faxLinkJobId(){
+  var q=window._faxBidEditing
+  if(!q||!q.id){toast('Save quote first','error');return}
+  // Load jobs for picker
+  var rJobs=await sb.from('jobs').select('id,name,address').order('created_at',{ascending:false}).limit(50)
+  var jobs=rJobs.data||[]
+  var h='<div class="fg"><label class="fl">Enter Job ID manually</label>'
+  h+='<input class="fi" id="ljid-manual" placeholder="Paste job ID here">'
+  h+='</div>'
+  h+='<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">— or pick from existing jobs —</div>'
+  h+='<div style="max-height:200px;overflow-y:auto">'
+  if(jobs.length){
+    jobs.forEach(function(j){
+  h+='</div>'
+      h+='<div style="font-size:13px;font-weight:500">'+(j.name||j.id)+'</div>'
+      h+='<div style="font-size:10px;color:#414e63">'+(j.address||j.id)+'</div></div>'
+    })
+  }else{h+='<div style="font-size:12px;color:#414e63">No jobs found</div>'}
+  h+='</div>'
+  h+='<div class="fg" style="margin-top:12px"><label class="fl">Or create a new Job ID now</label>'
+  h+='<button class="btn btn-sm btn-b" onclick="faxCreateJobFromQuote()">+ Create Job from this Quote</button></div>'
+  modal('Link to Job', h, async function(){
+    var jobId=(document.getElementById('ljid-manual').value||'').trim()
+    if(!jobId){toast('Enter a job ID','error');return}
+    var res=await sb.from('fax_bids').update({job_id:jobId,updated_at:new Date().toISOString()}).eq('id',q.id)
+    if(res.error){toast(res.error.message,'error');return}
+    window._faxBidEditing.job_id=jobId
+    closeModal()
+    toast('Linked to job: '+jobId)
+    faxOpenBid(q.id)
+  },'Link Job')
+}
+
+async function faxCreateJobFromQuote(){
+  var q=window._faxBidEditing
+  if(!q){return}
+  closeModal()
+  // Pre-fill new job form and navigate there
+  var jobName=q.project_name||'New Job from '+q.number
+  var addr=q.project_address||''
+  // Navigate to new job page with pre-fill
+  P('newjob', document.querySelector('.nav-item[onclick*="newjob"]'))
+  // Pre-fill after a tick
+  setTimeout(function(){
+    var nf=document.getElementById('nj-name')
+    var af=document.getElementById('nj-address')
+    var dnf=document.getElementById('nj-desc')
+    if(nf)nf.value=jobName
+    if(af)af.value=addr
+    if(dnf)dnf.value=q.project_description||''
+    toast('Fill in the job details, save, then come back to link the Job ID to this quote')
+  },300)
+}
+
+// ══════════════════════════════════════════
+// ESTIMATOR ASSIGNMENT
+// ══════════════════════════════════════════
+async function faxAssignEstimator(){
+  var q=window._faxBidEditing
+  if(!q||!q.id){toast('Save quote first','error');return}
+  if(!window._faxBidUsers){
+    var r=await sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','foreman','stager','estimator'])
+    window._faxBidUsers=r.data||[]
+  }
+  var users=window._faxBidUsers||[]
+  var h='<div style="display:flex;flex-direction:column;gap:8px">'
+  users.forEach(function(u){
+    var isCurrent=q.estimator_id===u.id
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#131c2e;border-radius:7px;border:1px solid rgba(255,255,255,'+(isCurrent?'.25':'.07')+')">'
+    h+='<div><div style="font-size:13px;font-weight:500">'+(u.full_name||u.id)+'</div>'
+    h+='<div style="font-size:10px;color:#414e63">'+u.role+'</div></div>'
+    if(isCurrent){h+='<span class="badge bg-green">Assigned</span>'}
+    else{h+='<button class="btn btn-sm btn-p" data-uid="'+u.id+'" data-uname="'+(u.full_name||'').replace(/"/g,'')+'" onclick="faxDoAssignBtn(this)">Assign</button>'}
+    h+='</div>'
+  })
+  if(!users.length)h+='<div class="empty">No staff found</div>'
+  h+='</div>'
+  modal('Assign Estimator', h, null, '', true)
+}
+
+async function faxDoAssign(userId, userName){
+  var q=window._faxBidEditing
+  if(!q||!q.id)return
+  var res=await sb.from('fax_bids').update({estimator_id:userId,updated_at:new Date().toISOString()}).eq('id',q.id)
+  if(res.error){toast(res.error.message,'error');return}
+  window._faxBidEditing.estimator_id=userId
+  closeModal()
+  toast('Assigned to '+userName)
+  // Update the estimator dropdown if visible
+  var sel=document.getElementById('qf-est')
+  if(sel)sel.value=userId
+}
+
+
 </script>
 `
 const HTML_WORKER = `<!DOCTYPE html>
