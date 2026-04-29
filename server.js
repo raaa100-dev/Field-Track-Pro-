@@ -4068,24 +4068,33 @@ function faxRenderRecsBody(){
   const el=document.getElementById('qf-recs-body');if(!el)return
   const recs=window._faxBidEditing.recipients||[]
   if(!recs.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:6px 0">No recipients yet</div>';return}
-  el.innerHTML=recs.map((r,i)=>{
+  let html=''
+  recs.forEach((r,i)=>{
     const sigHtml=r.signature_name?'<div style="font-size:10px;color:#16a34a;margin-top:3px">✓ Signed by '+r.signature_name+(r.signature_title?' ('+r.signature_title+')':'')+'</div>':''
     const decHtml=r.decline_reason?'<div style="font-size:10px;color:#dc2626;margin-top:3px">Declined: '+r.decline_reason+'</div>':''
-    const sendBtn=['draft','sent'].includes(r.status)?'<button class="btn btn-sm btn-p" onclick="faxSendRecip(''+r.id+'')">Send</button>':''
-    const linkBtn=r.id?'<button class="btn btn-sm btn-ghost" onclick="faxCopyLink(''+r.id+'')">Copy Link</button>':''
-    const decBtn=['draft','sent','viewed'].includes(r.status)?'<button class="btn btn-sm" style="color:#dc2626" onclick="faxDeclineRecip(''+r.id+'','+i+')">Decline</button>':''
+    const sendBtn=['draft','sent'].includes(r.status)?'<button class="btn btn-sm btn-p" onclick="faxSendRecipIdx('+i+')">Send</button>':''
+    const linkBtn=r.id?'<button class="btn btn-sm btn-ghost" onclick="faxCopyLinkIdx('+i+')">Copy Link</button>':''
+    const decBtn=['draft','sent','viewed'].includes(r.status)?'<button class="btn btn-sm" style="color:#dc2626" onclick="faxDeclineRecipIdx('+i+')">Decline</button>':''
     const actionBtns=r.id?'<div style="display:flex;gap:4px;margin-top:4px">'+sendBtn+linkBtn+decBtn+'</div>':'<div style="font-size:10px;color:#414e63;margin-top:4px">Save first to send</div>'
     const removeBtn=!r.id?'<button class="btn btn-ghost btn-sm" style="color:#dc2626;margin-top:5px" onclick="window._faxBidEditing.recipients.splice('+i+',1);faxRenderRecsBody()">Remove</button>':''
-    return '<div style="background:#131c2e;border-radius:7px;padding:9px 11px;margin-bottom:6px;border:1px solid rgba(255,255,255,.06)">'
+    const statusBadge=faxBidStatusBadge(r.status||'draft')
+    html+='<div style="background:#131c2e;border-radius:7px;padding:9px 11px;margin-bottom:6px;border:1px solid rgba(255,255,255,.06)">'
       +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">'
       +'<div><div style="font-size:13px;font-weight:500">'+(r.company||r.name)+'</div>'
       +'<div style="font-size:11px;color:#8a96ab">'+r.name+' '+r.email+'</div>'
       +sigHtml+decHtml+'</div>'
       +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
-      +faxBidStatusBadge(r.status||'draft')+actionBtns+'</div>'
-      +'</div>'+removeBtn+'</div>'
-  }).join('')
+      +statusBadge+actionBtns
+      +'</div></div>'
+      +removeBtn
+      +'</div>'
+  })
+  el.innerHTML=html
 }
+// Index-based wrappers to avoid string-concat onclick issues
+async function faxSendRecipIdx(i){const r=window._faxBidEditing?.recipients?.[i];if(r?.id)await faxSendRecip(r.id)}
+async function faxCopyLinkIdx(i){const r=window._faxBidEditing?.recipients?.[i];if(r?.id)await faxCopyLink(r.id)}
+async function faxDeclineRecipIdx(i){const r=window._faxBidEditing?.recipients?.[i];if(r?.id)await faxDeclineRecip(r.id,i)}
 function faxAddRecipFromGC(){
   const sel=document.getElementById('qf-gc-pick');const id=sel?.value;if(!id)return
   const gc=(window._faxBidGcs||[]).find(g=>g.id===id);if(!gc)return
@@ -4476,7 +4485,7 @@ async function faxImportTemplates(input){
 // ── REPORTS PAGE ──────────────────────────────────────────────────────
 async function pgFaxBidReports(){
   document.getElementById('topbar-actions').innerHTML=\`
-    \${['all','30','90','365'].map(p=>'<button class="btn btn-sm '+(window._faxBidRptPeriod===p?'btn-p':'btn-ghost')+'" onclick="window._faxBidRptPeriod=\\''+p+'\\';pgFaxBidReports()">'+(p==='all'?'All time':'Last '+p+'d')+'</button>').join('')}
+    \${['all','30','90','365'].map(p=>'<button class="btn btn-sm '+(window._faxBidRptPeriod===p?'btn-p':'btn-ghost')+'" onclick="window._faxBidRptPeriod=\''+p+'\';pgFaxBidReports()">'+(p==='all'?'All time':'Last '+p+'d')+'</button>').join('')}
   \`
   document.getElementById('page-area').innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
   const since=window._faxBidRptPeriod&&window._faxBidRptPeriod!=='all'?new Date(Date.now()-parseInt(window._faxBidRptPeriod)*86400000).toISOString():null
