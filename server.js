@@ -3832,7 +3832,7 @@ function faxRenderBidList(){
   h+='</select>'
   h+='<button class="btn btn-ghost btn-sm" onclick="faxExportBidsCsv()">Export CSV</button>'
   var tmpls=window._faxBidTemplates||[]
-  if(tmpls.length){h+='<select class="fs" id="qf-from-tmpl" style="width:180px" onchange="if(this.value){faxNewBid(this.value);this.value=\'\'}"><option value="">From template...</option>'+tmpls.map(function(t){return'<option value="'+t.id+'">'+t.name+'</option>'}).join('')+'</select>'}
+  if(tmpls.length){h+='<select class="fs" id="qf-from-tmpl" style="width:180px" onchange="faxNewBidFromTmpl(this)"><option value="">From template...</option>'+tmpls.map(function(t){return'<option value="'+t.id+'">'+t.name+'</option>'}).join('')+'</select>'}
   h+='</div>'
   if(list.length){
     h+='<table class="tbl"><thead><tr><th>Number</th><th>Project</th><th>Trade</th><th>Recipients</th><th>Total</th><th>Bid Due</th><th>Status</th></tr></thead><tbody>'
@@ -3853,6 +3853,8 @@ function faxRenderBidList(){
   }else{h+=empty('📄','No quotes yet. Create one to get started.')}
   document.getElementById('page-area').innerHTML=h
 }
+
+function faxNewBidFromTmpl(sel){if(sel.value){faxNewBid(sel.value);sel.value=''}}
 
 async function faxNewBid(templateId){
   if(!window._faxBidTemplates){var r=await sb.from('fax_bid_templates').select('*');window._faxBidTemplates=r.data||[]}
@@ -3985,7 +3987,7 @@ function faxImportLiFile(input){
   var file=input.files[0];if(!file)return
   var fr=new FileReader()
   fr.onload=function(e){
-    var lines=e.target.result.split('\n').filter(function(l){return l.trim()})
+    var lines=e.target.result.split('\\n').filter(function(l){return l.trim()})
     var hdr=null
     lines.forEach(function(line){
       var cols=line.match(/("(?:[^"]|"")*"|[^,]*)/g).map(function(v){return v.replace(/^"|"$/g,'').replace(/""/g,'"')})
@@ -4085,7 +4087,7 @@ async function faxCopyLink(recId){
   }catch(e){toast(e.message,'error')}
 }
 async function faxDeclineRecip(recId,idx){
-  var reason=prompt('Decline reason:\n'+FAX_LOSS.map(function(r,i){return(i+1)+'. '+r}).join('\n'))||'Other'
+  var reason=prompt('Decline reason? Type one of: Price too high, Lost to competitor, Timing, Scope changed, Project cancelled, No response, Other')||'Other'
   var res=await sb.from('fax_bid_recipients').update({status:'declined',declined_at:new Date().toISOString(),decline_reason:reason}).eq('id',recId)
   if(res.error){toast(res.error.message,'error');return}
   window._faxBidEditing.recipients[idx]=Object.assign({},window._faxBidEditing.recipients[idx],{status:'declined',decline_reason:reason})
@@ -4460,7 +4462,7 @@ function faxExportBidsCsv(){
   var rows=[['Number','Project','Address','Trade','Estimator','Status','Total','Bid Due','Recipients']]
   var uMap={};(window._faxBidUsers||[]).forEach(function(u){uMap[u.id]=u.full_name||u.id})
   ;(window._faxBidQuotes||[]).forEach(function(q){rows.push([q.number,q.project_name,q.project_address,q.trade,uMap[q.estimator_id]||'',q.status,q.total,q.bid_due_date||'',(q.fax_bid_recipients||[]).map(function(r){return r.company||r.name}).join('; ')])})
-  var csv=rows.map(function(r){return r.map(function(c){return'"'+String(c||'').replace(/"/g,'""')+'"'}).join(',')}).join('\n')
+  var csv=rows.map(function(r){return r.map(function(c){return'"'+String(c||'').replace(/"/g,'""')+'"'}).join(',')}).join('\\\\n')
   var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='fieldaxishq_bids.csv';a.click()
 }
 
