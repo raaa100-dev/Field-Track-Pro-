@@ -4731,12 +4731,15 @@ async function faxDoAssign(userId, userName){
 // ══════════════════════════════════════════
 // PDF QUOTE UPLOAD
 // ══════════════════════════════════════════
+function faxPdfDragOver(el){el.style.borderColor='#2563eb'}
+function faxPdfDragLeave(el){el.style.borderColor='rgba(255,255,255,.15)'}
+
 function faxUploadPdfQuote(){
   var h='<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#8a96ab">'
   h+='Upload a quote you built elsewhere (Excel, Word, etc.). The GC gets a link where they can view your PDF and sign to award it.'
   h+='</div>'
   h+='<div class="fg"><label class="fl">PDF File *</label>'
-  h+='<div id="pdf-dropzone" style="border:1.5px dashed rgba(255,255,255,.15);border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:.15s" ondragover="event.preventDefault();this.style.borderColor=\'#2563eb\'" ondragleave="this.style.borderColor=\'rgba(255,255,255,.15)\'" ondrop="faxPdfDrop(event)">'
+  h+='<div id="pdf-dropzone" style="border:1.5px dashed rgba(255,255,255,.15);border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:.15s" ondragover="event.preventDefault();faxPdfDragOver(this)" ondragleave="faxPdfDragLeave(this)" ondrop="faxPdfDrop(event)">'
   h+='<div style="font-size:24px;margin-bottom:8px">📄</div>'
   h+='<div style="font-size:13px;color:#8a96ab;margin-bottom:8px">Drag PDF here or click to browse</div>'
   h+='<label class="btn btn-sm btn-b" style="cursor:pointer">Browse<input type="file" id="pdf-file-input" accept=".pdf" style="display:none" onchange="faxPdfSelected(this)"></label>'
