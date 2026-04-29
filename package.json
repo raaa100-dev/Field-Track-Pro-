@@ -1,7 +1,7 @@
 {
-  "name": "warehouse-parts-tracker",
-  "version": "1.0.0",
-  "description": "Warehouse parts staging and sign-out tracker",
+  "name": "fieldaxishq",
+  "version": "2.0.0",
+  "description": "FieldAxisHQ — Field Operations, Warehouse & Subcontractor Management Platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
