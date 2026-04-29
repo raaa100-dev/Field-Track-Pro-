@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="Field Access HQ"/>
+<meta name="apple-mobile-web-app-title" content="Field Ops"/>
 <meta name="theme-color" content="#ffffff"/>
 <title>Field Access HQ</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
@@ -219,7 +219,6 @@ canvas.markup-canvas{border-radius:var(--rs);width:100%;touch-action:none;border
   <button onclick="show('report')">Reports</button>
   <button onclick="show('log')" id="nav-log" style="display:none">Log</button>
   <button onclick="show('admin')" id="nav-admin" style="display:none">Admin</button>
-  <button onclick="show('quoteflow')" id="nav-qf">Quotes</button>
 </div>
 <div class="screens">
 
@@ -454,10 +453,6 @@ canvas.markup-canvas{border-radius:var(--rs);width:100%;touch-action:none;border
   </div>
 </div>
 
-
-<!-- QUOTEFLOW -->
-<div id="sc-quoteflow" class="sc"></div>
-
 </div></div>
 
 <!-- SCAN CONFIRM MODAL -->
@@ -589,10 +584,6 @@ canvas.markup-canvas{border-radius:var(--rs);width:100%;touch-action:none;border
 </div>
 
 <div class="toast" id="toast"></div>
-<!-- AWARD PAGE (shown when URL path starts with /award/) -->
-<div id="award-page" style="display:none;min-height:100vh;background:var(--bg);padding:16px 12px max(20px,env(safe-area-inset-bottom))">
-  <div id="award-container"></div>
-</div>
 <script>
 const API=window.location.origin+'/api';
 const CL_CLOUD='disyczlam';
@@ -638,17 +629,7 @@ function fmtDateTime(d){if(!d)return '--';try{return new Date(d).toLocaleString(
 function daysUntil(d){if(!d)return null;const t=new Date();t.setHours(0,0,0,0);return Math.round((new Date(d)-t)/864e5);}
 
 async function init(){
-  // Check if this is the public award page
-  const pathMatch = window.location.pathname.match(/^\/award\/([a-f0-9]{64})$/);
-  if(pathMatch){
-    // Show award page only
-    document.getElementById('award-page').style.display='block';
-    if(typeof qfRenderAwardPage==='function') qfRenderAwardPage(pathMatch[1], document.getElementById('award-container'));
-    return;
-  }
-  // Normal app - show login screen, hide app
-  hideEl('app');
-  showEl('login-screen');
+  hideEl('app');showEl('login-screen');
   if(token){try{CU=await api('GET','/me');showApp();return;}catch(e){token=null;localStorage.removeItem('wh_token');document.getElementById('server-status').textContent='Session expired';}}
 }
 async function doLogin(){
@@ -660,7 +641,7 @@ async function doLogin(){
   catch(e){err.textContent=e.message;err.style.display='block';btn.disabled=false;btn.textContent='Sign In';}
 }
 function doLogout(){if(confirm('Sign out?')){token=null;CU=null;localStorage.removeItem('wh_token');location.reload();}}
-function roleLabel(r){return{admin:'Administrator',stager:'Stager',signout:'Sign-out',requestor:'Requestor',technician:'Technician',foreman:'Foreman',estimator:'Estimator'}[r]||r;}
+function roleLabel(r){return{admin:'Administrator',stager:'Stager',signout:'Sign-out',requestor:'Requestor',technician:'Technician',foreman:'Foreman'}[r]||r;}
 
 function showApp(){
   hideEl('login-screen');document.getElementById('app').style.display='flex';
@@ -688,11 +669,6 @@ function show(n){
   if(n==='notif'){loadNotifs();renderNotifs();}if(n==='orders'){loadOrders();renderOrders();}
   if(n==='schedule')loadSchedule();if(n==='dash')renderDash();
   if(n==='hours')loadHours();if(n==='financials')loadFinancials();
-  if(n==='quoteflow'){
-    const qfEl=document.getElementById('sc-quoteflow');
-    if(qfEl&&!qfEl.dataset.mounted){qfEl.dataset.mounted='1';qfMount(qfEl);}
-    else if(qfEl&&qfEl.dataset.mounted){}  // already mounted, QF manages its own nav
-  }
 }
 
 // CATALOG
@@ -1831,7 +1807,6 @@ async function delUser(id,name){if(!confirm('Delete '+name+'?'))return;try{await
 renderOrdParts();
 init();
 </script>
-<script src="/quoteflow.js"></script>
 <script>
 const _m={name:'Field Access HQ',short_name:'Field Access HQ',start_url:'/',display:'standalone',background_color:'#ffffff',theme_color:'#ffffff'};
 const _b=new Blob([JSON.stringify(_m)],{type:'application/json'});
