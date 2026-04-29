@@ -402,8 +402,8 @@ async function pgDash(){
   try {
   // Run queries individually so one failure doesn't break everything
   const {data:jobs,error:jobsError} = await sb.from('jobs').select('*').order('created_at',{ascending:false})
-  if(jobsError) throw new Error('Jobs: '+jobsError.message)
-  await loadJobsWithPartsStatus()
+  if(jobsError) throw new Error('Jobs query failed: '+jobsError.message+' (code:'+jobsError.code+')')
+  try { await loadJobsWithPartsStatus() } catch(lpe){ console.warn('loadJobsWithPartsStatus:',lpe) }
   const {data:ci} = await sb.from('checkins').select('id,job_id,worker_id,checkin_at,checkout_at').is('checkout_at',null).order('checkin_at',{ascending:false}).limit(20)
   const {data:parts} = await sb.from('job_parts').select('id,job_id,status,assigned_qty,ordered_qty,taken_qty,installed_qty')
   const {data:orders} = await sb.from('orders').select('id,status,job_id').order('created_at',{ascending:false})
@@ -478,8 +478,8 @@ async function pgDash(){
     </div>
   </div>\`
   } catch(e) {
-    console.error('Dashboard:',e)
-    document.getElementById('page-area').innerHTML='<div style="padding:20px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px"><div style="color:#dc2626;font-weight:600;margin-bottom:6px">⚠ Failed to load — database not ready</div><div style="font-size:12px;color:#f87171;word-break:break-all">'+e.message+'</div><div style="font-size:11px;color:#8a96ab;margin-top:8px">Run <strong>supabase-fix.sql</strong> in Supabase SQL Editor, then refresh.</div></div>'
+    console.error('Dashboard error:',e)
+    document.getElementById('page-area').innerHTML='<div style="padding:20px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px"><div style="color:#dc2626;font-weight:600;margin-bottom:8px">⚠ Dashboard failed to load</div><div style="font-size:12px;color:#f87171;font-family:monospace;background:rgba(0,0,0,.3);padding:10px;border-radius:6px;word-break:break-all">'+e.message+'</div><div style="font-size:11px;color:#8a96ab;margin-top:8px">Check browser console (F12) for full details. This is usually a database connection or missing table issue.</div><button class="btn btn-sm" onclick="pgDash()" style="margin-top:10px">Retry</button></div>'
   }
 }
 // ══════════════════════════════════════════
@@ -4068,25 +4068,23 @@ function faxRenderRecsBody(){
   const el=document.getElementById('qf-recs-body');if(!el)return
   const recs=window._faxBidEditing.recipients||[]
   if(!recs.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:6px 0">No recipients yet</div>';return}
-  el.innerHTML=recs.map((r,i)=>\`<div style="background:#131c2e;border-radius:7px;padding:9px 11px;margin-bottom:6px;border:1px solid rgba(255,255,255,.06)">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-      <div>
-        <div style="font-size:13px;font-weight:500">\${r.company||r.name}</div>
-        <div style="font-size:11px;color:#8a96ab">\${r.name}  \${r.email}</div>
-        \${r.signature_name?'<div style="font-size:10px;color:#16a34a;margin-top:3px">✓ Signed by '+r.signature_name+(r.signature_title?' ('+r.signature_title+')':'')+'</div>':''}
-        \${r.decline_reason?'<div style="font-size:10px;color:#dc2626;margin-top:3px">Declined: '+r.decline_reason+'</div>':''}
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        \${faxBidStatusBadge(r.status||'draft')}
-        \${r.id?(\`<div style="display:flex;gap:4px;margin-top:4px">
-          \${['draft','sent'].includes(r.status)?'<button class="btn btn-sm btn-p" onclick="faxSendRecip(\''+r.id+'\')">Send</button>':''}
-          \${r.id?'<button class="btn btn-sm btn-ghost" onclick="faxCopyLink(\''+r.id+'\')">Copy Link</button>':''}
-          \${['draft','sent','viewed'].includes(r.status)?'<button class="btn btn-sm" style="color:#dc2626" onclick="faxDeclineRecip(\''+r.id+'\','+i+')">Decline</button>':''}
-        </div>\`):'<div style="font-size:10px;color:#414e63;margin-top:4px">Save first to send</div>'}
-      </div>
-    </div>
-    \${!r.id?'<button class="btn btn-ghost btn-sm" style="color:#dc2626;margin-top:5px" onclick="window._faxBidEditing.recipients.splice('+i+',1);faxRenderRecsBody()">Remove</button>':''}
-  </div>\`).join('')
+  el.innerHTML=recs.map((r,i)=>{
+    const sigHtml=r.signature_name?'<div style="font-size:10px;color:#16a34a;margin-top:3px">✓ Signed by '+r.signature_name+(r.signature_title?' ('+r.signature_title+')':'')+'</div>':''
+    const decHtml=r.decline_reason?'<div style="font-size:10px;color:#dc2626;margin-top:3px">Declined: '+r.decline_reason+'</div>':''
+    const sendBtn=['draft','sent'].includes(r.status)?'<button class="btn btn-sm btn-p" onclick="faxSendRecip(''+r.id+'')">Send</button>':''
+    const linkBtn=r.id?'<button class="btn btn-sm btn-ghost" onclick="faxCopyLink(''+r.id+'')">Copy Link</button>':''
+    const decBtn=['draft','sent','viewed'].includes(r.status)?'<button class="btn btn-sm" style="color:#dc2626" onclick="faxDeclineRecip(''+r.id+'','+i+')">Decline</button>':''
+    const actionBtns=r.id?'<div style="display:flex;gap:4px;margin-top:4px">'+sendBtn+linkBtn+decBtn+'</div>':'<div style="font-size:10px;color:#414e63;margin-top:4px">Save first to send</div>'
+    const removeBtn=!r.id?'<button class="btn btn-ghost btn-sm" style="color:#dc2626;margin-top:5px" onclick="window._faxBidEditing.recipients.splice('+i+',1);faxRenderRecsBody()">Remove</button>':''
+    return '<div style="background:#131c2e;border-radius:7px;padding:9px 11px;margin-bottom:6px;border:1px solid rgba(255,255,255,.06)">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">'
+      +'<div><div style="font-size:13px;font-weight:500">'+(r.company||r.name)+'</div>'
+      +'<div style="font-size:11px;color:#8a96ab">'+r.name+' '+r.email+'</div>'
+      +sigHtml+decHtml+'</div>'
+      +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
+      +faxBidStatusBadge(r.status||'draft')+actionBtns+'</div>'
+      +'</div>'+removeBtn+'</div>'
+  }).join('')
 }
 function faxAddRecipFromGC(){
   const sel=document.getElementById('qf-gc-pick');const id=sel?.value;if(!id)return
