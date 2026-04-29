@@ -183,7 +183,7 @@ canvas.markup-canvas{border-radius:var(--rs);width:100%;touch-action:none;border
 </style>
 </head>
 <body>
-<div id="login-screen">
+<div id="login-screen" style="display:none">
   <div class="login-wrap">
     <div class="login-card">
       <div class="login-logo">&#127959;</div>
@@ -590,7 +590,7 @@ canvas.markup-canvas{border-radius:var(--rs);width:100%;touch-action:none;border
 
 <div class="toast" id="toast"></div>
 <!-- AWARD PAGE (shown when URL path starts with /award/) -->
-<div id="award-page" style="display:none;min-height:100vh;background:#f9f9f9;padding:16px 12px max(20px,env(safe-area-inset-bottom))">
+<div id="award-page" style="display:none;min-height:100vh;background:var(--bg);padding:16px 12px max(20px,env(safe-area-inset-bottom))">
   <div id="award-container"></div>
 </div>
 <script>
@@ -641,12 +641,14 @@ async function init(){
   // Check if this is the public award page
   const pathMatch = window.location.pathname.match(/^\/award\/([a-f0-9]{64})$/);
   if(pathMatch){
-    hideEl('login-screen');
+    // Show award page only
     document.getElementById('award-page').style.display='block';
     if(typeof qfRenderAwardPage==='function') qfRenderAwardPage(pathMatch[1], document.getElementById('award-container'));
     return;
   }
-  hideEl('app');showEl('login-screen');
+  // Normal app - show login screen, hide app
+  hideEl('app');
+  showEl('login-screen');
   if(token){try{CU=await api('GET','/me');showApp();return;}catch(e){token=null;localStorage.removeItem('wh_token');document.getElementById('server-status').textContent='Session expired';}}
 }
 async function doLogin(){

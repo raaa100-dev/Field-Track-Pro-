@@ -1011,28 +1011,28 @@ async function qfRenderAwardPage(token, container) {
     ${branding?.header_text?`<div style="font-size:13px;opacity:.85">${branding.header_text}</div>`:''}
     ${branding?.address?`<div style="font-size:12px;opacity:.75;margin-top:4px">${branding.address}</div>`:''}
   </div>
-  <div style="padding:20px 24px;border:.5px solid #e5e5ea">
-    <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Quote ${q.number} · v${q.version}</div>
+  <div style="padding:20px 24px;border:.5px solid var(--border)">
+    <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Quote ${q.number} · v${q.version}</div>
     <div style="font-size:22px;font-weight:700;margin-bottom:4px">${q.project_name||'Project'}</div>
-    ${q.project_address?`<div style="color:#666;font-size:14px;margin-bottom:4px">📍 ${q.project_address}${q.project_city?', '+q.project_city:''} ${q.project_state||''}</div>`:''}
-    ${q.trade?`<div style="font-size:13px;color:#888;margin-bottom:12px">${q.trade}</div>`:''}
+    ${q.project_address?`<div style="color:var(--text2);font-size:14px;margin-bottom:4px">📍 ${q.project_address}${q.project_city?', '+q.project_city:''} ${q.project_state||''}</div>`:''}
+    ${q.trade?`<div style="font-size:13px;color:var(--text2);margin-bottom:12px">${q.trade}</div>`:''}
     ${q.bid_due_date?`<div style="background:#fff3cd;border-radius:6px;padding:8px 12px;font-size:13px;color:#856404;margin-bottom:12px">⏰ Bid due: ${q.bid_due_date}</div>`:''}
-    ${q.project_description?`<div style="font-size:14px;color:#444;margin-bottom:16px;line-height:1.6">${q.project_description}</div>`:''}
+    ${q.project_description?`<div style="font-size:14px;color:var(--text);margin-bottom:16px;line-height:1.6">${q.project_description}</div>`:''}
     
     <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px">
-      <thead><tr style="border-bottom:2px solid #e5e5ea"><th style="text-align:left;padding:6px 4px;color:#888">Item</th><th style="text-align:right;padding:6px 4px;color:#888">Qty</th><th style="text-align:right;padding:6px 4px;color:#888">Rate</th><th style="text-align:right;padding:6px 4px;color:#888">Total</th></tr></thead>
-      <tbody>${(q.line_items||[]).map(li=>`<tr style="border-bottom:.5px solid #f0f0f0"><td style="padding:7px 4px">${li.description}</td><td style="text-align:right;padding:7px 4px">${li.qty}</td><td style="text-align:right;padding:7px 4px">${qfFmt$(li.rate)}</td><td style="text-align:right;padding:7px 4px;font-weight:500">${qfFmt$((li.qty||0)*(li.rate||0))}</td></tr>`).join('')}</tbody>
+      <thead><tr style="border-bottom:2px solid var(--border)"><th style="text-align:left;padding:6px 4px;color:#888">Item</th><th style="text-align:right;padding:6px 4px;color:#888">Qty</th><th style="text-align:right;padding:6px 4px;color:#888">Rate</th><th style="text-align:right;padding:6px 4px;color:#888">Total</th></tr></thead>
+      <tbody>${(q.line_items||[]).map(li=>`<tr style="border-bottom:.5px solid var(--border2)"><td style="padding:7px 4px">${li.description}</td><td style="text-align:right;padding:7px 4px">${li.qty}</td><td style="text-align:right;padding:7px 4px">${qfFmt$(li.rate)}</td><td style="text-align:right;padding:7px 4px;font-weight:500">${qfFmt$((li.qty||0)*(li.rate||0))}</td></tr>`).join('')}</tbody>
     </table>
     <div style="text-align:right;font-size:14px;margin-bottom:4px">Subtotal: ${qfFmt$(tots.subtotal)}</div>
-    ${q.tax_rate>0?`<div style="text-align:right;font-size:14px;color:#666;margin-bottom:4px">Tax (${q.tax_rate}%): ${qfFmt$(tots.tax)}</div>`:''}
-    <div style="text-align:right;font-size:20px;font-weight:700;border-top:2px solid #e5e5ea;padding-top:8px">Total: ${qfFmt$(tots.total)}</div>
+    ${q.tax_rate>0?`<div style="text-align:right;font-size:14px;color:var(--text2);margin-bottom:4px">Tax (${q.tax_rate}%): ${qfFmt$(tots.tax)}</div>`:''}
+    <div style="text-align:right;font-size:20px;font-weight:700;border-top:2px solid var(--border);padding-top:8px">Total: ${qfFmt$(tots.total)}</div>
 
-    ${q.notes?`<div style="margin-top:16px"><div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;margin-bottom:4px">Notes</div><div style="font-size:13px;color:#444;line-height:1.6">${q.notes}</div></div>`:''}
-    ${q.terms?`<div style="margin-top:12px"><div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;margin-bottom:4px">Terms</div><div style="font-size:12px;color:#666;line-height:1.6">${q.terms}</div></div>`:''}
+    ${q.notes?`<div style="margin-top:16px"><div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;margin-bottom:4px">Notes</div><div style="font-size:13px;color:var(--text);line-height:1.6">${q.notes}</div></div>`:''}
+    ${q.terms?`<div style="margin-top:12px"><div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;margin-bottom:4px">Terms</div><div style="font-size:12px;color:var(--text2);line-height:1.6">${q.terms}</div></div>`:''}
 
     <div style="margin-top:24px">
     ${rec.status==='awarded'?`<div style="background:#eaf3de;border:1px solid #c0dd97;border-radius:8px;padding:16px;text-align:center"><div style="font-size:20px;margin-bottom:4px">✅</div><div style="font-size:16px;font-weight:700;color:#27500a">You have awarded this bid</div><div style="font-size:13px;color:#27500a;margin-top:4px">Signed by ${rec.signature_name}${rec.signature_title?' ('+rec.signature_title+')':''}</div></div>`
-    :awardedElsewhere?`<div style="background:#f5f5f5;border-radius:8px;padding:16px;text-align:center;color:#666"><div style="font-size:20px;margin-bottom:4px">🔒</div><div style="font-weight:600">This bid has been awarded to another party</div></div>`
+    :awardedElsewhere?`<div style="background:var(--bg3);border-radius:8px;padding:16px;text-align:center;color:#666"><div style="font-size:20px;margin-bottom:4px">🔒</div><div style="font-weight:600">This bid has been awarded to another party</div></div>`
     :`<div style="display:flex;gap:10px;margin-top:8px">
       <button onclick="qfAwardModal('${token}')" style="flex:2;padding:14px;background:${accent};color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer">✓ Award this Bid</button>
       <button onclick="qfDeclineModal('${token}')" style="flex:1;padding:14px;background:#fff;color:#c00;border:1px solid #f7c1c1;border-radius:8px;font-size:14px;cursor:pointer">Decline</button>
@@ -1046,24 +1046,24 @@ async function qfRenderAwardPage(token, container) {
 function qfAwardModal(token){
   const modal=document.createElement('div');modal.id='qf-award-modal';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:max(24px,env(safe-area-inset-bottom))';
-  modal.innerHTML=`<div style="background:#fff;border-radius:16px 16px 12px 12px;width:100%;max-width:480px;padding:20px;max-height:88vh;overflow-y:auto">
+  modal.innerHTML=`<div style="background:var(--bg);border-radius:16px 16px 12px 12px;width:100%;max-width:480px;padding:20px;max-height:88vh;overflow-y:auto">
   <div style="font-size:18px;font-weight:700;margin-bottom:16px">Award this Bid</div>
-  <div style="font-size:12px;font-weight:600;color:#888;margin-bottom:4px">FULL NAME *</div>
-  <input type="text" id="qf-aw-name" placeholder="Your full name" style="width:100%;padding:10px;border:1px solid #d2d2d7;border-radius:8px;font-size:15px;margin-bottom:10px"/>
-  <div style="font-size:12px;font-weight:600;color:#888;margin-bottom:4px">TITLE</div>
-  <input type="text" id="qf-aw-title" placeholder="e.g. Project Manager" style="width:100%;padding:10px;border:1px solid #d2d2d7;border-radius:8px;font-size:15px;margin-bottom:10px"/>
-  <div style="font-size:12px;font-weight:600;color:#888;margin-bottom:4px">EMAIL</div>
-  <input type="email" id="qf-aw-email" placeholder="your@email.com" style="width:100%;padding:10px;border:1px solid #d2d2d7;border-radius:8px;font-size:15px;margin-bottom:10px"/>
-  <div style="font-size:12px;font-weight:600;color:#888;margin-bottom:4px">SIGNATURE * <span style="font-weight:400;color:#aaa">— draw below</span></div>
-  <canvas id="qf-sig-canvas" width="440" height="120" style="border:1px solid #d2d2d7;border-radius:8px;width:100%;touch-action:none;cursor:crosshair;background:#fafafa"></canvas>
-  <button onclick="qfClearSig()" style="font-size:12px;color:#888;background:none;border:none;cursor:pointer;margin:4px 0 10px">Clear signature</button>
+  <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">FULL NAME *</div>
+  <input type="text" id="qf-aw-name" placeholder="Your full name" style="width:100%;padding:10px;border:.5px solid var(--border);border-radius:8px;font-size:15px;margin-bottom:10px"/>
+  <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">TITLE</div>
+  <input type="text" id="qf-aw-title" placeholder="e.g. Project Manager" style="width:100%;padding:10px;border:.5px solid var(--border);border-radius:8px;font-size:15px;margin-bottom:10px"/>
+  <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">EMAIL</div>
+  <input type="email" id="qf-aw-email" placeholder="your@email.com" style="width:100%;padding:10px;border:.5px solid var(--border);border-radius:8px;font-size:15px;margin-bottom:10px"/>
+  <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">SIGNATURE * <span style="font-weight:400;color:#aaa">— draw below</span></div>
+  <canvas id="qf-sig-canvas" width="440" height="120" style="border:.5px solid var(--border);border-radius:8px;width:100%;touch-action:none;cursor:crosshair;background:var(--bg2)"></canvas>
+  <button onclick="qfClearSig()" style="font-size:12px;color:var(--text2);background:none;border:none;cursor:pointer;margin:4px 0 10px">Clear signature</button>
   <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer">
     <input type="checkbox" id="qf-aw-agree" style="margin-top:2px;width:18px;height:18px"/>
     <span style="font-size:13px;color:#444">I agree to award this bid and authorize the work described above.</span>
   </label>
   <div style="display:flex;gap:10px">
     <button onclick="qfSubmitAward('${token}')" style="flex:2;padding:12px;background:#27500a;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer">Submit Award</button>
-    <button onclick="document.getElementById('qf-award-modal').remove()" style="flex:1;padding:12px;border:1px solid #d2d2d7;border-radius:8px;font-size:14px;cursor:pointer;background:#fff">Cancel</button>
+    <button onclick="document.getElementById('qf-award-modal').remove()" style="flex:1;padding:12px;border:.5px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer;background:#fff">Cancel</button>
   </div>
   </div>`;
   document.body.appendChild(modal);
