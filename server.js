@@ -1780,6 +1780,9 @@ function renderOrdersList(orders, jobs){
     html+=items.map(i=>'<div style="display:flex;align-items:center;gap:10px;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.04)"><div style="flex:1"><div style="font-size:12px;font-weight:500">'+i.name+'</div><div style="font-size:10px;color:#414e63">'+i.barcode+'</div></div><div style="font-size:12px;font-weight:600">×'+i.qty+'</div></div>').join('')
     html+='<div style="padding:7px 11px;font-size:11px;color:#414e63">'+items.length+' type(s) · '+totalQty+' units</div></div>'
     html+='<div style="display:flex;gap:7px;flex-wrap:wrap">'
+    if(o.status==='pending'||o.status==='ordered'){
+      html+='<button class="btn btn-sm" data-oid="'+o.id+'" onclick="editOrderModal(this.dataset.oid)">✏ Edit Order</button>'
+    }
     if(o.status==='pending') html+='<button class="btn btn-p btn-sm" data-oid="'+o.id+'" data-ns="ordered" onclick="updateOrderStatus(this.dataset.oid,this.dataset.ns)">Mark Ordered</button>'
     if(o.status==='ordered') html+='<button class="btn btn-p btn-sm" data-oid="'+o.id+'" data-jid="'+o.job_id+'" onclick="stageOrderToJob(this.dataset.oid,this.dataset.jid)">📥 Stage to Job</button>'
     if(o.status!=='staged'&&o.status!=='cancelled') html+='<button class="btn btn-sm" data-oid="'+o.id+'" data-ns="cancelled" onclick="updateOrderStatus(this.dataset.oid,this.dataset.ns)">Cancel</button>'
@@ -3518,6 +3521,127 @@ async function updateOrderStatus(orderId, newStatus){
   await sb.from('orders').update({status:newStatus,updated_at:new Date().toISOString()}).eq('id',orderId)
   toast('Order updated to '+newStatus)
   pgOrders(window._ordFilterJobId||null)
+}
+
+async function editOrderModal(orderId){
+  const{data:order}=await sb.from('orders').select('*,jobs(name)').eq('id',orderId).single()
+  if(!order){toast('Order not found','error');return}
+  const items=typeof order.items==='string'?JSON.parse(order.items||'[]'):(order.items||[])
+  const jobName=order.jobs?.name||order.job_id
+  window._editOrdItems=JSON.parse(JSON.stringify(items))
+  window._editOrdId=orderId
+  window._editOrdJobId=order.job_id
+
+  function rebuildList(){
+    const el=document.getElementById('eoi-list');if(!el)return
+    const its=window._editOrdItems||[]
+    if(!its.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:8px 0">No parts — add below</div>';return}
+    el.innerHTML=its.map((item,idx)=>
+      '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#0c1220;border-radius:7px;margin-bottom:5px">'
+      +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+item.name+'</div>'
+      +'<div style="font-size:10px;color:#414e63">'+item.barcode+'</div></div>'
+      +'<div style="display:flex;align-items:center;gap:5px">'
+      +'<button data-i="'+idx+'" onclick="adjEO(parseInt(this.dataset.i),-1)" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:#131c2e;cursor:pointer;color:#e8edf5;font-size:16px">−</button>'
+      +'<span id="eoi-qty-'+idx+'" style="min-width:32px;text-align:center;font-size:14px;font-weight:600;padding:0 4px">'+item.qty+'</span>'
+      +'<button data-i="'+idx+'" onclick="adjEO(parseInt(this.dataset.i),1)" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:#131c2e;cursor:pointer;color:#16a34a;font-size:16px">+</button>'
+      +'<button data-i="'+idx+'" onclick="rmEOItem(parseInt(this.dataset.i))" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(220,38,38,.2);background:rgba(220,38,38,.1);cursor:pointer;color:#dc2626;font-size:14px">✕</button>'
+      +'</div></div>'
+    ).join('')
+  }
+  window._rebuildEOList=rebuildList
+
+  const notesEsc=(order.notes||'').replace(/"/g,'&quot;')
+  const html=\`
+    <div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:7px;padding:9px 12px;margin-bottom:13px">
+      <div style="font-size:10px;color:#414e63">JOB</div>
+      <div style="font-size:14px;font-weight:600">\${jobName}</div>
+    </div>
+    <div class="fg" style="margin-bottom:8px">
+      <label class="fl">Notes / PO #</label>
+      <input class="fi" id="eod-notes" value="\${notesEsc}">
+    </div>
+    <div class="sec-hdr" style="margin-bottom:8px">Parts on this Order</div>
+    <div id="eoi-list" style="margin-bottom:12px"></div>
+    <div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:10px 12px">
+      <div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Add Part to Order</div>
+      <div style="display:flex;gap:7px">
+        <input class="fi" id="eod-bc" placeholder="Barcode or part name" style="flex:1" oninput="liveResolveBC(this.value)" onkeydown="editOrdBcKey(event)">
+        <input class="fi" id="eod-qty" type="number" value="1" min="1" style="width:60px">
+        <button class="btn btn-p btn-sm" onclick="addEditOrdItem()">Add</button>
+      </div>
+      <div id="eod-resolve" style="margin-top:6px"></div>
+    </div>\`
+
+  modal('Edit Order', html, async()=>{
+    const its=window._editOrdItems||[]
+    if(!its.length){toast('Order must have at least one part','error');return}
+    const notes=document.getElementById('eod-notes')?.value||''
+    const now=new Date().toISOString()
+    const{error}=await sb.from('orders').update({items:JSON.stringify(its),notes,updated_at:now}).eq('id',orderId)
+    if(error){toast(error.message,'error');return}
+    for(const item of its){
+      const{data:ex}=await sb.from('job_parts').select('*').eq('job_id',window._editOrdJobId).eq('part_id',item.barcode).maybeSingle()
+      if(ex){
+        await sb.from('job_parts').update({assigned_qty:item.qty,ordered_qty:item.qty,updated_at:now}).eq('id',ex.id)
+      } else {
+        await sb.from('job_parts').insert({id:uuid(),job_id:window._editOrdJobId,part_id:item.barcode,part_name:item.name,status:'ordered',assigned_qty:item.qty,ordered_qty:item.qty,taken_qty:0,installed_qty:0,returned_qty:0,order_id:orderId,notes:item.description||'',created_at:now,updated_at:now})
+      }
+    }
+    closeModal();toast('Order updated');pgOrders(window._ordFilterJobId||null)
+  },'Save Changes')
+  // Build list after modal is shown
+  setTimeout(rebuildList,50)
+}
+
+function adjEO(idx, delta){
+  const items=window._editOrdItems||[]
+  if(!items[idx])return
+  items[idx].qty=Math.max(1,(items[idx].qty||1)+delta)
+  const el=document.getElementById('eoi-qty-'+idx)
+  if(el)el.textContent=items[idx].qty
+}
+
+function rmEOItem(idx){
+  if(!confirm('Remove this part?'))return
+  ;(window._editOrdItems||[]).splice(idx,1)
+  if(window._rebuildEOList)window._rebuildEOList()
+}
+
+function addEditOrdItem(){
+  const bc=(document.getElementById('eod-bc')?.value||'').trim()
+  if(!bc){toast('Enter a barcode or part name','error');return}
+  const qty=parseInt(document.getElementById('eod-qty')?.value)||1
+  const match=allCatalog.find(x=>x.barcode===bc||x.name.toLowerCase()===bc.toLowerCase())
+  const part=match||{barcode:bc,name:bc,description:''}
+  const items=window._editOrdItems||[]
+  const ex=items.find(i=>i.barcode===part.barcode)
+  if(ex){ex.qty+=qty;toast('Updated qty for '+part.name)}
+  else{items.push({barcode:part.barcode,name:part.name,qty,description:part.description||''});toast('Added: '+part.name)}
+  window._editOrdItems=items
+  document.getElementById('eod-bc').value=''
+  document.getElementById('eod-qty').value=1
+  const res=document.getElementById('eod-resolve');if(res)res.innerHTML=''
+  if(window._rebuildEOList)window._rebuildEOList()
+  document.getElementById('eod-bc').focus()
+}
+
+function editOrdBcKey(e){if(e.key==='Enter'){e.preventDefault();addEditOrdItem()}}
+function addEditOrdItem(){
+  const bc=(document.getElementById('eod-bc')?.value||'').trim()
+  if(!bc){toast('Enter a barcode or part name','error');return}
+  const qty=parseInt(document.getElementById('eod-qty')?.value)||1
+  const match=allCatalog.find(x=>x.barcode===bc||x.name.toLowerCase()===bc.toLowerCase())
+  const part=match||{barcode:bc,name:bc,description:'',part_number:''}
+  const items=window._editOrdItems||[]
+  const ex=items.find(i=>i.barcode===part.barcode)
+  if(ex){ex.qty+=qty;toast('Qty updated for '+part.name)}
+  else{items.push({barcode:part.barcode,name:part.name,qty,description:part.description||''});toast('Added: '+part.name)}
+  window._editOrdItems=items
+  document.getElementById('eod-bc').value=''
+  document.getElementById('eod-qty').value=1
+  const res=document.getElementById('eod-resolve');if(res)res.innerHTML=''
+  if(window._rebuildEditItems)window._rebuildEditItems()
+  document.getElementById('eod-bc').focus()
 }
 </script>
 `
