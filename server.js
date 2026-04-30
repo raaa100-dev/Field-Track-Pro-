@@ -3765,16 +3765,19 @@ function addEditOrdItem(){
 // FieldAxisHQ Bid Engine — Quotes, Invoices, Templates, Reports
 // No template literals used — all string concatenation for compatibility
 
-var FAX_TRADES=['Demo','Framing','Drywall','Roofing','Concrete','Electrical','Plumbing','HVAC','Finish Carpentry','Painting','Flooring','Landscaping','Fire Alarm','Low Voltage','Other']
+var FAX_TRADES=['Fire Alarm','Low Voltage','Demo','Framing','Drywall','Roofing','Concrete','Electrical','Plumbing','HVAC','Finish Carpentry','Painting','Flooring','Landscaping','Other']
+var FAX_DEFAULT_TRADE='Fire Alarm'
+
 var FAX_LOSS=['Price too high','Lost to competitor','Timing / availability','Scope changed','Project cancelled','No response from GC','Other']
 
 function faxBidStatusBadge(s){
-  var m={draft:['bg-gray','Draft'],sent:['bg-blue','Sent'],viewed:['bg-purple','Viewed'],awarded:['bg-green','Awarded'],declined:['bg-red','Declined'],paid:['bg-green','Paid'],overdue:['bg-red','Overdue']}
+  var m={draft:['bg-gray','Draft'],sent:['bg-blue','Sent'],viewed:['bg-purple','Viewed'],awarded:['bg-green','Awarded'],declined:['bg-red','Declined'],no_scope:['bg-gray','No Scope'],paid:['bg-green','Paid'],overdue:['bg-red','Overdue']}
   var x=m[s]||['bg-gray',s||'—']
   return '<span class="badge '+x[0]+'">'+x[1]+'</span>'
 }
 function faxDeriveStatus(r){
   if(!r||!r.length)return 'draft'
+  if(r.some(function(x){return x.status==='no_scope'}))return 'no_scope'
   if(r.some(function(x){return x.status==='awarded'}))return 'awarded'
   if(r.every(function(x){return x.status==='declined'}))return 'declined'
   if(r.some(function(x){return x.status==='viewed'}))return 'viewed'
@@ -3822,10 +3825,15 @@ function faxRenderBidList(){
   sf=sf.toLowerCase()
   var stf=(document.getElementById('qf-status-f')||{}).value||''
   var tf=(document.getElementById('qf-trade-f')||{}).value||''
+  var estf=(document.getElementById('qf-est-f')||{}).value||''
+  var sentf=(document.getElementById('qf-sent-f')||{}).value||''
   var list=qs.filter(function(q){
     if(sf){var hay=(q.number+q.project_name+q.project_address+(q.fax_bid_recipients||[]).map(function(r){return r.company+r.name}).join('')).toLowerCase();if(hay.indexOf(sf)<0)return false}
     if(stf&&q.status!==stf)return false
     if(tf&&q.trade!==tf)return false
+    if(estf&&q.estimator_id!==estf)return false
+    if(sentf==='unsent'&&q.status!=='draft')return false
+    if(sentf==='sent'&&q.status==='draft')return false
     return true
   })
   var open=qs.filter(function(q){return['awarded','declined'].indexOf(q.status)<0})
@@ -3842,11 +3850,16 @@ function faxRenderBidList(){
   h+='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
   h+='<input class="fi" id="qf-search" placeholder="Search quotes..." style="width:200px" oninput="faxRenderBidList()">'
   h+='<select class="fs" id="qf-status-f" style="width:130px" onchange="faxRenderBidList()"><option value="">All status</option>'
-  h+=['draft','sent','viewed','awarded','declined'].map(function(s){return'<option>'+s+'</option>'}).join('')
+  h+=['draft','sent','viewed','awarded','declined','no_scope'].map(function(s){return'<option>'+s+'</option>'}).join('')
   h+='</select>'
   h+='<select class="fs" id="qf-trade-f" style="width:140px" onchange="faxRenderBidList()"><option value="">All trades</option>'
   h+=FAX_TRADES.map(function(t){return'<option>'+t+'</option>'}).join('')
   h+='</select>'
+  h+='<select class="fs" id="qf-est-f" style="width:160px" onchange="faxRenderBidList()"><option value="">All estimators</option>'
+  ;(window._faxBidUsers||[]).forEach(function(u){h+='<option value="'+u.id+'">'+(u.full_name||u.id)+'</option>'})
+  h+='</select>'
+  h+='<select class="fs" id="qf-sent-f" style="width:150px" onchange="faxRenderBidList()">'
+  h+='<option value="">All quotes</option><option value="unsent">Not sent yet</option><option value="sent">Sent</option></select>'
   h+='<button class="btn btn-ghost btn-sm" onclick="faxExportBidsCsv()">Export CSV</button>'
   var tmpls=window._faxBidTemplates||[]
   if(tmpls.length){h+='<select class="fs" id="qf-from-tmpl" style="width:180px" onchange="faxNewBidFromTmpl(this)"><option value="">From template...</option>'+tmpls.map(function(t){return'<option value="'+t.id+'">'+t.name+'</option>'}).join('')+'</select>'}
@@ -3885,7 +3898,7 @@ async function faxNewBid(templateId){
     var tmpl=(window._faxBidTemplates||[]).filter(function(t){return t.id===templateId})[0]
     if(tmpl){prefill={trade:tmpl.trade||'',project_description:tmpl.description||'',line_items:JSON.parse(JSON.stringify(tmpl.line_items||[])),tax_rate:tmpl.tax_rate||0,notes:tmpl.notes||'',terms:tmpl.terms||'',from_template_id:tmpl.id,expiry_date:tmpl.expiry_days?new Date(Date.now()+tmpl.expiry_days*86400000).toISOString().split('T')[0]:''}}
   }
-  window._faxBidEditing=Object.assign({id:null,number:number,version:1,project_name:'',project_description:'',project_address:'',project_city:'',project_state:'',project_zip:'',estimator_id:'',job_id:'',issue_date:new Date().toISOString().split('T')[0],bid_due_date:'',recipients:[]},prefill)
+  window._faxBidEditing=Object.assign({id:null,number:number,version:1,project_name:'',project_description:'',project_address:'',project_city:'',project_state:'',project_zip:'',estimator_id:'',job_id:'',issue_date:new Date().toISOString().split('T')[0],bid_due_date:'',recipients:[],trade:FAX_DEFAULT_TRADE},prefill)
   faxRenderBidEditor()
 }
 
@@ -4063,6 +4076,7 @@ function faxRenderRecsBody(){
       if(['draft','sent'].indexOf(r.status)>=0)h+='<button class="btn btn-sm btn-p" onclick="faxSendRecipIdx('+i+')">Send</button>'
       h+='<button class="btn btn-sm btn-ghost" onclick="faxCopyLinkIdx('+i+')">Copy Link</button>'
       if(['draft','sent','viewed'].indexOf(r.status)>=0)h+='<button class="btn btn-sm" style="color:#dc2626" onclick="faxDeclineRecipIdx('+i+')">Decline</button>'
+    if(['draft','sent','viewed'].indexOf(r.status)>=0)h+='<button class="btn btn-sm" style="color:#8a96ab" onclick="faxNoScopeRecipIdx('+i+')">No Scope</button>'
       h+='</div>'
     }else{h+='<div style="font-size:10px;color:#414e63;margin-top:4px">Save first to send</div>'}
     h+='</div></div>'
@@ -4108,6 +4122,16 @@ async function faxCopyLink(recId){
     if(navigator.clipboard){navigator.clipboard.writeText(d.url).then(function(){toast('Link copied!')}).catch(function(){prompt('Copy this award link:',d.url)})}
     else{prompt('Copy this award link:',d.url)}
   }catch(e){toast(e.message,'error')}
+}
+async function faxNoScopeRecipIdx(i){
+  var r=(window._faxBidEditing||{}).recipients&&window._faxBidEditing.recipients[i]
+  if(r&&r.id)await faxNoScopeRecip(r.id,i)
+}
+async function faxNoScopeRecip(recId,idx){
+  var res=await sb.from('fax_bid_recipients').update({status:'no_scope',declined_at:new Date().toISOString(),decline_reason:'No scope required'}).eq('id',recId)
+  if(res.error){toast(res.error.message,'error');return}
+  window._faxBidEditing.recipients[idx]=Object.assign({},window._faxBidEditing.recipients[idx],{status:'no_scope',decline_reason:'No scope required'})
+  faxRenderRecsBody();toast('Marked: No Scope Required')
 }
 async function faxDeclineRecip(recId,idx){
   var reason=prompt('Decline reason? Type one of: Price too high, Lost to competitor, Timing, Scope changed, Project cancelled, No response, Other')||'Other'
@@ -4508,17 +4532,24 @@ document.addEventListener('DOMContentLoaded',function(){
 // QUICK QUOTE — Phone-in / walk-in customer
 // ══════════════════════════════════════════
 function faxQuickQuote(){
+  // Preload users so estimator dropdown is populated
+  if(!window._faxBidUsers){
+    sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','foreman','stager','estimator']).then(function(r){window._faxBidUsers=r.data||[]})
+  }
   var h='<div class="fg"><label class="fl">Customer Name *</label><input class="fi" id="qq-name" placeholder="John Smith"></div>'
   h+='<div class="fg"><label class="fl">Phone</label><input class="fi" id="qq-phone" type="tel" placeholder="(555) 000-0000"></div>'
   h+='<div class="fg"><label class="fl">Email (optional)</label><input class="fi" id="qq-email" type="email" placeholder="customer@email.com"></div>'
   h+='<div class="fg"><label class="fl">Company (optional)</label><input class="fi" id="qq-co" placeholder="ABC Construction"></div>'
   h+='<div class="fg"><label class="fl">Job Description *</label><textarea class="ft" id="qq-desc" placeholder="Describe the scope of work..."></textarea></div>'
   h+='<div class="two">'
-  h+='<div class="fg"><label class="fl">Trade</label><select class="fs" id="qq-trade"><option value="">— Select —</option>'
-  FAX_TRADES.forEach(function(t){h+='<option>'+t+'</option>'})
+  h+='<div class="fg"><label class="fl">Trade</label><select class="fs" id="qq-trade">'
+  FAX_TRADES.forEach(function(t){h+='<option '+(t===FAX_DEFAULT_TRADE?'selected':'')+'>'+t+'</option>'})
   h+='</select></div>'
   h+='<div class="fg"><label class="fl">Bid Due Date</label><input class="fi" type="date" id="qq-due"></div>'
   h+='</div>'
+  h+='<div class="fg"><label class="fl">Assign Estimator</label><select class="fs" id="qq-est"><option value="">— No estimator —</option>'
+  ;(window._faxBidUsers||[]).forEach(function(u){h+='<option value="'+u.id+'">'+(u.full_name||u.id)+'</option>'})
+  h+='</select></div>'
   modal('Quick Quote — Phone/Walk-in', h, async function(){
     var name=(document.getElementById('qq-name').value||'').trim()
     if(!name){toast('Customer name required','error');return}
@@ -4536,6 +4567,7 @@ function faxQuickQuote(){
       project_name:name+' — '+(document.getElementById('qq-trade').value||'Quote'),
       project_description:desc,
       trade:document.getElementById('qq-trade').value||'',
+      estimator_id:document.getElementById('qq-est')&&document.getElementById('qq-est').value||null,
       bid_due_date:document.getElementById('qq-due').value||null,
       line_items:[],tax_rate:0,subtotal:0,tax:0,total:0,
       notes:'',terms:'',revisions:[],
