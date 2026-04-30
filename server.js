@@ -3805,7 +3805,7 @@ function faxDelBlkById(el){var id=el.getAttribute("data-blkid");if(id)faxDelScop
 function faxNewBidFromTmpl(sel){if(sel.value){faxNewBid(sel.value);sel.value=""}}
 
 async function pgFaxBids(){
-  var canEdit=['admin','pm','foreman','stager'].indexOf(window._faxRole||'')>=0
+  var canEdit=['admin','pm','foreman','stager'].indexOf((typeof ME!=='undefined'?ME.role:window._faxRole)||'')>=0
   document.getElementById('topbar-actions').innerHTML=canEdit?'<button class="btn btn-p btn-sm" onclick="faxNewBid()">+ New Quote</button> <button class="btn btn-a btn-sm" onclick="faxQuickQuote()">📞 Quick Quote</button> <button class="btn btn-sm" onclick="faxUploadPdfQuote()">📄 PDF Quote</button>':''
   try{
     var r1=await sb.from('fax_bids').select('*,fax_bid_recipients(*)').order('created_at',{ascending:false})
@@ -4500,7 +4500,7 @@ window._sbToken=null
 document.addEventListener('DOMContentLoaded',function(){
   if(typeof sb!=='undefined')sb.auth.getSession().then(function(res){
     var session=res.data&&res.data.session
-    if(session){window._sbToken=session.access_token;window._faxUser={full_name:(session.user.user_metadata||{}).full_name||''};window._faxRole=session.user.role||'authenticated'}
+    if(session){window._sbToken=session.access_token;window._faxUser={full_name:(typeof ME!=='undefined'&&ME.full_name)||''};window._faxRole=(typeof ME!=='undefined'&&ME.role)||session.user.role||'admin'}
   })
 })
 
