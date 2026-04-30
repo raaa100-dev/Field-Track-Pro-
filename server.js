@@ -91,10 +91,10 @@ async function doSignIn() {
   // Check role from profile
   const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single()
   const userRole = profile?.role || 'sub_worker'
-  if (role === 'admin' && !['admin','pm','foreman','stager','signout','requestor','technician'].includes(userRole)) {
+  if (role === 'admin' && !['admin','pm','estimator','foreman','stager','signout','requestor','technician'].includes(userRole)) {
     errEl.textContent = 'You do not have admin access. Use Field Worker login.'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Sign In'; return
   }
-  window.location.href = ['admin','pm','foreman','stager','signout','requestor','technician'].includes(userRole) ? 'admin.html' : 'worker.html'
+  window.location.href = ['admin','pm','estimator','foreman','stager','signout','requestor','technician'].includes(userRole) ? 'admin.html' : 'worker.html'
 }
 // Auto-redirect if already logged in (unless ?signout=1 in URL)
 if (!window.location.search.includes('signout')) {
@@ -102,7 +102,7 @@ if (!window.location.search.includes('signout')) {
     if (!session) return
     sb.from('profiles').select('role').eq('id',session.user.id).single().then(({data:p}) => {
       const r = p?.role||'sub_worker'
-      window.location.href = ['admin','pm','foreman','stager','signout','requestor','technician'].includes(r) ? 'admin.html' : 'worker.html'
+      window.location.href = ['admin','pm','estimator','foreman','stager','signout','requestor','technician'].includes(r) ? 'admin.html' : 'worker.html'
     })
   })
 }
@@ -390,7 +390,7 @@ const PARTS_STATUS_LABELS={ordered:'Ordered',staged:'Staged',delivered:'Delivere
 const PERMIT_STATUS_LABELS={not_required:'Not Required',pending:'Pending',submitted:'Submitted',approved:'Approved',rejected:'Rejected',expired:'Expired'}
 const PERMIT_STATUS_COLORS={not_required:'bg-gray',pending:'bg-amber',submitted:'bg-blue',approved:'bg-green',rejected:'bg-red',expired:'bg-red'}
 function stageBadge(p){return\`<span class="badge \${STAGE_COLORS[p]||'bg-gray'}">\${STAGE_LABELS[p]||p||'—'}</span>\`}
-function roleBadge(r){const m={admin:'bg-purple',pm:'bg-blue',stager:'bg-amber',foreman:'bg-teal',technician:'bg-green',sub_lead:'bg-amber',sub_worker:'bg-gray'};return\`<span class="badge \${m[r]||'bg-gray'}">\${r||'—'}</span>\`}
+function roleBadge(r){const m={admin:'bg-purple',pm:'bg-blue',estimator:'bg-blue',stager:'bg-amber',foreman:'bg-teal',technician:'bg-green',sub_lead:'bg-amber',sub_worker:'bg-gray'};return\`<span class="badge \${m[r]||'bg-gray'}">\${r||'—'}</span>\`}
 function empty(icon,txt){return\`<div class="empty"><div class="empty-icon">\${icon}</div><div style="color:#414e63;font-size:12px">\${txt}</div></div>\`}
 function ld(){return'<div class="loading"><div class="spin"></div> Loading…</div>'}
 
@@ -2474,7 +2474,7 @@ function addUserModal(){
     '<div class="fg"><label class="fl">Role *</label><select class="fs" id="au-rl">'+
     '<option value="sub_worker">Field Worker</option><option value="sub_lead">Lead</option>'+
     '<option value="technician">Technician</option><option value="stager">Stager</option>'+
-    '<option value="foreman">Foreman</option><option value="pm">Project Manager</option>'+
+    '<option value="foreman">Foreman</option><option value="estimator">Estimator</option><option value="pm">Project Manager</option>'+
     '<option value="admin">Admin</option></select></div></div>'+
     '<div class="two"><div class="fg"><label class="fl">Company</label><select class="fs" id="au-co">'+
     '<option value="">Internal</option>'+coOpts+'</select></div>'+
@@ -2535,7 +2535,7 @@ function editUserModal(id,role,active,name){
     '<div class="two"><div class="fg"><label class="fl">Role</label><select class="fs" id="eu-rl">'+
     '<option value="sub_worker">Field Worker</option><option value="sub_lead">Lead</option>'+
     '<option value="technician">Technician</option><option value="stager">Stager</option>'+
-    '<option value="foreman">Foreman</option><option value="pm">Project Manager</option>'+
+    '<option value="foreman">Foreman</option><option value="estimator">Estimator</option><option value="pm">Project Manager</option>'+
     '<option value="admin">Admin</option></select></div>'+
     '<div class="fg"><label class="fl">Company</label><select class="fs" id="eu-co"><option value="">Internal</option>'+coOpts+'</select></div></div>'+
     '<div class="two"><div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="eu-hire"></div>'+
@@ -3808,7 +3808,7 @@ function faxDelBlkById(el){var id=el.getAttribute("data-blkid");if(id)faxDelScop
 function faxNewBidFromTmpl(sel){if(sel.value){faxNewBid(sel.value);sel.value=""}}
 
 async function pgFaxBids(){
-  var canEdit=['admin','pm','foreman','stager'].indexOf((typeof ME!=='undefined'?ME.role:window._faxRole)||'')>=0
+  var canEdit=['admin','pm','estimator','foreman','stager'].indexOf((typeof ME!=='undefined'?ME.role:window._faxRole)||'')>=0
   document.getElementById('topbar-actions').innerHTML=canEdit?'<button class="btn btn-p btn-sm" onclick="faxNewBid()">+ New Quote</button> <button class="btn btn-a btn-sm" onclick="faxQuickQuote()">📞 Quick Quote</button> <button class="btn btn-sm" onclick="faxUploadPdfQuote()">📄 PDF Quote</button>':''
   try{
     var r1=await sb.from('fax_bids').select('*,fax_bid_recipients(*)').order('created_at',{ascending:false})
@@ -5955,7 +5955,7 @@ const server = http.createServer(async (req, res) => {
     const u = await getUser(req); if (!requireRole(res, u, 'admin')) return;
     const { username, password, name, role, company_id, phone, email, is_lead, avatar_url } = await readBody(req);
     if (!username || !password || !name || !role) return json(res, 400, { error: 'username, password, name, role required' });
-    const validRoles = ['admin', 'pm', 'foreman', 'stager', 'signout', 'requestor', 'technician', 'sub_lead', 'sub_worker'];
+    const validRoles = ['admin', 'pm', 'estimator', 'foreman', 'stager', 'signout', 'requestor', 'technician', 'sub_lead', 'sub_worker'];
     if (!validRoles.includes(role)) return json(res, 400, { error: 'Invalid role' });
     try {
       const rows = await dbInsert('users', { id: uid(), username, password_hash: hashPwd(password), name, role, company_id: company_id || null, phone: phone || '', email: email || '', is_lead: !!is_lead, avatar_url: avatar_url || null, active: true, created_at: nowISO() });
