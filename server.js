@@ -5146,6 +5146,7 @@ function renderTaskList(tasks){
     h+='<td style="display:flex;gap:4px">'
     if(t.status==='open')h+='<button class="btn btn-sm btn-a" data-tid="'+t.id+'" onclick="progressTask(this)">Start</button>'
     if(t.status!=='resolved')h+='<button class="btn btn-sm btn-g" data-tid="'+t.id+'" onclick="resolveTask(this)">Resolve</button>'
+    h+='<button class="btn btn-sm" data-tid="'+t.id+'" onclick="editTask(this)">Edit</button>'
     h+='<button class="btn btn-sm btn-ghost" data-tid="'+t.id+'" onclick="viewTask(this)">View</button>'
     h+='</td></tr>'
   })
@@ -5186,6 +5187,81 @@ async function resolveTask(btn){
   renderTaskList()
 }
 
+async function editTask(btn){
+  var id=btn.getAttribute('data-tid')
+  var t=(window._allTasks||[]).find(function(x){return x.id===id})
+  if(!t){toast('Task not found','error');return}
+  if(!window._faxBidUsers){
+    var r=await sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','estimator','foreman','stager'])
+    window._faxBidUsers=r.data||[]
+  }
+  var userOpts=''
+  ;(window._faxBidUsers||[]).forEach(function(u){
+    userOpts+='<option value="'+u.id+'"'+(t.assigned_to===u.id?' selected':'')+' >'+(u.full_name||u.id)+'</option>'
+  })
+  var rJobs=await sb.from('jobs').select('id,name').eq('archived',false).order('name',{ascending:true}).limit(100)
+  var jobOpts='<option value="">— No linked job —</option>'
+  ;(rJobs.data||[]).forEach(function(j){
+    jobOpts+='<option value="'+j.id+'|'+j.name+'"'+(t.job_id===j.id?' selected':'')+'>'+j.name+'</option>'
+  })
+  var h='<div class="fg"><label class="fl">Title *</label><input class="fi" id="etk-title" value="'+(t.title||'').replace(/"/g,'&quot;')+'"></div>'
+  h+='<div class="fg"><label class="fl">Description / Notes</label><textarea class="ft" id="etk-desc" style="min-height:100px">'+(t.description||'')+'</textarea></div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">Priority</label><select class="fs" id="etk-pri">'
+  ;['critical','high','medium','low'].forEach(function(p){h+='<option value="'+p+'"'+(t.priority===p?' selected':'')+'>'+p.charAt(0).toUpperCase()+p.slice(1)+'</option>'})
+  h+='</select></div>'
+  h+='<div class="fg"><label class="fl">Status</label><select class="fs" id="etk-stat">'
+  ;['open','in_progress','resolved'].forEach(function(s){h+='<option value="'+s+'"'+(t.status===s?' selected':'')+'>'+s.replace('_',' ').replace(/^\w/,function(c){return c.toUpperCase()})+'</option>'})
+  h+='</select></div>'
+  h+='</div>'
+  h+='<div class="fg"><label class="fl">Assign To</label><select class="fs" id="etk-assign"><option value="">— Unassigned —</option>'+userOpts+'</select></div>'
+  h+='<div class="fg"><label class="fl">Linked Job</label><select class="fs" id="etk-job">'+jobOpts+'</select></div>'
+  h+='<div class="fg"><label class="fl">Resolution Notes</label><textarea class="ft" id="etk-res" placeholder="Add resolution notes here...">'+(t.resolution_notes||'')+'</textarea></div>'
+  modal('Edit Task', h, async function(){
+    var title=(document.getElementById('etk-title').value||'').trim()
+    if(!title){toast('Title required','error');return}
+    var stat=document.getElementById('etk-stat').value
+    var assignTo=document.getElementById('etk-assign').value||null
+    var assignName=assignTo?(window._faxBidUsers||[]).find(function(u){return u.id===assignTo}):null
+    assignName=assignName?assignName.full_name||assignName.id:t.assigned_name||''
+    var jobVal=document.getElementById('etk-job').value
+    var jobId=t.job_id,jobName=t.job_name
+    if(jobVal){var parts=jobVal.split('|');jobId=parts[0];jobName=parts.slice(1).join('|')}
+    else if(!jobVal){jobId=null;jobName=''}
+    var resNotes=(document.getElementById('etk-res').value||'').trim()
+    var resolvedAt=t.resolved_at
+    if(stat==='resolved'&&!resolvedAt)resolvedAt=new Date().toISOString()
+    var updates={
+      title:title,
+      description:document.getElementById('etk-desc').value||title,
+      priority:document.getElementById('etk-pri').value,
+      status:stat,
+      assigned_to:assignTo,
+      assigned_name:assignName,
+      job_id:jobId||null,
+      job_name:jobName||'',
+      resolution_notes:resNotes||null,
+      resolved_at:resolvedAt||null,
+      updated_at:new Date().toISOString()
+    }
+    var res=await sb.from('job_tasks').update(updates).eq('id',id)
+    if(res.error){toast(res.error.message,'error');return}
+    // Update local cache
+    Object.assign(t,updates)
+    closeModal()
+    // If resolved and was urgent flag - clear the job urgent status
+    if(stat==='resolved'&&t.source==='urgent_flag'&&t.job_id){
+      var stillOpen=(window._allTasks||[]).filter(function(x){return x.job_id===t.job_id&&x.source==='urgent_flag'&&x.status!=='resolved'&&x.id!==id})
+      if(!stillOpen.length){
+        await sb.from('jobs').update({is_urgent:false,urgent_note:'',urgent_assigned_to:null,updated_at:new Date().toISOString()}).eq('id',t.job_id)
+        if(resNotes)await sb.from('daily_reports').insert({id:uuid(),job_id:t.job_id,report_date:new Date().toISOString().split('T')[0],submitted_by:(typeof ME!=='undefined'?ME.full_name||'':''),crew_count:0,hours_worked:0,weather:'',issues:'URGENT RESOLVED: '+resNotes,notes:'Task: '+title,created_at:new Date().toISOString()})
+        toast('Task saved — urgent flag cleared and logged to daily reports')
+      }else{toast('Task saved')}
+    }else{toast('Task saved')}
+    renderTaskList()
+    loadMyTasksBadge()
+  },'Save Changes')
+}
 async function viewTask(btn){
   var id=btn.getAttribute('data-tid')
   var t=window._allTasks.find(function(x){return x.id===id});if(!t)return
@@ -5312,6 +5388,7 @@ function buildMyTasksDashWidget(tasks){
       h+='<button class="btn btn-sm btn-a" style="font-size:10px;padding:2px 7px" '
       h+='data-tid="'+t.id+'" onclick="dashStartTask(this)">Start</button>'
     }
+    h+='<button class="btn btn-sm btn-ghost" style="font-size:10px;padding:2px 7px" data-tid="'+t.id+'" onclick="editTask(this)">Edit</button>'
     h+='</div>'
   })
   if(tasks.length>5)h+='<div style="font-size:11px;color:#414e63;padding:6px 0">+' +(tasks.length-5)+' more — <a href="javascript:void(0)" onclick="filterMyTasks();P(\'tasks\',document.querySelector(\'.nav-item[onclick*=tasks]\'))" style="color:#2563eb">view all</a></div>'
