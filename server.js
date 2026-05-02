@@ -266,7 +266,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
     <div class="nav-item" onclick="P('dispatch',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="6" height="5" rx="1"/><rect x="9" y="4" width="6" height="5" rx="1"/><path d="M4 9v4M12 9v4M1 13h6M9 13h6"/></svg>Dispatch Board</div>
     <div class="nav-item" onclick="pgJobMap()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 3l4 1.5L9 3l6 2v8l-6-2-4 1.5L1 11V3z"/><path d="M5 4.5v9M9 3v9"/></svg>Job Map</div>
     <div class="nav-section">Daily Ops</div>
-    <div class="nav-item" onclick="P('tasks',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 8l2 2 4-4"/></svg>Tasks</div>
+    <div class="nav-item" onclick="P('tasks',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 8l2 2 4-4"/></svg>Tasks<span id="tasks-badge" style="display:none;margin-left:auto;background:#dc2626;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;line-height:1.4"></span></div>
     <div class="nav-item" onclick="P('daily',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v10H3z"/><path d="M3 7h10M7 3v10"/></svg>Daily Reports</div>
     <div class="nav-item" onclick="P('jobwalks',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13L8 3l6 10H2z"/><path d="M8 8v3M8 12.5v.5"/></svg>Job Walks</div>
     <div class="nav-item" onclick="P('punch',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M3 4h10M3 12h7"/></svg>Punch List</div>
@@ -341,6 +341,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   av.textContent=ini(nm);Object.assign(av.style,avS(nm))
   P('dashboard',document.querySelector('.nav-item'))
   checkSafetyBadge()
+  loadMyTasksBadge()
 })
 function doSignOut(){sb.auth.signOut();location.href='index.html'}
 
@@ -407,6 +408,10 @@ async function pgDash(){
   if(jobsError) throw new Error('Jobs query failed: '+jobsError.message+' (code:'+jobsError.code+')')
   try { await loadJobsWithPartsStatus() } catch(lpe){ console.warn('loadJobsWithPartsStatus:',lpe) }
   const {data:ci} = await sb.from('checkins').select('id,job_id,worker_id,checkin_at,checkout_at').is('checkout_at',null).order('checkin_at',{ascending:false}).limit(20)
+  // Load my tasks for dashboard widget
+  const myTasksRes = ME?.id ? await sb.from('job_tasks').select('*').eq('assigned_to',ME.id).eq('status','open').order('created_at',{ascending:false}) : {data:[]}
+  const myTasks = myTasksRes.data||[]
+  window._myOpenTasks = myTasks
   const {data:parts} = await sb.from('job_parts').select('id,job_id,status,assigned_qty,ordered_qty,taken_qty,installed_qty')
   const {data:orders} = await sb.from('orders').select('id,status,job_id').order('created_at',{ascending:false})
   const {data:low} = await sb.from('inventory').select('id,name,qty,min_qty').gt('min_qty',0)
@@ -472,6 +477,7 @@ async function pgDash(){
       </div>
     </div>
     <div>
+      \${buildMyTasksDashWidget(myTasks)}
       <div class="card">
         <div class="card-title">🔔 Safety Pending</div>
         \${(safety||[]).length?(safety||[]).map(s=>\`<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px"><div style="font-weight:500">\${s.safety_topics?.title||'Topic'}</div><div style="color:#414e63;margin-top:1px">\${s.assigned_name} · Week of \${fd(s.safety_topics?.week_of)}</div></div>\`).join(''):'<div style="font-size:12px;color:#414e63">No pending safety reviews ✓</div>'}
@@ -5061,7 +5067,7 @@ async function resolveUrgent(){
 function taskOpenJob(el){openJob(el.getAttribute('data-jid'))}
 async function pgTasks(){
   document.getElementById('page-title').textContent='Tasks'
-  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="newTaskModal()">+ New Task</button>'
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="newTaskModal()">+ New Task</button> <button class="btn btn-sm" id="my-tasks-btn" onclick="filterMyTasks()">👤 My Tasks</button>'
   var res=await sb.from('job_tasks').select('*').order('created_at',{ascending:false})
   var tasks=res.data||[]
   window._allTasks=tasks
@@ -5224,6 +5230,107 @@ async function newTaskModal(){
     await sb.from('job_tasks').insert({id:uuid(),job_id:jobId||null,job_name:jobName,title:title,description:document.getElementById('ntk-desc').value||title,assigned_to:assignTo,assigned_name:assignName,priority:document.getElementById('ntk-pri').value,status:'open',source:'manual',created_by:(typeof ME!=='undefined'?ME.full_name||'':''),created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
     closeModal();pgTasks();toast('Task created and assigned to '+assignName)
   },'Create Task')
+}
+
+
+
+// ══════════════════════════════════════════
+// MY TASKS — Badge, notifications, dashboard widget
+// ══════════════════════════════════════════
+
+async function loadMyTasksBadge(){
+  if(typeof ME==='undefined'||!ME||!ME.id)return
+  try{
+    var res=await sb.from('job_tasks').select('id,priority,title,job_name,created_at').eq('assigned_to',ME.id).eq('status','open')
+    var myTasks=res.data||[]
+    var count=myTasks.length
+    // Update badge
+    var badge=document.getElementById('tasks-badge')
+    if(badge){
+      if(count>0){badge.textContent=count>99?'99+':String(count);badge.style.display='inline-block'}
+      else{badge.style.display='none'}
+    }
+    // Store for dashboard use
+    window._myOpenTasks=myTasks
+    // Show notification for critical/overdue tasks
+    var critical=myTasks.filter(function(t){return t.priority==='critical'})
+    var oldTasks=myTasks.filter(function(t){return(Date.now()-new Date(t.created_at).getTime())>7*86400000})
+    if(critical.length){
+      setTimeout(function(){
+        toast('🔴 You have '+critical.length+' CRITICAL task'+(critical.length>1?'s':'')+' assigned to you','error')
+      },1500)
+    } else if(count>0){
+      setTimeout(function(){
+        toast('📋 You have '+count+' open task'+(count>1?'s':'')+' assigned to you','warn')
+      },1500)
+    }
+    if(oldTasks.length){
+      setTimeout(function(){
+        toast('⏰ '+oldTasks.length+' task'+(oldTasks.length>1?'s have':' has')+' been open for 7+ days','warn')
+      },3000)
+    }
+  }catch(e){console.warn('loadMyTasksBadge:',e)}
+}
+
+function filterMyTasks(){
+  if(typeof ME==='undefined'||!ME)return
+  // Set the assignee filter to current user and re-render
+  var sel=document.getElementById('tk-assign')
+  if(sel){
+    sel.value=ME.id
+    renderTaskList()
+    // Update button state
+    var btn=document.getElementById('my-tasks-btn')
+    if(btn){btn.classList.add('active');btn.style.background='rgba(37,99,235,.2)';btn.style.color='#60a5fa'}
+  }
+}
+
+function buildMyTasksDashWidget(tasks){
+  if(!tasks||!tasks.length)return ''
+  var priColors={critical:'#dc2626',high:'#d97706',medium:'#2563eb',low:'#16a34a'}
+  var priBadge={critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'}
+  var h='<div class="card" style="border-left:3px solid #2563eb">'
+  h+='<div class="card-title">My Tasks <span style="font-size:11px;color:#8a96ab;font-weight:400">('+tasks.length+' open)</span>'
+  h+='<button class="btn btn-sm btn-ghost" onclick="P(\'tasks\',document.querySelector(\'.nav-item[onclick*=tasks]\'))">All →</button>'
+  h+='<button class="btn btn-sm" onclick="filterMyTasks();P(\'tasks\',document.querySelector(\'.nav-item[onclick*=tasks]\'))">My Tasks →</button></div>'
+  // Sort: critical first
+  var sorted=tasks.slice().sort(function(a,b){
+    var po={critical:0,high:1,medium:2,low:3}
+    return (po[a.priority]||9)-(po[b.priority]||9)
+  })
+  sorted.slice(0,5).forEach(function(t){
+    var ageDays=Math.floor((Date.now()-new Date(t.created_at).getTime())/86400000)
+    var ageStr=ageDays===0?'Today':ageDays+'d ago'
+    var isUrgent=t.source==='urgent_flag'
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+    h+='<span style="font-size:12px">'+(priBadge[t.priority]||'⚪')+'</span>'
+    h+='<div style="flex:1;min-width:0">'
+    h+='<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(isUrgent?'🔥 ':'')+t.title+'</div>'
+    h+='<div style="font-size:10px;color:#414e63">'+(t.job_name||'No job')+' · '+ageStr+'</div>'
+    h+='</div>'
+    if(t.status==='open'){
+      h+='<button class="btn btn-sm btn-a" style="font-size:10px;padding:2px 7px" '
+      h+='data-tid="'+t.id+'" onclick="dashStartTask(this)">Start</button>'
+    }
+    h+='</div>'
+  })
+  if(tasks.length>5)h+='<div style="font-size:11px;color:#414e63;padding:6px 0">+' +(tasks.length-5)+' more — <a href="javascript:void(0)" onclick="filterMyTasks();P(\'tasks\',document.querySelector(\'.nav-item[onclick*=tasks]\'))" style="color:#2563eb">view all</a></div>'
+  h+='</div>'
+  return h
+}
+
+async function dashStartTask(btn){
+  var id=btn.getAttribute('data-tid')
+  await sb.from('job_tasks').update({status:'in_progress',updated_at:new Date().toISOString()}).eq('id',id)
+  if(window._myOpenTasks){
+    var t=window._myOpenTasks.find(function(x){return x.id===id})
+    if(t)t.status='in_progress'
+  }
+  btn.textContent='In Progress'
+  btn.disabled=true
+  btn.style.opacity='0.5'
+  loadMyTasksBadge()
+  toast('Task started')
 }
 
 
