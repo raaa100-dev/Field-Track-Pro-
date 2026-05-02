@@ -237,7 +237,8 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .dot-swatch{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;display:inline-block;flex-shrink:0}
 .dot-swatch.sel{border-color:#fff}
 .legend-item{display:flex;align-items:center;gap:8px;padding:6px 8px;background:#131c2e;border-radius:6px;margin-bottom:5px}
-.markup-canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;background:#1a2540;border-radius:8px;border:1px solid rgba(255,255,255,.08)}
+.markup-@keyframes urgentPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;background:#1a2540;border-radius:8px;border:1px solid rgba(255,255,255,.08)}
 #markup-canvas{cursor:crosshair;display:block}
 .safety-card{border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:13px;margin-bottom:9px;background:#0c1220}
 .safety-ack-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
@@ -265,6 +266,7 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
     <div class="nav-item" onclick="P('dispatch',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="6" height="5" rx="1"/><rect x="9" y="4" width="6" height="5" rx="1"/><path d="M4 9v4M12 9v4M1 13h6M9 13h6"/></svg>Dispatch Board</div>
     <div class="nav-item" onclick="pgJobMap()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 3l4 1.5L9 3l6 2v8l-6-2-4 1.5L1 11V3z"/><path d="M5 4.5v9M9 3v9"/></svg>Job Map</div>
     <div class="nav-section">Daily Ops</div>
+    <div class="nav-item" onclick="P('tasks',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 8l2 2 4-4"/></svg>Tasks</div>
     <div class="nav-item" onclick="P('daily',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v10H3z"/><path d="M3 7h10M7 3v10"/></svg>Daily Reports</div>
     <div class="nav-item" onclick="P('jobwalks',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13L8 3l6 10H2z"/><path d="M8 8v3M8 12.5v.5"/></svg>Job Walks</div>
     <div class="nav-item" onclick="P('punch',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M3 4h10M3 12h7"/></svg>Punch List</div>
@@ -343,7 +345,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
 function doSignOut(){sb.auth.signOut();location.href='index.html'}
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const PAGE_TITLES={dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
+const PAGE_TITLES={tasks:'Tasks',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
 function P(page,navEl){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
   if(navEl)navEl.classList.add('active')
@@ -351,7 +353,7 @@ function P(page,navEl){
   document.getElementById('topbar-actions').innerHTML=''
   const a=document.getElementById('page-area')
   a.innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
-  const map={dashboard:pgDash,jobs:pgJobs,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications}
+  const map={dashboard:pgDash,jobs:pgJobs,tasks:pgTasks,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications}
   if(map[page])map[page]()
   else a.innerHTML='<div class="empty">Coming soon</div>'
 }
@@ -617,9 +619,15 @@ async function openJob(id){
   currentJobId=id
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
   document.getElementById('page-title').textContent='Job Detail'
-  document.getElementById('topbar-actions').innerHTML=\`<button class="btn btn-sm" onclick="P('jobs',null)">← Jobs</button>\`
+  document.getElementById('topbar-actions').innerHTML=\`<button class="btn btn-sm" onclick="P('jobs',null)">← Jobs</button> <button class="btn btn-sm" id="urgent-btn" style="background:rgba(220,38,38,.15);color:#dc2626;border-color:rgba(220,38,38,.3)" onclick="toggleUrgent()">🔥 Flag Urgent</button>\`
   const{data:job}=await sb.from('jobs').select('*').eq('id',id).single()
   currentJob=job
+  // Update urgent button state
+  var ub=document.getElementById('urgent-btn')
+  if(ub){
+    if(job&&job.is_urgent){ub.textContent='🔥 Urgent';ub.style.background='rgba(220,38,38,.35)';ub.style.fontWeight='600'}
+    else{ub.textContent='🔥 Flag Urgent';ub.style.background='rgba(220,38,38,.1)';ub.style.fontWeight='400'}
+  }
   renderJobDetail()
 }
 function renderJobDetail(){
@@ -634,6 +642,7 @@ function renderJobDetail(){
       <select class="fs" style="width:180px;padding:5px 9px;font-size:12px" onchange="updateJobStage(this.value)">\${STAGES.map(s=>\`<option value="\${s}" \${j.phase===s?'selected':''}>\${STAGE_LABELS[s]}</option>\`).join('')}</select>
       <input type="number" class="fi" style="width:70px;padding:5px 8px;font-size:12px" value="\${j.pct_complete||0}" min="0" max="100" title="% Complete" onchange="updateJobPct(this.value)">%
       \${j.due_date?\`<span style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">Due \${fd(j.due_date)}</span>\`:''}
+    \${j.is_urgent?'<div style="display:flex;align-items:center;gap:10px;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.25);border-radius:8px;padding:9px 13px;margin-top:8px"><span style="font-size:20px">🔥</span><div style="flex:1"><div style="font-size:13px;font-weight:600;color:#dc2626">URGENT</div><div style="font-size:12px;color:#8a96ab;margin-top:2px">'+( j.urgent_note||'')+'</div><div style="font-size:11px;color:#414e63;margin-top:2px">Assigned: '+(j.urgent_assigned_name||'—')+'</div></div><button class="btn btn-sm btn-g" onclick="resolveUrgent()">✓ Resolve</button><button class="btn btn-sm" style="color:#dc2626" onclick="toggleUrgent()">Remove</button></div>':''}
     </div>
     <div class="progress-stages" style="margin-top:10px">\${STAGES.map((s,i)=>\`<div class="ps \${i<si?'done':i===si?'cur':''}" title="\${STAGE_LABELS[s]}"></div>\`).join('')}</div>
   </div>
@@ -2639,9 +2648,14 @@ function addMapPins(jobs,map){
   const withGPS=jobs.filter(j=>j.gps_lat&&j.gps_lng)
   withGPS.forEach(j=>{
     const color=MAP_COLORS[j.phase]||'#8a96ab'
-    const icon=window.L.divIcon({html:\`<div style="width:14px;height:14px;border-radius:50%;background:\${color};border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>\`,className:'',iconSize:[14,14],iconAnchor:[7,7]})
+    const iconHtml=j.is_urgent
+      ?\`<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));animation:urgentPulse 1.2s ease-in-out infinite">🔥</div>\`
+      :\`<div style="width:14px;height:14px;border-radius:50%;background:\${color};border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>\`
+    const iconSize=j.is_urgent?[28,28]:[14,14]
+    const iconAnchor=j.is_urgent?[14,14]:[7,7]
+    const icon=window.L.divIcon({html:iconHtml,className:'',iconSize:iconSize,iconAnchor:iconAnchor})
     const marker=window.L.marker([j.gps_lat,j.gps_lng],{icon}).addTo(map)
-    marker.bindPopup(\`<div style="font-family:'DM Sans',sans-serif;min-width:200px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">\${j.name}</div><div style="font-size:11px;color:#666;margin-bottom:5px">\${j.address||''}</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px"><span style="background:\${color}22;color:\${color};padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600">\${STAGE_LABELS[j.phase]||j.phase}</span></div>\${j.project_manager?\`<div style="font-size:11px"><strong>PM:</strong> \${j.project_manager}</div>\`:''}\${j.gc_company?\`<div style="font-size:11px"><strong>GC:</strong> \${j.gc_company}</div>\`:''}\${j.due_date?\`<div style="font-size:11px"><strong>Due:</strong> \${fd(j.due_date)}</div>\`:''}<div style="margin-top:7px"><a href="javascript:openJob('\${j.id}')" style="color:#2563eb;font-size:11px;font-weight:600">Open Job →</a></div></div>\`)
+    marker.bindPopup(\`<div style="font-family:'DM Sans',sans-serif;min-width:200px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">\${j.name}</div><div style="font-size:11px;color:#666;margin-bottom:5px">\${j.address||''}</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px"><span style="background:\${color}22;color:\${color};padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600">\${STAGE_LABELS[j.phase]||j.phase}</span></div>\${j.project_manager?\`<div style="font-size:11px"><strong>PM:</strong> \${j.project_manager}</div>\`:''}\${j.gc_company?\`<div style="font-size:11px"><strong>GC:</strong> \${j.gc_company}</div>\`:''}\${j.due_date?\`<div style="font-size:11px"><strong>Due:</strong> \${fd(j.due_date)}</div>\`:''}\${j.is_urgent?\`<div style="font-size:11px;color:#dc2626;font-weight:600;margin-top:5px">🔥 URGENT: \${j.urgent_note||''}</div>\`:''}<div style="margin-top:7px"><a href="javascript:openJob('\${j.id}')" style="color:#2563eb;font-size:11px;font-weight:600">Open Job →</a></div></div>\`)
     window._mapMarkers.push(marker)
   })
   // Fit bounds
@@ -4985,6 +4999,232 @@ function faxReplacePdf(input){
   window._faxPdfFile=file
   toast('PDF selected. Click Save to upload and replace.')
 }
+
+
+// ══════════════════════════════════════════
+// URGENT FLAG & TASKS SYSTEM
+// ══════════════════════════════════════════
+
+// ── Urgent flag on job header ──────────────────────────────────────────────
+async function toggleUrgent(){
+  var j=currentJob
+  if(j.is_urgent){
+    // Removing urgent - clear it
+    if(!confirm('Remove urgent flag from this job?'))return
+    await sb.from('jobs').update({is_urgent:false,urgent_note:'',urgent_assigned_to:null,urgent_flagged_at:null,updated_at:new Date().toISOString()}).eq('id',j.id)
+    currentJob.is_urgent=false;currentJob.urgent_note='';currentJob.urgent_assigned_to=null
+    renderJobDetail();toast('Urgent flag removed')
+    return
+  }
+  // Adding urgent - collect details
+  if(!window._faxBidUsers){
+    var r=await sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','estimator','foreman','stager'])
+    window._faxBidUsers=r.data||[]
+  }
+  var userOpts=''
+  ;(window._faxBidUsers||[]).forEach(function(u){userOpts+='<option value="'+u.id+'">'+(u.full_name||u.id)+'</option>'})
+  var h='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#dc2626;font-weight:500">'
+  h+='This will flag the job as URGENT and show a fire icon on the map.</div>'
+  h+='<div class="fg"><label class="fl">Description *</label><textarea class="ft" id="urg-note" placeholder="What needs urgent attention? Be specific..." style="min-height:80px"></textarea></div>'
+  h+='<div class="fg"><label class="fl">Assign To *</label><select class="fs" id="urg-assign"><option value="">— Select person —</option>'+userOpts+'</select></div>'
+  h+='<div class="fg"><label class="fl">Priority</label><select class="fs" id="urg-pri"><option value="critical">🔴 Critical — Stop everything</option><option value="high" selected>🟠 High — Fix today</option><option value="medium">🟡 Medium — Fix this week</option></select></div>'
+  modal('Flag as Urgent', h, async function(){
+    var note=(document.getElementById('urg-note').value||'').trim()
+    var assignTo=document.getElementById('urg-assign').value
+    var priority=document.getElementById('urg-pri').value
+    if(!note){toast('Description required','error');return}
+    if(!assignTo){toast('Must assign to someone','error');return}
+    var assignName=(window._faxBidUsers||[]).filter(function(u){return u.id===assignTo})[0]
+    assignName=assignName?assignName.full_name||assignName.id:assignTo
+    // Flag the job
+    await sb.from('jobs').update({is_urgent:true,urgent_note:note,urgent_assigned_to:assignTo,urgent_assigned_name:assignName,urgent_priority:priority,urgent_flagged_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',j.id)
+    currentJob.is_urgent=true;currentJob.urgent_note=note;currentJob.urgent_assigned_to=assignTo;currentJob.urgent_assigned_name=assignName;currentJob.urgent_priority=priority;currentJob.urgent_flagged_at=new Date().toISOString()
+    // Create task
+    await sb.from('job_tasks').insert({id:uuid(),job_id:j.id,job_name:j.name||'',title:'URGENT: '+note,description:note,assigned_to:assignTo,assigned_name:assignName,priority:priority,status:'open',source:'urgent_flag',created_by:(typeof ME!=='undefined'?ME.full_name||'':''),created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    closeModal();renderJobDetail();toast('Job flagged as urgent and task assigned to '+assignName,'warn')
+  },'Flag Urgent')
+}
+
+async function resolveUrgent(){
+  var j=currentJob
+  var note=(prompt('Resolution notes (required):','')||'').trim()
+  if(!note){toast('Notes required to resolve','error');return}
+  var resolver=(typeof ME!=='undefined'?ME.full_name||'':'someone')
+  await sb.from('daily_reports').insert({id:uuid(),job_id:j.id,report_date:new Date().toISOString().split('T')[0],submitted_by:resolver,crew_count:0,hours_worked:0,weather:'',issues:'URGENT RESOLVED by '+resolver+': '+note,notes:'Original flag: '+(j.urgent_note||''),created_at:new Date().toISOString()})
+  await sb.from('job_tasks').update({status:'resolved',resolved_at:new Date().toISOString(),resolution_notes:note,updated_at:new Date().toISOString()}).eq('job_id',j.id).eq('source','urgent_flag').eq('status','open')
+  await sb.from('jobs').update({is_urgent:false,urgent_note:'',urgent_assigned_to:null,urgent_flagged_at:null,updated_at:new Date().toISOString()}).eq('id',j.id)
+  currentJob.is_urgent=false
+  renderJobDetail();toast('Resolved — logged to Daily Reports and task closed')
+}
+
+// ── Tasks page ─────────────────────────────────────────────────────────────
+async function pgTasks(){
+  document.getElementById('page-title').textContent='Tasks'
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="newTaskModal()">+ New Task</button>'
+  var res=await sb.from('job_tasks').select('*').order('created_at',{ascending:false})
+  var tasks=res.data||[]
+  window._allTasks=tasks
+  renderTaskList(tasks)
+}
+
+function renderTaskList(tasks){
+  // Filters
+  var sf=(document.getElementById('tk-search')||{}).value||''
+  var statf=(document.getElementById('tk-stat')||{}).value||''
+  var prif=(document.getElementById('tk-pri')||{}).value||''
+  var assignf=(document.getElementById('tk-assign')||{}).value||''
+  var agef=(document.getElementById('tk-age')||{}).value||''
+  var now=Date.now()
+  var filtered=(tasks||window._allTasks||[]).filter(function(t){
+    if(sf&&!(t.title+t.job_name+t.assigned_name).toLowerCase().includes(sf.toLowerCase()))return false
+    if(statf&&t.status!==statf)return false
+    if(prif&&t.priority!==prif)return false
+    if(assignf&&t.assigned_to!==assignf)return false
+    if(agef){
+      var ageDays=Math.floor((now-new Date(t.created_at).getTime())/(86400000))
+      if(agef==='today'&&ageDays>0)return false
+      if(agef==='week'&&ageDays>7)return false
+      if(agef==='month'&&ageDays>30)return false
+      if(agef==='old'&&ageDays<30)return false
+    }
+    return true
+  })
+  // Sort: open first, then by priority, then by age
+  var priOrder={critical:0,high:1,medium:2,low:3}
+  filtered.sort(function(a,b){
+    if(a.status==='open'&&b.status!=='open')return -1
+    if(a.status!=='open'&&b.status==='open')return 1
+    return (priOrder[a.priority]||9)-(priOrder[b.priority]||9)
+  })
+  // Stats
+  var open=filtered.filter(function(t){return t.status==='open'}).length
+  var critical=filtered.filter(function(t){return t.priority==='critical'&&t.status==='open'}).length
+  // Unique assignees for filter
+  var assignees=[]
+  var seen={}
+  ;(window._allTasks||[]).forEach(function(t){if(t.assigned_to&&!seen[t.assigned_to]){seen[t.assigned_to]=1;assignees.push({id:t.assigned_to,name:t.assigned_name||t.assigned_to})}})
+  var h='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px">'
+  h+='<div class="stat"><div class="stat-label">Open</div><div class="stat-value">'+open+'</div></div>'
+  h+='<div class="stat"><div class="stat-label">Critical</div><div class="stat-value" style="color:#dc2626">'+critical+'</div></div>'
+  h+='<div class="stat"><div class="stat-label">Total</div><div class="stat-value">'+(window._allTasks||[]).length+'</div></div>'
+  h+='<div class="stat"><div class="stat-label">Resolved</div><div class="stat-value" style="color:#16a34a">'+(window._allTasks||[]).filter(function(t){return t.status==='resolved'}).length+'</div></div>'
+  h+='</div>'
+  h+='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+  h+='<input class="fi" id="tk-search" placeholder="Search tasks..." style="width:180px" oninput="renderTaskList()">'
+  h+='<select class="fs" id="tk-stat" style="width:130px" onchange="renderTaskList()"><option value="">All status</option><option value="open">Open</option><option value="in_progress">In Progress</option><option value="resolved">Resolved</option></select>'
+  h+='<select class="fs" id="tk-pri" style="width:130px" onchange="renderTaskList()"><option value="">All priority</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>'
+  h+='<select class="fs" id="tk-assign" style="width:160px" onchange="renderTaskList()"><option value="">All assignees</option>'
+  assignees.forEach(function(a){h+='<option value="'+a.id+'">'+a.name+'</option>'})
+  h+='</select>'
+  h+='<select class="fs" id="tk-age" style="width:140px" onchange="renderTaskList()"><option value="">Any age</option><option value="today">Created today</option><option value="week">Last 7 days</option><option value="month">Last 30 days</option><option value="old">Older than 30d</option></select>'
+  h+='</div>'
+  if(!filtered.length){document.getElementById('page-area').innerHTML=h+'<div style="text-align:center;padding:40px;color:#414e63">No tasks match filters</div>';return}
+  h+='<table class="tbl"><thead><tr><th>Priority</th><th>Task</th><th>Job</th><th>Assigned To</th><th>Status</th><th>Age</th><th></th></tr></thead><tbody>'
+  var priColors={critical:'#dc2626',high:'#d97706',medium:'#2563eb',low:'#16a34a'}
+  var priBadge={critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'}
+  filtered.forEach(function(t){
+    var ageDays=Math.floor((now-new Date(t.created_at).getTime())/(86400000))
+    var ageStr=ageDays===0?'Today':ageDays===1?'1 day':ageDays+'d'
+    var ageColor=ageDays>14?'#dc2626':ageDays>7?'#d97706':'#8a96ab'
+    var isUrgent=t.source==='urgent_flag'
+    h+='<tr>'
+    h+='<td><span style="font-size:13px">'+(priBadge[t.priority]||'⚪')+'</span></td>'
+    h+='<td><div style="font-weight:500;font-size:13px">'+(isUrgent?'🔥 ':'')+t.title+'</div>'
+    if(t.description&&t.description!==t.title)h+='<div style="font-size:11px;color:#8a96ab;margin-top:2px">'+(t.description||'').substring(0,80)+(t.description.length>80?'…':'')+'</div>'
+    h+='</td>'
+    h+='<td style="font-size:12px"><a href="javascript:openJob(\''+t.job_id+'\')" style="color:#2563eb">'+( t.job_name||'—')+'</a></td>'
+    h+='<td style="font-size:12px">'+(t.assigned_name||'—')+'</td>'
+    h+='<td><span class="badge '+(t.status==='resolved'?'bg-green':t.status==='in_progress'?'bg-blue':'bg-red')+'">'+(t.status==='in_progress'?'In Progress':t.status==='resolved'?'Resolved':'Open')+'</span></td>'
+    h+='<td style="font-size:12px;color:'+ageColor+'">'+ageStr+'</td>'
+    h+='<td style="display:flex;gap:4px">'
+    if(t.status==='open')h+='<button class="btn btn-sm btn-a" data-tid="'+t.id+'" onclick="progressTask(this)">Start</button>'
+    if(t.status!=='resolved')h+='<button class="btn btn-sm btn-g" data-tid="'+t.id+'" onclick="resolveTask(this)">Resolve</button>'
+    h+='<button class="btn btn-sm btn-ghost" data-tid="'+t.id+'" onclick="viewTask(this)">View</button>'
+    h+='</td></tr>'
+  })
+  h+='</tbody></table>'
+  document.getElementById('page-area').innerHTML=h
+}
+
+async function progressTask(btn){
+  var id=btn.getAttribute('data-tid')
+  await sb.from('job_tasks').update({status:'in_progress',updated_at:new Date().toISOString()}).eq('id',id)
+  var t=window._allTasks.find(function(x){return x.id===id});if(t)t.status='in_progress'
+  renderTaskList();toast('Marked in progress')
+}
+
+async function resolveTask(btn){
+  var id=btn.getAttribute('data-tid')
+  var note=(prompt('Resolution notes:')||'').trim()
+  if(!note){toast('Notes required','error');return}
+  await sb.from('job_tasks').update({status:'resolved',resolution_notes:note,resolved_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id)
+  // If this is an urgent task, also clear the job's urgent flag
+  var t=window._allTasks.find(function(x){return x.id===id})
+  if(t){
+    t.status='resolved';t.resolution_notes=note
+    if(t.source==='urgent_flag'&&t.job_id){
+      var openUrgent=window._allTasks.filter(function(x){return x.job_id===t.job_id&&x.source==='urgent_flag'&&x.status!=='resolved'&&x.id!==id})
+      if(!openUrgent.length){
+        await sb.from('jobs').update({is_urgent:false,urgent_note:'',urgent_assigned_to:null,updated_at:new Date().toISOString()}).eq('id',t.job_id)
+        // Log to daily reports
+        await sb.from('daily_reports').insert({id:uuid(),job_id:t.job_id,report_date:new Date().toISOString().split('T')[0],submitted_by:(typeof ME!=='undefined'?ME.full_name||'':''),crew_count:0,hours_worked:0,weather:'',issues:'URGENT RESOLVED: '+note,notes:'Task: '+t.title,created_at:new Date().toISOString()})
+        toast('Task resolved — urgent flag removed and logged to daily reports')
+      } else {
+        toast('Task resolved — other urgent tasks still open')
+      }
+    } else {
+      toast('Task resolved')
+    }
+  }
+  renderTaskList()
+}
+
+async function viewTask(btn){
+  var id=btn.getAttribute('data-tid')
+  var t=window._allTasks.find(function(x){return x.id===id});if(!t)return
+  var h='<div class="two" style="margin-bottom:12px">'
+  h+='<div><div style="font-size:10px;color:#414e63">JOB</div><a href="javascript:closeModal();openJob(\''+t.job_id+'\')" style="font-size:13px;font-weight:500;color:#2563eb">'+(t.job_name||'—')+'</a></div>'
+  h+='<div><div style="font-size:10px;color:#414e63">ASSIGNED TO</div><div style="font-size:13px;font-weight:500">'+(t.assigned_name||'—')+'</div></div>'
+  h+='</div>'
+  h+='<div class="two" style="margin-bottom:12px">'
+  h+='<div><div style="font-size:10px;color:#414e63">PRIORITY</div><div style="font-size:13px;font-weight:500">'+(t.priority||'medium')+'</div></div>'
+  h+='<div><div style="font-size:10px;color:#414e63">CREATED</div><div style="font-size:13px">'+(t.created_by||'')+'<br><span style="color:#8a96ab">'+fd(t.created_at)+'</span></div></div>'
+  h+='</div>'
+  h+='<div style="background:#131c2e;border-radius:8px;padding:11px 13px;font-size:13px;margin-bottom:12px">'+( t.description||t.title)+'</div>'
+  if(t.resolution_notes)h+='<div style="background:rgba(22,163,74,.1);border-radius:8px;padding:11px 13px;font-size:13px"><div style="font-size:10px;color:#16a34a;font-weight:600;margin-bottom:4px">RESOLUTION</div>'+t.resolution_notes+'</div>'
+  modal('Task: '+t.title.substring(0,50), h, null, '', true)
+}
+
+async function newTaskModal(){
+  if(!window._faxBidUsers){
+    var r=await sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','estimator','foreman','stager'])
+    window._faxBidUsers=r.data||[]
+  }
+  var userOpts=''
+  ;(window._faxBidUsers||[]).forEach(function(u){userOpts+='<option value="'+u.id+'">'+(u.full_name||u.id)+'</option>'})
+  var rJobs=await sb.from('jobs').select('id,name').eq('archived',false).order('name',{ascending:true}).limit(50)
+  var jobOpts=''
+  ;(rJobs.data||[]).forEach(function(j){jobOpts+='<option value="'+j.id+'|'+j.name+'">'+j.name+'</option>'})
+  var h='<div class="fg"><label class="fl">Title *</label><input class="fi" id="ntk-title" placeholder="What needs to be done?"></div>'
+  h+='<div class="fg"><label class="fl">Description</label><textarea class="ft" id="ntk-desc"></textarea></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Linked Job</label><select class="fs" id="ntk-job"><option value="">— No linked job —</option>'+jobOpts+'</select></div>'
+  h+='<div class="fg"><label class="fl">Priority</label><select class="fs" id="ntk-pri"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div></div>'
+  h+='<div class="fg"><label class="fl">Assign To *</label><select class="fs" id="ntk-assign"><option value="">— Select person —</option>'+userOpts+'</select></div>'
+  modal('New Task', h, async function(){
+    var title=(document.getElementById('ntk-title').value||'').trim()
+    if(!title){toast('Title required','error');return}
+    var assignTo=document.getElementById('ntk-assign').value
+    if(!assignTo){toast('Must assign to someone','error');return}
+    var assignName=(window._faxBidUsers||[]).find(function(u){return u.id===assignTo})
+    assignName=assignName?assignName.full_name||assignName.id:assignTo
+    var jobVal=document.getElementById('ntk-job').value
+    var jobId='',jobName=''
+    if(jobVal){var parts=jobVal.split('|');jobId=parts[0];jobName=parts.slice(1).join('|')}
+    await sb.from('job_tasks').insert({id:uuid(),job_id:jobId||null,job_name:jobName,title:title,description:document.getElementById('ntk-desc').value||title,assigned_to:assignTo,assigned_name:assignName,priority:document.getElementById('ntk-pri').value,status:'open',source:'manual',created_by:(typeof ME!=='undefined'?ME.full_name||'':''),created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    closeModal();pgTasks();toast('Task created and assigned to '+assignName)
+  },'Create Task')
+}
+
 
 </script>
 `

@@ -240,3 +240,38 @@ create policy "jsa_all" on job_sub_assignments for all using (auth.role()='authe
 create policy "pmv_all" on pm_visits for all using (auth.role()='authenticated');
 
 select 'v2.1 additions complete' as status;
+
+-- ── Urgent Flag + Tasks System ───────────────────────────────────────────────
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS is_urgent          boolean DEFAULT false;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS urgent_note        text DEFAULT '';
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS urgent_assigned_to uuid DEFAULT NULL;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS urgent_assigned_name text DEFAULT NULL;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS urgent_priority    text DEFAULT 'high';
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS urgent_flagged_at  timestamptz DEFAULT NULL;
+
+CREATE TABLE IF NOT EXISTS job_tasks (
+  id              text PRIMARY KEY,
+  job_id          text REFERENCES jobs(id) ON DELETE SET NULL,
+  job_name        text DEFAULT '',
+  title           text NOT NULL,
+  description     text DEFAULT '',
+  assigned_to     uuid REFERENCES profiles(id) ON DELETE SET NULL,
+  assigned_name   text DEFAULT '',
+  priority        text DEFAULT 'medium',
+  status          text DEFAULT 'open',
+  source          text DEFAULT 'manual',
+  created_by      text DEFAULT '',
+  resolution_notes text DEFAULT NULL,
+  resolved_at     timestamptz DEFAULT NULL,
+  created_at      timestamptz DEFAULT now(),
+  updated_at      timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_job_tasks_job_id    ON job_tasks(job_id);
+CREATE INDEX IF NOT EXISTS idx_job_tasks_assigned  ON job_tasks(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_job_tasks_status    ON job_tasks(status);
+
+ALTER TABLE job_tasks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "auth_job_tasks" ON job_tasks FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+SELECT 'Urgent flag + job_tasks table created' AS status;
