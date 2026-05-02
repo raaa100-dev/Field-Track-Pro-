@@ -46,6 +46,7 @@ input:focus{outline:none;border-color:#2563eb;background:#1a2540}
 .btn{width:100%;padding:13px;background:#2563eb;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:.15s;margin-top:6px}
 .btn:hover{background:#1d4ed8}.btn:disabled{opacity:.5;cursor:not-allowed}
 .err{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.25);border-radius:8px;padding:10px 13px;font-size:12px;color:#f87171;margin-bottom:14px;display:none}
+
 </style>
 </head>
 <body>
@@ -252,6 +253,87 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
 .progress-stages{display:flex;gap:3px;margin:8px 0}
 .ps{flex:1;height:5px;border-radius:99px;background:#1a2540}
 .ps.done{background:#16a34a}.ps.cur{background:#d97706}
+
+/* ── MOBILE RESPONSIVE ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  body { overflow: auto; }
+  #sidebar {
+    position: fixed; left: -220px; top: 0; bottom: 0; z-index: 500;
+    width: 220px; transition: left .25s cubic-bezier(.4,0,.2,1);
+    box-shadow: 4px 0 24px rgba(0,0,0,.7);
+  }
+  #sidebar.open { left: 0; }
+  #sidebar-overlay {
+    display: none; position: fixed; inset: 0; z-index: 499;
+    background: rgba(0,0,0,.6); backdrop-filter: blur(2px);
+  }
+  #sidebar-overlay.show { display: block; }
+  #main { width: 100vw; }
+  .topbar { padding: 0 12px; gap: 8px; }
+  .topbar-title { font-size: 13px; }
+  .tb-right { gap: 5px; }
+  #hamburger {
+    display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 7px; cursor: pointer;
+    background: #131c2e; border: 1px solid rgba(255,255,255,.1);
+    flex-shrink: 0; color: #e8edf5; font-size: 16px;
+  }
+  #page-area { padding: 12px; }
+  /* Stats grid */
+  .stats, [style*="grid-template-columns:repeat(4"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  /* Two-col grids → single col */
+  .two, .three, .four,
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns:1fr 260px"],
+  [style*="grid-template-columns:1fr 1fr 280px"],
+  [style*="grid-template-columns:1fr 280px"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* Tables — make them scroll */
+  .tbl { font-size: 11px; }
+  .tbl th, .tbl td { padding: 7px 8px; }
+  /* Cards */
+  .card { padding: 12px; }
+  /* Modal — full screen */
+  .modal-box {
+    max-width: 100% !important; width: 100% !important;
+    max-height: 100vh !important; border-radius: 0 !important;
+    position: fixed; inset: 0; margin: 0;
+  }
+  .modal-bg { align-items: flex-end; }
+  .modal-box { border-radius: 16px 16px 0 0 !important; max-height: 92vh !important; }
+  /* Topbar actions — wrap */
+  .tb-right { flex-wrap: wrap; max-width: calc(100vw - 100px); overflow: hidden; }
+  .tb-right .btn { font-size: 10px; padding: 4px 8px; }
+  /* Tab bar — scroll */
+  .tab-bar { -webkit-overflow-scrolling: touch; }
+  .tab { padding: 9px 11px; font-size: 11px; }
+  /* Form inputs — bigger touch targets */
+  .fi, .fs, .ft { font-size: 16px !important; padding: 10px 12px; }
+  .btn { padding: 9px 14px; font-size: 12px; }
+  .btn-sm { padding: 7px 11px; font-size: 11px; }
+  /* Job detail header */
+  [style*="font-size:18px;font-weight:700"] { font-size: 15px !important; }
+  /* Dashboard */
+  [style*="grid-template-columns:1fr 1fr;gap:13px"] { grid-template-columns: 1fr !important; }
+  /* Stat value */
+  .stat-value { font-size: 20px; }
+  /* Photo grid */
+  .photo-grid { grid-template-columns: repeat(2,1fr); }
+  /* Markup toolbar */
+  .markup-toolbar { gap: 4px; padding: 7px; }
+  .mt-btn { padding: 6px 8px; font-size: 10px; }
+  /* Scrollable table wrapper */
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+@media (max-width: 400px) {
+  .stats, [style*="grid-template-columns:repeat(4"] {
+    grid-template-columns: 1fr !important;
+  }
+  .topbar-title { font-size: 11px; }
+}
 </style>
 </head>
 <body>
@@ -300,8 +382,9 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
   </div>
 </div>
 
+<div id="sidebar-overlay" onclick="toggleSidebar()"></div>
 <div id="main">
-  <div class="topbar">
+  <div class="topbar"><div id="hamburger" onclick="toggleSidebar()" style="display:none">☰</div>
     <div class="topbar-title" id="page-title">Dashboard</div>
     <div class="tb-right" id="topbar-actions">
       <div style="position:relative;cursor:pointer" onclick="P('notifications',null)" title="Notifications">
@@ -342,7 +425,43 @@ window.addEventListener('DOMContentLoaded',async()=>{
   P('dashboard',document.querySelector('.nav-item'))
   checkSafetyBadge()
   loadMyTasksBadge()
+  // Mobile: show hamburger on small screens
+  initMobileLayout()
 })
+
+// ── MOBILE LAYOUT ──────────────────────────────────────────────────────────
+function initMobileLayout(){
+  if(window.innerWidth<=768){
+    var hb=document.getElementById('hamburger')
+    if(hb)hb.style.display='flex'
+    // Auto-close sidebar on nav click on mobile
+    document.querySelectorAll('.nav-item').forEach(function(el){
+      el.addEventListener('click',function(){
+        if(window.innerWidth<=768)closeSidebar()
+      })
+    })
+  }
+  window.addEventListener('resize',function(){
+    var hb=document.getElementById('hamburger')
+    if(!hb)return
+    if(window.innerWidth<=768){hb.style.display='flex'}
+    else{hb.style.display='none';closeSidebar()}
+  })
+}
+function toggleSidebar(){
+  var sb=document.getElementById('sidebar')
+  var ov=document.getElementById('sidebar-overlay')
+  if(!sb)return
+  if(sb.classList.contains('open')){closeSidebar()}
+  else{sb.classList.add('open');if(ov)ov.classList.add('show')}
+}
+function closeSidebar(){
+  var sb=document.getElementById('sidebar')
+  var ov=document.getElementById('sidebar-overlay')
+  if(sb)sb.classList.remove('open')
+  if(ov)ov.classList.remove('show')
+}
+
 function doSignOut(){sb.auth.signOut();location.href='index.html'}
 
 // ── NAVIGATION ────────────────────────────────────────────────
