@@ -5058,6 +5058,7 @@ async function resolveUrgent(){
 }
 
 // ── Tasks page ─────────────────────────────────────────────────────────────
+function taskOpenJob(el){openJob(el.getAttribute('data-jid'))}
 async function pgTasks(){
   document.getElementById('page-title').textContent='Tasks'
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="newTaskModal()">+ New Task</button>'
@@ -5132,7 +5133,7 @@ function renderTaskList(tasks){
     h+='<td><div style="font-weight:500;font-size:13px">'+(isUrgent?'🔥 ':'')+t.title+'</div>'
     if(t.description&&t.description!==t.title)h+='<div style="font-size:11px;color:#8a96ab;margin-top:2px">'+(t.description||'').substring(0,80)+(t.description.length>80?'…':'')+'</div>'
     h+='</td>'
-    h+='<td style="font-size:12px"><a href="javascript:openJob(\''+t.job_id+'\')" style="color:#2563eb">'+( t.job_name||'—')+'</a></td>'
+    h+='<td style="font-size:12px"><a href="javascript:void(0)" data-jid="'+t.job_id+'" onclick="taskOpenJob(this)" style="color:#2563eb">'+(t.job_name||'—')+'</a></td>'
     h+='<td style="font-size:12px">'+(t.assigned_name||'—')+'</td>'
     h+='<td><span class="badge '+(t.status==='resolved'?'bg-green':t.status==='in_progress'?'bg-blue':'bg-red')+'">'+(t.status==='in_progress'?'In Progress':t.status==='resolved'?'Resolved':'Open')+'</span></td>'
     h+='<td style="font-size:12px;color:'+ageColor+'">'+ageStr+'</td>'
@@ -5183,7 +5184,7 @@ async function viewTask(btn){
   var id=btn.getAttribute('data-tid')
   var t=window._allTasks.find(function(x){return x.id===id});if(!t)return
   var h='<div class="two" style="margin-bottom:12px">'
-  h+='<div><div style="font-size:10px;color:#414e63">JOB</div><a href="javascript:closeModal();openJob(\''+t.job_id+'\')" style="font-size:13px;font-weight:500;color:#2563eb">'+(t.job_name||'—')+'</a></div>'
+  h+='<div><div style="font-size:10px;color:#414e63">JOB</div><a href="javascript:void(0)" data-jid="'+t.job_id+'" onclick="closeModal();taskOpenJob(this)" style="font-size:13px;font-weight:500;color:#2563eb">'+(t.job_name||'—')+'</a></div>'
   h+='<div><div style="font-size:10px;color:#414e63">ASSIGNED TO</div><div style="font-size:13px;font-weight:500">'+(t.assigned_name||'—')+'</div></div>'
   h+='</div>'
   h+='<div class="two" style="margin-bottom:12px">'
