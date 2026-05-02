@@ -5491,35 +5491,37 @@ function filterMyTasks(){
 
 function buildMyTasksDashWidget(tasks){
   if(!tasks||!tasks.length)return ''
-  var priColors={critical:'#dc2626',high:'#d97706',medium:'#2563eb',low:'#16a34a'}
   var priBadge={critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'}
-  var h='<div class="card" style="border-left:3px solid #2563eb">'
-  h+='<div class="card-title">My Tasks <span style="font-size:11px;color:#8a96ab;font-weight:400">('+tasks.length+' active)</span>'
-  h+='<button class="btn btn-sm btn-ghost" onclick="faxNavToTasks()">All →</button>'
-  h+='<button class="btn btn-sm" onclick="faxNavToMyTasks()">My Tasks →</button>'
-  // Sort: critical first
   var sorted=tasks.slice().sort(function(a,b){
     var po={critical:0,high:1,medium:2,low:3}
     return (po[a.priority]||9)-(po[b.priority]||9)
   })
-  sorted.slice(0,5).forEach(function(t){
+  var h='<div class="card" style="border-left:3px solid #2563eb;margin-bottom:13px">'
+  h+='<div class="card-title" style="margin-bottom:10px">My Tasks'
+  h+='<span style="font-size:11px;color:#8a96ab;font-weight:400;margin-left:5px">('+tasks.length+' active)</span>'
+  h+='<div style="display:flex;gap:5px;margin-left:auto">'
+  h+='<button class="btn btn-sm btn-ghost" style="font-size:10px;padding:3px 8px" onclick="faxNavToTasks()">All</button>'
+  h+='<button class="btn btn-sm btn-p" style="font-size:10px;padding:3px 8px" onclick="faxNavToMyTasks()">Mine</button>'
+  h+='</div></div>'
+  sorted.slice(0,4).forEach(function(t){
     var ageDays=Math.floor((Date.now()-new Date(t.created_at).getTime())/86400000)
-    var ageStr=ageDays===0?'Today':ageDays+'d ago'
+    var ageStr=ageDays===0?'Today':ageDays+'d'
+    var statusColor=t.status==='in_progress'?'#d97706':'#8a96ab'
     var isUrgent=t.source==='urgent_flag'
-    h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
-    h+='<span style="font-size:12px">'+(priBadge[t.priority]||'⚪')+'</span>'
-    h+='<div style="flex:1;min-width:0">'
-    h+='<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(isUrgent?'🔥 ':'')+t.title+'</div>'
-    h+='<div style="font-size:10px;color:#414e63">'+(t.job_name||'No job')+' · '+ageStr+'</div>'
+    h+='<div style="padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+    h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
+    h+='<span style="font-size:11px;flex-shrink:0">'+(priBadge[t.priority]||'')+'</span>'
+    h+='<div style="font-size:12px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(isUrgent?'🔥 ':'')+t.title+'</div>'
     h+='</div>'
-    if(t.status==='open'){
-      h+='<button class="btn btn-sm btn-a" style="font-size:10px;padding:2px 7px" '
-      h+='data-tid="'+t.id+'" onclick="dashStartTask(this)">Start</button>'
-    }
-    h+='<button class="btn btn-sm btn-ghost" style="font-size:10px;padding:2px 7px" data-tid="'+t.id+'" onclick="editTask(this)">Edit</button>'
+    h+='<div style="display:flex;gap:6px;padding-left:18px;align-items:center">'
+    h+='<span style="font-size:10px;color:'+statusColor+'">'+t.status.replace('_',' ')+'</span>'
+    h+='<span style="font-size:10px;color:#1a2540">·</span>'
+    h+='<span style="font-size:10px;color:#8a96ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px">'+(t.job_name||'—')+'</span>'
+    h+='<span style="font-size:10px;color:#414e63;margin-left:auto;flex-shrink:0">'+ageStr+'</span>'
+    h+='</div>'
     h+='</div>'
   })
-  if(tasks.length>5)h+='<div style="font-size:11px;color:#414e63;padding:6px 0">+' +(tasks.length-5)+' more — <a href="javascript:void(0)" onclick="faxNavToMyTasks()" style="color:#2563eb">view all</a></div>'
+  if(tasks.length>4)h+='<div style="font-size:11px;color:#414e63;padding-top:7px;text-align:center"><a href="javascript:void(0)" onclick="faxNavToMyTasks()" style="color:#2563eb">+' +(tasks.length-4)+' more</a></div>'
   h+='</div>'
   return h
 }
