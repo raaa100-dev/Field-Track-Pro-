@@ -528,7 +528,7 @@ async function pgDash(){
   try { await loadJobsWithPartsStatus() } catch(lpe){ console.warn('loadJobsWithPartsStatus:',lpe) }
   const {data:ci} = await sb.from('checkins').select('id,job_id,worker_id,checkin_at,checkout_at').is('checkout_at',null).order('checkin_at',{ascending:false}).limit(20)
   // Load my tasks for dashboard widget
-  const myTasksRes = ME?.id ? await sb.from('job_tasks').select('*').eq('assigned_to',ME.id).eq('status','open').order('created_at',{ascending:false}) : {data:[]}
+  const myTasksRes = ME?.id ? await sb.from('job_tasks').select('*').eq('assigned_to',ME.id).in('status',['open','in_progress']).order('created_at',{ascending:false}) : {data:[]}
   const myTasks = myTasksRes.data||[]
   window._myOpenTasks = myTasks
   const {data:parts} = await sb.from('job_parts').select('id,job_id,status,assigned_qty,ordered_qty,taken_qty,installed_qty')
@@ -5494,7 +5494,7 @@ function buildMyTasksDashWidget(tasks){
   var priColors={critical:'#dc2626',high:'#d97706',medium:'#2563eb',low:'#16a34a'}
   var priBadge={critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'}
   var h='<div class="card" style="border-left:3px solid #2563eb">'
-  h+='<div class="card-title">My Tasks <span style="font-size:11px;color:#8a96ab;font-weight:400">('+tasks.length+' open)</span>'
+  h+='<div class="card-title">My Tasks <span style="font-size:11px;color:#8a96ab;font-weight:400">('+tasks.length+' active)</span>'
   h+='<button class="btn btn-sm btn-ghost" onclick="faxNavToTasks()">All →</button>'
   h+='<button class="btn btn-sm" onclick="faxNavToMyTasks()">My Tasks →</button>'
   // Sort: critical first
