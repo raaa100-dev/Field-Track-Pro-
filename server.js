@@ -648,6 +648,7 @@ function renderJobDetail(){
     <div class="tab" onclick="JT(this,'jt-checklist')">Checklist</div>
     <div class="tab" onclick="JT(this,'jt-punch')">Punch List</div>
     <div class="tab" onclick="JT(this,'jt-pm')">PM Review</div>
+    <div class="tab" onclick="JT(this,'jt-drawings')">Drawings</div>
     <div class="tab" onclick="JT(this,'jt-co')">Change Orders</div>
     <div class="tab" onclick="JT(this,'jt-fin')">Financials</div>
     <div class="tab" onclick="JT(this,'jt-subs')">Sub Assignments</div>
@@ -678,6 +679,7 @@ async function loadJT(id){
   else if(id==='jt-checklist') await renderChecklistTab(el)
   else if(id==='jt-punch') await renderPunchTab(el)
   else if(id==='jt-pm') await renderPmTab(el)
+  else if(id==='jt-drawings') await renderDrawingsTab(el)
   else if(id==='jt-co') await renderCOTab(el)
   else if(id==='jt-fin') await renderJobFinTab(el)
   else if(id==='jt-subs') await renderSubAssignTab(el)
@@ -923,7 +925,7 @@ async function openJobWalk(walkId){
   \${walk.issues_found?\`<div style="margin-bottom:10px;background:rgba(220,38,38,.08);border-radius:7px;padding:9px 11px"><div style="font-size:10px;color:#dc2626;margin-bottom:3px">ISSUES FOUND</div><div style="font-size:12px;color:#dc2626;white-space:pre-wrap">\${walk.issues_found}</div></div>\`:''}
   \${walk.action_items?\`<div style="margin-bottom:10px"><div style="font-size:10px;color:#414e63;margin-bottom:3px">ACTION ITEMS</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap">\${walk.action_items}</div></div>\`:''}
   <div class="sec-hdr">Plans & Markup</div>
-  \${(plans||[]).length?(plans||[]).map(p=>\`<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div>📄</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${p.file_name}</div></div><button class="btn btn-sm" onclick="openMarkup('\${p.id}','\${p.url}','\${walk.id}')">✏ Markup</button><a href="\${p.url}" target="_blank" class="btn btn-sm">View</a></div>\`).join(''):'<div style="font-size:12px;color:#414e63;margin-bottom:8px">No plans uploaded</div>'}
+  \${(plans||[]).length?(plans||[]).map(p=>\`<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div>📄</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${p.file_name}</div></div><button class="btn btn-sm" onclick="openPlanMarkup('\${p.id}','\${p.url}','\${p.file_name}',()=>openJobWalk('\${walk.id}'))">✏ Markup</button><a href="\${p.url}" target="_blank" class="btn btn-sm">View</a></div>\`).join(''):'<div style="font-size:12px;color:#414e63;margin-bottom:8px">No plans uploaded</div>'}
   <label class="btn btn-sm btn-p" style="cursor:pointer;margin-top:6px">+ Upload Plan<input type="file" style="display:none" accept=".pdf,.png,.jpg,.jpeg" onchange="uploadWalkPlan(this.files,'\${walkId}')"></label>\`,
   ()=>closeModal(),'Close',false)
   document.getElementById('modal-footer').innerHTML='<button class="btn" onclick="closeModal()">Close</button>'
@@ -2746,6 +2748,7 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
         <button class="mt-btn active" id="mmt-dot" onclick="setMarkupMode('dot',this)">● Dot</button>
         <button class="mt-btn" id="mmt-text" onclick="setMarkupMode('text',this)">T Text</button>
         <button class="mt-btn" id="mmt-del" onclick="setMarkupMode('delete',this)">🗑 Delete</button>
+        <button class="mt-btn" id="mmt-line" onclick="setMarkupMode('line',this)">/ Line</button>
         <div style="width:1px;height:20px;background:rgba(255,255,255,.1);margin:0 4px"></div>
         <span style="font-size:10px;color:#414e63;font-weight:600">COLOR</span>
         <div id="color-swatches" style="display:flex;gap:5px">
@@ -2756,6 +2759,8 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
         <select class="fi" id="dot-size" style="width:60px;padding:3px 6px;font-size:11px">
           <option value="6">XS</option><option value="9">S</option><option value="13" selected>M</option><option value="18">L</option><option value="24">XL</option>
         </select>
+        <span style="font-size:10px;color:#414e63;margin-left:8px;font-weight:600">LINE W</span>
+        <select class="fi" id="line-width" style="width:60px;padding:3px 6px;font-size:11px"><option value="1">1px</option><option value="2" selected>2px</option><option value="4">4px</option><option value="6">6px</option><option value="10">10px</option></select>
         <button class="mt-btn" onclick="clearAllMarkup()" style="margin-left:auto;color:#dc2626">🗑 Clear All</button>
       </div>
       <!-- CANVAS -->
@@ -2776,6 +2781,7 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
         <div class="card-title">Text Boxes</div>
         <div id="textbox-entries"></div>
       </div>
+      <div class="card"><div class="card-title">Lines</div><div id="line-entries" style="font-size:11px;color:#414e63">No lines drawn</div></div>
       <div class="card">
         <div class="card-title">Dots (\${0})</div>
         <div id="dot-count-display" style="font-size:11px;color:#414e63">0 dots placed</div>
@@ -2786,7 +2792,7 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
   loadMarkupData(planId,planUrl)
 }
 
-let _mMode='dot',_mColor='#dc2626',_mCanvas=null,_mCtx=null,_mImg=null,_mData={dots:[],textboxes:[],legend:[]}
+let _mMode='dot',_mColor='#dc2626',_mCanvas=null,_mCtx=null,_mImg=null,_mData={dots:[],textboxes:[],lines:[],legend:[]},_mLineStart=null
 
 function setMarkupMode(m,btn){
   _mMode=m
@@ -2803,7 +2809,7 @@ function setMarkupColor(c,el){
 
 async function loadMarkupData(planId,planUrl){
   const{data:plan}=await sb.from('job_walk_plans').select('markup_json').eq('id',planId).single()
-  _mData=plan?.markup_json||{dots:[],textboxes:[],legend:[]}
+  _mData=plan?.markup_json||{dots:[],textboxes:[],lines:[],legend:[]};if(!_mData.lines)_mData.lines=[]
   // Load image
   const canvas=document.getElementById('markup-canvas')
   const ctx=canvas.getContext('2d')
@@ -2815,7 +2821,7 @@ async function loadMarkupData(planId,planUrl){
     _mImg=img
     document.getElementById('canvas-loading').style.display='none'
     redrawMarkup()
-    renderLegendEntries();renderTextboxEntries();updateDotCount()
+    renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount()
     // Attach click handler
     canvas.onclick=handleMarkupClick
   }
@@ -2839,19 +2845,31 @@ function handleMarkupClick(e){
   const cx=(e.clientX-rect.left)*sx,cy=(e.clientY-rect.top)*sy
   if(_mMode==='dot'){
     const sz=parseInt(document.getElementById('dot-size')?.value||13)
-    const id=uuid()
-    _mData.dots.push({id,x:cx,y:cy,color:_mColor,size:sz,label:''})
+    _mData.dots.push({id:uuid(),x:cx,y:cy,color:_mColor,size:sz,label:''})
     redrawMarkup();updateDotCount();beep()
   } else if(_mMode==='text'){
     const txt=prompt('Enter text to place on plan:');if(!txt)return
     _mData.textboxes.push({id:uuid(),x:cx,y:cy,text:txt,color:_mColor,fontSize:14})
     redrawMarkup();renderTextboxEntries()
+  } else if(_mMode==='line'){
+    if(!_mLineStart){
+      _mLineStart={x:cx,y:cy}
+      _mCtx.beginPath();_mCtx.arc(cx,cy,4,0,Math.PI*2);_mCtx.fillStyle=_mColor;_mCtx.fill()
+      toast('Line started — click to set end point','info')
+    } else {
+      const lw=parseInt(document.getElementById('line-width')?.value||2)
+      _mData.lines=_mData.lines||[]
+      _mData.lines.push({id:uuid(),x1:_mLineStart.x,y1:_mLineStart.y,x2:cx,y2:cy,color:_mColor,width:lw})
+      _mLineStart=null
+      redrawMarkup();renderLineEntries()
+    }
   } else if(_mMode==='delete'){
     const hit=findMarkupHit(cx,cy)
     if(hit){
       if(hit.type==='dot')_mData.dots=_mData.dots.filter(d=>d.id!==hit.id)
+      else if(hit.type==='line')_mData.lines=(_mData.lines||[]).filter(l=>l.id!==hit.id)
       else _mData.textboxes=_mData.textboxes.filter(t=>t.id!==hit.id)
-      redrawMarkup();renderLegendEntries();renderTextboxEntries();updateDotCount()
+      redrawMarkup();renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount()
       toast('Removed','info')
     }
   }
@@ -2859,6 +2877,12 @@ function handleMarkupClick(e){
 function findMarkupHit(cx,cy){
   for(const d of _mData.dots){if(Math.sqrt((cx-d.x)**2+(cy-d.y)**2)<=d.size+5)return{...d,type:'dot'}}
   for(const t of _mData.textboxes){if(cx>=t.x-5&&cx<=t.x+200&&cy>=t.y-t.fontSize-2&&cy<=t.y+5)return{...t,type:'text'}}
+  for(const l of (_mData.lines||[])){
+    const dx=l.x2-l.x1,dy=l.y2-l.y1,len2=dx*dx+dy*dy
+    const t=len2>0?Math.max(0,Math.min(1,((cx-l.x1)*dx+(cy-l.y1)*dy)/len2)):0
+    const px=l.x1+t*dx,py=l.y1+t*dy
+    if(Math.sqrt((cx-px)**2+(cy-py)**2)<=8)return{...l,type:'line'}
+  }
   return null
 }
 function redrawMarkup(){
@@ -2866,6 +2890,13 @@ function redrawMarkup(){
   _mCtx.clearRect(0,0,_mCanvas.width,_mCanvas.height)
   if(_mImg)_mCtx.drawImage(_mImg,0,0)
   else{_mCtx.fillStyle='#1a2540';_mCtx.fillRect(0,0,_mCanvas.width,_mCanvas.height)}
+  // Draw lines first (behind dots/text)
+  for(const l of (_mData.lines||[])){
+    _mCtx.beginPath();_mCtx.moveTo(l.x1,l.y1);_mCtx.lineTo(l.x2,l.y2)
+    _mCtx.strokeStyle=l.color;_mCtx.lineWidth=l.width||2;_mCtx.lineCap='round';_mCtx.stroke()
+    _mCtx.beginPath();_mCtx.arc(l.x1,l.y1,3,0,Math.PI*2);_mCtx.fillStyle=l.color;_mCtx.fill()
+    _mCtx.beginPath();_mCtx.arc(l.x2,l.y2,3,0,Math.PI*2);_mCtx.fillStyle=l.color;_mCtx.fill()
+  }
   // Draw dots
   for(const d of _mData.dots){
     _mCtx.beginPath();_mCtx.arc(d.x,d.y,d.size/2,0,Math.PI*2)
@@ -2893,7 +2924,20 @@ function renderTextboxEntries(){
   const el=document.getElementById('textbox-entries');if(!el)return
   el.innerHTML=(_mData.textboxes||[]).map((t,i)=>\`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="width:8px;height:8px;border-radius:50%;background:\${t.color};flex-shrink:0"></div><div style="font-size:11px;flex:1;color:#8a96ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${t.text}</div><button onclick="_mData.textboxes.splice(\${i},1);renderTextboxEntries();redrawMarkup()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No text boxes</div>'
 }
-function clearAllMarkup(){if(!confirm('Clear all dots and text boxes?'))return;_mData.dots=[];_mData.textboxes=[];redrawMarkup();renderLegendEntries();renderTextboxEntries();updateDotCount();toast('Cleared','warn')}
+function renderLineEntries(){
+  var el=document.getElementById('line-entries');if(!el)return
+  var lines=_mData.lines||[]
+  if(!lines.length){el.textContent='No lines drawn';return}
+  var h=''
+  lines.forEach(function(l,i){
+    h+='<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+    h+='<div style="width:20px;height:3px;background:'+l.color+';border-radius:2px;flex-shrink:0"></div>'
+    h+='<div style="font-size:11px;flex:1;color:#8a96ab">'+(i+1)+'. ('+Math.round(Math.sqrt(Math.pow(l.x2-l.x1,2)+Math.pow(l.y2-l.y1,2)))+'px)</div>'
+    h+='<button onclick="_mData.lines.splice('+i+',1);renderLineEntries();redrawMarkup()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">x</button></div>'
+  })
+  el.innerHTML=h
+}
+function clearAllMarkup(){if(!confirm('Clear all dots, lines and text boxes?'))return;_mData.dots=[];_mData.textboxes=[];_mData.lines=[];_mLineStart=null;redrawMarkup();renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount();toast('Cleared','warn')}
 async function saveMarkupData(){
   if(!_markupPlanId)return
   const{error}=await sb.from('job_walk_plans').update({markup_json:_mData}).eq('id',_markupPlanId)
@@ -2902,6 +2946,49 @@ async function saveMarkupData(){
 function downloadMarkupPNG(){
   const canvas=document.getElementById('markup-canvas');if(!canvas)return
   const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='plan-markup-'+new Date().toISOString().split('T')[0]+'.png';a.click();toast('Downloading PNG…')
+}
+
+// DRAWINGS TAB (per job)
+async function renderDrawingsTab(el){
+  var res=await sb.from('job_walk_plans').select('*').eq('job_id',currentJobId).is('job_walk_id',null).order('created_at',{ascending:false})
+  var ps=res.data||[]
+  var h='<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+  h+='<label class="btn btn-p btn-sm" style="cursor:pointer">+ Upload Drawing / Plan'
+  h+='<input type="file" style="display:none" multiple accept=".pdf,.png,.jpg,.jpeg" onchange="uploadJobDrawing(this.files)"></label>'
+  h+='<span style="font-size:11px;color:#414e63">Upload plans or prints — click Markup to annotate with dots, lines and text</span>'
+  h+='</div>'
+  if(ps.length){
+    ps.forEach(function(p){
+      var icon=(p.file_name||'').match(/\.pdf$/i)?'PDF':'IMG'
+      var dc=(p.markup_json&&p.markup_json.dots||[]).length
+      var lc=(p.markup_json&&p.markup_json.lines||[]).length||0
+      var tc=(p.markup_json&&p.markup_json.textboxes||[]).length
+      h+='<div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:7px">'
+      h+='<div style="font-size:11px;font-weight:600;color:#8a96ab;background:#0c1220;border-radius:4px;padding:3px 6px">'+icon+'</div>'
+      h+='<div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(p.file_name||'Drawing')+'</div>'
+      h+='<div style="font-size:10px;color:#414e63;margin-top:1px">'+fd(p.created_at)+' · '+dc+' dots · '+lc+' lines · '+tc+' text</div></div>'
+      h+='<button class="btn btn-sm btn-p" data-pid="'+p.id+'" data-purl="'+p.url+'" data-pname="'+(p.file_name||'Drawing')+'" onclick="openDrawingMarkup(this)">Markup</button>'
+      h+='<a href="'+p.url+'" target="_blank" class="btn btn-sm">View</a>'
+      h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" data-pid="'+p.id+'" data-ppath="'+(p.storage_path||'')+'" onclick="delDrawing(this)">Del</button>'
+      h+='</div>'
+    })
+  }else{
+    h+='<div style="font-size:12px;color:#414e63;padding:20px;text-align:center">No drawings uploaded yet — upload PDF or image files to begin</div>'
+  }
+  el.innerHTML=h
+}
+function openDrawingMarkup(btn){openPlanMarkup(btn.getAttribute('data-pid'),btn.getAttribute('data-purl'),btn.getAttribute('data-pname'),function(){loadJT('jt-drawings')})}
+function delDrawing(btn){deleteJobPlan(btn.getAttribute('data-pid'),btn.getAttribute('data-ppath'))}
+async function uploadJobDrawing(files){
+  for(const f of files){
+    const path='jobs/'+currentJobId+'/drawings/'+Date.now()+'_'+f.name
+    const{error}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true})
+    if(!error){
+      const{data:{publicUrl}}=sb.storage.from('fieldtrack-plans').getPublicUrl(path)
+      await sb.from('job_walk_plans').insert({id:uuid(),job_id:currentJobId,job_walk_id:null,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],lines:[],legend:[]},created_at:new Date().toISOString()})
+    }
+  }
+  toast('Drawing uploaded');loadJT('jt-drawings')
 }
 
 // Upload plans to job (as-builts)
