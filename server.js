@@ -5433,6 +5433,15 @@ async function newTaskModal(){
 // MY TASKS — Badge, notifications, dashboard widget
 // ══════════════════════════════════════════
 
+function faxNavToTasks(){
+  var el=document.querySelector('.nav-item[onclick*=tasks]')
+  P('tasks',el)
+}
+function faxNavToMyTasks(){
+  filterMyTasks()
+  var el=document.querySelector('.nav-item[onclick*=tasks]')
+  P('tasks',el)
+}
 async function loadMyTasksBadge(){
   if(typeof ME==='undefined'||!ME||!ME.id)return
   try{
@@ -5486,8 +5495,8 @@ function buildMyTasksDashWidget(tasks){
   var priBadge={critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'}
   var h='<div class="card" style="border-left:3px solid #2563eb">'
   h+='<div class="card-title">My Tasks <span style="font-size:11px;color:#8a96ab;font-weight:400">('+tasks.length+' open)</span>'
-  h+='<button class="btn btn-sm btn-ghost" onclick="P(\'tasks\',document.querySelector(\'.nav-item[onclick*=tasks]\'))">All →</button>'
-  h+='<button class="btn btn-sm" onclick="filterMyTasks();P(\'tasks\',document.querySelector(\'.nav-item[onclick*=tasks]\'))">My Tasks →</button></div>'
+  h+='<button class="btn btn-sm btn-ghost" onclick="faxNavToTasks()">All →</button>'
+  h+='<button class="btn btn-sm" onclick="faxNavToMyTasks()">My Tasks →</button>'
   // Sort: critical first
   var sorted=tasks.slice().sort(function(a,b){
     var po={critical:0,high:1,medium:2,low:3}
@@ -5510,7 +5519,7 @@ function buildMyTasksDashWidget(tasks){
     h+='<button class="btn btn-sm btn-ghost" style="font-size:10px;padding:2px 7px" data-tid="'+t.id+'" onclick="editTask(this)">Edit</button>'
     h+='</div>'
   })
-  if(tasks.length>5)h+='<div style="font-size:11px;color:#414e63;padding:6px 0">+' +(tasks.length-5)+' more — <a href="javascript:void(0)" onclick="filterMyTasks();P(\'tasks\',document.querySelector(\'.nav-item[onclick*=tasks]\'))" style="color:#2563eb">view all</a></div>'
+  if(tasks.length>5)h+='<div style="font-size:11px;color:#414e63;padding:6px 0">+' +(tasks.length-5)+' more — <a href="javascript:void(0)" onclick="faxNavToMyTasks()" style="color:#2563eb">view all</a></div>'
   h+='</div>'
   return h
 }
