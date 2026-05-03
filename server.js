@@ -6000,6 +6000,7 @@ async function pgCrmAccounts(){
   renderCrmAccounts(accounts,'')
 }
 
+function crmOpenAccountCard(el){crmOpenAccount(el.getAttribute('data-aid'))}
 function crmAccTypeFilter(){
   var q=(document.getElementById('crm-acc-search')||{}).value||''
   renderCrmAccounts(window._crmAccounts||[],q)
@@ -6033,7 +6034,7 @@ function renderCrmAccounts(accounts,search){
     var activeAgreements=(a.crm_agreements||[]).filter(function(x){return x.status==='active'}).length
     var typeColor={gc:'#2563eb',owner:'#16a34a',property_manager:'#d97706',other:'#8a96ab'}[a.type]||'#8a96ab'
     var typeLabel={gc:'General Contractor',owner:'Owner/Developer',property_manager:'Property Manager',other:'Other'}[a.type]||a.type||'—'
-    h+='<div class="card" style="cursor:pointer;transition:.15s" onclick="crmOpenAccount(\''+a.id+'\')" onmouseover="this.style.borderColor=\'rgba(37,99,235,.4)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.07)\'">'
+    h+='<div class="card" style="cursor:pointer;transition:.15s" data-aid="'+a.id+'" onclick="crmOpenAccountCard(this)" onmouseover="this.style.borderColor=&quot;rgba(37,99,235,.4)&quot;" onmouseout="this.style.borderColor=&quot;rgba(255,255,255,.07)&quot;">'
     h+='<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">'
     h+='<div style="width:38px;height:38px;border-radius:8px;background:rgba(37,99,235,.15);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏢</div>'
     h+='<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.name+'</div>'
