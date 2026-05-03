@@ -462,6 +462,39 @@ function closeSidebar(){
   if(ov)ov.classList.remove('show')
 }
 
+async function deleteJobConfirm(){
+  if(!currentJob){toast('No job open','error');return}
+  var jobName=currentJob.name||'this job'
+  // First confirmation
+  if(!confirm('PERMANENTLY DELETE "'+jobName+'"? All parts, reports, walks and tasks will be deleted. This CANNOT be undone.'))return
+  // Second confirmation
+  var typed=prompt('Type the job name to confirm deletion: '+jobName)
+  if(!typed||typed.trim()!==jobName.trim()){
+    toast('Job name did not match — deletion cancelled','warn')
+    return
+  }
+  toast('Deleting job...','warn')
+  try{
+    // Delete all related records first
+    await sb.from('job_parts').delete().eq('job_id',currentJob.id)
+    await sb.from('job_tasks').delete().eq('job_id',currentJob.id)
+    await sb.from('daily_reports').delete().eq('job_id',currentJob.id)
+    await sb.from('job_walks').delete().eq('job_id',currentJob.id)
+    await sb.from('job_walk_plans').delete().eq('job_id',currentJob.id)
+    await sb.from('checkins').delete().eq('job_id',currentJob.id)
+    await sb.from('scan_events').delete().eq('job_id',currentJob.id)
+    await sb.from('job_documents').delete().eq('job_id',currentJob.id)
+    // Delete the job itself
+    var res=await sb.from('jobs').delete().eq('id',currentJob.id)
+    if(res.error)throw new Error(res.error.message)
+    currentJob=null
+    currentJobId=null
+    toast('Job "'+jobName+'" permanently deleted','warn')
+    P('jobs',document.querySelector('.nav-item[onclick*=jobs]'))
+  }catch(e){
+    toast('Delete failed: '+e.message,'error')
+  }
+}
 function doSignOut(){sb.auth.signOut().then(function(){location.href='index.html?signout=1'})}
 
 // ── NAVIGATION ────────────────────────────────────────────────
@@ -839,7 +872,7 @@ async function openJob(id){
   currentJobId=id
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
   document.getElementById('page-title').textContent='Job Detail'
-  document.getElementById('topbar-actions').innerHTML=\`<button class="btn btn-sm" onclick="P('jobs',null)">← Jobs</button> <button class="btn btn-sm" id="urgent-btn" style="background:rgba(220,38,38,.15);color:#dc2626;border-color:rgba(220,38,38,.3)" onclick="toggleUrgent()">🔥 Flag Urgent</button>\`
+  document.getElementById('topbar-actions').innerHTML=\`<button class="btn btn-sm" onclick="P('jobs',null)">← Jobs</button> <button class="btn btn-sm" id="urgent-btn" style="background:rgba(220,38,38,.15);color:#dc2626;border-color:rgba(220,38,38,.3)" onclick="toggleUrgent()">🔥 Flag Urgent</button>\${['admin'].includes(ME?.role)?\` <button class="btn btn-sm" style="color:#dc2626;border-color:rgba(220,38,38,.3)" onclick="deleteJobConfirm()">🗑 Delete Job</button>\`:''}\`
   const{data:job}=await sb.from('jobs').select('*').eq('id',id).single()
   currentJob=job
   // Update urgent button state
