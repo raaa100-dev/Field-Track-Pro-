@@ -1394,6 +1394,7 @@ async function pgNewJob(){
   <div>
     <div class="card">
       <div class="fg"><label class="fl">Job Name *</label><input class="fi" id="nj-name" placeholder="Project name"></div>
+      <div class="two"><div class="fg"><label class="fl">Job ID / Number</label><input class="fi" id="nj-jobid" placeholder="e.g. 2025-001"></div><div class="fg"><label class="fl">Trade</label><input class="fi" id="nj-trade" value="Fire Alarm" placeholder="Fire Alarm, Suppression..."></div></div>
       <div class="fg" style="position:relative"><label class="fl">Project Address *</label><input class="fi" id="nj-addr" placeholder="Start typing…" autocomplete="off" oninput="addrAC(this.value,'nj-addr-dd')"><div id="nj-addr-dd" class="addr-dd"></div>
       <div id="nj-gps-ok" style="display:none;font-size:10px;color:#16a34a;margin-top:4px">✓ GPS: <span id="nj-coords"></span></div><input type="hidden" id="nj-lat"><input type="hidden" id="nj-lng"></div>
       <div class="three"><div class="fg"><label class="fl">Radius</label><select class="fs" id="nj-rad"><option value="100">100ft</option><option value="250" selected>250ft</option><option value="500">500ft</option><option value="750">750ft</option><option value="1000">1000ft</option></select></div>
@@ -1402,13 +1403,14 @@ async function pgNewJob(){
       <div class="three"><div class="fg"><label class="fl">Expected On Site</label><input class="fi" type="date" id="nj-eos"></div>
       <div class="fg"><label class="fl">Next Visit</label><input class="fi" type="date" id="nj-nvd"></div>
       <div class="fg"><label class="fl">Closeout Date</label><input class="fi" type="date" id="nj-dco"></div></div>
-      <div class="three"><div class="fg"><label class="fl">Contract $</label><input class="fi" type="number" id="nj-cv"></div>
+      <div class="three"><div class="fg"><label class="fl">Original Contract $</label><input class="fi" type="number" id="nj-cv"></div>
       <div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="nj-lb"></div>
       <div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="nj-lr"></div></div>
       <div class="fg"><label class="fl">GC Company</label><input class="fi" id="nj-gc"></div>
       <div class="two"><div class="fg"><label class="fl">GC Contact</label><input class="fi" id="nj-gcc"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="nj-gcp"></div></div>
       <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="nj-sup"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="nj-supp"></div></div>
       <div class="fg"><label class="fl">Project Manager (Internal)</label><select class="fs" id="nj-pm"><option value="">— Assign PM —</option></select></div>
+      <div class="fg"><label class="fl">Estimator</label><select class="fs" id="nj-estimator"><option value="">— Assign Estimator —</option></select></div>
       <div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="nj-pmschedule"><option value="none">No scheduled visits</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">At milestones only</option></select></div>
       <div class="fg"><label class="fl">Next PM Visit Due</label><input class="fi" type="date" id="nj-pmvisit"></div>
     </div>
@@ -1424,7 +1426,7 @@ async function pgNewJob(){
     <div class="card">
       <div class="card-title">Milestone Dates</div>
       <div class="two"><div class="fg"><label class="fl">Rough-in</label><input class="fi" type="date" id="nj-dr"></div><div class="fg"><label class="fl">Trim-out</label><input class="fi" type="date" id="nj-dt"></div></div>
-      <div class="two"><div class="fg"><label class="fl">Inspection</label><input class="fi" type="date" id="nj-di"></div><div class="fg"><label class="fl">Contract Signed</label><input class="fi" type="date" id="nj-dc"></div></div>
+      <div class="two"><div class="fg"><label class="fl">Inspection</label><input class="fi" type="date" id="nj-di"></div><div class="fg"><label class="fl">Contract Date</label><input class="fi" type="date" id="nj-dc"></div></div>
     </div>
     <button class="btn btn-p btn-full" id="nj-btn" onclick="submitNewJob()">Create Job</button>
   </div></div>\`
@@ -1444,7 +1446,11 @@ async function populateNjPM(pmUsers){
     sel.innerHTML='<option value="">— Add employees in Users page first —</option>'
     return
   }
-  sel.innerHTML='<option value="">— Unassigned —</option>'+users.map(p=>'<option value="'+p.full_name+'">'+p.full_name+(p.role?' ('+p.role+')':'')+'</option>').join('')
+  var opts='<option value="">— Unassigned —</option>'+users.map(p=>'<option value="'+p.full_name+'">'+p.full_name+(p.role?' ('+p.role+')':'')+'</option>').join('')
+  sel.innerHTML=opts
+  // Also populate estimator dropdown
+  var estSel=document.getElementById('nj-estimator')
+  if(estSel)estSel.innerHTML='<option value="">— Unassigned —</option>'+users.filter(function(p){return['admin','pm','estimator'].includes(p.role)}).map(p=>'<option value="'+p.full_name+'">'+p.full_name+'</option>').join('')
 }
 async function loadNjWorkers(){const coId=v('nj-co');const wrap=document.getElementById('nj-workers');if(!wrap)return;if(!coId){wrap.innerHTML='<div style="font-size:11px;color:#414e63">Select a company first</div>';return};const{data}=await sb.from('profiles').select('id,full_name,is_lead').eq('company_id',coId).eq('is_active',true);wrap.innerHTML=(data||[]).map(w=>\`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><input type="checkbox" id="w-\${w.id}" value="\${w.id}" \${w.is_lead?'checked':''}><label for="w-\${w.id}" style="font-size:12px;color:#8a96ab">\${w.full_name}\${w.is_lead?' (Lead)':''}</label></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No workers</div>'}
 async function submitNewJob(){
@@ -1452,7 +1458,7 @@ async function submitNewJob(){
   const btn=document.getElementById('nj-btn');btn.disabled=true;btn.textContent='Creating…'
   let lat=parseFloat(v('nj-lat'))||null,lng=parseFloat(v('nj-lng'))||null
   if(!lat&&v('nj-addr')){try{const r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(v('nj-addr'))+'&format=json&limit=1',{headers:{'User-Agent':'FieldAxisHQ/1.0'}});const j=await r.json();if(j[0]){lat=parseFloat(j[0].lat);lng=parseFloat(j[0].lon)}}catch{}}
-  const job={id:uuid(),name,address:v('nj-addr'),gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:v('nj-start')||null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),project_manager:v('nj-pm')||null,pm_visit_schedule:v('nj-pmschedule')||'none',next_pm_visit:v('nj-pmvisit')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
+  const job={id:uuid(),name,address:v('nj-addr'),gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:v('nj-start')||null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,job_number:v('nj-jobid')||null,estimator:v('nj-estimator')||null,original_contract_value:fN('nj-cv'),contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),trade:v('nj-trade')||null,gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),project_manager:v('nj-pm')||null,pm_visit_schedule:v('nj-pmschedule')||'none',next_pm_visit:v('nj-pmvisit')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
   const{data:created,error}=await sb.from('jobs').insert(job).select().single()
   if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Create Job';return}
   document.querySelectorAll('#nj-workers input[type=checkbox]:checked').forEach(async cb=>await sb.from('job_workers').insert({id:uuid(),job_id:created.id,worker_id:cb.value,is_active:true,added_by:ME?.full_name,added_at:new Date().toISOString()}))
@@ -4867,7 +4873,7 @@ window._sbToken=null
 document.addEventListener('DOMContentLoaded',function(){
   if(typeof sb!=='undefined')sb.auth.getSession().then(function(res){
     var session=res.data&&res.data.session
-    if(session){window._sbToken=session.access_token;window._faxUser={full_name:(typeof ME!=='undefined'&&ME.full_name)||''};window._faxRole=(typeof ME!=='undefined'&&ME.role)||session.user.role||'admin'}
+    if(session){window._sbToken=session.access_token;window._faxUser={full_name:(ME&&ME.full_name)||''};window._faxRole=(ME&&ME.role)||session.user.role||'admin'}
   })
 })
 

@@ -9,3 +9,10 @@ ALTER TABLE job_parts ADD COLUMN IF NOT EXISTS checked_out_by   text DEFAULT NUL
 ALTER TABLE job_parts ADD COLUMN IF NOT EXISTS notes            text DEFAULT NULL;
 
 SELECT 'Parts staging columns added' AS status;
+
+-- ── New job fields ────────────────────────────────────────────────────────────
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS job_number               text DEFAULT NULL;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS estimator                text DEFAULT NULL;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS original_contract_value  numeric(12,2) DEFAULT NULL;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS trade                    text DEFAULT NULL;
+SELECT 'New job fields added' AS status;
