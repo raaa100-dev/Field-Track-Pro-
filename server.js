@@ -583,13 +583,15 @@ async function pgDash(){
   }
   allJobs=jobs||[]
   const active=allJobs.filter(j=>j.phase!=='complete'&&!j.archived)
-  const allParts=parts||[]
+  const activeJobIds=new Set(active.map(j=>j.id))
+  const allParts=(parts||[]).filter(p=>activeJobIds.has(p.job_id))
   const orderedParts=allParts.filter(p=>p.status==='ordered')
   const staged=allParts.filter(p=>p.status==='staged')
   const out=allParts.filter(p=>p.status==='signed_out')
   const installed=allParts.filter(p=>p.status==='installed'||p.status==='partial_install')
-  const pendingOrders=(orders||[]).filter(o=>o.status==='pending').length
-  const orderedOrders=(orders||[]).filter(o=>o.status==='ordered').length
+  const activeOrders=(orders||[]).filter(o=>activeJobIds.has(o.job_id)||!o.job_id)
+  const pendingOrders=activeOrders.filter(o=>o.status==='pending').length
+  const orderedOrders=activeOrders.filter(o=>o.status==='ordered').length
   const stagedOrders=(orders||[]).filter(o=>o.status==='staged').length
   const lowStock=(low||[]).filter(i=>i.qty<=i.min_qty)
   const checkins=ciWithNames
