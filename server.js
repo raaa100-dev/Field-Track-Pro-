@@ -370,6 +370,11 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
     <div class="nav-item" onclick="P('fax_bid_reports',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13l3-4 3 2 3-5 3 2"/><circle cx="5" cy="9" r="1.2" fill="currentColor" stroke="none"/><circle cx="8" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="11" cy="6" r="1.2" fill="currentColor" stroke="none"/></svg>Quote Reports</div>
     <div class="nav-item" onclick="P('financials',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l3-4 3 2 3-5 3 3"/></svg>Financials</div>
     <div class="nav-item" onclick="P('reports',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 13V8m4 5V5m4 8V2"/></svg>Reports</div>
+    <div class="nav-section">CRM</div>
+    <div class="nav-item" onclick="P('crm_accounts',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/></svg>Accounts</div>
+    <div class="nav-item" onclick="P('crm_contacts',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4a3 3 0 11-6 0 3 3 0 016 0zM4 14s-1-1-1-3a5 5 0 0110 0c0 2-1 3-1 3"/></svg>Contacts</div>
+    <div class="nav-item" onclick="P('crm_pipeline',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h3v8H2zm4.5-2h3v12h-3zM11 6h3v6h-3z"/></svg>Pipeline</div>
+    <div class="nav-item" onclick="P('crm_inspections',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v10H3z"/><path d="M6 8l2 2 4-4"/></svg>Inspections</div>
     <div class="nav-section">Admin</div>
     <div class="nav-item" onclick="P('documents',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="1" width="10" height="14" rx="1"/><path d="M6 5h4M6 8h4M6 11h2"/></svg>Documents</div>
     <div class="nav-item" onclick="P('users',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/></svg>Users</div>
@@ -498,7 +503,7 @@ async function deleteJobConfirm(){
 function doSignOut(){sb.auth.signOut().then(function(){location.href='index.html?signout=1'})}
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const PAGE_TITLES={tasks:'Tasks',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
+const PAGE_TITLES={tasks:'Tasks',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
 function P(page,navEl){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
   if(navEl)navEl.classList.add('active')
@@ -506,7 +511,7 @@ function P(page,navEl){
   document.getElementById('topbar-actions').innerHTML=''
   const a=document.getElementById('page-area')
   a.innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
-  const map={dashboard:pgDash,jobs:pgJobs,tasks:pgTasks,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications}
+  const map={dashboard:pgDash,jobs:pgJobs,tasks:pgTasks,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications}
   if(map[page])map[page]()
   else a.innerHTML='<div class="empty">Coming soon</div>'
 }
@@ -5976,6 +5981,690 @@ async function editScanPartStatus(btn){
     var res=await sb.from('job_parts').update({status:newStat,updated_at:new Date().toISOString()}).eq('id',id)
     if(res.error){toast(res.error.message,'error');return}
     closeModal();loadJobPartsPanel();toast('Status updated')
+  },'Save')
+}
+
+
+
+// ════════════════════════════════════════════════════════════════
+// CRM MODULE — Accounts, Contacts, Pipeline, Inspections
+// ════════════════════════════════════════════════════════════════
+
+// ── ACCOUNTS ────────────────────────────────────────────────────
+async function pgCrmAccounts(){
+  document.getElementById('topbar-actions').innerHTML=
+    '<button class="btn btn-p btn-sm" onclick="crmNewAccount()">+ New Account</button>'
+  var res=await sb.from('crm_accounts').select('*,crm_contacts(id),crm_buildings(id),crm_agreements(id,status)').order('name',{ascending:true})
+  var accounts=res.data||[]
+  window._crmAccounts=accounts
+  renderCrmAccounts(accounts,'')
+}
+
+function renderCrmAccounts(accounts,search){
+  var q=search.toLowerCase()
+  var filtered=accounts.filter(function(a){
+    return !q||(a.name||'').toLowerCase().includes(q)||(a.type||'').toLowerCase().includes(q)||(a.city||'').toLowerCase().includes(q)
+  })
+  var gc=accounts.filter(function(a){return a.type==='gc'}).length
+  var owner=accounts.filter(function(a){return a.type==='owner'}).length
+  var pm=accounts.filter(function(a){return a.type==='property_manager'}).length
+  var h='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px">'
+  h+='<div class="stat"><div class="stat-label">Total Accounts</div><div class="stat-value">'+accounts.length+'</div></div>'
+  h+='<div class="stat"><div class="stat-label">GCs</div><div class="stat-value" style="color:#2563eb">'+gc+'</div></div>'
+  h+='<div class="stat"><div class="stat-label">Owners</div><div class="stat-value" style="color:#16a34a">'+owner+'</div></div>'
+  h+='<div class="stat"><div class="stat-label">Prop Managers</div><div class="stat-value" style="color:#d97706">'+pm+'</div></div>'
+  h+='</div>'
+  h+='<div style="display:flex;gap:8px;margin-bottom:14px">'
+  h+='<input class="fi" id="crm-acc-search" placeholder="Search accounts..." style="width:250px" oninput="renderCrmAccounts(window._crmAccounts,this.value)">'
+  h+='<select class="fs" id="crm-acc-type" style="width:160px" onchange="renderCrmAccounts(window._crmAccounts,document.getElementById(\'crm-acc-search\').value)">'
+  h+='<option value="">All types</option><option value="gc">General Contractor</option><option value="owner">Owner/Developer</option><option value="property_manager">Property Manager</option><option value="other">Other</option>'
+  h+='</select></div>'
+  var typeFilter=(document.getElementById('crm-acc-type')||{}).value||''
+  if(typeFilter)filtered=filtered.filter(function(a){return a.type===typeFilter})
+  if(!filtered.length){document.getElementById('page-area').innerHTML=h+empty('🏢','No accounts yet');return}
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">'
+  filtered.forEach(function(a){
+    var contacts=(a.crm_contacts||[]).length
+    var buildings=(a.crm_buildings||[]).length
+    var activeAgreements=(a.crm_agreements||[]).filter(function(x){return x.status==='active'}).length
+    var typeColor={gc:'#2563eb',owner:'#16a34a',property_manager:'#d97706',other:'#8a96ab'}[a.type]||'#8a96ab'
+    var typeLabel={gc:'General Contractor',owner:'Owner/Developer',property_manager:'Property Manager',other:'Other'}[a.type]||a.type||'—'
+    h+='<div class="card" style="cursor:pointer;transition:.15s" onclick="crmOpenAccount(\''+a.id+'\')" onmouseover="this.style.borderColor=\'rgba(37,99,235,.4)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.07)\'">'
+    h+='<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">'
+    h+='<div style="width:38px;height:38px;border-radius:8px;background:rgba(37,99,235,.15);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏢</div>'
+    h+='<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.name+'</div>'
+    h+='<div style="font-size:11px;color:'+typeColor+';margin-top:2px">'+typeLabel+'</div></div></div>'
+    if(a.city||a.state)h+='<div style="font-size:11px;color:#8a96ab;margin-bottom:6px">📍 '+(a.city||'')+(a.city&&a.state?', ':'')+( a.state||'')+'</div>'
+    if(a.primary_contact)h+='<div style="font-size:11px;color:#8a96ab;margin-bottom:6px">👤 '+a.primary_contact+'</div>'
+    if(a.phone)h+='<div style="font-size:11px;color:#8a96ab;margin-bottom:6px">📞 '+a.phone+'</div>'
+    h+='<div style="display:flex;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#414e63">'
+    h+='<span>'+contacts+' contact'+(contacts!==1?'s':'')+'</span>'
+    h+='<span>·</span><span>'+buildings+' building'+(buildings!==1?'s':'')+'</span>'
+    if(activeAgreements)h+='<span>·</span><span style="color:#16a34a">'+activeAgreements+' active agreement'+(activeAgreements!==1?'s':'')+'</span>'
+    h+='</div></div>'
+  })
+  h+='</div>'
+  document.getElementById('page-area').innerHTML=h
+}
+
+function crmNewAccount(){
+  var typeOpts=['gc','owner','property_manager','other'].map(function(t){
+    var l={gc:'General Contractor',owner:'Owner/Developer',property_manager:'Property Manager',other:'Other'}[t]
+    return'<option value="'+t+'">'+l+'</option>'
+  }).join('')
+  var h='<div class="two"><div class="fg"><label class="fl">Account Name *</label><input class="fi" id="ca-name"></div>'
+  h+='<div class="fg"><label class="fl">Type</label><select class="fs" id="ca-type">'+typeOpts+'</select></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="ca-phone" type="tel"></div>'
+  h+='<div class="fg"><label class="fl">Email</label><input class="fi" id="ca-email" type="email"></div></div>'
+  h+='<div class="fg"><label class="fl">Website</label><input class="fi" id="ca-web" placeholder="https://..."></div>'
+  h+='<div class="three"><div class="fg"><label class="fl">City</label><input class="fi" id="ca-city"></div>'
+  h+='<div class="fg"><label class="fl">State</label><input class="fi" id="ca-state" style="width:80px"></div>'
+  h+='<div class="fg"><label class="fl">Zip</label><input class="fi" id="ca-zip" style="width:90px"></div></div>'
+  h+='<div class="fg"><label class="fl">Primary Contact Name</label><input class="fi" id="ca-primary"></div>'
+  h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ca-notes" style="min-height:60px"></textarea></div>'
+  modal('New Account', h, async function(){
+    var name=(document.getElementById('ca-name').value||'').trim()
+    if(!name){toast('Name required','error');return}
+    var res=await sb.from('crm_accounts').insert({id:uuid(),name,type:document.getElementById('ca-type').value,phone:document.getElementById('ca-phone').value||null,email:document.getElementById('ca-email').value||null,website:document.getElementById('ca-web').value||null,city:document.getElementById('ca-city').value||null,state:document.getElementById('ca-state').value||null,zip:document.getElementById('ca-zip').value||null,primary_contact:document.getElementById('ca-primary').value||null,notes:document.getElementById('ca-notes').value||null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();pgCrmAccounts();toast('Account created')
+  },'Create Account')
+}
+
+async function crmOpenAccount(id){
+  var res=await sb.from('crm_accounts').select('*').eq('id',id).single()
+  var a=res.data
+  if(!a){toast('Account not found','error');return}
+  var [contRes,bldRes,agrRes,actRes,inspRes,jobRes,quoteRes]=await Promise.all([
+    sb.from('crm_contacts').select('*').eq('account_id',id).order('name'),
+    sb.from('crm_buildings').select('*').eq('account_id',id).order('name'),
+    sb.from('crm_agreements').select('*').eq('account_id',id).order('created_at',{ascending:false}),
+    sb.from('crm_activities').select('*').eq('account_id',id).order('activity_date',{ascending:false}).limit(20),
+    sb.from('crm_inspections').select('*').eq('account_id',id).order('next_due',{ascending:true}),
+    sb.from('jobs').select('id,name,phase,created_at').eq('gc_company',a.name).order('created_at',{ascending:false}).limit(10),
+    sb.from('fax_bids').select('id,number,project_name,total,status:fax_bid_recipients(status)').eq('project_name',a.name).order('created_at',{ascending:false}).limit(10)
+  ])
+  window._crmOpenAccount=a
+  document.getElementById('topbar-actions').innerHTML=
+    '<button class="btn btn-sm btn-p" onclick="crmEditAccount(\''+id+'\')">Edit</button> '+
+    '<button class="btn btn-sm" onclick="crmNewContact(\''+id+'\')">+ Contact</button> '+
+    '<button class="btn btn-sm" onclick="crmNewBuilding(\''+id+'\')">+ Building</button> '+
+    '<button class="btn btn-sm btn-a" onclick="crmLogActivity(\''+id+'\')">+ Log Activity</button> '+
+    '<button class="btn btn-ghost btn-sm" onclick="pgCrmAccounts()">← Accounts</button>'
+  document.getElementById('page-title').textContent=a.name
+  var typeLabel={gc:'General Contractor',owner:'Owner/Developer',property_manager:'Property Manager',other:'Other'}[a.type]||a.type||'Account'
+  var h='<div style="display:grid;grid-template-columns:1fr 340px;gap:16px">'
+  // Left column
+  h+='<div>'
+  // Account info card
+  h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Account Info</div>'
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">'
+  ;[['Type',typeLabel],['Phone',a.phone||'—'],['Email',a.email||'—'],['Website',a.website||'—'],['City/State',(a.city||'')+(a.city&&a.state?', ':'')+( a.state||'')||'—'],['Primary Contact',a.primary_contact||'—']].forEach(function(r){
+    h+='<div><div style="font-size:10px;color:#414e63;text-transform:uppercase;font-weight:600;margin-bottom:2px">'+r[0]+'</div><div>'+r[1]+'</div></div>'
+  })
+  h+='</div>'
+  if(a.notes)h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06);font-size:12px;color:#8a96ab">'+a.notes+'</div>'
+  h+='</div>'
+  // Contacts
+  h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Contacts ('+( contRes.data||[]).length+')<button class="btn btn-sm" onclick="crmNewContact(\''+id+'\')" style="margin-left:auto">+ Add</button></div>'
+  var conts=contRes.data||[]
+  if(conts.length){
+    conts.forEach(function(c){
+      h+='<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+      h+='<div style="flex:1"><div style="font-size:13px;font-weight:500">'+c.name+'</div>'
+      h+='<div style="font-size:11px;color:#8a96ab">'+(c.title||'')+(c.title&&c.email?' · ':'')+( c.email||'')+'</div></div>'
+      if(c.phone)h+='<a href="tel:'+c.phone+'" style="font-size:11px;color:#60a5fa">'+c.phone+'</a>'
+      h+='<button class="btn btn-sm btn-ghost" data-cid="'+c.id+'" onclick="crmEditContact(this)">Edit</button></div>'
+    })
+  }else{h+='<div style="font-size:12px;color:#414e63">No contacts yet</div>'}
+  h+='</div>'
+  // Buildings
+  h+='<div class="card"><div class="card-title">Buildings / Sites ('+(bldRes.data||[]).length+')<button class="btn btn-sm" onclick="crmNewBuilding(\''+id+'\')" style="margin-left:auto">+ Add</button></div>'
+  var blds=bldRes.data||[]
+  if(blds.length){
+    blds.forEach(function(b){
+      h+='<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+      h+='<div style="display:flex;align-items:flex-start;justify-content:space-between">'
+      h+='<div><div style="font-size:13px;font-weight:500">'+b.name+'</div>'
+      h+='<div style="font-size:11px;color:#8a96ab">'+(b.address||'')+'</div>'
+      if(b.system_type)h+='<div style="font-size:10px;color:#414e63;margin-top:2px">'+b.system_type+(b.panel_type?' · '+b.panel_type:'')+(b.device_count?' · '+b.device_count+' devices':'')+'</div>'
+      h+='</div>'
+      h+='<button class="btn btn-sm btn-ghost" data-bid="'+b.id+'" onclick="crmEditBuilding(this)">Edit</button></div></div>'
+    })
+  }else{h+='<div style="font-size:12px;color:#414e63">No buildings yet</div>'}
+  h+='</div>'
+  h+='</div>'
+  // Right column
+  h+='<div>'
+  // Activity feed
+  h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Activity<button class="btn btn-sm btn-a" onclick="crmLogActivity(\''+id+'\')" style="margin-left:auto">+ Log</button></div>'
+  var acts=actRes.data||[]
+  if(acts.length){
+    acts.forEach(function(act){
+      var typeIcon={call:'📞',email:'📧',meeting:'🤝',visit:'🏗',note:'📝',quote:'📄',other:'💬'}[act.activity_type]||'💬'
+      h+='<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+      h+='<div style="font-size:16px;flex-shrink:0;margin-top:1px">'+typeIcon+'</div>'
+      h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">'+act.summary+'</div>'
+      h+='<div style="font-size:10px;color:#414e63">'+fd(act.activity_date)+' · '+(act.logged_by||'')+'</div>'
+      if(act.notes)h+='<div style="font-size:11px;color:#8a96ab;margin-top:2px">'+act.notes+'</div>'
+      h+='</div></div>'
+    })
+  }else{h+='<div style="font-size:12px;color:#414e63">No activity logged yet</div>'}
+  h+='</div>'
+  // Agreements
+  h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Agreements<button class="btn btn-sm" onclick="crmNewAgreement(\''+id+'\')" style="margin-left:auto">+ Add</button></div>'
+  var agrs=agrRes.data||[]
+  if(agrs.length){
+    agrs.forEach(function(ag){
+      var stColor={active:'#16a34a',expired:'#dc2626',pending:'#d97706'}[ag.status]||'#8a96ab'
+      h+='<div style="padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+      h+='<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+      h+='<div><div style="font-size:13px;font-weight:500">'+ag.name+'</div>'
+      h+='<div style="font-size:11px;color:#8a96ab">'+(ag.agreement_type||'')+(ag.value?' · $'+Number(ag.value).toLocaleString():'')+'</div>'
+      if(ag.renewal_date)h+='<div style="font-size:10px;color:#414e63">Renewal: '+fd(ag.renewal_date)+'</div>'
+      h+='</div><span style="font-size:11px;font-weight:600;color:'+stColor+'">'+ag.status+'</span></div></div>'
+    })
+  }else{h+='<div style="font-size:12px;color:#414e63">No agreements</div>'}
+  h+='</div>'
+  // Linked Jobs
+  var jobs=jobRes.data||[]
+  if(jobs.length){
+    h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Linked Jobs ('+jobs.length+')</div>'
+    jobs.slice(0,5).forEach(function(j){
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" data-jid="'+j.id+'" onclick="openJob(this.getAttribute(\'data-jid\'))">'
+      h+='<div style="flex:1;font-size:12px;font-weight:500">'+j.name+'</div>'
+      h+=stageBadge(j.phase)+'</div>'
+    })
+    h+='</div>'
+  }
+  // Follow-up reminder
+  if(a.next_followup){
+    var fo=new Date(a.next_followup)
+    var isOverdue=fo<new Date()
+    h+='<div style="background:rgba('+(isOverdue?'220,38,38':'37,99,235')+',.1);border:1px solid rgba('+(isOverdue?'220,38,38':'37,99,235')+',.2);border-radius:8px;padding:10px 13px;font-size:12px">'
+    h+='<div style="font-weight:600;color:'+(isOverdue?'#dc2626':'#60a5fa')+'">'+(isOverdue?'⚠ Overdue Follow-up':'📅 Follow-up Scheduled')+'</div>'
+    h+='<div style="color:#8a96ab;margin-top:3px">'+fo.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+'</div>'
+    if(a.followup_note)h+='<div style="color:#8a96ab;margin-top:3px">'+a.followup_note+'</div>'
+    h+='<button class="btn btn-sm" onclick="crmSetFollowup(\''+id+'\')" style="margin-top:8px">Update</button></div>'
+  }else{
+    h+='<div class="card"><div class="card-title">Follow-up</div>'
+    h+='<button class="btn btn-sm btn-p" onclick="crmSetFollowup(\''+id+'\')">📅 Schedule Follow-up</button></div>'
+  }
+  h+='</div></div>'
+  document.getElementById('page-area').innerHTML=h
+}
+
+async function crmEditAccount(id){
+  var a=window._crmOpenAccount
+  if(!a||a.id!==id){var r=await sb.from('crm_accounts').select('*').eq('id',id).single();a=r.data}
+  if(!a)return
+  var typeOpts=['gc','owner','property_manager','other'].map(function(t){
+    var l={gc:'General Contractor',owner:'Owner/Developer',property_manager:'Property Manager',other:'Other'}[t]
+    return'<option value="'+t+'"'+(a.type===t?' selected':'')+'>'+l+'</option>'
+  }).join('')
+  var h='<div class="two"><div class="fg"><label class="fl">Account Name *</label><input class="fi" id="ea-name" value="'+(a.name||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Type</label><select class="fs" id="ea-type">'+typeOpts+'</select></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="ea-phone" value="'+(a.phone||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Email</label><input class="fi" id="ea-email" value="'+(a.email||'')+'"></div></div>'
+  h+='<div class="fg"><label class="fl">Website</label><input class="fi" id="ea-web" value="'+(a.website||'')+'"></div>'
+  h+='<div class="three"><div class="fg"><label class="fl">City</label><input class="fi" id="ea-city" value="'+(a.city||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">State</label><input class="fi" id="ea-state" value="'+(a.state||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Zip</label><input class="fi" id="ea-zip" value="'+(a.zip||'')+'"></div></div>'
+  h+='<div class="fg"><label class="fl">Primary Contact</label><input class="fi" id="ea-primary" value="'+(a.primary_contact||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ea-notes">'+(a.notes||'')+'</textarea></div>'
+  h+='<div style="padding-top:12px;border-top:1px solid rgba(255,255,255,.06)"><button class="btn btn-ghost btn-sm" style="color:#dc2626" onclick="crmDeleteAccount(\''+id+'\')">Delete Account</button></div>'
+  modal('Edit Account', h, async function(){
+    var name=(document.getElementById('ea-name').value||'').trim()
+    if(!name){toast('Name required','error');return}
+    var res=await sb.from('crm_accounts').update({name,type:document.getElementById('ea-type').value,phone:document.getElementById('ea-phone').value||null,email:document.getElementById('ea-email').value||null,website:document.getElementById('ea-web').value||null,city:document.getElementById('ea-city').value||null,state:document.getElementById('ea-state').value||null,zip:document.getElementById('ea-zip').value||null,primary_contact:document.getElementById('ea-primary').value||null,notes:document.getElementById('ea-notes').value||null,updated_at:new Date().toISOString()}).eq('id',id)
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();crmOpenAccount(id);toast('Account updated')
+  },'Save')
+}
+
+async function crmDeleteAccount(id){
+  if(!confirm('Delete this account? All contacts, buildings, agreements and activities will be deleted.'))return
+  await sb.from('crm_contacts').delete().eq('account_id',id)
+  await sb.from('crm_buildings').delete().eq('account_id',id)
+  await sb.from('crm_agreements').delete().eq('account_id',id)
+  await sb.from('crm_activities').delete().eq('account_id',id)
+  await sb.from('crm_inspections').delete().eq('account_id',id)
+  await sb.from('crm_accounts').delete().eq('id',id)
+  closeModal();pgCrmAccounts();toast('Account deleted','warn')
+}
+
+async function crmSetFollowup(id){
+  var a=window._crmOpenAccount
+  var h='<div class="fg"><label class="fl">Follow-up Date</label><input class="fi" type="date" id="fu-date" value="'+(a&&a.next_followup?a.next_followup.split('T')[0]:'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Note</label><input class="fi" id="fu-note" placeholder="What to follow up on..." value="'+(a&&a.followup_note||'')+'"></div>'
+  modal('Schedule Follow-up', h, async function(){
+    var date=document.getElementById('fu-date').value
+    var note=document.getElementById('fu-note').value||null
+    await sb.from('crm_accounts').update({next_followup:date||null,followup_note:note,updated_at:new Date().toISOString()}).eq('id',id)
+    if(window._crmOpenAccount){window._crmOpenAccount.next_followup=date;window._crmOpenAccount.followup_note=note}
+    closeModal();crmOpenAccount(id);toast('Follow-up set')
+  },'Save')
+}
+
+// ── CONTACTS ────────────────────────────────────────────────────
+async function pgCrmContacts(){
+  document.getElementById('topbar-actions').innerHTML=
+    '<button class="btn btn-p btn-sm" onclick="crmNewContact(null)">+ New Contact</button>'
+  var res=await sb.from('crm_contacts').select('*,crm_accounts(id,name,type)').order('name',{ascending:true})
+  var contacts=res.data||[]
+  var h='<div style="margin-bottom:12px"><input class="fi" id="crm-cnt-s" placeholder="Search contacts..." style="max-width:300px" oninput="filterCrmContacts(this.value)"></div>'
+  h+='<div id="crm-cnt-list">'
+  h+=renderContactsTable(contacts)
+  h+='</div>'
+  document.getElementById('page-area').innerHTML=h
+  window._crmAllContacts=contacts
+}
+
+function renderContactsTable(contacts){
+  if(!contacts.length)return empty('👤','No contacts yet')
+  var h='<table class="tbl"><thead><tr><th>Name</th><th>Title</th><th>Account</th><th>Phone</th><th>Email</th><th>Last Contact</th><th></th></tr></thead><tbody>'
+  contacts.forEach(function(c){
+    var acc=c.crm_accounts
+    h+='<tr>'
+    h+='<td style="font-weight:500">'+c.name+'</td>'
+    h+='<td style="font-size:11px;color:#8a96ab">'+(c.title||'—')+'</td>'
+    h+='<td>'+(acc?'<a href="javascript:void(0)" data-aid="'+(acc.id||'')+'" onclick="crmOpenAccount(this.getAttribute(\'data-aid\'))" style="color:#60a5fa">'+acc.name+'</a>':'—')+'</td>'
+    h+='<td style="font-size:12px">'+(c.phone?'<a href="tel:'+c.phone+'" style="color:#e8edf5">'+c.phone+'</a>':'—')+'</td>'
+    h+='<td style="font-size:12px">'+(c.email?'<a href="mailto:'+c.email+'" style="color:#60a5fa">'+c.email+'</a>':'—')+'</td>'
+    h+='<td style="font-size:11px;color:#8a96ab">'+(c.last_contacted?fd(c.last_contacted):'Never')+'</td>'
+    h+='<td><button class="btn btn-sm btn-ghost" data-cid="'+c.id+'" onclick="crmEditContact(this)">Edit</button></td></tr>'
+  })
+  return h+'</tbody></table>'
+}
+
+function filterCrmContacts(q){
+  var filtered=(window._crmAllContacts||[]).filter(function(c){
+    var s=(c.name||'')+(c.title||'')+(c.email||'')+(c.phone||'')+((c.crm_accounts||{}).name||'')
+    return s.toLowerCase().includes(q.toLowerCase())
+  })
+  var el=document.getElementById('crm-cnt-list')
+  if(el)el.innerHTML=renderContactsTable(filtered)
+}
+
+function crmNewContact(accountId){
+  var h=''
+  if(!accountId){
+    h+='<div class="fg"><label class="fl">Account</label><select class="fs" id="nc-acc"><option value="">— No account —</option>'
+    ;(window._crmAccounts||[]).forEach(function(a){h+='<option value="'+a.id+'">'+a.name+'</option>'})
+    h+='</select></div>'
+  }
+  h+='<div class="two"><div class="fg"><label class="fl">Full Name *</label><input class="fi" id="nc-name"></div>'
+  h+='<div class="fg"><label class="fl">Title / Role</label><input class="fi" id="nc-title" placeholder="Project Manager, Owner..."></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="nc-phone" type="tel"></div>'
+  h+='<div class="fg"><label class="fl">Email</label><input class="fi" id="nc-email" type="email"></div></div>'
+  h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="nc-notes" style="min-height:50px"></textarea></div>'
+  modal('New Contact', h, async function(){
+    var name=(document.getElementById('nc-name').value||'').trim()
+    if(!name){toast('Name required','error');return}
+    var accId=accountId||(document.getElementById('nc-acc')||{}).value||null
+    var res=await sb.from('crm_contacts').insert({id:uuid(),account_id:accId||null,name,title:document.getElementById('nc-title').value||null,phone:document.getElementById('nc-phone').value||null,email:document.getElementById('nc-email').value||null,notes:document.getElementById('nc-notes').value||null,created_at:new Date().toISOString()})
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal()
+    if(accountId)crmOpenAccount(accountId)
+    else pgCrmContacts()
+    toast('Contact added')
+  },'Add Contact')
+}
+
+async function crmEditContact(btn){
+  var id=btn.getAttribute('data-cid')
+  var r=await sb.from('crm_contacts').select('*').eq('id',id).single()
+  var c=r.data;if(!c)return
+  var h='<div class="two"><div class="fg"><label class="fl">Full Name *</label><input class="fi" id="ec-name" value="'+(c.name||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Title</label><input class="fi" id="ec-title" value="'+(c.title||'')+'"></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="ec-phone" value="'+(c.phone||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Email</label><input class="fi" id="ec-email" value="'+(c.email||'')+'"></div></div>'
+  h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ec-notes">'+(c.notes||'')+'</textarea></div>'
+  h+='<div class="fg"><label class="fl">Last Contacted</label><input class="fi" type="date" id="ec-lc" value="'+(c.last_contacted?c.last_contacted.split('T')[0]:'')+'"></div>'
+  modal('Edit Contact', h, async function(){
+    var name=(document.getElementById('ec-name').value||'').trim()
+    if(!name){toast('Name required','error');return}
+    var res=await sb.from('crm_contacts').update({name,title:document.getElementById('ec-title').value||null,phone:document.getElementById('ec-phone').value||null,email:document.getElementById('ec-email').value||null,notes:document.getElementById('ec-notes').value||null,last_contacted:document.getElementById('ec-lc').value||null,updated_at:new Date().toISOString()}).eq('id',id)
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal()
+    if(c.account_id)crmOpenAccount(c.account_id)
+    else pgCrmContacts()
+    toast('Contact updated')
+  },'Save')
+}
+
+// ── BUILDINGS ───────────────────────────────────────────────────
+function crmNewBuilding(accountId){
+  var h='<div class="fg"><label class="fl">Building Name *</label><input class="fi" id="nb-name" placeholder="Main Office, Warehouse 2..."></div>'
+  h+='<div class="fg"><label class="fl">Address</label><input class="fi" id="nb-addr"></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">City</label><input class="fi" id="nb-city"></div>'
+  h+='<div class="fg"><label class="fl">State</label><input class="fi" id="nb-state"></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">System Type</label><select class="fs" id="nb-sys"><option value="">— Select —</option><option>Addressable</option><option>Conventional</option><option>Hybrid</option><option>Wireless</option><option>Suppression</option></select></div>'
+  h+='<div class="fg"><label class="fl">Panel Type</label><input class="fi" id="nb-panel" placeholder="Notifier, Simplex..."></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Device Count</label><input class="fi" type="number" id="nb-devices" placeholder="# of devices"></div>'
+  h+='<div class="fg"><label class="fl">Sq Footage</label><input class="fi" type="number" id="nb-sqft"></div></div>'
+  h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="nb-notes" style="min-height:50px"></textarea></div>'
+  modal('New Building / Site', h, async function(){
+    var name=(document.getElementById('nb-name').value||'').trim()
+    if(!name){toast('Name required','error');return}
+    var res=await sb.from('crm_buildings').insert({id:uuid(),account_id:accountId,name,address:document.getElementById('nb-addr').value||null,city:document.getElementById('nb-city').value||null,state:document.getElementById('nb-state').value||null,system_type:document.getElementById('nb-sys').value||null,panel_type:document.getElementById('nb-panel').value||null,device_count:parseInt(document.getElementById('nb-devices').value)||null,sq_footage:parseInt(document.getElementById('nb-sqft').value)||null,notes:document.getElementById('nb-notes').value||null,created_at:new Date().toISOString()})
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();crmOpenAccount(accountId);toast('Building added')
+  },'Add Building')
+}
+
+async function crmEditBuilding(btn){
+  var id=btn.getAttribute('data-bid')
+  var r=await sb.from('crm_buildings').select('*').eq('id',id).single()
+  var b=r.data;if(!b)return
+  var sysOpts=['','Addressable','Conventional','Hybrid','Wireless','Suppression'].map(function(s){return'<option'+(b.system_type===s?' selected':'')+'>'+s+'</option>'}).join('')
+  var h='<div class="fg"><label class="fl">Name *</label><input class="fi" id="eb-name" value="'+(b.name||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Address</label><input class="fi" id="eb-addr" value="'+(b.address||'')+'"></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">System Type</label><select class="fs" id="eb-sys">'+sysOpts+'</select></div>'
+  h+='<div class="fg"><label class="fl">Panel Type</label><input class="fi" id="eb-panel" value="'+(b.panel_type||'')+'"></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Devices</label><input class="fi" type="number" id="eb-dev" value="'+(b.device_count||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Sq Ft</label><input class="fi" type="number" id="eb-sqft" value="'+(b.sq_footage||'')+'"></div></div>'
+  h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="eb-notes">'+(b.notes||'')+'</textarea></div>'
+  modal('Edit Building', h, async function(){
+    var res=await sb.from('crm_buildings').update({name:document.getElementById('eb-name').value,address:document.getElementById('eb-addr').value||null,system_type:document.getElementById('eb-sys').value||null,panel_type:document.getElementById('eb-panel').value||null,device_count:parseInt(document.getElementById('eb-dev').value)||null,sq_footage:parseInt(document.getElementById('eb-sqft').value)||null,notes:document.getElementById('eb-notes').value||null}).eq('id',id)
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();crmOpenAccount(b.account_id);toast('Building updated')
+  },'Save')
+}
+
+// ── AGREEMENTS ──────────────────────────────────────────────────
+function crmNewAgreement(accountId){
+  var h='<div class="fg"><label class="fl">Agreement Name *</label><input class="fi" id="ag-name" placeholder="Annual Inspection Contract, Monitoring Agreement..."></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Type</label><select class="fs" id="ag-type"><option value="">— Select —</option><option value="inspection">Inspection</option><option value="monitoring">Monitoring</option><option value="service">Service</option><option value="installation">Installation</option><option value="other">Other</option></select></div>'
+  h+='<div class="fg"><label class="fl">Status</label><select class="fs" id="ag-stat"><option value="active">Active</option><option value="pending">Pending</option><option value="expired">Expired</option></select></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Value ($/yr)</label><input class="fi" type="number" id="ag-val" placeholder="0.00" step="0.01"></div>'
+  h+='<div class="fg"><label class="fl">Renewal Date</label><input class="fi" type="date" id="ag-renew"></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Start Date</label><input class="fi" type="date" id="ag-start"></div>'
+  h+='<div class="fg"><label class="fl">End Date</label><input class="fi" type="date" id="ag-end"></div></div>'
+  h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ag-notes" style="min-height:50px"></textarea></div>'
+  modal('New Agreement', h, async function(){
+    var name=(document.getElementById('ag-name').value||'').trim()
+    if(!name){toast('Name required','error');return}
+    var res=await sb.from('crm_agreements').insert({id:uuid(),account_id:accountId,name,agreement_type:document.getElementById('ag-type').value||null,status:document.getElementById('ag-stat').value,value:parseFloat(document.getElementById('ag-val').value)||null,renewal_date:document.getElementById('ag-renew').value||null,start_date:document.getElementById('ag-start').value||null,end_date:document.getElementById('ag-end').value||null,notes:document.getElementById('ag-notes').value||null,created_at:new Date().toISOString()})
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();crmOpenAccount(accountId);toast('Agreement added')
+  },'Add Agreement')
+}
+
+// ── ACTIVITY LOG ────────────────────────────────────────────────
+function crmLogActivity(accountId){
+  var typeOpts=['call','email','meeting','visit','note','quote','other'].map(function(t){
+    var l={call:'📞 Call',email:'📧 Email',meeting:'🤝 Meeting',visit:'🏗 Site Visit',note:'📝 Note',quote:'📄 Quote Sent',other:'💬 Other'}[t]
+    return'<option value="'+t+'">'+l+'</option>'
+  }).join('')
+  var h='<div class="two"><div class="fg"><label class="fl">Type</label><select class="fs" id="act-type">'+typeOpts+'</select></div>'
+  h+='<div class="fg"><label class="fl">Date</label><input class="fi" type="date" id="act-date" value="'+new Date().toISOString().split('T')[0]+'"></div></div>'
+  h+='<div class="fg"><label class="fl">Summary *</label><input class="fi" id="act-sum" placeholder="Brief description..."></div>'
+  h+='<div class="fg"><label class="fl">Details / Notes</label><textarea class="ft" id="act-notes" style="min-height:70px"></textarea></div>'
+  h+='<div class="fg"><label class="fl">Follow-up Date (optional)</label><input class="fi" type="date" id="act-fu"></div>'
+  modal('Log Activity', h, async function(){
+    var sum=(document.getElementById('act-sum').value||'').trim()
+    if(!sum){toast('Summary required','error');return}
+    var res=await sb.from('crm_activities').insert({id:uuid(),account_id:accountId,activity_type:document.getElementById('act-type').value,activity_date:document.getElementById('act-date').value,summary:sum,notes:document.getElementById('act-notes').value||null,logged_by:(typeof ME!=='undefined'?ME.full_name||'':''),created_at:new Date().toISOString()})
+    if(res.error){toast(res.error.message,'error');return}
+    // Update follow-up if set
+    var fu=document.getElementById('act-fu').value
+    if(fu)await sb.from('crm_accounts').update({next_followup:fu,updated_at:new Date().toISOString()}).eq('id',accountId)
+    // Update last_contacted on all contacts for this account
+    await sb.from('crm_contacts').update({last_contacted:document.getElementById('act-date').value}).eq('account_id',accountId)
+    closeModal();crmOpenAccount(accountId);toast('Activity logged')
+  },'Log Activity')
+}
+
+// ── PIPELINE ────────────────────────────────────────────────────
+async function pgCrmPipeline(){
+  document.getElementById('topbar-actions').innerHTML=
+    '<button class="btn btn-p btn-sm" onclick="crmNewLead()">+ New Lead</button>'
+  var res=await sb.from('crm_pipeline').select('*,crm_accounts(name)').order('created_at',{ascending:false})
+  var leads=res.data||[]
+  var stages=['new_lead','contacted','qualified','quoted','negotiating','awarded','lost']
+  var stageLabels={new_lead:'New Lead',contacted:'Contacted',qualified:'Qualified',quoted:'Quoted',negotiating:'Negotiating',awarded:'Awarded',lost:'Lost'}
+  var stageColors={new_lead:'#414e63',contacted:'#2563eb',qualified:'#d97706',quoted:'#8b5cf6',negotiating:'#f59e0b',awarded:'#16a34a',lost:'#dc2626'}
+  // Stats
+  var open=leads.filter(function(l){return!['awarded','lost'].includes(l.stage)})
+  var pipeline=open.reduce(function(s,l){return s+(l.value||0)},0)
+  var awarded=leads.filter(function(l){return l.stage==='awarded'}).reduce(function(s,l){return s+(l.value||0)},0)
+  var h='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px">'
+  h+='<div class="stat"><div class="stat-label">Open Leads</div><div class="stat-value">'+open.length+'</div></div>'
+  h+='<div class="stat"><div class="stat-label">Pipeline Value</div><div class="stat-value" style="font-size:18px">'+fm(pipeline)+'</div></div>'
+  h+='<div class="stat"><div class="stat-label">Awarded</div><div class="stat-value" style="color:#16a34a;font-size:18px">'+fm(awarded)+'</div></div>'
+  h+='<div class="stat"><div class="stat-label">Win Rate</div><div class="stat-value">'+(leads.filter(function(l){return['awarded','lost'].includes(l.stage)}).length?Math.round(leads.filter(function(l){return l.stage==='awarded'}).length/leads.filter(function(l){return['awarded','lost'].includes(l.stage)}).length*100):0)+'%</div></div>'
+  h+='</div>'
+  // Kanban board
+  h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;overflow-x:auto">'
+  stages.forEach(function(stage){
+    var col=leads.filter(function(l){return l.stage===stage})
+    var colVal=col.reduce(function(s,l){return s+(l.value||0)},0)
+    h+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px;min-height:200px">'
+    h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:'+stageColors[stage]+';margin-bottom:6px">'+stageLabels[stage]+'</div>'
+    h+='<div style="font-size:10px;color:#414e63;margin-bottom:10px">'+col.length+' · '+fm(colVal)+'</div>'
+    col.forEach(function(l){
+      var acc=l.crm_accounts
+      h+='<div style="background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:8px 10px;margin-bottom:7px;cursor:pointer" data-lid="'+l.id+'" onclick="crmEditLead(this)">'
+      h+='<div style="font-size:12px;font-weight:500;margin-bottom:3px">'+l.title+'</div>'
+      if(acc)h+='<div style="font-size:10px;color:#8a96ab">'+acc.name+'</div>'
+      if(l.value)h+='<div style="font-size:11px;color:#16a34a;margin-top:4px">'+fm(l.value)+'</div>'
+      if(l.close_date){
+        var cd=new Date(l.close_date)
+        var overdue=cd<new Date()&&!['awarded','lost'].includes(l.stage)
+        h+='<div style="font-size:10px;color:'+(overdue?'#dc2626':'#414e63')+';margin-top:3px">Close: '+fd(l.close_date)+'</div>'
+      }
+      h+='</div>'
+    })
+    h+='</div>'
+  })
+  h+='</div>'
+  document.getElementById('page-area').innerHTML=h
+  window._crmLeads=leads
+}
+
+async function crmNewLead(){
+  if(!window._crmAccounts){var r=await sb.from('crm_accounts').select('id,name').order('name');window._crmAccounts=r.data||[]}
+  var accOpts='<option value="">— No account —</option>'+(window._crmAccounts||[]).map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>'}).join('')
+  var stageOpts=['new_lead','contacted','qualified','quoted','negotiating','awarded','lost'].map(function(s){
+    var l={new_lead:'New Lead',contacted:'Contacted',qualified:'Qualified',quoted:'Quoted',negotiating:'Negotiating',awarded:'Awarded',lost:'Lost'}[s]
+    return'<option value="'+s+'">'+l+'</option>'
+  }).join('')
+  var h='<div class="fg"><label class="fl">Title / Opportunity *</label><input class="fi" id="nl-title" placeholder="Fire Alarm Install - Building Name"></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Account</label><select class="fs" id="nl-acc">'+accOpts+'</select></div>'
+  h+='<div class="fg"><label class="fl">Stage</label><select class="fs" id="nl-stage">'+stageOpts+'</select></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Value ($)</label><input class="fi" type="number" id="nl-val" step="0.01"></div>'
+  h+='<div class="fg"><label class="fl">Expected Close Date</label><input class="fi" type="date" id="nl-close"></div></div>'
+  h+='<div class="fg"><label class="fl">Description</label><textarea class="ft" id="nl-desc" style="min-height:60px"></textarea></div>'
+  modal('New Lead / Opportunity', h, async function(){
+    var title=(document.getElementById('nl-title').value||'').trim()
+    if(!title){toast('Title required','error');return}
+    var res=await sb.from('crm_pipeline').insert({id:uuid(),title,account_id:document.getElementById('nl-acc').value||null,stage:document.getElementById('nl-stage').value,value:parseFloat(document.getElementById('nl-val').value)||null,close_date:document.getElementById('nl-close').value||null,description:document.getElementById('nl-desc').value||null,created_by:(typeof ME!=='undefined'?ME.full_name||'':''),created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();pgCrmPipeline();toast('Lead added')
+  },'Add Lead')
+}
+
+async function crmEditLead(el){
+  var id=el.getAttribute('data-lid')
+  var l=(window._crmLeads||[]).find(function(x){return x.id===id})
+  if(!l){var r=await sb.from('crm_pipeline').select('*').eq('id',id).single();l=r.data}
+  if(!l)return
+  var stageOpts=['new_lead','contacted','qualified','quoted','negotiating','awarded','lost'].map(function(s){
+    var lab={new_lead:'New Lead',contacted:'Contacted',qualified:'Qualified',quoted:'Quoted',negotiating:'Negotiating',awarded:'Awarded',lost:'Lost'}[s]
+    return'<option value="'+s+'"'+(l.stage===s?' selected':'')+'>'+lab+'</option>'
+  }).join('')
+  var h='<div class="fg"><label class="fl">Title *</label><input class="fi" id="el-title" value="'+(l.title||'')+'"></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Stage</label><select class="fs" id="el-stage">'+stageOpts+'</select></div>'
+  h+='<div class="fg"><label class="fl">Value ($)</label><input class="fi" type="number" id="el-val" value="'+(l.value||'')+'"></div></div>'
+  h+='<div class="fg"><label class="fl">Expected Close</label><input class="fi" type="date" id="el-close" value="'+(l.close_date||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Description</label><textarea class="ft" id="el-desc">'+(l.description||'')+'</textarea></div>'
+  h+='<div style="padding-top:10px;border-top:1px solid rgba(255,255,255,.06)"><button class="btn btn-ghost btn-sm" style="color:#dc2626" data-lid="'+id+'" onclick="crmDeleteLead(this)">Delete Lead</button></div>'
+  modal('Edit Lead', h, async function(){
+    var title=(document.getElementById('el-title').value||'').trim()
+    if(!title){toast('Title required','error');return}
+    var newStage=document.getElementById('el-stage').value
+    var updates={title,stage:newStage,value:parseFloat(document.getElementById('el-val').value)||null,close_date:document.getElementById('el-close').value||null,description:document.getElementById('el-desc').value||null,updated_at:new Date().toISOString()}
+    // If awarded, offer to create a job
+    await sb.from('crm_pipeline').update(updates).eq('id',id)
+    closeModal()
+    if(newStage==='awarded'&&l.stage!=='awarded'){
+      if(confirm('Lead marked Awarded! Create a new job from this opportunity?')){
+        P('newjob',document.querySelector('.nav-item[onclick*=newjob]'))
+        setTimeout(function(){
+          var nj=document.getElementById('nj-name')
+          if(nj)nj.value=title
+        },300)
+      }
+    }
+    pgCrmPipeline();toast('Lead updated')
+  },'Save')
+}
+
+async function crmDeleteLead(btn){
+  var id=btn.getAttribute('data-lid')
+  if(!confirm('Delete this lead?'))return
+  await sb.from('crm_pipeline').delete().eq('id',id)
+  closeModal();pgCrmPipeline();toast('Lead deleted','warn')
+}
+
+// ── INSPECTIONS ─────────────────────────────────────────────────
+async function pgCrmInspections(){
+  document.getElementById('topbar-actions').innerHTML=
+    '<button class="btn btn-p btn-sm" onclick="crmNewInspection()">+ Schedule Inspection</button>'
+  var res=await sb.from('crm_inspections').select('*,crm_accounts(name),crm_buildings(name,address)').order('next_due',{ascending:true})
+  var insps=res.data||[]
+  var now=new Date()
+  var overdue=insps.filter(function(i){return new Date(i.next_due)<now&&i.status!=='completed'})
+  var due30=insps.filter(function(i){var d=new Date(i.next_due);return d>=now&&d<=new Date(now.getTime()+30*86400000)&&i.status!=='completed'})
+  var due90=insps.filter(function(i){var d=new Date(i.next_due);return d>new Date(now.getTime()+30*86400000)&&d<=new Date(now.getTime()+90*86400000)&&i.status!=='completed'})
+  var h='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px">'
+  h+='<div class="stat" style="border-left:3px solid #dc2626"><div class="stat-label">Overdue</div><div class="stat-value" style="color:#dc2626">'+overdue.length+'</div></div>'
+  h+='<div class="stat" style="border-left:3px solid #d97706"><div class="stat-label">Due in 30 Days</div><div class="stat-value" style="color:#d97706">'+due30.length+'</div></div>'
+  h+='<div class="stat" style="border-left:3px solid #2563eb"><div class="stat-label">Due in 90 Days</div><div class="stat-value" style="color:#2563eb">'+due90.length+'</div></div>'
+  h+='<div class="stat"><div class="stat-label">Total Tracked</div><div class="stat-value">'+insps.length+'</div></div>'
+  h+='</div>'
+  h+='<div style="display:flex;gap:8px;margin-bottom:14px">'
+  h+='<select class="fs" id="insp-filter" style="width:180px" onchange="filterInspections(this.value)">'
+  h+='<option value="all">All Inspections</option><option value="overdue">Overdue</option><option value="30">Due in 30 days</option><option value="90">Due in 90 days</option><option value="completed">Completed</option></select>'
+  h+='<input class="fi" id="insp-search" placeholder="Search..." style="width:220px" oninput="filterInspections(document.getElementById(\'insp-filter\').value)">'
+  h+='</div>'
+  h+='<div id="insp-list">'+buildInspTable(insps)+'</div>'
+  document.getElementById('page-area').innerHTML=h
+  window._crmInspections=insps
+}
+
+function buildInspTable(insps){
+  if(!insps.length)return empty('🔍','No inspections tracked yet')
+  var now=new Date()
+  var h='<table class="tbl"><thead><tr><th>Building / Site</th><th>Account</th><th>Type</th><th>Last Done</th><th>Next Due</th><th>Status</th><th></th></tr></thead><tbody>'
+  insps.forEach(function(i){
+    var nextDue=new Date(i.next_due)
+    var daysUntil=Math.ceil((nextDue-now)/86400000)
+    var dueColor=daysUntil<0?'#dc2626':daysUntil<=30?'#d97706':daysUntil<=90?'#2563eb':'#8a96ab'
+    var dueLabel=daysUntil<0?Math.abs(daysUntil)+'d overdue':daysUntil===0?'Today':daysUntil+'d'
+    var bld=i.crm_buildings
+    var acc=i.crm_accounts
+    var stColor={scheduled:'#2563eb',completed:'#16a34a',overdue:'#dc2626',cancelled:'#414e63'}[i.status]||'#8a96ab'
+    h+='<tr>'
+    h+='<td style="font-weight:500">'+(bld?bld.name:i.building_name||'—')+'<div style="font-size:10px;color:#414e63">'+(bld?bld.address||'':'')+'</div></td>'
+    h+='<td style="font-size:12px">'+(acc?acc.name:'—')+'</td>'
+    h+='<td style="font-size:12px">'+(i.inspection_type||'Annual')+'</td>'
+    h+='<td style="font-size:12px;color:#8a96ab">'+(i.last_completed?fd(i.last_completed):'Never')+'</td>'
+    h+='<td><div style="font-weight:500;color:'+dueColor+'">'+fd(i.next_due)+'</div><div style="font-size:10px;color:'+dueColor+'">'+dueLabel+'</div></td>'
+    h+='<td><span style="font-size:11px;font-weight:600;color:'+stColor+'">'+i.status+'</span></td>'
+    h+='<td style="display:flex;gap:4px">'
+    if(i.status!=='completed')h+='<button class="btn btn-sm btn-g" data-iid="'+i.id+'" onclick="crmCompleteInspection(this)">Complete</button>'
+    h+='<button class="btn btn-sm btn-ghost" data-iid="'+i.id+'" onclick="crmEditInspection(this)">Edit</button>'
+    h+='</td></tr>'
+  })
+  return h+'</tbody></table>'
+}
+
+function filterInspections(filter){
+  var q=(document.getElementById('insp-search')||{}).value||''
+  var now=new Date()
+  var insps=(window._crmInspections||[]).filter(function(i){
+    var matchQ=!q||(((i.crm_buildings||{}).name||i.building_name||'')+((i.crm_accounts||{}).name||'')+( i.inspection_type||'')).toLowerCase().includes(q.toLowerCase())
+    if(!matchQ)return false
+    if(filter==='all')return true
+    var d=new Date(i.next_due)
+    if(filter==='overdue')return d<now&&i.status!=='completed'
+    if(filter==='30')return d>=now&&d<=new Date(now.getTime()+30*86400000)&&i.status!=='completed'
+    if(filter==='90')return d>=now&&d<=new Date(now.getTime()+90*86400000)&&i.status!=='completed'
+    if(filter==='completed')return i.status==='completed'
+    return true
+  })
+  var el=document.getElementById('insp-list')
+  if(el)el.innerHTML=buildInspTable(insps)
+}
+
+async function crmNewInspection(){
+  if(!window._crmAccounts){var r=await sb.from('crm_accounts').select('id,name').order('name');window._crmAccounts=r.data||[]}
+  var accOpts='<option value="">— No account —</option>'+(window._crmAccounts||[]).map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>'}).join('')
+  var h='<div class="fg"><label class="fl">Account</label><select class="fs" id="ni-acc" onchange="loadBuildingsForInspection(this.value)">'+accOpts+'</select></div>'
+  h+='<div class="fg"><label class="fl">Building / Site</label><select class="fs" id="ni-bld"><option value="">— Select account first —</option></select></div>'
+  h+='<div class="fg"><label class="fl">Or enter building name manually</label><input class="fi" id="ni-bname" placeholder="Leave blank if selected above"></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Inspection Type</label><select class="fs" id="ni-type"><option value="Annual">Annual</option><option value="Semi-Annual">Semi-Annual</option><option value="Quarterly">Quarterly</option><option value="Monthly">Monthly</option><option value="Pre-Test">Pre-Test</option><option value="Final">Final</option><option value="Other">Other</option></select></div>'
+  h+='<div class="fg"><label class="fl">Next Due Date *</label><input class="fi" type="date" id="ni-due"></div></div>'
+  h+='<div class="fg"><label class="fl">Last Completed Date</label><input class="fi" type="date" id="ni-last"></div>'
+  h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ni-notes" style="min-height:50px"></textarea></div>'
+  modal('Schedule Inspection', h, async function(){
+    var due=document.getElementById('ni-due').value
+    if(!due){toast('Due date required','error');return}
+    var accId=document.getElementById('ni-acc').value||null
+    var bldId=document.getElementById('ni-bld').value||null
+    var bname=document.getElementById('ni-bname').value||null
+    var res=await sb.from('crm_inspections').insert({id:uuid(),account_id:accId,building_id:bldId||null,building_name:bname,inspection_type:document.getElementById('ni-type').value,next_due:due,last_completed:document.getElementById('ni-last').value||null,status:'scheduled',notes:document.getElementById('ni-notes').value||null,created_at:new Date().toISOString()})
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();pgCrmInspections();toast('Inspection scheduled')
+  },'Schedule')
+}
+
+async function loadBuildingsForInspection(accountId){
+  var sel=document.getElementById('ni-bld')
+  if(!sel)return
+  if(!accountId){sel.innerHTML='<option value="">— Select account first —</option>';return}
+  var r=await sb.from('crm_buildings').select('id,name').eq('account_id',accountId).order('name')
+  sel.innerHTML='<option value="">— Select building —</option>'+( r.data||[]).map(function(b){return'<option value="'+b.id+'">'+b.name+'</option>'}).join('')
+}
+
+async function crmCompleteInspection(btn){
+  var id=btn.getAttribute('data-iid')
+  var today=new Date().toISOString().split('T')[0]
+  var insp=(window._crmInspections||[]).find(function(x){return x.id===id})
+  // Calculate next due based on type
+  var nextDue=new Date()
+  var type=(insp||{}).inspection_type||'Annual'
+  if(type==='Annual')nextDue.setFullYear(nextDue.getFullYear()+1)
+  else if(type==='Semi-Annual')nextDue.setMonth(nextDue.getMonth()+6)
+  else if(type==='Quarterly')nextDue.setMonth(nextDue.getMonth()+3)
+  else if(type==='Monthly')nextDue.setMonth(nextDue.getMonth()+1)
+  else nextDue.setFullYear(nextDue.getFullYear()+1)
+  var nextDueStr=nextDue.toISOString().split('T')[0]
+  var notes=prompt('Completion notes (optional):')||null
+  // Mark current as completed
+  await sb.from('crm_inspections').update({status:'completed',last_completed:today,completion_notes:notes,updated_at:new Date().toISOString()}).eq('id',id)
+  // Schedule next inspection
+  await sb.from('crm_inspections').insert({id:uuid(),account_id:(insp||{}).account_id,building_id:(insp||{}).building_id,building_name:(insp||{}).building_name,inspection_type:type,next_due:nextDueStr,status:'scheduled',created_at:new Date().toISOString()})
+  pgCrmInspections();toast('Inspection completed — next '+type+' scheduled for '+fd(nextDueStr))
+}
+
+async function crmEditInspection(btn){
+  var id=btn.getAttribute('data-iid')
+  var r=await sb.from('crm_inspections').select('*').eq('id',id).single()
+  var i=r.data;if(!i)return
+  var typeOpts=['Annual','Semi-Annual','Quarterly','Monthly','Pre-Test','Final','Other'].map(function(t){return'<option'+(i.inspection_type===t?' selected':'')+'>'+t+'</option>'}).join('')
+  var statOpts=['scheduled','completed','overdue','cancelled'].map(function(s){return'<option value="'+s+'"'+(i.status===s?' selected':'')+'>'+s+'</option>'}).join('')
+  var h='<div class="two"><div class="fg"><label class="fl">Type</label><select class="fs" id="ei-type">'+typeOpts+'</select></div>'
+  h+='<div class="fg"><label class="fl">Status</label><select class="fs" id="ei-stat">'+statOpts+'</select></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Next Due</label><input class="fi" type="date" id="ei-due" value="'+(i.next_due||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Last Completed</label><input class="fi" type="date" id="ei-last" value="'+(i.last_completed||'')+'"></div></div>'
+  h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ei-notes">'+(i.notes||'')+'</textarea></div>'
+  modal('Edit Inspection', h, async function(){
+    var res=await sb.from('crm_inspections').update({inspection_type:document.getElementById('ei-type').value,status:document.getElementById('ei-stat').value,next_due:document.getElementById('ei-due').value,last_completed:document.getElementById('ei-last').value||null,notes:document.getElementById('ei-notes').value||null,updated_at:new Date().toISOString()}).eq('id',id)
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();pgCrmInspections();toast('Inspection updated')
   },'Save')
 }
 
