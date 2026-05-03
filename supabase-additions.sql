@@ -21,3 +21,7 @@ SELECT 'New job fields added' AS status;
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS projected_start    date DEFAULT NULL;
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS projected_closeout date DEFAULT NULL;
 SELECT 'Projected date columns added' AS status;
+
+-- ── PM Visit type ─────────────────────────────────────────────────────────────
+ALTER TABLE pm_visits ADD COLUMN IF NOT EXISTS visit_type text DEFAULT 'regular';
+SELECT 'pm_visits visit_type added' AS status;

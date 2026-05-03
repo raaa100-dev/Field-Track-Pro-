@@ -3340,8 +3340,17 @@ async function logPmVisitModal(){
     suggestedDate=startD.toISOString().split('T')[0]
   }
   const pvHtml=
+    '<div class="fg"><label class="fl">Visit Type</label>'+
+    '<select class="fs" id="pmv-type">'+
+    '<option value="regular">Regular Site Visit</option>'+
+    '<option value="precon">Precon Meeting</option>'+
+    '<option value="start">Job Start</option>'+
+    '<option value="14_day">14-Day Pre-Start</option>'+
+    '<option value="milestone">Milestone</option>'+
+    '<option value="closeout">Closeout</option>'+
+    '</select></div>'+
     '<div class="two"><div class="fg"><label class="fl">Visit Date *</label><input class="fi" type="date" id="pmv-date" value="'+suggestedDate+'"></div>'+
-    '<div class="fg"><label class="fl">PM Name</label><input class="fi" id="pmv-pm" value="'+(currentJob?.project_manager||ME?.full_name||'')+'"></div></div>'+
+    '<div class="fg"><label class="fl">PM Name</label><input class="fi" id="pmv-pm" value="'+(currentJob&&currentJob.project_manager||ME&&ME.full_name||'')+'"></div></div>'+
     '<div class="fg"><label class="fl">Observations</label><textarea class="ft" id="pmv-obs" placeholder="What was observed on site…"></textarea></div>'+
     '<div class="fg"><label class="fl">Issues Found</label><textarea class="ft" id="pmv-iss" placeholder="Any problems or items requiring attention…"></textarea></div>'+
     '<div class="two"><div class="fg"><label class="fl">Outcome</label>'+
@@ -3350,7 +3359,7 @@ async function logPmVisitModal(){
     '<div class="fg"><label class="fl">Next Visit Date</label><input class="fi" type="date" id="pmv-next"></div></div>'
   modal('Log PM Visit', pvHtml,
     async()=>{
-      const{error}=await sb.from('pm_visits').insert({id:uuid(),job_id:currentJobId,visit_date:v('pmv-date'),pm_name:v('pmv-pm'),observations:v('pmv-obs'),issues:v('pmv-iss'),outcome:v('pmv-out'),next_visit_date:v('pmv-next')||null,created_at:new Date().toISOString()})
+      const{error}=await sb.from('pm_visits').insert({id:uuid(),job_id:currentJobId,visit_type:v('pmv-type')||'regular',visit_date:v('pmv-date'),pm_name:v('pmv-pm'),observations:v('pmv-obs'),issues:v('pmv-iss'),outcome:v('pmv-out'),next_visit_date:v('pmv-next')||null,created_at:new Date().toISOString()})
       if(error){toast(error.message,'error');return}
       if(v('pmv-next'))await sb.from('jobs').update({next_pm_visit:v('pmv-next'),updated_at:new Date().toISOString()}).eq('id',currentJobId)
       closeModal();toast('Visit logged');loadJT('jt-pmvisits')
