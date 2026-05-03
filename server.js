@@ -6013,6 +6013,15 @@ function crmEditBtn(b){crmEditAccount(b.getAttribute('data-id'))}
 function crmContactBtn(b){crmNewContact(b.getAttribute('data-id'))}
 function crmBuildingBtn(b){crmNewBuilding(b.getAttribute('data-id'))}
 function crmActivityBtn(b){crmLogActivity(b.getAttribute('data-id'))}
+function crmBtn_crmDeleteAccount(b){crmDeleteAccount(b.getAttribute('data-id'))}
+function crmBtn_crmLogActivity(b){crmLogActivity(b.getAttribute('data-id'))}
+function crmBtn_crmNewAgreement(b){crmNewAgreement(b.getAttribute('data-id'))}
+function crmBtn_crmNewBuilding(b){crmNewBuilding(b.getAttribute('data-id'))}
+function crmBtn_crmNewContact(b){crmNewContact(b.getAttribute('data-id'))}
+function crmBtn_crmSetFollowup(b){crmSetFollowup(b.getAttribute('data-id'))}
+
+
+
 
 function crmAccTypeFilter(){
   var q=(document.getElementById('crm-acc-search')||{}).value||''
@@ -6120,7 +6129,7 @@ async function crmOpenAccount(id){
   if(a.notes)h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06);font-size:12px;color:#8a96ab">'+a.notes+'</div>'
   h+='</div>'
   // Contacts
-  h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Contacts ('+( contRes.data||[]).length+')<button class="btn btn-sm" onclick="crmNewContact(\''+id+'\')" style="margin-left:auto">+ Add</button></div>'
+  h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Contacts ('+( contRes.data||[]).length+')<button class="btn btn-sm" onclick="crmBtn_crmNewContact(this)" data-id=\''+id+'\' style="margin-left:auto">+ Add</button></div>'
   var conts=contRes.data||[]
   if(conts.length){
     conts.forEach(function(c){
@@ -6133,7 +6142,7 @@ async function crmOpenAccount(id){
   }else{h+='<div style="font-size:12px;color:#414e63">No contacts yet</div>'}
   h+='</div>'
   // Buildings
-  h+='<div class="card"><div class="card-title">Buildings / Sites ('+(bldRes.data||[]).length+')<button class="btn btn-sm" onclick="crmNewBuilding(\''+id+'\')" style="margin-left:auto">+ Add</button></div>'
+  h+='<div class="card"><div class="card-title">Buildings / Sites ('+(bldRes.data||[]).length+')<button class="btn btn-sm" onclick="crmBtn_crmNewBuilding(this)" data-id=\''+id+'\' style="margin-left:auto">+ Add</button></div>'
   var blds=bldRes.data||[]
   if(blds.length){
     blds.forEach(function(b){
@@ -6151,7 +6160,7 @@ async function crmOpenAccount(id){
   // Right column
   h+='<div>'
   // Activity feed
-  h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Activity<button class="btn btn-sm btn-a" onclick="crmLogActivity(\''+id+'\')" style="margin-left:auto">+ Log</button></div>'
+  h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Activity<button class="btn btn-sm btn-a" onclick="crmBtn_crmLogActivity(this)" data-id=\''+id+'\' style="margin-left:auto">+ Log</button></div>'
   var acts=actRes.data||[]
   if(acts.length){
     acts.forEach(function(act){
@@ -6166,7 +6175,7 @@ async function crmOpenAccount(id){
   }else{h+='<div style="font-size:12px;color:#414e63">No activity logged yet</div>'}
   h+='</div>'
   // Agreements
-  h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Agreements<button class="btn btn-sm" onclick="crmNewAgreement(\''+id+'\')" style="margin-left:auto">+ Add</button></div>'
+  h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Agreements<button class="btn btn-sm" onclick="crmBtn_crmNewAgreement(this)" data-id=\''+id+'\' style="margin-left:auto">+ Add</button></div>'
   var agrs=agrRes.data||[]
   if(agrs.length){
     agrs.forEach(function(ag){
@@ -6199,10 +6208,10 @@ async function crmOpenAccount(id){
     h+='<div style="font-weight:600;color:'+(isOverdue?'#dc2626':'#60a5fa')+'">'+(isOverdue?'⚠ Overdue Follow-up':'📅 Follow-up Scheduled')+'</div>'
     h+='<div style="color:#8a96ab;margin-top:3px">'+fo.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+'</div>'
     if(a.followup_note)h+='<div style="color:#8a96ab;margin-top:3px">'+a.followup_note+'</div>'
-    h+='<button class="btn btn-sm" onclick="crmSetFollowup(\''+id+'\')" style="margin-top:8px">Update</button></div>'
+    h+='<button class="btn btn-sm" onclick="crmBtn_crmSetFollowup(this)" data-id=\''+id+'\' style="margin-top:8px">Update</button></div>'
   }else{
     h+='<div class="card"><div class="card-title">Follow-up</div>'
-    h+='<button class="btn btn-sm btn-p" onclick="crmSetFollowup(\''+id+'\')">📅 Schedule Follow-up</button></div>'
+    h+='<button class="btn btn-sm btn-p" onclick="crmBtn_crmSetFollowup(this)" data-id=\''+id+'\'>📅 Schedule Follow-up</button></div>'
   }
   h+='</div></div>'
   document.getElementById('page-area').innerHTML=h
@@ -6226,7 +6235,7 @@ async function crmEditAccount(id){
   h+='<div class="fg"><label class="fl">Zip</label><input class="fi" id="ea-zip" value="'+(a.zip||'')+'"></div></div>'
   h+='<div class="fg"><label class="fl">Primary Contact</label><input class="fi" id="ea-primary" value="'+(a.primary_contact||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ea-notes">'+(a.notes||'')+'</textarea></div>'
-  h+='<div style="padding-top:12px;border-top:1px solid rgba(255,255,255,.06)"><button class="btn btn-ghost btn-sm" style="color:#dc2626" onclick="crmDeleteAccount(\''+id+'\')">Delete Account</button></div>'
+  h+='<div style="padding-top:12px;border-top:1px solid rgba(255,255,255,.06)"><button class="btn btn-ghost btn-sm" style="color:#dc2626" onclick="crmBtn_crmDeleteAccount(this)" data-id=\''+id+'\'>Delete Account</button></div>'
   modal('Edit Account', h, async function(){
     var name=(document.getElementById('ea-name').value||'').trim()
     if(!name){toast('Name required','error');return}
