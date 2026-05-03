@@ -1754,17 +1754,16 @@ async function pgScan(){
           <button id="mt-out" onclick="setScanMode('out',this)">📤 Check Out</button>
           <button id="mt-return" onclick="setScanMode('return',this)">↩ Return</button>
         </div>
-        <!-- CAMERA -->
-        <div id="cam-wrap" style="display:none">
-          <div class="scan-cam"><div id="cam-viewport"></div><div class="scan-overlay"><div class="scan-rect"><div class="scan-line"></div></div></div><div class="scan-status" id="cam-status">Align barcode in frame</div></div>
+        <div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:12px;color:#8a96ab">
+          📡 <strong style="color:#60a5fa">Barcode Scanner Ready</strong> — connect your Bluetooth or USB scanner and scan directly into the field below. The scanner acts like a keyboard and auto-submits on scan.
         </div>
         <div style="margin-bottom:10px;display:flex;gap:8px">
-          <button class="btn btn-sm" id="cam-toggle-btn" onclick="toggleCam()" style="flex:1">📷 Start Camera</button>
+          <button class="btn btn-sm" onclick="focusScanInput()" style="flex:1">🎯 Focus Scanner Input</button>
           <button class="btn btn-sm" onclick="testBeep()">🔊 Test Beep</button>
         </div>
         <div class="fg">
-          <label class="fl">Barcode / Part # <span style="color:#414e63">(scan or type — Enter to add)</span></label>
-          <input class="fi" id="sc-bc" placeholder="Scan barcode or type part number…" autocomplete="off" oninput="liveResolveBC(this.value)" onkeydown="if(event.key==='Enter'){addToBatch(null,null);this.value='';document.getElementById('sc-resolve').style.display='none'}">
+          <label class="fl">Barcode / Part # <span style="color:#414e63">— scanner auto-submits, or type + Enter</span></label>
+          <input class="fi" id="sc-bc" placeholder="Ready for scanner — click Focus button or click here…" autocomplete="off" autofocus style="font-size:15px;letter-spacing:.5px" oninput="liveResolveBC(this.value)" onkeydown="if(event.key==='Enter'&&this.value.trim()){addToBatch(null,null);this.value='';document.getElementById('sc-resolve').style.display='none';document.getElementById('sc-qty-row').style.display='none';this.focus()}">
         </div>
         <div id="sc-resolve" style="display:none;margin-bottom:9px"></div>
         <div id="sc-qty-row" style="display:none;margin-bottom:9px">
@@ -1920,6 +1919,10 @@ async function toggleCam(){
       else{beep();document.getElementById('cam-status').textContent='Found: '+code+' — not in catalog, set qty and add'}
     })
   }catch(e){toast('Camera failed: '+e.message,'error');stopCam()}
+}
+function focusScanInput(){
+  var el=document.getElementById('sc-bc')
+  if(el){el.focus();el.select();toast('Scanner input focused — scan away','info')}
 }
 function stopCam(){if(!_camRunning)return;try{Quagga.stop()}catch{};_camRunning=false;const w=document.getElementById('cam-wrap');if(w)w.style.display='none';const b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera'}
 
