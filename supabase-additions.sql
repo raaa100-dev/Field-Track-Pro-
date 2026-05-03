@@ -16,3 +16,8 @@ ALTER TABLE jobs ADD COLUMN IF NOT EXISTS estimator                text DEFAULT 
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS original_contract_value  numeric(12,2) DEFAULT NULL;
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS trade                    text DEFAULT NULL;
 SELECT 'New job fields added' AS status;
+
+-- ── Projected dates ───────────────────────────────────────────────────────────
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS projected_start    date DEFAULT NULL;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS projected_closeout date DEFAULT NULL;
+SELECT 'Projected date columns added' AS status;
