@@ -6014,6 +6014,7 @@ function crmContactBtn(b){crmNewContact(b.getAttribute('data-id'))}
 function crmBuildingBtn(b){crmNewBuilding(b.getAttribute('data-id'))}
 function crmActivityBtn(b){crmLogActivity(b.getAttribute('data-id'))}
 function crmBtn_crmDeleteAccount(b){crmDeleteAccount(b.getAttribute('data-id'))}
+function crmInspSearchFilter(q){filterInspections((document.getElementById('insp-filter')||{}).value||'all')}
 function crmBtn_crmLogActivity(b){crmLogActivity(b.getAttribute('data-id'))}
 function crmBtn_crmNewAgreement(b){crmNewAgreement(b.getAttribute('data-id'))}
 function crmBtn_crmNewBuilding(b){crmNewBuilding(b.getAttribute('data-id'))}
@@ -6570,7 +6571,7 @@ async function pgCrmInspections(){
   h+='<div style="display:flex;gap:8px;margin-bottom:14px">'
   h+='<select class="fs" id="insp-filter" style="width:180px" onchange="filterInspections(this.value)">'
   h+='<option value="all">All Inspections</option><option value="overdue">Overdue</option><option value="30">Due in 30 days</option><option value="90">Due in 90 days</option><option value="completed">Completed</option></select>'
-  h+='<input class="fi" id="insp-search" placeholder="Search..." style="width:220px" oninput="filterInspections(document.getElementById(\'insp-filter\').value)">'
+  h+='<input class="fi" id="insp-search" placeholder="Search..." style="width:220px" oninput="crmInspSearchFilter(this.value)">'
   h+='</div>'
   h+='<div id="insp-list">'+buildInspTable(insps)+'</div>'
   document.getElementById('page-area').innerHTML=h
