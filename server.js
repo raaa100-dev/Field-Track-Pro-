@@ -429,7 +429,8 @@ window.addEventListener('DOMContentLoaded',async()=>{
   av.textContent=ini(nm);Object.assign(av.style,avS(nm))
   P('dashboard',document.querySelector('.nav-item'))
   checkSafetyBadge()
-  loadMyTasksBadge()
+  // Delay badge load slightly to ensure ME is set
+  setTimeout(function(){if(typeof ME!=='undefined'&&ME)loadMyTasksBadge()},500)
   // Mobile: show hamburger on small screens
   initMobileLayout()
 })
@@ -566,7 +567,7 @@ async function pgDash(){
   try { await loadJobsWithPartsStatus() } catch(lpe){ console.warn('loadJobsWithPartsStatus:',lpe) }
   const {data:ci} = await sb.from('checkins').select('id,job_id,worker_id,checkin_at,checkout_at').is('checkout_at',null).order('checkin_at',{ascending:false}).limit(20)
   // Load my tasks for dashboard widget
-  const myTasksRes = ME?.id ? await sb.from('job_tasks').select('*').eq('assigned_to',ME.id).in('status',['open','in_progress']).order('created_at',{ascending:false}) : {data:[]}
+  const myTasksRes = (ME&&ME.id) ? await sb.from('job_tasks').select('*').eq('assigned_to',ME.id).in('status',['open','in_progress']).order('created_at',{ascending:false}) : {data:[]}
   const myTasks = myTasksRes.data||[]
   window._myOpenTasks = myTasks
   const {data:parts} = await sb.from('job_parts').select('id,job_id,status,assigned_qty,ordered_qty,taken_qty,installed_qty')
