@@ -462,7 +462,7 @@ function closeSidebar(){
   if(ov)ov.classList.remove('show')
 }
 
-function doSignOut(){sb.auth.signOut();location.href='index.html'}
+function doSignOut(){sb.auth.signOut().then(function(){location.href='index.html?signout=1'})}
 
 // ── NAVIGATION ────────────────────────────────────────────────
 const PAGE_TITLES={tasks:'Tasks',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
