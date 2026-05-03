@@ -972,7 +972,7 @@ function renderInfoTab(el,j){
     <div class="two"><div class="fg"><label class="fl">GC Contact</label><input class="fi" id="ed-gcc" value="\${j.gc_contact||''}"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="ed-gcp" value="\${j.gc_phone||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="ed-sup" value="\${j.super_name||''}"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="ed-supp" value="\${j.super_phone||''}"></div></div>
     <div class="fg"><label class="fl">Project Manager (Internal)</label><select class="fs" id="ed-pm"><option value="">— Unassigned —</option></select></div>
-    <div class="two"><div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="ed-pmschedule"><option value="none">No visits</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">Milestones only</option></select></div><div class="fg"><label class="fl">Next PM Visit Due</label><input class="fi" type="date" id="ed-pmvisit" value="\${j.next_pm_visit||''}"></div></div>
+    <div class="two"><div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="ed-pmschedule"><option value="none">No visits</option><option value="pre_start">14 days before start</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">Milestones only</option></select></div><div class="fg"><label class="fl">Next PM Visit Due</label><input class="fi" type="date" id="ed-pmvisit" value="\${j.next_pm_visit||''}"></div></div>
   </div>
   <div>
     <div class="sec-hdr">Key Dates</div>
@@ -1411,7 +1411,7 @@ async function pgNewJob(){
       <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="nj-sup"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="nj-supp"></div></div>
       <div class="fg"><label class="fl">Project Manager (Internal)</label><select class="fs" id="nj-pm"><option value="">— Assign PM —</option></select></div>
       <div class="fg"><label class="fl">Estimator</label><select class="fs" id="nj-estimator"><option value="">— Assign Estimator —</option></select></div>
-      <div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="nj-pmschedule"><option value="none">No scheduled visits</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">At milestones only</option></select></div>
+      <div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="nj-pmschedule"><option value="none">No scheduled visits</option><option value="pre_start">14 days before start</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">At milestones only</option></select></div>
       <div class="fg"><label class="fl">Next PM Visit Due</label><input class="fi" type="date" id="nj-pmvisit"></div>
     </div>
   </div>
@@ -3321,7 +3321,7 @@ async function renderPmVisitsTab(el){
     '<div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">'+
     '<div style="font-size:10px;color:#414e63;margin-bottom:3px">PM ASSIGNED</div>'+
     '<div style="font-size:14px;font-weight:500">'+(j.project_manager||'Not assigned')+'</div>'+
-    '<div style="font-size:11px;color:#414e63;margin-top:2px">'+(j.pm_visit_schedule||'No schedule set')+'</div>'+
+    '<div style="font-size:11px;color:#414e63;margin-top:2px">'+({none:'No schedule',pre_start:'14 days before start',weekly:'Weekly',biweekly:'Every 2 weeks',monthly:'Monthly',milestone:'Milestones only'}[j.pm_visit_schedule]||j.pm_visit_schedule||'No schedule set')+'</div>'+
     '</div>'+
     '<button class="btn btn-p btn-sm" onclick="logPmVisitModal()">+ Log Visit</button>'+
     '</div>'+
@@ -3330,8 +3330,14 @@ async function renderPmVisitsTab(el){
 }
 
 async function logPmVisitModal(){
+  var suggestedDate=new Date().toISOString().split('T')[0]
+  if(currentJob&&currentJob.pm_visit_schedule==='pre_start'&&currentJob.date_start){
+    var startD=new Date(currentJob.date_start)
+    startD.setDate(startD.getDate()-14)
+    suggestedDate=startD.toISOString().split('T')[0]
+  }
   const pvHtml=
-    '<div class="two"><div class="fg"><label class="fl">Visit Date *</label><input class="fi" type="date" id="pmv-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Visit Date *</label><input class="fi" type="date" id="pmv-date" value="'+suggestedDate+'"></div>'+
     '<div class="fg"><label class="fl">PM Name</label><input class="fi" id="pmv-pm" value="'+(currentJob?.project_manager||ME?.full_name||'')+'"></div></div>'+
     '<div class="fg"><label class="fl">Observations</label><textarea class="ft" id="pmv-obs" placeholder="What was observed on site…"></textarea></div>'+
     '<div class="fg"><label class="fl">Issues Found</label><textarea class="ft" id="pmv-iss" placeholder="Any problems or items requiring attention…"></textarea></div>'+
