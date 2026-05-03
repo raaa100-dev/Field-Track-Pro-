@@ -5621,7 +5621,8 @@ async function dashStartTask(btn){
 // ══════════════════════════════════════════
 // PARTS ADMIN — Edit, delete, status change
 // ══════════════════════════════════════════
-async function editPartStatus(btn){
+async function reloadPartsTab(){loadJT('jt-parts')}
+function editPartStatus(btn){
   var id=btn.getAttribute('data-pid')
   var parts=window._currentJobParts||[]
   var p=parts.find(function(x){return x.id===id})
@@ -5694,7 +5695,7 @@ async function renderPartsTab(el){
   var stagingInProcess=parts.some(function(p){return p.status==='staged'})&&parts.some(function(p){return p.status==='ordered'||p.status==='pending'||!p.status})
 
   var h='<div style="display:flex;gap:8px;margin-bottom:13px;flex-wrap:wrap">'
-  h+='<button class="btn btn-sm" onclick="loadJT(\'jt-parts\')">↻ Refresh</button>'
+  h+='<button class="btn btn-sm" onclick="reloadPartsTab()">↻ Refresh</button>'
   if(isAdmin)h+='<button class="btn btn-sm btn-a" onclick="showTransferPartsModal()">↔ Transfer Parts</button>'
   if(isAdmin)h+='<button class="btn btn-sm btn-b" onclick="showExpectedStagingDate()">📅 Expected Staging Date</button>'
   h+='</div>'
