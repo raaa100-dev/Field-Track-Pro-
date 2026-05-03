@@ -6001,6 +6001,19 @@ async function pgCrmAccounts(){
 }
 
 function crmOpenAccountCard(el){crmOpenAccount(el.getAttribute('data-aid'))}
+function crmOpenAccountTopbar(){
+  var id=window._crmOpenId||''
+  return '<button class="btn btn-sm btn-p" data-id="'+id+'" onclick="crmEditBtn(this)">Edit</button> '
+    +'<button class="btn btn-sm" data-id="'+id+'" onclick="crmContactBtn(this)">+ Contact</button> '
+    +'<button class="btn btn-sm" data-id="'+id+'" onclick="crmBuildingBtn(this)">+ Building</button> '
+    +'<button class="btn btn-sm btn-a" data-id="'+id+'" onclick="crmActivityBtn(this)">+ Log Activity</button> '
+    +'<button class="btn btn-ghost btn-sm" onclick="pgCrmAccounts()">← Accounts</button>'
+}
+function crmEditBtn(b){crmEditAccount(b.getAttribute('data-id'))}
+function crmContactBtn(b){crmNewContact(b.getAttribute('data-id'))}
+function crmBuildingBtn(b){crmNewBuilding(b.getAttribute('data-id'))}
+function crmActivityBtn(b){crmLogActivity(b.getAttribute('data-id'))}
+
 function crmAccTypeFilter(){
   var q=(document.getElementById('crm-acc-search')||{}).value||''
   renderCrmAccounts(window._crmAccounts||[],q)
@@ -6090,12 +6103,8 @@ async function crmOpenAccount(id){
     sb.from('fax_bids').select('id,number,project_name,total,status:fax_bid_recipients(status)').eq('project_name',a.name).order('created_at',{ascending:false}).limit(10)
   ])
   window._crmOpenAccount=a
-  document.getElementById('topbar-actions').innerHTML=
-    '<button class="btn btn-sm btn-p" onclick="crmEditAccount(\''+id+'\')">Edit</button> '+
-    '<button class="btn btn-sm" onclick="crmNewContact(\''+id+'\')">+ Contact</button> '+
-    '<button class="btn btn-sm" onclick="crmNewBuilding(\''+id+'\')">+ Building</button> '+
-    '<button class="btn btn-sm btn-a" onclick="crmLogActivity(\''+id+'\')">+ Log Activity</button> '+
-    '<button class="btn btn-ghost btn-sm" onclick="pgCrmAccounts()">← Accounts</button>'
+  window._crmOpenId=id
+  document.getElementById('topbar-actions').innerHTML=crmOpenAccountTopbar()
   document.getElementById('page-title').textContent=a.name
   var typeLabel={gc:'General Contractor',owner:'Owner/Developer',property_manager:'Property Manager',other:'Other'}[a.type]||a.type||'Account'
   var h='<div style="display:grid;grid-template-columns:1fr 340px;gap:16px">'
