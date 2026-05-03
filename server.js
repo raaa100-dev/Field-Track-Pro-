@@ -6000,6 +6000,10 @@ async function pgCrmAccounts(){
   renderCrmAccounts(accounts,'')
 }
 
+function crmAccTypeFilter(){
+  var q=(document.getElementById('crm-acc-search')||{}).value||''
+  renderCrmAccounts(window._crmAccounts||[],q)
+}
 function renderCrmAccounts(accounts,search){
   var q=search.toLowerCase()
   var filtered=accounts.filter(function(a){
@@ -6016,7 +6020,7 @@ function renderCrmAccounts(accounts,search){
   h+='</div>'
   h+='<div style="display:flex;gap:8px;margin-bottom:14px">'
   h+='<input class="fi" id="crm-acc-search" placeholder="Search accounts..." style="width:250px" oninput="renderCrmAccounts(window._crmAccounts,this.value)">'
-  h+='<select class="fs" id="crm-acc-type" style="width:160px" onchange="renderCrmAccounts(window._crmAccounts,document.getElementById(\'crm-acc-search\').value)">'
+  h+='<select class="fs" id="crm-acc-type" style="width:160px" onchange="crmAccTypeFilter()">'
   h+='<option value="">All types</option><option value="gc">General Contractor</option><option value="owner">Owner/Developer</option><option value="property_manager">Property Manager</option><option value="other">Other</option>'
   h+='</select></div>'
   var typeFilter=(document.getElementById('crm-acc-type')||{}).value||''
