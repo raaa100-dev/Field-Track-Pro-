@@ -1040,6 +1040,7 @@ async function removeWorker(id){await sb.from('job_workers').update({is_active:f
 
 function buildPartsTable(parts){
   if(!parts||!parts.length) return empty('📦','No parts on this job yet')
+  var isAdmin=['admin','pm','estimator'].indexOf((typeof ME!=='undefined'?ME.role:'')||'')>=0
   const totalOrdered=parts.reduce((s,p)=>s+(p.ordered_qty||p.assigned_qty||0),0)
   const totalTaken=parts.reduce((s,p)=>s+(p.taken_qty||0),0)
   const totalInstalled=parts.reduce((s,p)=>s+(p.installed_qty||0),0)
@@ -1052,7 +1053,7 @@ function buildPartsTable(parts){
   html+='</div><div style="margin-bottom:10px;padding:8px 12px;border-radius:7px;font-size:12px;background:'+(stagedComplete?'rgba(22,163,74,.08)':'rgba(217,119,6,.08)')+';border:1px solid '+(stagedComplete?'rgba(22,163,74,.2)':'rgba(217,119,6,.2)')+'">'+( stagedComplete?'✅ All parts staged':'⚠ '+parts.filter(p=>!['staged','signed_out','partial_install','installed'].includes(p.status)).length+' not yet staged')+'</div>'
   if(over.length)html+='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:9px 12px;margin-bottom:9px;font-size:12px;color:#dc2626">⚠ Over-issued: '+over.map(p=>p.part_name).join(', ')+'</div>'
   if(under.length)html+='<div style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.2);border-radius:7px;padding:9px 12px;margin-bottom:9px;font-size:12px;color:#d97706">⚠ Under-installed: '+under.map(p=>p.part_name).join(', ')+'</div>'
-  html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Part</th><th>Ordered</th><th>Staged</th><th>Taken</th><th>Installed</th><th>Status</th><th>Staged By</th></tr></thead><tbody>'
+  html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Part</th><th>Ordered</th><th>Staged</th><th>Taken</th><th>Installed</th><th>Status</th><th>Staged By</th><th></th></tr></thead><tbody>'
   parts.forEach(p=>{
     const ord=p.ordered_qty||p.assigned_qty||0,stg=p.assigned_qty||0,tak=p.taken_qty||0,ins=p.installed_qty||0
     const pct=stg>0?Math.round(ins/stg*100):0
@@ -1064,30 +1065,7 @@ function buildPartsTable(parts){
 }
 
 // PARTS TAB (per job view)
-async function renderPartsTab(el){
-  const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
-  el.innerHTML=\`
-  <div style="display:flex;gap:8px;margin-bottom:13px">
-    <button class="btn btn-p btn-sm" onclick="P('scan',null)">📷 Go to Scanner</button>
-    <button class="btn btn-sm" onclick="loadJT('jt-parts')">↻ Refresh</button>
-    <button class="btn btn-a btn-sm" onclick="checkPartsVariance(currentJobId).then(()=>loadJT('jt-parts'))">⚠ Variance</button>
-  </div>
-  <div id="checkout-ui" style="display:none;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px;margin-bottom:13px">
-    <div style="font-size:12px;font-weight:600;color:#a855f7;margin-bottom:10px">📤 Sign Out Parts to Technician</div>
-    <div class="fg" style="margin-bottom:10px"><label class="fl">Technician</label><select class="fs" id="checkout-tech"><option value="">— Select —</option></select></div>
-    <div id="checkout-parts-list" style="margin-bottom:10px"></div>
-    <div style="display:flex;gap:8px"><button class="btn btn-p btn-sm" onclick="commitCheckout()" style="flex:1;justify-content:center">Sign Out</button><button class="btn btn-sm" onclick="toggleCheckoutUI()">Cancel</button></div>
-  </div>
-  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
-    <div class="stat"><div class="stat-label">Staged</div><div class="stat-value" style="color:#d97706">\${(parts||[]).filter(p=>p.status==='staged').length}</div></div>
-    <div class="stat"><div class="stat-label">Checked Out</div><div class="stat-value" style="color:#60a5fa">\${(parts||[]).filter(p=>p.status==='signed_out').length}</div></div>
-    <div class="stat"><div class="stat-label">Installed</div><div class="stat-value" style="color:#16a34a">\${(parts||[]).filter(p=>p.status==='installed').length}</div></div>
-    <div class="stat"><div class="stat-label">Total Items</div><div class="stat-value">\${(parts||[]).reduce((s,p)=>s+p.assigned_qty,0)}</div></div>
-  </div>
-  <div class="card" style="padding:0;overflow:hidden">
-  \${buildPartsTable(parts)}
-  </div>\`
-}
+// renderPartsTab moved to parts_features.js
 
 // DAILY REPORTS TAB (per job)
 async function renderJobDailyTab(el){
@@ -1891,7 +1869,8 @@ async function loadJobPartsPanel(){
   const jobId=document.getElementById('sc-job')?.value;const el=document.getElementById('job-parts-panel');if(!el)return
   if(!jobId){el.innerHTML='<div style="font-size:12px;color:#414e63">Select a job</div>';return}
   const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',jobId).order('created_at',{ascending:false})
-  el.innerHTML=(parts||[]).length?\`<table class="tbl"><thead><tr><th>Part</th><th>Qty</th><th>Status</th><th>By</th></tr></thead><tbody>\${(parts||[]).map(p=>\`<tr><td style="font-weight:500;font-size:12px">\${p.part_name}</td><td>\${p.assigned_qty}</td><td><span class="badge \${p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-blue':'bg-green'}">\${p.status.replace('_',' ')}</span></td><td style="font-size:10px;color:#8a96ab">\${p.staged_by||p.checked_out_by||'—'}</td></tr>\`).join('')}</tbody></table>\`:'<div style="font-size:12px;color:#414e63">No parts on this job yet</div>'
+    var isAdm=['admin','pm','estimator'].indexOf((typeof ME!=='undefined'?ME.role:'')||'')>=0
+  el.innerHTML=(parts||[]).length?'<table class="tbl"><thead><tr><th>Part</th><th>Qty</th><th>Status</th><th>By</th>'+(isAdm?'<th></th>':'')+'</tr></thead><tbody>'+((parts||[]).map(function(p){return'<tr><td style="font-weight:500;font-size:12px">'+p.part_name+'</td>'+'<td>'+p.assigned_qty+'</td>'+'<td><span class="badge '+(p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-blue':'bg-green')+'">'+p.status.replace(/_/g,' ')+'</span></td>'+'<td style="font-size:10px;color:#8a96ab">'+(p.staged_by||p.checked_out_by||'—')+'</td>'+(isAdm?'<td><button class="btn btn-sm" style="font-size:10px;padding:2px 6px" data-pid="'+p.id+'" data-pname="'+p.part_name+'" data-status="'+p.status+'" onclick="editScanPartStatus(this)">Status</button></td>':'')+'</tr>'}).join(''))+'</tbody></table>':'<div style="font-size:12px;color:#414e63">No parts on this job yet</div>'
 }
 async function loadScanEvents(){
   const el=document.getElementById('scan-events-panel');if(!el)return
@@ -1952,7 +1931,7 @@ function addCatalogModal(){
   modal('Add Part to Catalog',\`
   <div class="fg"><label class="fl">Barcode *</label><input class="fi" id="ca-bc" placeholder="UPC, EAN, or custom barcode"></div>
   <div class="fg"><label class="fl">Part Name *</label><input class="fi" id="ca-nm"></div>
-  <div class="two"><div class="fg"><label class="fl">Part Number</label><input class="fi" id="ca-pn" placeholder="Manufacturer #"></div><div class="fg"><label class="fl">Category</label><input class="fi" id="ca-cat" placeholder="Electrical, Plumbing…"></div></div>
+  <div class="two"><div class="fg"><label class="fl">Part Number</label><input class="fi" id="ca-pn" placeholder="Manufacturer #"></div><div class="fg"><label class="fl">Category</label><input class="fi" id="ca-cat" value="FA-Parts" placeholder="FA-Parts, Electrical…"></div></div>
   <div class="fg"><label class="fl">Description</label><textarea class="ft" id="ca-desc" style="min-height:55px"></textarea></div>
   <div class="three"><div class="fg"><label class="fl">Unit Cost ($)</label><input class="fi" type="number" id="ca-cost" step="0.01"></div><div class="fg"><label class="fl">Unit of Measure</label><select class="fs" id="ca-uom"><option value="each">Each</option><option value="ft">Foot</option><option value="lf">Linear Ft</option><option value="box">Box</option><option value="roll">Roll</option><option value="lb">Pound</option><option value="gal">Gallon</option></select></div><div class="fg"><label class="fl">Vendor</label><input class="fi" id="ca-vendor"></div></div>\`,
   async()=>{
@@ -5635,6 +5614,333 @@ async function dashStartTask(btn){
   btn.style.opacity='0.5'
   loadMyTasksBadge()
   toast('Task started')
+}
+
+
+
+// ══════════════════════════════════════════
+// PARTS ADMIN — Edit, delete, status change
+// ══════════════════════════════════════════
+async function editPartStatus(btn){
+  var id=btn.getAttribute('data-pid')
+  var parts=window._currentJobParts||[]
+  var p=parts.find(function(x){return x.id===id})
+  if(!p){toast('Part not found','error');return}
+  var statuses=['ordered','staged','signed_out','partial_install','installed','returned']
+  var opts=statuses.map(function(s){return'<option value="'+s+'"'+(p.status===s?' selected':'')+'>'+s.replace(/_/g,' ')+'</option>'}).join('')
+  var h='<div class="fg"><label class="fl">Part</label><div style="font-weight:500;font-size:13px">'+p.part_name+'</div></div>'
+  h+='<div class="fg"><label class="fl">Current Status</label><span class="badge bg-amber">'+p.status.replace(/_/g,' ')+'</span></div>'
+  h+='<div class="fg"><label class="fl">New Status</label><select class="fs" id="eps-stat">'+opts+'</select></div>'
+  h+='<div class="fg"><label class="fl">Note (optional)</label><input class="fi" id="eps-note" placeholder="Reason for change..."></div>'
+  modal('Edit Part Status', h, async function(){
+    var newStat=document.getElementById('eps-stat').value
+    var res=await sb.from('job_parts').update({status:newStat,updated_at:new Date().toISOString()}).eq('id',id)
+    if(res.error){toast(res.error.message,'error');return}
+    p.status=newStat
+    closeModal();loadJT('jt-parts');toast('Status updated')
+  },'Save')
+}
+
+async function editPartItem(btn){
+  var id=btn.getAttribute('data-pid')
+  var parts=window._currentJobParts||[]
+  var p=parts.find(function(x){return x.id===id})
+  if(!p){toast('Part not found','error');return}
+  var h='<div class="fg"><label class="fl">Part Name</label><input class="fi" id="epi-name" value="'+p.part_name+'"></div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">Ordered Qty</label><input class="fi" type="number" id="epi-oqty" value="'+(p.ordered_qty||p.assigned_qty||0)+'"></div>'
+  h+='<div class="fg"><label class="fl">Staged Qty</label><input class="fi" type="number" id="epi-sqty" value="'+(p.assigned_qty||0)+'"></div>'
+  h+='</div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">Taken Qty</label><input class="fi" type="number" id="epi-tqty" value="'+(p.taken_qty||0)+'"></div>'
+  h+='<div class="fg"><label class="fl">Installed Qty</label><input class="fi" type="number" id="epi-iqty" value="'+(p.installed_qty||0)+'"></div>'
+  h+='</div>'
+  modal('Edit Part', h, async function(){
+    var updates={
+      part_name:document.getElementById('epi-name').value||p.part_name,
+      ordered_qty:parseInt(document.getElementById('epi-oqty').value)||0,
+      assigned_qty:parseInt(document.getElementById('epi-sqty').value)||0,
+      taken_qty:parseInt(document.getElementById('epi-tqty').value)||0,
+      installed_qty:parseInt(document.getElementById('epi-iqty').value)||0,
+      updated_at:new Date().toISOString()
+    }
+    var res=await sb.from('job_parts').update(updates).eq('id',id)
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();loadJT('jt-parts');toast('Part updated')
+  },'Save')
+}
+
+async function deletePartItem(btn){
+  if(!confirm('Delete this part from the job?'))return
+  var id=btn.getAttribute('data-pid')
+  var res=await sb.from('job_parts').delete().eq('id',id)
+  if(res.error){toast(res.error.message,'error');return}
+  loadJT('jt-parts');toast('Part deleted','warn')
+}
+
+// ══════════════════════════════════════════
+// STAGE-IN FROM ORDERED — +/- and scan flow
+// ══════════════════════════════════════════
+async function renderPartsTab(el){
+  var res=await sb.from('job_parts').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
+  var parts=res.data||[]
+  window._currentJobParts=parts
+  var isAdmin=['admin','pm','estimator'].indexOf((typeof ME!=='undefined'?ME.role:'')||'')>=0
+  var ordered=parts.filter(function(p){return p.status==='ordered'||p.status==='none'||!p.status||p.status==='pending'})
+  var staged=parts.filter(function(p){return p.status==='staged'})
+  var checkedOut=parts.filter(function(p){return p.status==='signed_out'})
+  var installed=parts.filter(function(p){return p.status==='installed'||p.status==='partial_install'})
+  var allStaged=parts.length>0&&parts.every(function(p){return['staged','signed_out','partial_install','installed'].includes(p.status)})
+  var stagingInProcess=parts.some(function(p){return p.status==='staged'})&&parts.some(function(p){return p.status==='ordered'||p.status==='pending'||!p.status})
+
+  var h='<div style="display:flex;gap:8px;margin-bottom:13px;flex-wrap:wrap">'
+  h+='<button class="btn btn-sm" onclick="loadJT(\'jt-parts\')">↻ Refresh</button>'
+  if(isAdmin)h+='<button class="btn btn-sm btn-a" onclick="showTransferPartsModal()">↔ Transfer Parts</button>'
+  if(isAdmin)h+='<button class="btn btn-sm btn-b" onclick="showExpectedStagingDate()">📅 Expected Staging Date</button>'
+  h+='</div>'
+
+  // Staging status banner
+  if(allStaged){
+    h+='<div style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.25);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">'
+    h+='<span style="font-size:20px">✅</span><div><div style="font-weight:600;color:#16a34a">All Parts Staged Complete</div><div style="font-size:11px;color:#8a96ab">All ordered parts have been staged</div></div></div>'
+  }else if(stagingInProcess){
+    h+='<div style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">'
+    h+='<span style="font-size:20px">⏳</span><div><div style="font-weight:600;color:#d97706">Staging In Process</div><div style="font-size:11px;color:#8a96ab">'+staged.length+' staged, '+ordered.length+' still ordered</div></div></div>'
+  }
+
+  // Expected staging date
+  var currentJob2=window._currentJobForParts||currentJob
+  if(currentJob2&&currentJob2.expected_staging_date){
+    var sd=new Date(currentJob2.expected_staging_date)
+    var isOverdue=sd<new Date()&&!allStaged
+    h+='<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:7px;padding:8px 12px;margin-bottom:10px;font-size:12px">'
+    h+='<span style="color:#60a5fa;font-weight:600">📅 Expected Staging: </span>'
+    h+='<span style="color:'+(isOverdue?'#dc2626':'#8a96ab')+'">'+sd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+(isOverdue?' — OVERDUE':'')+'</span></div>'
+  }
+
+  // Ordered → Stage section
+  if(ordered.length){
+    h+='<div class="card"><div class="card-title">📦 Ordered — Stage These In ('+ordered.length+' items)'
+    if(isAdmin)h+='<button class="btn btn-sm btn-p" style="margin-left:auto" onclick="stageAllOrdered()">Stage All</button>'
+    h+='</div>'
+    ordered.forEach(function(p){
+      h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+      h+='<div style="flex:1"><div style="font-size:13px;font-weight:500">'+p.part_name+'</div>'
+      h+='<div style="font-size:10px;color:#414e63">Ordered: '+(p.ordered_qty||p.assigned_qty||0)+'</div></div>'
+      h+='<div style="display:flex;align-items:center;gap:5px">'
+      h+='<button class="btn btn-sm" data-pid="'+p.id+'" onclick="adjustStageQty(this,-1)">−</button>'
+      h+='<input class="fi" type="number" id="stq-'+p.id+'" value="'+(p.ordered_qty||p.assigned_qty||0)+'" min="0" style="width:55px;text-align:center;padding:4px">'
+      h+='<button class="btn btn-sm" data-pid="'+p.id+'" onclick="adjustStageQty(this,1)">+</button>'
+      h+='<button class="btn btn-sm btn-a" data-pid="'+p.id+'" data-pname="'+p.part_name+'" onclick="stageOneIn(this)">Stage In</button>'
+      h+='</div></div>'
+    })
+    h+='</div>'
+  }
+
+  // Staged → Check Out section
+  if(staged.length){
+    h+='<div class="card"><div class="card-title">📤 Staged — Check Out to Tech ('+staged.length+' items)'
+    if(isAdmin)h+='<button class="btn btn-sm btn-p" style="margin-left:auto" onclick="checkOutAllStaged()">Check Out All</button>'
+    h+='</div>'
+    staged.forEach(function(p){
+      h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+      h+='<div style="flex:1"><div style="font-size:13px;font-weight:500">'+p.part_name+'</div>'
+      h+='<div style="font-size:10px;color:#414e63">Staged qty: '+(p.assigned_qty||0)+'</div></div>'
+      h+='<div style="display:flex;align-items:center;gap:5px">'
+      h+='<button class="btn btn-sm" data-pid="'+p.id+'" onclick="adjustCheckQty(this,-1)">−</button>'
+      h+='<input class="fi" type="number" id="ckq-'+p.id+'" value="'+(p.assigned_qty||0)+'" min="0" style="width:55px;text-align:center;padding:4px">'
+      h+='<button class="btn btn-sm" data-pid="'+p.id+'" onclick="adjustCheckQty(this,1)">+</button>'
+      h+='<button class="btn btn-sm btn-b" data-pid="'+p.id+'" data-pname="'+p.part_name+'" onclick="checkOutOne(this)">Check Out</button>'
+      h+='</div></div>'
+    })
+    h+='</div>'
+  }
+
+  // Full parts table
+  h+='<div class="card" style="padding:0;overflow:hidden">'+buildPartsTable(parts)+'</div>'
+  el.innerHTML=h
+}
+
+function adjustStageQty(btn,delta){
+  var id=btn.getAttribute('data-pid')
+  var inp=document.getElementById('stq-'+id)
+  if(!inp)return
+  inp.value=Math.max(0,(parseInt(inp.value)||0)+delta)
+}
+function adjustCheckQty(btn,delta){
+  var id=btn.getAttribute('data-pid')
+  var inp=document.getElementById('ckq-'+id)
+  if(!inp)return
+  inp.value=Math.max(0,(parseInt(inp.value)||0)+delta)
+}
+
+async function stageOneIn(btn){
+  var id=btn.getAttribute('data-pid')
+  var name=btn.getAttribute('data-pname')
+  var inp=document.getElementById('stq-'+id)
+  var qty=inp?parseInt(inp.value)||0:0
+  if(!qty){toast('Quantity must be > 0','error');return}
+  var parts=window._currentJobParts||[]
+  var p=parts.find(function(x){return x.id===id})
+  if(!p)return
+  var orderedQty=p.ordered_qty||p.assigned_qty||0
+  var extra=qty-orderedQty
+  var res=await sb.from('job_parts').update({status:'staged',assigned_qty:qty,staged_by:(typeof ME!=='undefined'?ME.full_name||'':''),staged_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id)
+  if(res.error){toast(res.error.message,'error');return}
+  if(extra>0){
+    toast('⚠ Alert: '+extra+' extra '+name+' staged beyond ordered qty!','warn')
+    setTimeout(function(){toast('⚠ Extra Parts: '+extra+' extra '+name+' staged beyond ordered qty of '+orderedQty,'warn')},200)
+  }else{
+    toast('✓ Staged: '+name+' (×'+qty+')')
+  }
+  // Check if all parts are now staged
+  var updatedParts=await sb.from('job_parts').select('status').eq('job_id',currentJobId)
+  var allDone=(updatedParts.data||[]).every(function(x){return['staged','signed_out','partial_install','installed'].includes(x.status)})
+  if(allDone){
+    await sb.from('jobs').update({staging_status:'complete',updated_at:new Date().toISOString()}).eq('id',currentJobId)
+    setTimeout(function(){toast('🎉 All parts staged! Job marked as Staging Complete.','success')},300)
+  }else{
+    await sb.from('jobs').update({staging_status:'in_progress',updated_at:new Date().toISOString()}).eq('id',currentJobId)
+  }
+  loadJT('jt-parts')
+}
+
+async function stageAllOrdered(){
+  var parts=window._currentJobParts||[]
+  var ordered=parts.filter(function(p){return p.status==='ordered'||p.status==='pending'||!p.status})
+  if(!ordered.length){toast('No ordered parts to stage','warn');return}
+  if(!confirm('Stage in all '+ordered.length+' ordered items at their ordered quantities?'))return
+  var errors=0
+  for(var i=0;i<ordered.length;i++){
+    var p=ordered[i]
+    var res=await sb.from('job_parts').update({status:'staged',assigned_qty:p.ordered_qty||p.assigned_qty||0,staged_by:(typeof ME!=='undefined'?ME.full_name||'':''),staged_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',p.id)
+    if(res.error)errors++
+  }
+  if(!errors){
+    await sb.from('jobs').update({staging_status:'complete',updated_at:new Date().toISOString()}).eq('id',currentJobId)
+    toast('🎉 All parts staged complete!')
+  }else{
+    toast('Staged with '+errors+' errors','warn')
+  }
+  loadJT('jt-parts')
+}
+
+async function checkOutOne(btn){
+  var id=btn.getAttribute('data-pid')
+  var name=btn.getAttribute('data-pname')
+  var inp=document.getElementById('ckq-'+id)
+  var qty=inp?parseInt(inp.value)||0:0
+  if(!qty){toast('Quantity must be > 0','error');return}
+  var parts=window._currentJobParts||[]
+  var p=parts.find(function(x){return x.id===id})
+  if(!p)return
+  var stagedQty=p.assigned_qty||0
+  var extra=qty-stagedQty
+  var res=await sb.from('job_parts').update({status:'signed_out',taken_qty:qty,checked_out_by:(typeof ME!=='undefined'?ME.full_name||'':''),checked_out_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id)
+  if(res.error){toast(res.error.message,'error');return}
+  if(extra>0){
+    toast('⚠ Alert: '+extra+' extra '+name+' checked out beyond staged qty!','warn')
+    setTimeout(function(){toast('⚠ Extra Parts: '+extra+' extra '+name+' staged beyond ordered qty of '+orderedQty,'warn')},200)
+  }else{
+    toast('✓ Checked out: '+name+' (×'+qty+')')
+  }
+  loadJT('jt-parts')
+}
+
+async function checkOutAllStaged(){
+  var parts=window._currentJobParts||[]
+  var staged=parts.filter(function(p){return p.status==='staged'})
+  if(!staged.length){toast('No staged parts to check out','warn');return}
+  if(!confirm('Check out all '+staged.length+' staged items?'))return
+  for(var i=0;i<staged.length;i++){
+    var p=staged[i]
+    await sb.from('job_parts').update({status:'signed_out',taken_qty:p.assigned_qty||0,checked_out_by:(typeof ME!=='undefined'?ME.full_name||'':''),checked_out_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',p.id)
+  }
+  toast('All staged parts checked out')
+  loadJT('jt-parts')
+}
+
+// ══════════════════════════════════════════
+// TRANSFER STAGED PARTS TO ANOTHER JOB
+// ══════════════════════════════════════════
+async function showTransferPartsModal(){
+  var parts=window._currentJobParts||[]
+  var staged=parts.filter(function(p){return p.status==='staged'})
+  if(!staged.length){toast('No staged parts to transfer','warn');return}
+  var rJobs=await sb.from('jobs').select('id,name').eq('archived',false).order('name').limit(50)
+  var jobs=(rJobs.data||[]).filter(function(j){return j.id!==currentJobId})
+  var jobOpts=jobs.map(function(j){return'<option value="'+j.id+'">'+j.name+'</option>'}).join('')
+  var h='<div class="fg"><label class="fl">Transfer To Job *</label><select class="fs" id="tr-job"><option value="">— Select destination —</option>'+jobOpts+'</select></div>'
+  h+='<div class="fg"><label class="fl">Select Parts to Transfer</label>'
+  staged.forEach(function(p){
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+    h+='<input type="checkbox" id="tr-'+p.id+'" class="tr-chk" data-pid="'+p.id+'" checked style="width:16px;height:16px">'
+    h+='<label for="tr-'+p.id+'" style="flex:1;font-size:13px;cursor:pointer">'+p.part_name+'</label>'
+    h+='<span style="font-size:11px;color:#8a96ab">×'+(p.assigned_qty||0)+'</span></div>'
+  })
+  h+='</div>'
+  modal('Transfer Staged Parts', h, async function(){
+    var destJobId=document.getElementById('tr-job').value
+    if(!destJobId){toast('Select a destination job','error');return}
+    var destJob=jobs.find(function(j){return j.id===destJobId})
+    var selected=Array.from(document.querySelectorAll('.tr-chk:checked')).map(function(cb){return cb.getAttribute('data-pid')})
+    if(!selected.length){toast('Select at least one part','error');return}
+    var transferred=0
+    for(var i=0;i<selected.length;i++){
+      var pid=selected[i]
+      var p=staged.find(function(x){return x.id===pid})
+      if(!p)continue
+      // Insert into destination job
+      await sb.from('job_parts').insert({id:uuid(),job_id:destJobId,part_id:p.part_id,part_name:p.part_name,barcode:p.barcode||'',ordered_qty:p.assigned_qty||0,assigned_qty:p.assigned_qty||0,taken_qty:0,installed_qty:0,status:'staged',staged_by:(typeof ME!=='undefined'?ME.full_name||'':''),staged_at:new Date().toISOString(),notes:'Transferred from job '+currentJobId,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+      // Remove from current job
+      await sb.from('job_parts').delete().eq('id',pid)
+      transferred++
+    }
+    // Update staging status of current job
+    var remaining=await sb.from('job_parts').select('status').eq('job_id',currentJobId)
+    var remainingParts=remaining.data||[]
+    var newStatus=remainingParts.some(function(x){return x.status==='staged'})?'in_progress':'pending'
+    await sb.from('jobs').update({staging_status:newStatus,updated_at:new Date().toISOString()}).eq('id',currentJobId)
+    closeModal()
+    toast('Transferred '+transferred+' part(s) to '+(destJob?destJob.name:'destination job'))
+    loadJT('jt-parts')
+  },'Transfer')
+}
+
+// ══════════════════════════════════════════
+// EXPECTED STAGING DATE
+// ══════════════════════════════════════════
+async function showExpectedStagingDate(){
+  var job=currentJob
+  var h='<div class="fg"><label class="fl">Expected Staging Completion Date</label>'
+  h+='<input class="fi" type="date" id="esd-date" value="'+(job&&job.expected_staging_date?job.expected_staging_date.split('T')[0]:'')+'"></div>'
+  h+='<div style="font-size:11px;color:#8a96ab;margin-top:4px">This date shows on the Parts tab and alerts if overdue.</div>'
+  modal('Expected Staging Date', h, async function(){
+    var date=document.getElementById('esd-date').value
+    var res=await sb.from('jobs').update({expected_staging_date:date||null,updated_at:new Date().toISOString()}).eq('id',currentJobId)
+    if(res.error){toast(res.error.message,'error');return}
+    if(currentJob)currentJob.expected_staging_date=date||null
+    closeModal();loadJT('jt-parts');toast('Expected staging date saved')
+  },'Save')
+}
+
+// ══════════════════════════════════════════
+// SCAN PARTS — Edit status for admin
+// ══════════════════════════════════════════
+async function editScanPartStatus(btn){
+  var id=btn.getAttribute('data-pid')
+  var name=btn.getAttribute('data-pname')
+  var curStatus=btn.getAttribute('data-status')
+  var statuses=['ordered','staged','signed_out','partial_install','installed','returned']
+  var opts=statuses.map(function(s){return'<option value="'+s+'"'+(curStatus===s?' selected':'')+'>'+s.replace(/_/g,' ')+'</option>'}).join('')
+  var h='<div class="fg"><label class="fl">Part</label><div style="font-weight:500">'+name+'</div></div>'
+  h+='<div class="fg"><label class="fl">Status</label><select class="fs" id="esp-stat">'+opts+'</select></div>'
+  modal('Edit Part Status', h, async function(){
+    var newStat=document.getElementById('esp-stat').value
+    var res=await sb.from('job_parts').update({status:newStat,updated_at:new Date().toISOString()}).eq('id',id)
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();loadJobPartsPanel();toast('Status updated')
+  },'Save')
 }
 
 
