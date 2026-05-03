@@ -6194,7 +6194,7 @@ async function crmOpenAccount(id){
   if(jobs.length){
     h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Linked Jobs ('+jobs.length+')</div>'
     jobs.slice(0,5).forEach(function(j){
-      h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" data-jid="'+j.id+'" onclick="openJob(this.getAttribute(\'data-jid\'))">'
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" data-jid="'+j.id+'" onclick="openJobFromJid(this)">'
       h+='<div style="flex:1;font-size:12px;font-weight:500">'+j.name+'</div>'
       h+=stageBadge(j.phase)+'</div>'
     })
@@ -6291,7 +6291,7 @@ function renderContactsTable(contacts){
     h+='<tr>'
     h+='<td style="font-weight:500">'+c.name+'</td>'
     h+='<td style="font-size:11px;color:#8a96ab">'+(c.title||'—')+'</td>'
-    h+='<td>'+(acc?'<a href="javascript:void(0)" data-aid="'+(acc.id||'')+'" onclick="crmOpenAccount(this.getAttribute(\'data-aid\'))" style="color:#60a5fa">'+acc.name+'</a>':'—')+'</td>'
+    h+='<td>'+(acc?'<a href="javascript:void(0)" data-aid="'+(acc.id||'')+'" onclick="crmOpenAccountCard(this)" style="color:#60a5fa">'+acc.name+'</a>':'—')+'</td>'
     h+='<td style="font-size:12px">'+(c.phone?'<a href="tel:'+c.phone+'" style="color:#e8edf5">'+c.phone+'</a>':'—')+'</td>'
     h+='<td style="font-size:12px">'+(c.email?'<a href="mailto:'+c.email+'" style="color:#60a5fa">'+c.email+'</a>':'—')+'</td>'
     h+='<td style="font-size:11px;color:#8a96ab">'+(c.last_contacted?fd(c.last_contacted):'Never')+'</td>'
