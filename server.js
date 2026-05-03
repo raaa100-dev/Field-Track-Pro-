@@ -614,7 +614,8 @@ async function pgDash(){
 // ══════════════════════════════════════════
 async function pgJobs(){
   document.getElementById('topbar-actions').innerHTML=\`
-    <label class="btn btn-sm" style="cursor:pointer">⬇ Import Excel<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importJobsExcel(this)"></label>
+    <button class="btn btn-sm btn-ghost" onclick="downloadJobTemplate()">📋 Template</button>
+    <label class="btn btn-sm" style="cursor:pointer">⬆ Import Excel<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importJobsExcel(this)"></label>
     <button class="btn btn-sm" onclick="exportJobsExcel()">⬆ Export</button>
     <button class="btn btn-p btn-sm" onclick="P('newjob',null)">+ New Job</button>\`
   try {
@@ -712,30 +713,124 @@ function filterJobsByStage(stage){
 }
 async function importJobsExcel(input){
   const file=input.files[0];if(!file)return
-  const data=await file.arrayBuffer()
-  const wb=XLSX.read(data,{type:'array'})
-  const ws=wb.Sheets[wb.SheetNames[0]]
-  const rows=XLSX.utils.sheet_to_json(ws,{defval:''})
-  if(!rows.length){toast('No data found in file','error');return}
-  let created=0,errors=0
-  for(const r of rows){
-    if(!r['Job Name']&&!r['name'])continue
-    const job={id:uuid(),name:r['Job Name']||r['name']||'',address:r['Address']||r['address']||'',gc_company:r['GC Company']||r['gc_company']||'',gc_contact:r['GC Contact']||'',gc_phone:r['GC Phone']||'',phase:r['Stage']||r['phase']||'not_started',due_date:r['Due Date']||r['due_date']||null,contract_value:parseFloat(r['Contract Value']||r['contract_value'])||null,next_visit_date:r['Next Visit']||null,expected_onsite_date:r['Expected On Site']||null,archived:false,pct_complete:0,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
-    const{error}=await sb.from('jobs').insert(job)
-    if(error)errors++;else created++
+  input.value=''
+  try{
+    const data=await file.arrayBuffer()
+    const wb=XLSX.read(data,{type:'array'})
+    const ws=wb.Sheets[wb.SheetNames[0]]
+    const rows=XLSX.utils.sheet_to_json(ws,{defval:''})
+    if(!rows.length){toast('No data found in file','error');return}
+    // Preview modal
+    const validRows=rows.filter(r=>r['Job Name']||r['name']||r['job_name'])
+    if(!validRows.length){
+      modal('Import Error','<div style="color:#dc2626">No rows with a Job Name found.<br><br>Make sure your spreadsheet has a column called <strong>Job Name</strong>.</div>',null,'',true)
+      return
+    }
+    const validStages=['not_started','make_safe','prewire','roughed_in','trimmed','ready_for_pretest','ready_for_final','complete']
+    const stageMap={'not started':'not_started','make safe':'make_safe','prewire':'prewire','roughed in':'roughed_in','rough in':'roughed_in','trimmed':'trimmed','trim':'trimmed','ready for pretest':'ready_for_pretest','ready for final':'ready_for_final','complete':'complete','completed':'complete','done':'complete'}
+    // Build preview table
+    var h='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">Found <strong style="color:#e8edf5">'+validRows.length+' jobs</strong> ready to import. Review below then click Import.</div>'
+    h+='<div style="max-height:320px;overflow-y:auto;margin-bottom:12px">'
+    h+='<table class="tbl" style="font-size:11px"><thead><tr><th>#</th><th>Job Name</th><th>Address</th><th>Stage</th><th>Due Date</th><th>Contract Value</th><th>Status</th></tr></thead><tbody>'
+    validRows.forEach(function(r,i){
+      var name=r['Job Name']||r['name']||r['job_name']||''
+      var addr=r['Address']||r['address']||''
+      var rawStage=String(r['Stage']||r['stage']||r['Phase']||r['phase']||'not_started').trim().toLowerCase()
+      var stage=validStages.includes(rawStage)?rawStage:(stageMap[rawStage]||'not_started')
+      var stageOk=validStages.includes(rawStage)||stageMap[rawStage]
+      var due=r['Due Date']||r['due_date']||r['due']||''
+      var val=r['Contract Value']||r['contract_value']||r['value']||''
+      var warn=!name?'<span style="color:#dc2626">Missing name</span>':''
+      h+='<tr>'
+      h+='<td style="color:#414e63">'+(i+1)+'</td>'
+      h+='<td style="font-weight:500">'+(name||'<span style="color:#dc2626">—</span>')+'</td>'
+      h+='<td style="color:#8a96ab">'+(addr||'—')+'</td>'
+      h+='<td>'+(stage)+'</td>'
+      h+='<td>'+(due||'—')+'</td>'
+      h+='<td>'+(val?'$'+parseFloat(val).toLocaleString():'—')+'</td>'
+      h+='<td>'+(warn||'<span style="color:#16a34a">✓</span>')+'</td>'
+      h+='</tr>'
+    })
+    h+='</tbody></table></div>'
+    var skipBad=validRows.filter(r=>!(r['Job Name']||r['name']||r['job_name'])).length
+    if(skipBad)h+='<div style="font-size:11px;color:#d97706;margin-bottom:8px">⚠ '+skipBad+' rows will be skipped (missing Job Name)</div>'
+    modal('Import '+validRows.length+' Jobs', h, async function(){
+      var created=0,errors=[]
+      for(var i=0;i<validRows.length;i++){
+        var r=validRows[i]
+        var name=r['Job Name']||r['name']||r['job_name']||''
+        if(!name)continue
+        var rawStage=String(r['Stage']||r['stage']||r['Phase']||r['phase']||'not_started').trim().toLowerCase()
+        var stage=validStages.includes(rawStage)?rawStage:(stageMap[rawStage]||'not_started')
+        var dueRaw=r['Due Date']||r['due_date']||r['due']||''
+        var dueDate=null
+        if(dueRaw){try{var d=new Date(dueRaw);if(!isNaN(d))dueDate=d.toISOString().split('T')[0]}catch(e){}}
+        var job={
+          id:uuid(),name:name,
+          address:r['Address']||r['address']||'',
+          city:r['City']||r['city']||'',
+          state:r['State']||r['state']||'',
+          zip:r['Zip']||r['zip']||'',
+          gc_company:r['GC Company']||r['gc_company']||'',
+          gc_contact:r['GC Contact']||r['gc_contact']||'',
+          gc_phone:r['GC Phone']||r['gc_phone']||'',
+          gc_email:r['GC Email']||r['gc_email']||'',
+          phase:stage,
+          due_date:dueDate,
+          contract_value:parseFloat(r['Contract Value']||r['contract_value']||r['value'])||null,
+          description:r['Description']||r['description']||r['Notes']||r['notes']||'',
+          trade:r['Trade']||r['trade']||'',
+          archived:false,pct_complete:0,
+          created_by:ME?.full_name||'',
+          created_at:new Date().toISOString(),updated_at:new Date().toISOString()
+        }
+        var res=await sb.from('jobs').insert(job)
+        if(res.error)errors.push(name+': '+res.error.message)
+        else created++
+      }
+      closeModal()
+      if(errors.length){
+        var errHtml='<div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#16a34a">✓ '+created+' jobs imported</div>'
+        errHtml+='<div style="font-size:12px;color:#dc2626;margin-bottom:6px">'+errors.length+' errors:</div>'
+        errHtml+=errors.map(function(e){return'<div style="font-size:11px;color:#f87171;margin-bottom:3px">• '+e+'</div>'}).join('')
+        modal('Import Complete',errHtml,null,'',true)
+      }else{
+        toast('✓ Imported '+created+' jobs successfully','success')
+      }
+      pgJobs()
+    },'Import All')
+  }catch(e){
+    toast('Failed to read file: '+e.message,'error')
   }
-  toast(\`Imported \${created} jobs\${errors?' ('+errors+' errors)':''}\`,errors?'warn':'success')
-  pgJobs()
 }
+
+function downloadJobTemplate(){
+  var headers=[['Job Name','Address','City','State','Zip','GC Company','GC Contact','GC Phone','GC Email','Stage','Due Date','Contract Value','Trade','Description','Notes']]
+  var example=[['Fire Alarm Install - 123 Main','123 Main St','Phoenix','AZ','85001','ABC Construction','John Smith','555-1234','john@abc.com','not_started','2025-12-01','85000','Fire Alarm','New construction FA install','']]
+  var ws=XLSX.utils.aoa_to_sheet(headers.concat(example))
+  // Column widths
+  ws['!cols']=[{wch:30},{wch:25},{wch:15},{wch:8},{wch:8},{wch:20},{wch:18},{wch:14},{wch:22},{wch:18},{wch:12},{wch:15},{wch:14},{wch:30},{wch:20}]
+  var wb=XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb,ws,'Jobs')
+  // Add a stages reference sheet
+  var stagesData=[['Valid Stage Values'],['not_started'],['make_safe'],['prewire'],['roughed_in'],['trimmed'],['ready_for_pretest'],['ready_for_final'],['complete']]
+  var ws2=XLSX.utils.aoa_to_sheet(stagesData)
+  XLSX.utils.book_append_sheet(wb,ws2,'Stage Reference')
+  XLSX.writeFile(wb,'FieldAxisHQ-Job-Import-Template.xlsx')
+  toast('Template downloaded')
+}
+
 async function exportJobsExcel(){
   const{data:jobs}=await sb.from('jobs').select('*').order('created_at',{ascending:false})
-  const rows=(jobs||[]).map(j=>({'Job Name':j.name,'Address':j.address||'','GC Company':j.gc_company||'','GC Contact':j.gc_contact||'','GC Phone':j.gc_phone||'','Stage':j.phase,'Due Date':j.due_date||'','Next Visit':j.next_visit_date||'','Expected On Site':j.expected_onsite_date||'','Contract Value':j.contract_value||'','% Complete':j.pct_complete||0,'Completion Date':j.completion_date||''}))
+  const rows=(jobs||[]).map(j=>({'Job Name':j.name,'Address':j.address||'','City':j.city||'','State':j.state||'','Zip':j.zip||'','GC Company':j.gc_company||'','GC Contact':j.gc_contact||'','GC Phone':j.gc_phone||'','GC Email':j.gc_email||'','Stage':j.phase,'Due Date':j.due_date||'','Next Visit':j.next_visit_date||'','Expected On Site':j.expected_onsite_date||'','Contract Value':j.contract_value||'','Trade':j.trade||'','Description':j.description||'','% Complete':j.pct_complete||0,'Completion Date':j.completion_date||''}))
   const ws=XLSX.utils.json_to_sheet(rows)
+  ws['!cols']=[{wch:30},{wch:25},{wch:15},{wch:8},{wch:8},{wch:20},{wch:18},{wch:14},{wch:22},{wch:18},{wch:12},{wch:12},{wch:16},{wch:15},{wch:14},{wch:30},{wch:10},{wch:14}]
   const wb=XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb,ws,'Jobs')
   XLSX.writeFile(wb,'FieldAxisHQ-Jobs-'+new Date().toISOString().split('T')[0]+'.xlsx')
   toast('Excel exported')
 }
+
 
 // ══════════════════════════════════════════
 // JOB DETAIL
@@ -781,7 +876,6 @@ function renderJobDetail(){
     <div class="tab" onclick="JT(this,'jt-photos')">Photos</div>
     <div class="tab" onclick="JT(this,'jt-checklist')">Checklist</div>
     <div class="tab" onclick="JT(this,'jt-punch')">Punch List</div>
-    <div class="tab" onclick="JT(this,'jt-pm')">PM Review</div>
     <div class="tab" onclick="JT(this,'jt-drawings')">Drawings</div>
     <div class="tab" onclick="JT(this,'jt-co')">Change Orders</div>
     <div class="tab" onclick="JT(this,'jt-fin')">Financials</div>
