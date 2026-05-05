@@ -2468,10 +2468,12 @@ function adjStockModal(id='',name='',qty=0,min=0){
 // ORDERS PAGE
 // ══════════════════════════════════════════
 async function pgOrders(filterJobId){
-  const[{data:orders},{data:jobs}]=await Promise.all([
+  const[{data:orders},{data:jobs},{data:jobParts}]=await Promise.all([
     sb.from('orders').select('*,jobs(name)').order('created_at',{ascending:false}),
-    sb.from('jobs').select('id,name,job_number').eq('archived',false).order('name')
+    sb.from('jobs').select('id,name,job_number').eq('archived',false).order('name'),
+    sb.from('job_parts').select('*,jobs(name,job_number)').order('created_at',{ascending:false})
   ])
+  window._allJobParts=jobParts||[]
   window._ordFilterJobId=filterJobId||null
   const{data:cat}=await sb.from('catalog').select('*').order('name')
   allCatalog=cat||[]
@@ -2482,13 +2484,16 @@ async function pgOrders(filterJobId){
   const pending=(orders||[]).filter(o=>o.status==='pending').length
   const ordered=(orders||[]).filter(o=>o.status==='ordered').length
   const staged=(orders||[]).filter(o=>o.status==='staged').length
+  const jpOrdered=(jobParts||[]).filter(p=>p.status==='ordered'||p.status==='none'||!p.status||p.status==='pending').length
+  const jpStaged=(jobParts||[]).filter(p=>p.status==='staged').length
+  const jpOut=(jobParts||[]).filter(p=>p.status==='signed_out'||p.status==='checked_out').length
 
   document.getElementById('page-area').innerHTML=
     '<div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">'+
-    '<div class="stat"><div class="stat-label">Total</div><div class="stat-value">'+(orders||[]).length+'</div></div>'+
-    '<div class="stat"><div class="stat-label">Pending</div><div class="stat-value" style="color:#d97706">'+pending+'</div></div>'+
-    '<div class="stat"><div class="stat-label">Ordered</div><div class="stat-value" style="color:#60a5fa">'+ordered+'</div></div>'+
-    '<div class="stat"><div class="stat-label">Staged</div><div class="stat-value" style="color:#16a34a">'+staged+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Order Requests</div><div class="stat-value">'+(orders||[]).length+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Parts Ordered</div><div class="stat-value" style="color:#60a5fa">'+jpOrdered+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Parts Staged</div><div class="stat-value" style="color:#d97706">'+jpStaged+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Checked Out</div><div class="stat-value" style="color:#16a34a">'+jpOut+'</div></div>'+
     '</div>'+
     // Filter bar
     '<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">'+
@@ -2515,14 +2520,19 @@ async function pgOrders(filterJobId){
     '</div>'+
     '<button class="btn btn-p btn-full" onclick="submitOrder()">Submit Order</button>'+
     '</div>'+
+    '<div class="card-title" style="margin-top:16px;margin-bottom:8px">Parts by Job</div>'+
+    '<div id="job-parts-orders-list"></div>'+
+    '<div class="card-title" style="margin-top:16px;margin-bottom:8px">Order Requests</div>'+
     '<div id="orders-list"></div>'
 
+  renderJobPartsOrdersList(jobParts||[], jobs||[])
   renderOrdersList(orders||[], jobs||[])
 }
 
 function ordDropdownFilter(sel){
   window._ordFilterJobId=sel.value
   var ss=document.getElementById('ord-search');if(ss)ss.value=''
+  renderJobPartsOrdersList(window._allJobParts||[],window._allOrderJobs)
   renderOrdersList(window._allOrders,window._allOrderJobs)
 }
 function filterOrdersSearch(q){
@@ -2540,7 +2550,47 @@ function filterOrdersSearch(q){
   if(!filtered.length){el.innerHTML=empty('📦','No orders match "'+q+'"');return}
   // Re-use renderOrdersList but clear _ordFilterJobId first
   window._ordFilterJobId=null
+  renderJobPartsOrdersList(window._allJobParts||[],window._allOrderJobs)
   renderOrdersList(filtered,window._allOrderJobs)
+}
+function renderJobPartsOrdersList(parts, jobs){
+  var el=document.getElementById('job-parts-orders-list');if(!el)return
+  var jobMap={};(jobs||window._allOrderJobs||[]).forEach(function(j){jobMap[j.id]=j})
+  var searchQ=(document.getElementById('ord-search')||{}).value||''.toLowerCase()
+  var filterJob=searchQ?'':(window._ordFilterJobId||'')
+  var filtered=(parts||[]).filter(function(p){
+    if(filterJob&&p.job_id!==filterJob)return false
+    if(!searchQ)return true
+    var jb=jobMap[p.job_id]||{}
+    return (jb.name||'').toLowerCase().includes(searchQ)||(jb.job_number||'').toLowerCase().includes(searchQ)||(p.part_name||'').toLowerCase().includes(searchQ)
+  })
+  if(!filtered.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:8px 0">No parts found</div>';return}
+  // Group by job
+  var byJob={}
+  filtered.forEach(function(p){
+    if(!byJob[p.job_id])byJob[p.job_id]=[]
+    byJob[p.job_id].push(p)
+  })
+  var html=''
+  Object.keys(byJob).forEach(function(jobId){
+    var jb=jobMap[jobId]||{}
+    var jname=(jb.job_number?'['+jb.job_number+'] ':'')+( jb.name||jobId)
+    var pts=byJob[jobId]
+    html+='<div class="card" style="margin-bottom:9px">'
+    html+='<div style="font-weight:600;font-size:13px;margin-bottom:8px">'+jname+'</div>'
+    html+='<table class="tbl" style="margin:0"><thead><tr><th>Part</th><th>Qty</th><th>Status</th><th>Staged By</th></tr></thead><tbody>'
+    pts.forEach(function(p){
+      var sc={ordered:'bg-blue',staged:'bg-amber',signed_out:'bg-green',checked_out:'bg-green'}[p.status]||'bg-gray'
+      html+='<tr>'
+      html+='<td style="font-size:12px;font-weight:500">'+p.part_name+'</td>'
+      html+='<td>'+( p.assigned_qty||1)+'</td>'
+      html+='<td><span class="badge '+sc+'">'+( p.status||'pending').replace(/_/g,' ')+'</span></td>'
+      html+='<td style="font-size:11px;color:#8a96ab">'+(p.staged_by||p.checked_out_by||'—')+'</td>'
+      html+='</tr>'
+    })
+    html+='</tbody></table></div>'
+  })
+  el.innerHTML=html
 }
 function renderOrdersList(orders, jobs){
   const el=document.getElementById('orders-list');if(!el)return
