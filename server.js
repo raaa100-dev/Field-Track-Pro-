@@ -806,8 +806,11 @@ async function importJobsExcel(input){
         var dueRaw=r['Due Date']||r['due_date']||r['due']||''
         var dueDate=null
         if(dueRaw){try{var d=new Date(dueRaw);if(!isNaN(d))dueDate=d.toISOString().split('T')[0]}catch(e){}}
+        var parseDate=function(v){if(!v)return null;try{var d=new Date(v);return isNaN(d)?null:d.toISOString().split('T')[0]}catch(e){return null}}
         var job={
           id:uuid(),name:name,
+          job_number:r['Job Number']||r['job_number']||null,
+          trade:r['Trade']||r['trade']||'Fire Alarm',
           address:r['Address']||r['address']||'',
           city:r['City']||r['city']||'',
           state:r['State']||r['state']||'',
@@ -816,13 +819,22 @@ async function importJobsExcel(input){
           gc_contact:r['GC Contact']||r['gc_contact']||'',
           gc_phone:r['GC Phone']||r['gc_phone']||'',
           gc_email:r['GC Email']||r['gc_email']||'',
+          project_manager:r['Project Manager']||r['project_manager']||null,
+          estimator:r['Estimator']||r['estimator']||null,
           phase:stage,
+          date_start:parseDate(r['Start Date']||r['start_date']||r['Start']),
           due_date:dueDate,
-          contract_value:parseFloat(r['Contract Value']||r['contract_value']||r['value'])||null,
+          projected_start:parseDate(r['Projected Start']||r['projected_start']),
+          projected_closeout:parseDate(r['Projected Closeout']||r['projected_closeout']),
+          date_contract:parseDate(r['Contract Date']||r['contract_date']),
+          original_contract_value:parseFloat(r['Original Contract Value']||r['original_contract_value'])||null,
+          contract_value:parseFloat(r['Original Contract Value']||r['Contract Value']||r['contract_value'])||null,
+          pm_visit_schedule:r['PM Visit Schedule']||r['pm_visit_schedule']||'none',
+          next_pm_visit:parseDate(r['Next PM Visit Due']||r['next_pm_visit']),
+          expected_onsite_date:parseDate(r['Expected On Site']||r['expected_onsite_date']),
           description:r['Description']||r['description']||r['Notes']||r['notes']||'',
-          trade:r['Trade']||r['trade']||'',
           archived:false,pct_complete:0,
-          created_by:ME?.full_name||'',
+          created_by:(ME&&ME.full_name)||'',
           created_at:new Date().toISOString(),updated_at:new Date().toISOString()
         }
         var res=await sb.from('jobs').insert(job)
@@ -846,11 +858,27 @@ async function importJobsExcel(input){
 }
 
 function downloadJobTemplate(){
-  var headers=[['Job Name','Address','City','State','Zip','GC Company','GC Contact','GC Phone','GC Email','Stage','Due Date','Contract Value','Trade','Description','Notes']]
-  var example=[['Fire Alarm Install - 123 Main','123 Main St','Phoenix','AZ','85001','ABC Construction','John Smith','555-1234','john@abc.com','not_started','2025-12-01','85000','Fire Alarm','New construction FA install','']]
+  var headers=[['Job Name','Job Number','Trade','Address','City','State','Zip',
+    'GC Company','GC Contact','GC Phone','GC Email',
+    'Project Manager','Estimator',
+    'Stage','Start Date','Due Date','Projected Start','Projected Closeout','Contract Date','Original Contract Value',
+    'PM Visit Schedule','Next PM Visit Due',
+    'Expected On Site','Description','Notes']]
+  var example=[['Fire Alarm Install - 123 Main','2025-001','Fire Alarm','123 Main St','Phoenix','AZ','85001',
+    'ABC Construction','John Smith','555-1234','john@abc.com',
+    'Jane Doe','Bob Smith',
+    'not_started','2025-11-01','2025-12-01','2025-10-15','2025-12-15','2025-09-01','85000',
+    'none','',
+    '','New construction FA install','']]
   var ws=XLSX.utils.aoa_to_sheet(headers.concat(example))
-  // Column widths
-  ws['!cols']=[{wch:30},{wch:25},{wch:15},{wch:8},{wch:8},{wch:20},{wch:18},{wch:14},{wch:22},{wch:18},{wch:12},{wch:15},{wch:14},{wch:30},{wch:20}]
+  ws['!cols']=[
+    {wch:32},{wch:14},{wch:14},{wch:25},{wch:15},{wch:8},{wch:8},
+    {wch:22},{wch:18},{wch:14},{wch:24},
+    {wch:18},{wch:16},
+    {wch:18},{wch:14},{wch:12},{wch:16},{wch:18},{wch:16},{wch:20},
+    {wch:20},{wch:16},
+    {wch:16},{wch:30},{wch:20}
+  ]
   var wb=XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb,ws,'Jobs')
   // Add a stages reference sheet
