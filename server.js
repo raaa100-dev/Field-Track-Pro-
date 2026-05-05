@@ -1067,15 +1067,74 @@ async function saveScope(){const{error}=await sb.from('jobs').update({scope:v('s
 
 // ADDRESS AUTOCOMPLETE
 let _addrDeb=null
+var _addrCache={}
 async function addrAC(val,ddId){
   clearTimeout(_addrDeb);const dd=document.getElementById(ddId);if(!dd)return
   if(val.length<4){dd.style.display='none';return}
-  _addrDeb=setTimeout(async()=>{try{const r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(val)+'&format=json&limit=5&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}});const j=await r.json();if(!j.length){dd.style.display='none';return};dd.innerHTML=j.map(x=>\`<div class="addr-item" onclick="selAddr('\${x.display_name.replace(/'/g,"\\\\'")}','\${x.lat}','\${x.lon}','\${ddId}')">\${x.display_name.substring(0,80)}</div>\`).join('');dd.style.display='block'}catch{}},350)
+  _addrDeb=setTimeout(async()=>{try{
+    const r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(val)+'&format=json&limit=5&addressdetails=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
+    const j=await r.json()
+    if(!j.length){dd.style.display='none';return}
+    _addrCache[ddId]=j
+    dd.innerHTML=j.map(function(x,i){return'<div class="addr-item" data-idx="'+i+'" data-dd="'+ddId+'" onclick="selAddrIdx(this)">'+x.display_name.substring(0,80)+'</div>'}).join('')
+    dd.style.display='block'
+  }catch{}},350)
+}
+function selAddrIdx(el){
+  var ddId=el.getAttribute('data-dd')
+  var idx=parseInt(el.getAttribute('data-idx'))
+  var x=(_addrCache[ddId]||[])[idx]
+  if(!x)return
+  var dd=document.getElementById(ddId);if(dd)dd.style.display='none'
+  var a=x.address||{}
+  var street=(a.house_number?a.house_number+' ':'')+( a.road||a.pedestrian||a.path||x.display_name.split(',')[0])
+  var city=a.city||a.town||a.village||a.suburb||a.county||''
+  var state=a.state||''
+  var zip=a.postcode||''
+  var stateAbbr=getStateAbbr(state)
+  if(ddId==='nj-addr-dd'){
+    document.getElementById('nj-addr').value=street
+    document.getElementById('nj-lat').value=x.lat
+    document.getElementById('nj-lng').value=x.lon
+    document.getElementById('nj-gps-ok').style.display='block'
+    document.getElementById('nj-coords').textContent=parseFloat(x.lat).toFixed(5)+', '+parseFloat(x.lon).toFixed(5)
+    if(city&&document.getElementById('nj-city'))document.getElementById('nj-city').value=city
+    if(state&&document.getElementById('nj-state'))document.getElementById('nj-state').value=stateAbbr||state
+    if(zip&&document.getElementById('nj-zip'))document.getElementById('nj-zip').value=zip
+    if(!zip)setTimeout(autoLookupZip,400)
+    toast('Address filled — city, state & zip auto-populated')
+  }
+  if(ddId==='ed-addr-dd'){
+    document.getElementById('ed-addr').value=street
+    document.getElementById('ed-lat').value=x.lat
+    document.getElementById('ed-lng').value=x.lon
+    toast('GPS set')
+  }
 }
 function selAddr(label,lat,lng,ddId){
-  const dd=document.getElementById(ddId);if(dd)dd.style.display='none'
+  var dd=document.getElementById(ddId);if(dd)dd.style.display='none'
   if(ddId==='ed-addr-dd'){document.getElementById('ed-addr').value=label;document.getElementById('ed-lat').value=lat;document.getElementById('ed-lng').value=lng;toast('GPS set')}
   if(ddId==='nj-addr-dd'){document.getElementById('nj-addr').value=label;document.getElementById('nj-lat').value=lat;document.getElementById('nj-lng').value=lng;document.getElementById('nj-gps-ok').style.display='block';document.getElementById('nj-coords').textContent=parseFloat(lat).toFixed(5)+', '+parseFloat(lng).toFixed(5);toast('GPS set')}
+}
+var _STATE_ABBRS={'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA','Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA','Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA','Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK','Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC','South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT','Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY'}
+function getStateAbbr(name){return _STATE_ABBRS[name]||name}
+async function autoLookupZip(){
+  var cityEl=document.getElementById('nj-city')
+  var stateEl=document.getElementById('nj-state')
+  var zipEl=document.getElementById('nj-zip')
+  if(!cityEl||!stateEl||!zipEl)return
+  var city=cityEl.value.trim()
+  var state=stateEl.value.trim()
+  var zip=zipEl.value.trim()
+  if(zip||!city||!state)return
+  try{
+    var r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(city+' '+state+' USA')+'&format=json&limit=1&addressdetails=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
+    var j=await r.json()
+    if(j[0]&&j[0].address&&j[0].address.postcode){
+      zipEl.value=j[0].address.postcode
+      toast('Zip code auto-filled')
+    }
+  }catch(e){}
 }
 document.addEventListener('click',e=>{document.querySelectorAll('.addr-dd').forEach(dd=>{if(!dd.contains(e.target))dd.style.display='none'})})
 // WORKERS TAB
@@ -1425,6 +1484,9 @@ async function pgNewJob(){
       <div class="two"><div class="fg"><label class="fl">Job ID / Number</label><input class="fi" id="nj-jobid" placeholder="e.g. 2025-001"></div><div class="fg"><label class="fl">Trade</label><input class="fi" id="nj-trade" value="Fire Alarm" placeholder="Fire Alarm, Suppression..."></div></div>
       <div class="fg" style="position:relative"><label class="fl">Project Address *</label><input class="fi" id="nj-addr" placeholder="Start typing…" autocomplete="off" oninput="addrAC(this.value,'nj-addr-dd')"><div id="nj-addr-dd" class="addr-dd"></div>
       <div id="nj-gps-ok" style="display:none;font-size:10px;color:#16a34a;margin-top:4px">✓ GPS: <span id="nj-coords"></span></div><input type="hidden" id="nj-lat"><input type="hidden" id="nj-lng"></div>
+      <div class="three"><div class="fg"><label class="fl">City</label><input class="fi" id="nj-city" placeholder="Phoenix"></div>
+      <div class="fg"><label class="fl">State</label><input class="fi" id="nj-state" placeholder="AZ" style="max-width:80px"></div>
+      <div class="fg"><label class="fl">Zip</label><input class="fi" id="nj-zip" placeholder="85001" style="max-width:90px" onblur="autoLookupZip()"></div></div>
       <div class="three"><div class="fg"><label class="fl">Radius</label><select class="fs" id="nj-rad"><option value="100">100ft</option><option value="250" selected>250ft</option><option value="500">500ft</option><option value="750">750ft</option><option value="1000">1000ft</option></select></div>
       <div class="fg"><label class="fl">Start Date</label><input class="fi" type="date" id="nj-start"></div>
       <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="nj-due"></div></div>
@@ -1489,7 +1551,7 @@ async function submitNewJob(){
   const btn=document.getElementById('nj-btn');btn.disabled=true;btn.textContent='Creating…'
   let lat=parseFloat(v('nj-lat'))||null,lng=parseFloat(v('nj-lng'))||null
   if(!lat&&v('nj-addr')){try{const r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(v('nj-addr'))+'&format=json&limit=1',{headers:{'User-Agent':'FieldAxisHQ/1.0'}});const j=await r.json();if(j[0]){lat=parseFloat(j[0].lat);lng=parseFloat(j[0].lon)}}catch{}}
-  const job={id:uuid(),name,address:v('nj-addr'),gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:v('nj-start')||null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,projected_start:v('nj-proj-start')||null,projected_closeout:v('nj-proj-close')||null,job_number:v('nj-jobid')||null,estimator:v('nj-estimator')||null,original_contract_value:fN('nj-cv'),contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),trade:v('nj-trade')||null,gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),project_manager:v('nj-pm')||null,pm_visit_schedule:v('nj-pmschedule')||'none',next_pm_visit:v('nj-pmvisit')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
+  const job={id:uuid(),name,address:v('nj-addr'),city:v('nj-city')||null,state:v('nj-state')||null,zip:v('nj-zip')||null,gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:v('nj-start')||null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,projected_start:v('nj-proj-start')||null,projected_closeout:v('nj-proj-close')||null,job_number:v('nj-jobid')||null,estimator:v('nj-estimator')||null,original_contract_value:fN('nj-cv'),contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),trade:v('nj-trade')||null,gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),project_manager:v('nj-pm')||null,pm_visit_schedule:v('nj-pmschedule')||'none',next_pm_visit:v('nj-pmvisit')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
   const{data:created,error}=await sb.from('jobs').insert(job).select().single()
   if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Create Job';return}
   document.querySelectorAll('#nj-workers input[type=checkbox]:checked').forEach(async cb=>await sb.from('job_workers').insert({id:uuid(),job_id:created.id,worker_id:cb.value,is_active:true,added_by:ME?.full_name,added_at:new Date().toISOString()}))
