@@ -2345,8 +2345,9 @@ function stopCam(){if(!_camRunning)return;try{Quagga.stop()}catch{};_camRunning=
 // ══════════════════════════════════════════
 async function pgCatalog(){
   document.getElementById('topbar-actions').innerHTML=\`
-    <label class="btn btn-sm" style="cursor:pointer">⬇ Import CSV<input type="file" accept=".csv" style="display:none" onchange="importCatalogCSV(this)"></label>
-    <button class="btn btn-sm" onclick="exportCatalogCSV()">⬆ Export CSV</button>
+    <label class="btn btn-sm" style="cursor:pointer">⬆ Import<input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importCatalogCSV(this)"></label>
+    <button class="btn btn-sm" onclick="exportCatalogCSV()">⬇ Export CSV</button>
+    <button class="btn btn-sm btn-ghost" onclick="downloadCatalogTemplate()">📋 Template</button>
     <button class="btn btn-p btn-sm" onclick="addCatalogModal()">+ Add Part</button>\`
   const{data:cat}=await sb.from('catalog').select('*').order('name')
   allCatalog=cat||[]
@@ -2392,24 +2393,72 @@ function editCatalogModal(bc){
 async function delCatalog(bc){if(!confirm('Delete this part from catalog?'))return;const{error}=await sb.from('catalog').delete().eq('barcode',bc);if(error)toast(error.message,'error');else{toast('Deleted');pgCatalog()}}
 async function importCatalogCSV(input){
   const file=input.files[0];if(!file)return
-  const text=await file.text()
-  const lines=text.split('\\n').filter(l=>l.trim())
-  const hdrs=lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,'').toLowerCase())
-  let added=0,updated=0,errors=0
-  for(const line of lines.slice(1)){
-    const vals=line.split(',').map(v=>v.trim().replace(/^"|"$/g,''))
-    const row={}
-    hdrs.forEach((h,i)=>row[h]=vals[i]||'')
-    const bc=row['barcode']||row['upc']||row['part barcode']
-    const nm=row['name']||row['part name']||row['description']
-    if(!bc||!nm)continue
-    const data={barcode:bc,name:nm,part_number:row['part number']||row['part#']||'',category:row['category']||'',description:row['description']||row['notes']||'',unit_cost:parseFloat(row['unit cost']||row['cost']||row['price'])||0,unit_of_measure:row['uom']||row['unit']||'each',vendor:row['vendor']||row['supplier']||''}
-    const{error}=await sb.from('catalog').upsert(data,{onConflict:'barcode'})
-    if(error)errors++;else added++
-  }
-  toast(\`Imported \${added} parts\${errors?' ('+errors+' errors)':''}\`,errors?'warn':'success')
-  pgCatalog()
   input.value=''
+  var rows=[]
+  try{
+    if(file.name.match(/\.xlsx?$/i)){
+      const data=await file.arrayBuffer()
+      const wb=XLSX.read(data,{type:'array'})
+      const ws=wb.Sheets[wb.SheetNames[0]]
+      rows=XLSX.utils.sheet_to_json(ws,{defval:''})
+    }else{
+      const text=await file.text()
+      const rawLines=text.split('\n').filter(l=>l.trim())
+      const hdrs=rawLines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,'').toLowerCase())
+      rows=rawLines.slice(1).map(function(line){
+        var vals=line.split(',').map(v=>v.trim().replace(/^"|"$/g,''))
+        var row={};hdrs.forEach(function(h,i){row[h]=vals[i]||''})
+        return row
+      })
+    }
+  }catch(e){toast('Failed to read file: '+e.message,'error');return}
+  if(!rows.length){toast('No data found in file','error');return}
+  var added=0,skipped=0,errors=[]
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i]
+    var bc=((r['Barcode *']||r['Barcode']||r['barcode']||r['UPC']||r['upc']||r['bar_code']||'')).toString().trim()
+    var nm=((r['Part Name *']||r['Part Name']||r['name']||r['Name']||r['part_name']||'')).toString().trim()
+    if(!bc||!nm){skipped++;continue}
+    var data={
+      barcode:bc,
+      name:nm,
+      part_number:((r['Part Number']||r['part number']||r['part#']||r['part_number']||'')).toString().trim()||null,
+      category:((r['Category']||r['category']||'FA-Parts')).toString().trim()||'FA-Parts',
+      description:((r['Description']||r['description']||r['notes']||'')).toString().trim()||null,
+      unit_cost:parseFloat(r['Unit Cost ($)']||r['Unit Cost']||r['unit cost']||r['unit_cost']||r['cost']||r['price']||0)||null,
+      unit_of_measure:((r['Unit of Measure']||r['UOM']||r['uom']||r['unit_of_measure']||r['unit']||'ea')).toString().trim()||'ea',
+      vendor:((r['Vendor']||r['vendor']||r['supplier']||'')).toString().trim()||null,
+      vendor_part_number:((r['Vendor Part #']||r['vendor part #']||r['vendor_part_number']||'')).toString().trim()||null,
+      min_stock:parseInt(r['Min Stock']||r['min stock']||r['min_stock']||0)||null,
+      notes:((r['Notes']||r['notes']||'')).toString().trim()||null
+    }
+    var res=await sb.from('catalog').upsert(data,{onConflict:'barcode'})
+    if(res.error)errors.push(nm+': '+res.error.message)
+    else added++
+  }
+  var msg='Imported '+added+' parts'+(skipped?' · '+skipped+' skipped':'')+(errors.length?' · '+errors.length+' errors':'')
+  toast(msg,errors.length?'warn':'success')
+  if(errors.length)console.error('Catalog import errors:',errors)
+  pgCatalog()
+}
+function downloadCatalogTemplate(){
+  var headers=[['Barcode *','Part Name *','Part Number','Category','Description','Unit Cost ($)','Unit of Measure','Vendor','Vendor Part #','Min Stock','Notes']]
+  var examples=[
+    ['1234567890123','Smoke Detector - Addressable','SD-451','FA-Parts','System Sensor 4-wire photoelectric smoke detector','48.50','ea','System Sensor','SS-4W-B','10',''],
+    ['9876543210987','18 AWG Fire Alarm Cable 2C','FAC-18-2','Wire','FPLR rated 2-conductor 18 AWG shielded - price per foot','0.28','ft','Belden','BE5220UE','500',''],
+    ['5551234567890','Pull Station - Single Action','PS-001','FA-Parts','BG-12L addressable manual pull station','65.00','ea','Notifier','BG-12L','5',''],
+  ]
+  var ws=XLSX.utils.aoa_to_sheet(headers.concat(examples))
+  ws['!cols']=[{wch:20},{wch:30},{wch:16},{wch:14},{wch:38},{wch:14},{wch:16},{wch:18},{wch:16},{wch:12},{wch:22}]
+  var wb=XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb,ws,'Catalog')
+  // Notes sheet
+  var notes=[['Field','Required?','Notes'],['Barcode','YES','Must be unique. UPC, EAN-13, or custom string. Used for barcode scanning.'],['Part Name','YES','Display name shown in orders, scans, and job parts.'],['Part Number','No','Manufacturer part number.'],['Category','No','FA-Parts, Wire, Conduit, Suppression, Electrical, Tools, etc.'],['Description','No','Full part description.'],['Unit Cost ($)','No','Cost per unit, no $ sign. Example: 48.50'],['Unit of Measure','No','ea, ft, box, roll, etc. Defaults to ea.'],['Vendor','No','Supplier name.'],['Vendor Part #','No','Vendor catalog number.'],['Min Stock','No','Minimum quantity for low-stock alerts.'],['Notes','No','Any additional notes.']]
+  var ws2=XLSX.utils.aoa_to_sheet(notes)
+  ws2['!cols']=[{wch:18},{wch:12},{wch:65}]
+  XLSX.utils.book_append_sheet(wb,ws2,'Field Notes')
+  XLSX.writeFile(wb,'FieldAxisHQ-Catalog-Template.xlsx')
+  toast('Template downloaded')
 }
 async function exportCatalogCSV(){
   const{data:cat}=await sb.from('catalog').select('*').order('name')
