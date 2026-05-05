@@ -2493,7 +2493,7 @@ async function pgOrders(filterJobId){
     // Filter bar
     '<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">'+
     '<input class="fi" id="ord-search" placeholder="Search job name or ID…" style="max-width:200px" oninput="filterOrdersSearch(this.value)">'+
-    '<select class="fs" id="ord-filter-job" style="max-width:220px" onchange="window._ordFilterJobId=this.value;renderOrdersList(window._allOrders,window._allOrderJobs)">'+
+    '<select class="fs" id="ord-filter-job" style="max-width:220px" onchange="window._ordFilterJobId=this.value;var ss=document.getElementById('ord-search');if(ss)ss.value='';renderOrdersList(window._allOrders,window._allOrderJobs)">'+
     '<option value="">All Jobs</option>'+
     (jobs||[]).map(j=>'<option value="'+j.id+'"'+(filterJobId===j.id?' selected':'')+'>'+( j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>').join('')+
     '</select>'+
@@ -2522,6 +2522,8 @@ async function pgOrders(filterJobId){
 
 function filterOrdersSearch(q){
   var jobMap={};(window._allOrderJobs||[]).forEach(function(j){jobMap[j.id]=j})
+  // Clear dropdown filter when using text search
+  if(q){window._ordFilterJobId=null;var dd=document.getElementById('ord-filter-job');if(dd)dd.value=''}  
   var filtered=(window._allOrders||[]).filter(function(o){
     if(!q)return true
     var s=q.toLowerCase()
@@ -2533,11 +2535,12 @@ function filterOrdersSearch(q){
 function renderOrdersList(orders, jobs){
   const el=document.getElementById('orders-list');if(!el)return
   const jobMap={}; (jobs||window._allOrderJobs||[]).forEach(j=>jobMap[j.id]=j.name)
-  // Apply job filter
-  const filterJob=window._ordFilterJobId||document.getElementById('ord-filter-job')?.value||''
+  // Apply job filter (skip if called from search - search already filtered)
+  var searchQ=(document.getElementById('ord-search')||{}).value||''
+  const filterJob=!searchQ&&(window._ordFilterJobId||document.getElementById('ord-filter-job')?.value||'')
   const filtered=filterJob?(orders||[]).filter(o=>o.job_id===filterJob):(orders||[])
   const cnt=document.getElementById('ord-filter-count')
-  if(cnt)cnt.textContent=filtered.length+' order'+(filtered.length!==1?'s':'')+( filterJob?' for this job':'')
+  if(cnt)cnt.textContent=filtered.length+' order'+(filtered.length!==1?'s':'')+( filterJob?' for this job':''+(searchQ?' matching "'+searchQ+'"':''))
   if(!filtered.length){el.innerHTML=empty('📦',filterJob?'No orders for this job yet':'No orders yet');return}
   el.innerHTML=filtered.map(o=>{
     const items=typeof o.items==='string'?JSON.parse(o.items||'[]'):(o.items||[])
