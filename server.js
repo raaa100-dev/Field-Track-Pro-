@@ -1074,6 +1074,7 @@ function renderInfoTab(el,j){
     <div class="fg"><label class="fl">Original Contract $</label><input class="fi" type="number" id="ed-ocv" value="\${j.original_contract_value||''}"></div>
     <div class="two"><div class="fg"><label class="fl">Current Contract $</label><input class="fi" type="number" id="ed-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="ed-lr" value="\${j.labor_rate||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="ed-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="ed-mb" value="\${j.material_budget||''}"></div></div>
+    <div id="co-budget-summary"></div>
   </div>
   </div>
   <div class="sec-hdr" style="margin-top:14px">Permit Status</div>
@@ -1110,6 +1111,34 @@ function renderInfoTab(el,j){
         sel.innerHTML+='<option value="'+j.project_manager+'" selected>'+j.project_manager+' (not in system)</option>'
       }
     }
+    // Load CO budget summary into budget section
+    sb.from('change_orders').select('value,status,co_number,title').eq('job_id',currentJobId).then(function(r){
+      var cos=r.data||[]
+      var el=document.getElementById('co-budget-summary');if(!el)return
+      if(!cos.length){el.innerHTML='';return}
+      var approved=cos.filter(function(c){return c.status==='approved'})
+      var pending=cos.filter(function(c){return c.status==='pending'||c.status==='pending_sub'})
+      var approvedSum=approved.reduce(function(s,c){return s+(c.value||0)},0)
+      var pendingSum=pending.reduce(function(s,c){return s+(c.value||0)},0)
+      var orig=(j&&(j.original_contract_value||j.contract_value))||0
+      var h='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:11px 13px;margin-top:10px">'
+      h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#414e63;margin-bottom:8px">Change Orders</div>'
+      cos.filter(function(c){return c.status!=='canceled'&&c.status!=='cancelled'}).forEach(function(co){
+        var isApproved=co.status==='approved'
+        var col=isApproved?'#16a34a':'#d97706'
+        h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);opacity:'+(isApproved?'1':'.55')+'">'
+        h+='<div style="font-size:12px">'+(co.co_number||'CO')+' — '+co.title+'</div>'
+        h+='<div style="font-size:12px;font-weight:600;color:'+col+'">'+(co.value>=0?'+':'')+fm(co.value)+'</div></div>'
+      })
+      if(cos.filter(function(c){return c.status!=='canceled'&&c.status!=='cancelled'}).length){
+        h+='<div style="display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1)">'
+        h+='<span style="font-size:12px;font-weight:600">Current Contract</span>'
+        h+='<span style="font-size:13px;font-weight:700;color:#e8edf5">'+fm(orig+approvedSum)+'</span></div>'
+        if(pendingSum)h+='<div style="font-size:10px;color:#d97706;margin-top:4px">'+fm(pendingSum)+' pending approval</div>'
+      }
+      h+='</div>'
+      el.innerHTML=h
+    })
   },50)
 }
 async function saveInfoTab(){
@@ -1491,14 +1520,121 @@ async function rejectInsp(id){const r=prompt('Reason:');if(!r)return;await sb.fr
 
 // CHANGE ORDERS TAB
 async function renderCOTab(el){
-  const{data:cos}=await sb.from('change_orders').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
-  el.innerHTML=\`<div style="margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="newCO()">+ New Change Order</button></div>
-  \${(cos||[]).map(co=>\`<div class="card" style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;margin-bottom:7px"><div><div style="font-weight:500">\${co.co_number||'CO'} — \${co.title}</div><div style="font-size:11px;color:#414e63">\${fd(co.created_at)} · \${co.created_by||''}</div></div><span class="badge \${co.status==='signed'?'bg-green':'bg-amber'}">\${(co.status||'').replace('_',' ')}</span></div>
-  <div style="font-size:12px;color:#8a96ab;margin-bottom:8px">\${co.description||''}</div>
-  <div style="display:flex;gap:16px"><div><div style="font-size:10px;color:#414e63">VALUE</div><div style="color:#d97706">\${co.value>=0?'+':''}\${fm(co.value)}</div></div><div><div style="font-size:10px;color:#414e63">PM SIGNED</div><div style="font-size:11px;color:\${co.pm_signed_at?'#16a34a':'#d97706'}">\${co.pm_signed_at?'✓ '+fd(co.pm_signed_at):'Pending'}</div></div></div>
-  \${!co.pm_signed_at?\`<button class="btn btn-sm btn-g" style="margin-top:8px" onclick="signCO('\${co.id}')">✓ PM Sign</button>\`:''}</div>\`).join('')||empty('📝','No change orders')}\` 
+  var res=await sb.from('change_orders').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
+  var cos=res.data||[]
+  var j=currentJob
+  var approved=cos.filter(function(c){return c.status==='approved'})
+  var pending=cos.filter(function(c){return c.status==='pending'||c.status==='pending_sub'})
+  var canceled=cos.filter(function(c){return c.status==='canceled'||c.status==='cancelled'})
+  var approvedTotal=approved.reduce(function(s,c){return s+(c.value||0)},0)
+  var pendingTotal=pending.reduce(function(s,c){return s+(c.value||0)},0)
+  var orig=(j&&(j.original_contract_value||j.contract_value))||0
+  var current=orig+approvedTotal
+  var h='<div style="display:flex;gap:8px;margin-bottom:14px">'
+  h+='<button class="btn btn-p btn-sm" onclick="newCO()">+ New Change Order</button></div>'
+  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
+  h+='<div class="stat"><div class="stat-label">Approved COs</div><div class="stat-value" style="color:#16a34a;font-size:20px">+'+fm(approvedTotal)+'</div><div style="font-size:10px;color:#414e63">'+approved.length+' approved</div></div>'
+  h+='<div class="stat"><div class="stat-label">Pending Value</div><div class="stat-value" style="color:#d97706;font-size:20px">'+fm(pendingTotal)+'</div><div style="font-size:10px;color:#414e63">'+pending.length+' pending</div></div>'
+  h+='<div class="stat"><div class="stat-label">Current Contract</div><div class="stat-value" style="font-size:18px">'+fm(current)+'</div><div style="font-size:10px;color:#414e63">orig '+fm(orig)+'</div></div>'
+  h+='</div>'
+  if(!cos.length){h+=empty('📝','No change orders yet');el.innerHTML=h;return}
+  var groups=[{label:'Pending',items:pending,color:'#d97706',badge:'bg-amber'},{label:'Approved',items:approved,color:'#16a34a',badge:'bg-green'},{label:'Canceled',items:canceled,color:'#414e63',badge:'bg-gray'}]
+  groups.forEach(function(g){
+    if(!g.items.length)return
+    h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:'+g.color+';margin:14px 0 7px">'+g.label+' ('+g.items.length+')</div>'
+    g.items.forEach(function(co){
+      var isApproved=co.status==='approved'
+      var isCanceled=co.status==='canceled'||co.status==='cancelled'
+      h+='<div class="card" style="margin-bottom:8px;opacity:'+(isCanceled?'.45':'1')+'">'
+      h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
+      h+='<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">'+(co.co_number||'CO')+' — '+co.title+'</div>'
+      h+='<div style="font-size:11px;color:#414e63;margin-top:2px">Submitted: '+fd(co.submitted_date||co.created_at)+(co.created_by?' by '+co.created_by:'')+'</div>'
+      if(isApproved&&co.approved_date)h+='<div style="font-size:11px;color:#16a34a;margin-top:1px">✓ Approved: '+fd(co.approved_date)+'</div>'
+      h+='</div>'
+      h+='<div style="text-align:right;flex-shrink:0"><span class="badge '+g.badge+'">'+co.status.replace(/_/g,' ')+'</span>'
+      h+='<div style="font-size:15px;font-weight:600;color:'+(isApproved?'#16a34a':isCanceled?'#414e63':'#d97706')+';margin-top:5px">'+(co.value>=0?'+':'')+fm(co.value)+'</div></div></div>'
+      if(co.description)h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:8px">'+co.description+'</div>'
+      if(co.days_added)h+='<div style="font-size:11px;color:#414e63;margin-bottom:6px">+'+co.days_added+' days added to schedule</div>'
+      h+='<div style="display:flex;gap:6px;flex-wrap:wrap">'
+      if(!isApproved&&!isCanceled){
+        h+='<button class="btn btn-sm btn-g" data-coid="'+co.id+'" onclick="approveCO(this)">✓ Approve</button>'
+        h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" data-coid="'+co.id+'" onclick="cancelCO(this)">✕ Cancel</button>'
+      }
+      if(isCanceled||isApproved)h+='<button class="btn btn-sm btn-ghost" data-coid="'+co.id+'" onclick="resetCO(this)">↩ Reset to Pending</button>'
+      h+='<button class="btn btn-sm" data-coid="'+co.id+'" onclick="editCO(this)">Edit</button>'
+      h+='</div></div>'
+    })
+  })
+  el.innerHTML=h
 }
-async function newCO(){const{data:last}=await sb.from('change_orders').select('co_number').eq('job_id',currentJobId).order('created_at',{ascending:false}).limit(1).single();const num='CO-'+((parseInt((last?.co_number||'CO-0').split('-')[1])||0)+1+'').padStart(3,'0');modal('New Change Order',\`<div class="fg"><label class="fl">Title *</label><input class="fi" id="co-t"></div><div class="fg"><label class="fl">Description</label><textarea class="ft" id="co-d"></textarea></div><div class="two"><div class="fg"><label class="fl">Value ($)</label><input class="fi" type="number" id="co-v" step="0.01"></div><div class="fg"><label class="fl">Days Added</label><input class="fi" type="number" id="co-dy" value="0"></div></div>\`,async()=>{const t=v('co-t').trim();if(!t)return;await sb.from('change_orders').insert({id:uuid(),job_id:currentJobId,co_number:num,title:t,description:v('co-d'),value:parseFloat(v('co-v'))||0,days_added:parseInt(v('co-dy'))||0,status:'pending_sub',created_by:ME?.full_name,created_at:new Date().toISOString()});closeModal();loadJT('jt-co')})}
+async function newCO(){
+  var res=await sb.from('change_orders').select('co_number').eq('job_id',currentJobId).order('created_at',{ascending:false}).limit(1)
+  var last=res.data&&res.data[0]
+  var num='CO-'+(((parseInt(((last&&last.co_number)||'CO-0').split('-')[1])||0)+1)+'').padStart(3,'0')
+  var today=new Date().toISOString().split('T')[0]
+  var h='<div class="fg"><label class="fl">Title *</label><input class="fi" id="co-t" placeholder="Scope addition, Owner request..."></div>'
+  h+='<div class="fg"><label class="fl">Description</label><textarea class="ft" id="co-d" style="min-height:70px"></textarea></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Value ($) *</label><input class="fi" type="number" id="co-v" step="0.01" placeholder="0.00"></div>'
+  h+='<div class="fg"><label class="fl">Days Added</label><input class="fi" type="number" id="co-dy" value="0"></div></div>'
+  h+='<div class="fg"><label class="fl">Date Submitted to Customer</label><input class="fi" type="date" id="co-sub" value="'+today+'"></div>'
+  modal('New Change Order — '+num, h, async function(){
+    var t=(document.getElementById('co-t').value||'').trim()
+    if(!t){toast('Title required','error');return}
+    var res=await sb.from('change_orders').insert({id:uuid(),job_id:currentJobId,co_number:num,title:t,description:document.getElementById('co-d').value||null,value:parseFloat(document.getElementById('co-v').value)||0,days_added:parseInt(document.getElementById('co-dy').value)||0,status:'pending',submitted_date:document.getElementById('co-sub').value||null,created_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString()})
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();loadJT('jt-co');toast('Change order created')
+  },'Create CO')
+}
+async function approveCO(btn){
+  var id=btn.getAttribute('data-coid')
+  var today=new Date().toISOString().split('T')[0]
+  var date=prompt('Approval date:',today)||today
+  var res=await sb.from('change_orders').update({status:'approved',approved_date:date,updated_at:new Date().toISOString()}).eq('id',id)
+  if(res.error){toast(res.error.message,'error');return}
+  // Recalculate and update contract_value on job
+  await updateJobContractValue()
+  loadJT('jt-co');toast('Change order approved — contract updated')
+}
+async function cancelCO(btn){
+  var id=btn.getAttribute('data-coid')
+  if(!confirm('Cancel this change order?'))return
+  await sb.from('change_orders').update({status:'canceled',updated_at:new Date().toISOString()}).eq('id',id)
+  await updateJobContractValue()
+  loadJT('jt-co');toast('Change order canceled','warn')
+}
+async function resetCO(btn){
+  var id=btn.getAttribute('data-coid')
+  await sb.from('change_orders').update({status:'pending',approved_date:null,updated_at:new Date().toISOString()}).eq('id',id)
+  await updateJobContractValue()
+  loadJT('jt-co');toast('Reset to pending')
+}
+async function editCO(btn){
+  var id=btn.getAttribute('data-coid')
+  var r=await sb.from('change_orders').select('*').eq('id',id).single()
+  var co=r.data;if(!co)return
+  var h='<div class="fg"><label class="fl">Title *</label><input class="fi" id="eco-t" value="'+(co.title||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Description</label><textarea class="ft" id="eco-d">'+(co.description||'')+'</textarea></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Value ($)</label><input class="fi" type="number" id="eco-v" value="'+(co.value||0)+'"></div>'
+  h+='<div class="fg"><label class="fl">Days Added</label><input class="fi" type="number" id="eco-dy" value="'+(co.days_added||0)+'"></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Submitted Date</label><input class="fi" type="date" id="eco-sub" value="'+(co.submitted_date?co.submitted_date.split('T')[0]:'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Approved Date</label><input class="fi" type="date" id="eco-app" value="'+(co.approved_date?co.approved_date.split('T')[0]:'')+'"></div></div>'
+  modal('Edit '+co.co_number, h, async function(){
+    var t=(document.getElementById('eco-t').value||'').trim()
+    if(!t){toast('Title required','error');return}
+    await sb.from('change_orders').update({title:t,description:document.getElementById('eco-d').value||null,value:parseFloat(document.getElementById('eco-v').value)||0,days_added:parseInt(document.getElementById('eco-dy').value)||0,submitted_date:document.getElementById('eco-sub').value||null,approved_date:document.getElementById('eco-app').value||null,updated_at:new Date().toISOString()}).eq('id',id)
+    await updateJobContractValue()
+    closeModal();loadJT('jt-co');toast('Saved')
+  },'Save')
+}
+async function updateJobContractValue(){
+  // Sum all approved COs and add to original contract value
+  var r=await sb.from('change_orders').select('value,status').eq('job_id',currentJobId)
+  var approvedSum=(r.data||[]).filter(function(c){return c.status==='approved'}).reduce(function(s,c){return s+(c.value||0)},0)
+  var orig=(currentJob&&(currentJob.original_contract_value||currentJob.contract_value))||0
+  var newContract=orig+approvedSum
+  await sb.from('jobs').update({contract_value:newContract,updated_at:new Date().toISOString()}).eq('id',currentJobId)
+  if(currentJob)currentJob.contract_value=newContract
+}
 async function signCO(id){await sb.from('change_orders').update({pm_signed_by:ME?.full_name,pm_signed_at:new Date().toISOString(),status:'signed'}).eq('id',id);toast('Signed');loadJT('jt-co')}
 
 // FINANCIALS TAB (per job)

@@ -25,3 +25,12 @@ SELECT 'Projected date columns added' AS status;
 -- ── PM Visit type ─────────────────────────────────────────────────────────────
 ALTER TABLE pm_visits ADD COLUMN IF NOT EXISTS visit_type text DEFAULT 'regular';
 SELECT 'pm_visits visit_type added' AS status;
+
+-- ── Change Order enhancements ─────────────────────────────────────────────────
+ALTER TABLE change_orders ADD COLUMN IF NOT EXISTS submitted_date  date DEFAULT NULL;
+ALTER TABLE change_orders ADD COLUMN IF NOT EXISTS approved_date   date DEFAULT NULL;
+-- Update status: 'pending' = submitted to customer, 'approved' = approved, 'canceled' = canceled
+-- Migrate old 'pending_sub' and 'signed' statuses
+UPDATE change_orders SET status='pending'  WHERE status='pending_sub';
+UPDATE change_orders SET status='approved' WHERE status='signed';
+SELECT 'Change order columns updated' AS status;
