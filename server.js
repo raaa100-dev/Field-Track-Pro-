@@ -4120,6 +4120,7 @@ async function pgDispatch(){
     '<button class="btn btn-sm" onclick="dispatchPrevDay()">← Prev</button>'+
     '<input type="date" class="fi" id="dispatch-date" value="'+_dispatchDate+'" style="width:150px;padding:5px 10px" onchange="_dispatchDate=this.value;loadDispatchData()">'+
     '<button class="btn btn-sm" onclick="dispatchNextDay()">Next →</button>'+
+    '<input class="fi" id="dispatch-job-search" placeholder="Search job name or ID…" style="width:200px;padding:5px 10px" oninput="filterDispatchJobs(this.value)">'+
     '<button class="btn btn-p btn-sm" onclick="loadDispatchData()">↻ Refresh</button>'
 
   document.getElementById('page-area').innerHTML =
@@ -4131,6 +4132,31 @@ async function pgDispatch(){
   await loadDispatchData()
 }
 
+function filterDispatchJobs(q){
+  if(!_dispatchData)return
+  var s=q.toLowerCase()
+  var assignedJobIds=new Set((_dispatchData.assignments||[]).map(function(a){return a.job_id}))
+  var filtered=(_dispatchData.jobs||[]).filter(function(j){
+    if(!s)return!assignedJobIds.has(j.id)
+    return(!assignedJobIds.has(j.id))&&((j.name||'').toLowerCase().includes(s)||(j.job_number||'').toLowerCase().includes(s)||(j.gc_company||'').toLowerCase().includes(s))
+  })
+  // Re-render just the job chips in the left panel
+  var chipsEl=document.getElementById('dispatch-job-chips')
+  if(!chipsEl)return
+  if(!filtered.length){
+    chipsEl.innerHTML='<div style="font-size:11px;color:#414e63;padding:4px 0">No jobs match "'+q+'"</div>'
+    return
+  }
+  chipsEl.innerHTML=filtered.map(function(j){
+    return'<div class="dispatch-job-chip" draggable="true" data-job-id="'+j.id+'" data-job-name="'+j.name.replace(/"/g,'&quot;')+'" data-job-addr="'+(j.address||'').replace(/"/g,'&quot;')+'" onmousedown="startJobDrag(event,this)" '
+      +'style="background:#131c2e;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 10px;margin-bottom:5px;cursor:grab;user-select:none" '
+      +'onmouseenter="this.style.borderColor=\'rgba(37,99,235,.5)\'" onmouseleave="this.style.borderColor=\'rgba(255,255,255,.08)\'">' 
+      +'<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+j.name+'</div>'
+      +(j.job_number?'<div style="font-size:10px;color:#60a5fa;margin-top:1px">#'+j.job_number+'</div>':'')
+      +'<div style="font-size:10px;color:#414e63;margin-top:2px">'+stageBadge(j.phase)+'</div>'
+      +'</div>'
+  }).join('')
+}
 function dispatchPrevDay(){
   const d=new Date(_dispatchDate);d.setDate(d.getDate()-1)
   _dispatchDate=d.toISOString().split('T')[0]
@@ -4152,7 +4178,7 @@ async function loadDispatchData(){
   right.innerHTML='<div class="loading"><div class="spin"></div></div>'
 
   const[{data:jobs},{data:employees},{data:companies},{data:assignments}]=await Promise.all([
-    sb.from('jobs').select('id,name,address,phase,gc_company,project_manager,due_date').eq('archived',false).neq('phase','complete').order('name'),
+    sb.from('jobs').select('id,name,job_number,address,phase,gc_company,project_manager,due_date').eq('archived',false).neq('phase','complete').order('name'),
     sb.from('profiles').select('id,full_name,role,phone,company_id,companies(name)').eq('is_active',true).in('role',['technician','foreman','sub_worker','sub_lead','stager']).order('full_name'),
     sb.from('companies').select('id,name,trade').eq('is_active',true).order('name'),
     sb.from('dispatch_assignments').select('*,jobs(name,address),profiles:profile_id(full_name,role),companies:company_id(name)').eq('dispatch_date',_dispatchDate)
@@ -4191,14 +4217,17 @@ function renderDispatchLeft(el, employees, companies, assignedProfileIds, assign
   if(unassignedJobs.length){
     html+='<div style="padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.07)">'
     html+='<div style="font-size:10px;font-weight:600;color:#d97706;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">📋 Unscheduled Jobs ('+unassignedJobs.length+')</div>'
+    html+='<div id="dispatch-job-chips">'
     html+=unassignedJobs.map(j=>
       '<div class="dispatch-job-chip" draggable="true" data-job-id="'+j.id+'" data-job-name="'+j.name.replace(/"/g,'&quot;')+'" data-job-addr="'+(j.address||'').replace(/"/g,'&quot;')+'" onmousedown="startJobDrag(event,this)" '+
       'style="background:#131c2e;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 10px;margin-bottom:5px;cursor:grab;user-select:none;transition:.15s" '+
       'onmouseenter="this.style.borderColor=\\'rgba(37,99,235,.5)\\'" onmouseleave="this.style.borderColor=\\'rgba(255,255,255,.08)\\'">' +
       '<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+j.name+'</div>'+
+      (j.job_number?'<div style="font-size:10px;color:#60a5fa;margin-top:1px">#'+j.job_number+'</div>':'')+
       '<div style="font-size:10px;color:#414e63;margin-top:2px">'+stageBadge(j.phase)+'</div>'+
       '</div>'
     ).join('')
+    html+='</div>'  // close dispatch-job-chips
     html+='</div>'
   }
 
