@@ -1,3 +1,53 @@
+
+async function geocodeAndAddPins(jobs, map){
+  // Batch geocode: 3 parallel requests at a time with 1s between batches
+  // Nominatim allows ~1 req/sec total, so batches of 3 with 3s delay = 1/sec avg
+  var batchSize = 3
+  for(var b = 0; b < jobs.length; b += batchSize){
+    var batch = jobs.slice(b, b + batchSize)
+    await Promise.all(batch.map(function(j){ return geocodeJob(j, map) }))
+    if(b + batchSize < jobs.length) await new Promise(function(r){ setTimeout(r, 1000) })
+  }
+}
+
+async function geocodeJob(j, map){
+  var query = ''
+  if(j.address && j.city && j.state) query = j.address + ', ' + j.city + ', ' + j.state + (j.zip ? ' ' + j.zip : '')
+  else if(j.address && j.city) query = j.address + ', ' + j.city
+  else if(j.address) query = j.address
+  else if(j.city && j.state) query = j.city + ', ' + j.state
+  if(!query) return
+  try{
+    var r = await fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query) + '&format=json&limit=1&countrycodes=us', {headers:{'User-Agent':'FieldAxisHQ/1.0'}})
+    var res = await r.json()
+    if(res[0]){
+      var lat = parseFloat(res[0].lat), lng = parseFloat(res[0].lon)
+      j.gps_lat = lat; j.gps_lng = lng
+      // Save to DB in background
+      sb.from('jobs').update({gps_lat: lat, gps_lng: lng, updated_at: new Date().toISOString()}).eq('id', j.id)
+      // Add pin immediately
+      var color = MAP_COLORS[j.phase] || '#8a96ab'
+      var iconHtml = j.is_urgent
+        ? '<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));animation:urgentPulse 1.2s ease-in-out infinite">🔥</div>'
+        : '<div style="width:14px;height:14px;border-radius:50%;background:' + color + ';border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>'
+      var sz = j.is_urgent ? [28,28] : [14,14]
+      var anc = j.is_urgent ? [14,14] : [7,7]
+      var icon = window.L.divIcon({html: iconHtml, className: '', iconSize: sz, iconAnchor: anc})
+      var marker = window.L.marker([lat, lng], {icon}).addTo(map)
+      marker.bindPopup(buildGeocodePopup(j))
+      ;(window._mapMarkers = window._mapMarkers || []).push(marker)
+      // Update legend count
+      var leg = document.getElementById('map-legend')
+      if(leg){
+        var total = (window._mapJobs || []).length
+        var withGPS = (window._mapMarkers || []).length
+        var countEl = leg.querySelector('.gps-count')
+        if(countEl) countEl.textContent = withGPS + ' of ' + total + ' jobs have GPS'
+      }
+    }
+  }catch(e){}
+}
+
 /**
  * FieldAxisHQ — Server v1.0
  * Field Operations + Warehouse + Subcontractor Management
@@ -3072,7 +3122,8 @@ function addMapPins(jobs,map){
   // Geocode jobs that have address but no GPS
   const noGPS=jobs.filter(j=>(!j.gps_lat||!j.gps_lng)&&(j.address||j.city))
   if(noGPS.length>0){
-    geocodeAndAddPins(noGPS,map)
+    toast('📍 Geocoding '+noGPS.length+' jobs in background — pins will appear as they resolve','info')
+    geocodeAndAddPins(noGPS,map).then(function(){toast('✓ All job locations resolved','success')})
   }
   // Legend
   const el=document.getElementById('map-legend')
