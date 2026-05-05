@@ -2507,11 +2507,14 @@ async function pgOrders(filterJobId){
     // New order form
     '<div class="card" style="margin-bottom:14px">'+
     '<div class="card-title">New Order Request</div>'+
-    '<div class="two"><div class="fg"><label class="fl">Job *</label>'+
-    '<select class="fs" id="ord-job"><option value="">— Select —</option>'+
+    '<div class="two">'+
+    '<div class="fg"><label class="fl">Job * — search by name or ID</label>'+
+    '<input class="fi" id="ord-job-search" placeholder="Type job name or ID…" autocomplete="off" oninput="filterOrdJobList(this.value)">'+
+    '<select class="fs" id="ord-job" style="margin-top:4px"><option value="">— Select job —</option>'+
     (jobs||[]).map(j=>'<option value="'+j.id+'"'+(filterJobId===j.id?' selected':'')+'>'+( j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>').join('')+
     '</select></div>'+
-    '<div class="fg"><label class="fl">Notes / PO #</label><input class="fi" id="ord-notes"></div></div>'+
+    '<div class="fg"><label class="fl">Notes / PO #</label><input class="fi" id="ord-notes"></div>'+
+    '</div>'+
     '<div id="ord-items-display" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px"></div>'+
     '<div style="display:flex;gap:8px;margin-bottom:8px">'+
     '<input class="fi" id="ord-bc" placeholder="Barcode or part name" style="flex:1" oninput="liveResolveBC(this.value)">'+
@@ -2529,6 +2532,20 @@ async function pgOrders(filterJobId){
   renderOrdersList(orders||[], jobs||[])
 }
 
+function filterOrdJobList(q){
+  var sel=document.getElementById('ord-job');if(!sel)return
+  var opts=['<option value="">— Select job —</option>']
+  ;(window._allOrderJobs||[]).filter(function(j){
+    if(!q)return true
+    var s=q.toLowerCase()
+    return (j.name||'').toLowerCase().includes(s)||(j.job_number||'').toLowerCase().includes(s)
+  }).forEach(function(j){
+    opts.push('<option value="'+j.id+'">'+(j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>')
+  })
+  sel.innerHTML=opts.join('')
+  // Auto-select if only one result
+  if(sel.options.length===2)sel.selectedIndex=1
+}
 function ordDropdownFilter(sel){
   window._ordFilterJobId=sel.value
   var ss=document.getElementById('ord-search');if(ss)ss.value=''
