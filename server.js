@@ -2409,7 +2409,7 @@ async function importCatalogCSV(input){
       rows=XLSX.utils.sheet_to_json(ws,{defval:''})
     }else{
       const text=await file.text()
-      const rawLines=text.split('\n').filter(l=>l.trim())
+      const rawLines=text.split('\\n').filter(l=>l.trim())
       const hdrs=rawLines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,'').toLowerCase())
       rows=rawLines.slice(1).map(function(line){
         var vals=line.split(',').map(v=>v.trim().replace(/^"|"$/g,''))
