@@ -2493,7 +2493,7 @@ async function pgOrders(filterJobId){
     // Filter bar
     '<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">'+
     '<input class="fi" id="ord-search" placeholder="Search job name or ID…" style="max-width:200px" oninput="filterOrdersSearch(this.value)">'+
-    '<select class="fs" id="ord-filter-job" style="max-width:220px" onchange="window._ordFilterJobId=this.value;var ss=document.getElementById('ord-search');if(ss)ss.value='';renderOrdersList(window._allOrders,window._allOrderJobs)">'+
+    '<select class="fs" id="ord-filter-job" style="max-width:220px" onchange="ordDropdownFilter(this)">>'+
     '<option value="">All Jobs</option>'+
     (jobs||[]).map(j=>'<option value="'+j.id+'"'+(filterJobId===j.id?' selected':'')+'>'+( j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>').join('')+
     '</select>'+
@@ -2520,6 +2520,11 @@ async function pgOrders(filterJobId){
   renderOrdersList(orders||[], jobs||[])
 }
 
+function ordDropdownFilter(sel){
+  window._ordFilterJobId=sel.value
+  var ss=document.getElementById('ord-search');if(ss)ss.value=''
+  renderOrdersList(window._allOrders,window._allOrderJobs)
+}
 function filterOrdersSearch(q){
   var jobMap={};(window._allOrderJobs||[]).forEach(function(j){jobMap[j.id]=j})
   // Clear dropdown filter when using text search
