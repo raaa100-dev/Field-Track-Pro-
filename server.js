@@ -1282,7 +1282,13 @@ function buildPartsTable(parts){
     const ord=p.ordered_qty||p.assigned_qty||0,stg=p.assigned_qty||0,tak=p.taken_qty||0,ins=p.installed_qty||0
     const pct=stg>0?Math.round(ins/stg*100):0
     const bc=p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-purple':p.status==='installed'?'bg-green':p.status==='partial_install'?'bg-teal':'bg-gray'
-    html+='<tr><td><div style="font-weight:500">'+p.part_name+'</div><div style="font-size:9px;color:#414e63">'+p.part_id+'</div></td><td>'+ord+'</td><td style="color:'+(stg>0?'#eab308':'#414e63')+'">'+stg+'</td><td style="color:'+(tak>0?'#a855f7':'#414e63')+'">'+tak+'</td><td><div style="display:flex;align-items:center;gap:5px"><div class="pbar" style="width:36px"><div class="pb g" style="width:'+Math.min(100,pct)+'%"></div></div><span style="font-size:11px">'+ins+'</span></div></td><td><span class="badge '+bc+'">'+p.status.replace(/_/g,' ')+'</span></td><td style="font-size:11px;color:#8a96ab">'+(p.staged_by||'—')+'</td></tr>'
+    var rowActions=''
+    if(isAdmin){
+      if(p.status==='signed_out'||p.status==='checked_out')rowActions+='<button class="btn btn-sm" style="font-size:10px;padding:2px 6px" data-pid="'+p.id+'" onclick="movePartToStaged(this)">↩ Stage</button>'
+      if(p.status==='staged')rowActions+='<button class="btn btn-sm" style="font-size:10px;padding:2px 6px" data-pid="'+p.id+'" onclick="movePartToOrdered(this)">↩ Order</button>'
+      rowActions+='<button class="btn btn-sm" style="font-size:10px;padding:2px 6px" data-pid="'+p.id+'" data-pstatus="'+p.status+'" onclick="editPartStatus(this)">Edit</button>'
+    }
+    html+='<tr><td><div style="font-weight:500">'+p.part_name+'</div><div style="font-size:9px;color:#414e63">'+p.part_id+'</div></td><td>'+ord+'</td><td style="color:'+(stg>0?'#eab308':'#414e63')+'">'+stg+'</td><td style="color:'+(tak>0?'#a855f7':'#414e63')+'">'+tak+'</td><td><div style="display:flex;align-items:center;gap:5px"><div class="pbar" style="width:36px"><div class="pb g" style="width:'+Math.min(100,pct)+'%"></div></div><span style="font-size:11px">'+ins+'</span></div></td><td><span class="badge '+bc+'">'+p.status.replace(/_/g,' ')+'</span></td><td style="font-size:11px;color:#8a96ab">'+(p.staged_by||'—')+'</td><td style="display:flex;gap:3px" onclick="event.stopPropagation()">'+rowActions+'</td></tr>'
   })
   html+='</tbody></table></div>'
   return html
@@ -6434,6 +6440,7 @@ async function renderPartsTab(el){
   h+='<button class="btn btn-sm" onclick="reloadPartsTab()">↻ Refresh</button>'
   if(isAdmin)h+='<button class="btn btn-sm btn-a" onclick="showTransferPartsModal()">↔ Transfer Parts</button>'
   if(isAdmin)h+='<button class="btn btn-sm btn-b" onclick="showExpectedStagingDate()">📅 Expected Staging Date</button>'
+  h+='<button class="btn btn-sm" onclick="printPartsSheet()">🖨 Print Parts Sheet</button>'
   h+='</div>'
 
   // Staging status banner
@@ -6498,6 +6505,64 @@ async function renderPartsTab(el){
   el.innerHTML=h
 }
 
+async function movePartToStaged(btn){
+  var id=btn.getAttribute('data-pid')
+  var res=await sb.from('job_parts').update({status:'staged',updated_at:new Date().toISOString()}).eq('id',id)
+  if(res.error){toast(res.error.message,'error');return}
+  toast('Moved back to Staged');reloadPartsTab()
+}
+async function movePartToOrdered(btn){
+  var id=btn.getAttribute('data-pid')
+  var res=await sb.from('job_parts').update({status:'ordered',staged_at:null,staged_by:null,updated_at:new Date().toISOString()}).eq('id',id)
+  if(res.error){toast(res.error.message,'error');return}
+  toast('Moved back to Ordered');reloadPartsTab()
+}
+async function editPartStatus(btn){
+  var id=btn.getAttribute('data-pid')
+  var cur=btn.getAttribute('data-pstatus')||'ordered'
+  var statuses=['ordered','staged','signed_out','installed','partial_install']
+  var opts=statuses.map(function(s){return'<option value="'+s+'"'+(s===cur?' selected':'')+'>'+s.replace(/_/g,' ')+'</option>'}).join('')
+  modal('Edit Part Status','<div class="fg"><label class="fl">Status</label><select class="fs" id="eps-status">'+opts+'</select></div>',async function(){
+    var newStatus=document.getElementById('eps-status').value
+    await sb.from('job_parts').update({status:newStatus,updated_at:new Date().toISOString()}).eq('id',id)
+    closeModal();reloadPartsTab();toast('Status updated')
+  },'Save')
+}
+function printPartsSheet(){
+  var j=currentJob||{}
+  var parts=window._currentJobParts||[]
+  var jobName=j.name||'Job'
+  var jobNum=j.job_number||''
+  var rows=parts.map(function(p){
+    return '<tr><td style="padding:6px 10px;border:1px solid #ccc;font-size:13px">'+p.part_name+'</td>'
+         +'<td style="padding:6px 10px;border:1px solid #ccc;font-size:13px;text-align:center">'+(p.assigned_qty||p.ordered_qty||0)+'</td>'
+         +'<td style="padding:6px 10px;border:1px solid #ccc;font-size:13px;text-align:center">'+(p.status||'').replace(/_/g,' ')+'</td>'
+         +'<td style="padding:6px 10px;border:1px solid #ccc;font-size:13px">'+(p.part_id||p.barcode||'')+'</td>'
+         +'</tr>'
+  }).join('')
+  var html='<!DOCTYPE html><html><head><title>Parts Sheet — '+jobName+'</title>'
+  html+='<style>body{font-family:Arial,sans-serif;padding:24px;color:#111}'
+  html+='h1{font-size:18px;margin:0 0 4px}h2{font-size:14px;font-weight:normal;color:#555;margin:0 0 16px}'
+  html+='table{width:100%;border-collapse:collapse}th{background:#1e293b;color:#fff;padding:8px 10px;border:1px solid #334;font-size:13px;text-align:left}'
+  html+='tr:nth-child(even){background:#f8fafc}'
+  html+='@media print{button{display:none}}</style></head><body>'
+  html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">'
+  html+='<div><h1>'+jobName+'</h1>'
+  if(jobNum)html+='<h2>Job ID: '+jobNum+'</h2>'
+  html+='<div style="font-size:12px;color:#555">Printed: '+new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})+'</div></div>'
+  html+='<div style="text-align:right"><div style="font-size:12px;color:#555">Total Parts: '+parts.length+'</div>'
+  html+='<div style="font-size:12px;color:#555">Total Qty: '+parts.reduce(function(s,p){return s+(p.assigned_qty||p.ordered_qty||0)},0)+'</div></div></div>'
+  html+='<table><thead><tr><th>Part Name</th><th style="width:60px;text-align:center">Qty</th><th style="width:100px">Status</th><th style="width:160px">Barcode / Part #</th></tr></thead><tbody>'
+  html+=rows
+  html+='</tbody></table>'
+  html+='<div style="margin-top:32px;border-top:1px solid #ccc;padding-top:12px;font-size:11px;color:#888">FieldAxisHQ — '+jobName+(jobNum?' · #'+jobNum:'')+'</div>'
+  html+='<button onclick="window.print()" style="margin-top:16px;padding:8px 20px;background:#1e293b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">🖨 Print</button>'
+  html+='</body></html>'
+  var w=window.open('','_blank','width=800,height=600')
+  w.document.write(html)
+  w.document.close()
+  setTimeout(function(){w.focus();w.print()},500)
+}
 function adjustStageQty(btn,delta){
   var id=btn.getAttribute('data-pid')
   var inp=document.getElementById('stq-'+id)
