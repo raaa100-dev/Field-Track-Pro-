@@ -4150,7 +4150,7 @@ function filterDispatchJobs(q){
   chipsEl.innerHTML=filtered.map(function(j){
     return'<div class="dispatch-job-chip" draggable="true" data-job-id="'+j.id+'" data-job-name="'+j.name.replace(/"/g,'&quot;')+'" data-job-addr="'+(j.address||'').replace(/"/g,'&quot;')+'" onmousedown="startJobDrag(event,this)" '
       +'style="background:#131c2e;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 10px;margin-bottom:5px;cursor:grab;user-select:none" '
-      +'onmouseenter="this.style.borderColor=\'rgba(37,99,235,.5)\'" onmouseleave="this.style.borderColor=\'rgba(255,255,255,.08)\'">' 
+      +'onmouseenter="this.style.borderColor=&quot;rgba(37,99,235,.5)&quot;" onmouseleave="this.style.borderColor=&quot;rgba(255,255,255,.08)&quot;">' 
       +'<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+j.name+'</div>'
       +(j.job_number?'<div style="font-size:10px;color:#60a5fa;margin-top:1px">#'+j.job_number+'</div>':'')
       +'<div style="font-size:10px;color:#414e63;margin-top:2px">'+stageBadge(j.phase)+'</div>'
@@ -4221,7 +4221,7 @@ function renderDispatchLeft(el, employees, companies, assignedProfileIds, assign
     html+=unassignedJobs.map(j=>
       '<div class="dispatch-job-chip" draggable="true" data-job-id="'+j.id+'" data-job-name="'+j.name.replace(/"/g,'&quot;')+'" data-job-addr="'+(j.address||'').replace(/"/g,'&quot;')+'" onmousedown="startJobDrag(event,this)" '+
       'style="background:#131c2e;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 10px;margin-bottom:5px;cursor:grab;user-select:none;transition:.15s" '+
-      'onmouseenter="this.style.borderColor=\\'rgba(37,99,235,.5)\\'" onmouseleave="this.style.borderColor=\\'rgba(255,255,255,.08)\\'">' +
+      'onmouseenter="this.style.borderColor=&quot;rgba(37,99,235,.5)&quot;" onmouseleave="this.style.borderColor=&quot;rgba(255,255,255,.08)&quot;">' +
       '<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+j.name+'</div>'+
       (j.job_number?'<div style="font-size:10px;color:#60a5fa;margin-top:1px">#'+j.job_number+'</div>':'')+
       '<div style="font-size:10px;color:#414e63;margin-top:2px">'+stageBadge(j.phase)+'</div>'+
