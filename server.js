@@ -809,7 +809,7 @@ function filterJobsByStage(stage){
   const q=(document.getElementById('jobs-q-search')||{}).value||''
   const rows=(stage?allJobs.filter(j=>j.phase===stage):allJobs).filter(j=>!q||(j.name||'').toLowerCase().includes(q.toLowerCase())||(j.job_number||'').toLowerCase().includes(q.toLowerCase())||(j.gc_company||'').toLowerCase().includes(q.toLowerCase()))
   const a=document.getElementById('page-area')
-  a.querySelector('table tbody').innerHTML=rows.map(j=>\`<tr onclick="openJob('\${j.id}')"><td><div style="font-weight:500">\${j.name}</div>${j.job_number?'<div style="font-size:10px;color:#414e63">'+(j.job_number)+'</div>':''}</td><td style="font-size:11px;color:#8a96ab">\${j.job_number||'—'}</td><td>\${j.gc_company||'—'}</td><td>\${stageBadge(j.phase)}</td><td style="font-size:11px">\${fd(j.due_date)}</td><td style="font-size:11px">\${fd(j.next_visit_date)}</td><td>\${j.contract_value?fm(j.contract_value):'—'}</td><td><div class="pbar" style="width:60px"><div class="pb g" style="width:\${j.pct_complete||0}%"></div></div></td></tr>\`).join('')
+  a.querySelector('table tbody').innerHTML=rows.map(j=>\`<tr onclick="openJob('\${j.id}')"><td><div style="font-weight:500">\${j.name}</div></td><td style="font-size:11px;color:#8a96ab">\${j.job_number||'—'}</td><td>\${j.gc_company||'—'}</td><td>\${stageBadge(j.phase)}</td><td style="font-size:11px">\${fd(j.due_date)}</td><td style="font-size:11px">\${fd(j.next_visit_date)}</td><td>\${j.contract_value?fm(j.contract_value):'—'}</td><td><div class="pbar" style="width:60px"><div class="pb g" style="width:\${j.pct_complete||0}%"></div></div></td></tr>\`).join('')
 }
 async function importJobsExcel(input){
   const file=input.files[0];if(!file)return
@@ -3429,7 +3429,7 @@ function syncMapFilters(type,val){
 function renderMapJobList(jobs){
   const el=document.getElementById('map-job-list');if(!el)return
   el.innerHTML=jobs.map(j=>\`<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onclick="mapFlyTo('\${j.id}')">
-    <div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:\${MAP_COLORS[j.phase]||'#8a96ab'};flex-shrink:0"></div><div style="flex:1;overflow:hidden"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${j.name}</div>${j.job_number?'<div style="font-size:10px;color:#414e63">'+(j.job_number)+'</div>':''}</div></div>
+    <div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:\${MAP_COLORS[j.phase]||'#8a96ab'};flex-shrink:0"></div><div style="flex:1;overflow:hidden"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${j.name}</div>\${j.job_number?'<div style=\"font-size:10px;color:#414e63\">'+j.job_number+'</div>':''}</div></div>
     <div style="font-size:10px;color:#414e63;margin-top:1px;padding-left:15px">\${j.project_manager?j.project_manager+' · ':''} \${j.gc_company||''}</div>
   </div>\`).join('')||'<div style="font-size:12px;color:#414e63">No jobs match filters</div>'
 }
