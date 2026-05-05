@@ -288,7 +288,13 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .dot-swatch{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;display:inline-block;flex-shrink:0}
 .dot-swatch.sel{border-color:#fff}
 .legend-item{display:flex;align-items:center;gap:8px;padding:6px 8px;background:#131c2e;border-radius:6px;margin-bottom:5px}
-.markup-@keyframes urgentPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+.markup-@media(max-width:768px){
+  #map-outer{grid-template-columns:1fr!important;height:calc(100vh - 56px)!important}
+  #page-area{padding:0!important}
+  #map-container{border-radius:0!important;border:none!important}
+  .leaflet-control-zoom{margin-top:60px!important}
+}
+@keyframes urgentPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
 canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;background:#1a2540;border-radius:8px;border:1px solid rgba(255,255,255,.08)}
 #markup-canvas{cursor:crosshair;display:block}
 .safety-card{border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:13px;margin-bottom:9px;background:#0c1220}
@@ -3005,7 +3011,24 @@ async function pgJobMap(){
   document.getElementById('map-filter-sub').innerHTML='<option value="">All Subs</option>'+subs.map(s=>\`<option value="\${s}">\${coMap[s]||s}</option>\`).join('')
 
   document.getElementById('page-area').innerHTML=\`
-  <div style="display:grid;grid-template-columns:1fr 280px;gap:13px;height:calc(100vh - 120px)">
+  <style>@media(max-width:768px){#map-outer{grid-template-columns:1fr!important;height:calc(100vh - 60px)!important}#map-side-panel{display:none!important}#map-float-btns{display:flex!important}#page-area{padding:0!important}#map-filter-pm,#map-filter-gc,#map-filter-stage,#map-filter-sub{display:none!important}.topbar{position:sticky;top:0;z-index:400}}</style>
+  <div id="map-float-btns" style="display:none;position:fixed;bottom:80px;right:16px;z-index:450;flex-direction:column;gap:8px">
+    <button onclick="toggleMapFilters()" style="width:44px;height:44px;border-radius:22px;background:#2563eb;color:#fff;border:none;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.5)">⚙</button>
+    <button onclick="toggleMapList()" style="width:44px;height:44px;border-radius:22px;background:#131c2e;color:#e8edf5;border:1px solid rgba(255,255,255,.15);font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.5)">📋</button>
+  </div>
+  <div id="map-filter-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:460;background:#0c1220;border-top:1px solid rgba(255,255,255,.1);border-radius:16px 16px 0 0;padding:16px;max-height:70vh;overflow-y:auto">
+    <div style="font-weight:600;margin-bottom:12px">Filter Map</div>
+    <div class="fg"><label class="fl">Project Manager</label><select class="fs" id="map-filter-pm2" onchange="syncMapFilters('pm',this.value)"><option value="">All PMs</option></select></div>
+    <div class="fg"><label class="fl">GC Company</label><select class="fs" id="map-filter-gc2" onchange="syncMapFilters('gc',this.value)"><option value="">All GCs</option></select></div>
+    <div class="fg"><label class="fl">Stage</label><select class="fs" id="map-filter-stage2" onchange="syncMapFilters('stage',this.value)"><option value="">All Stages</option></select></div>
+    <button class="btn" onclick="toggleMapFilters()" style="margin-top:10px;width:100%">Done</button>
+  </div>
+  <div id="map-list-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:460;background:#0c1220;border-top:1px solid rgba(255,255,255,.1);border-radius:16px 16px 0 0;padding:16px;max-height:60vh;overflow-y:auto">
+    <div style="font-weight:600;margin-bottom:10px">Jobs on Map</div>
+    <div id="map-job-list-mobile"></div>
+    <button class="btn" onclick="toggleMapList()" style="margin-top:10px;width:100%">Close</button>
+  </div>
+  <div id="map-outer" style="display:grid;grid-template-columns:1fr 280px;gap:13px;height:calc(100vh - 120px)">
     <div style="position:relative;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">
       <div id="map-container" style="width:100%;height:100%;background:#0c1220;display:flex;align-items:center;justify-content:center">
         <div style="text-align:center;color:#414e63">
@@ -3016,7 +3039,7 @@ async function pgJobMap(){
       </div>
       <div id="map-legend" style="position:absolute;bottom:12px;left:12px;background:rgba(6,10,16,.92);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 12px;font-size:11px"></div>
     </div>
-    <div style="overflow-y:auto">
+    <div id="map-side-panel" style="overflow-y:auto">
       <div class="card" style="margin-bottom:10px"><div class="card-title">Jobs on Map</div><div id="map-job-list"></div></div>
     </div>
   </div>\`
@@ -3039,6 +3062,36 @@ function initMap(jobs){
   window._leafletMap=map
   window._mapMarkers=[]
   addMapPins(jobs,map)
+  // Mobile setup after map init
+  if(window.innerWidth<=768){
+    closeSidebar()
+    var outer=document.getElementById('map-outer')
+    if(outer){outer.style.gridTemplateColumns='1fr';outer.style.height='calc(100vh - 56px)';outer.style.gap='0'}
+    var jlw=document.getElementById('map-job-list-wrap')
+    if(jlw)jlw.style.display='none'
+    var mapEl=document.getElementById('map-container')
+    if(mapEl){mapEl.style.borderRadius='0';mapEl.style.border='none'}
+    // Move filter bar into map overlay
+    var filterBar=document.getElementById('mobile-map-filters')
+    if(!filterBar){
+      filterBar=document.createElement('div')
+      filterBar.id='mobile-map-filters'
+      filterBar.style.cssText='position:absolute;top:10px;left:10px;right:10px;z-index:1000;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none'
+      filterBar.innerHTML=
+        '<select class="fs" id="mob-f-pm" style="pointer-events:all;font-size:12px;padding:5px 8px;background:#0c1220cc;color:#e8edf5;border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(8px)" onchange="filterMapPins()"><option value="">All PMs</option></select>'
+        +'<select class="fs" id="mob-f-stage" style="pointer-events:all;font-size:12px;padding:5px 8px;background:#0c1220cc;color:#e8edf5;border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(8px)" onchange="filterMapPins()"><option value="">All Stages</option>'
+        +STAGES.map(function(s){return'<option value="'+s+'">'+STAGE_LABELS[s]+'</option>'}).join('')
+        +'</select>'
+        +'<button style="pointer-events:all;background:#0c1220cc;color:#e8edf5;border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:5px 10px;font-size:12px;backdrop-filter:blur(8px);cursor:pointer" onclick="showMobileJobList()">📋 Jobs</button>'
+      var mapWrap=document.getElementById('leaflet-map').parentElement
+      mapWrap.style.position='relative'
+      mapWrap.appendChild(filterBar)
+      // Populate PM filter
+      var pms=[...new Set((window._mapJobs||[]).map(function(j){return j.project_manager}).filter(Boolean))]
+      document.getElementById('mob-f-pm').innerHTML='<option value="">All PMs</option>'+pms.map(function(p){return'<option value="'+p+'">'+p+'</option>'}).join('')
+    }
+    setTimeout(function(){map.invalidateSize()},100)
+  }
   renderMapJobList(jobs)
 }
 
@@ -3130,6 +3183,43 @@ function addMapPins(jobs,map){
   if(el)el.innerHTML=Object.entries(MAP_COLORS).map(([stage,color])=>\`<div style="display:flex;align-items:center;gap:6px;padding:2px 0"><div style="width:10px;height:10px;border-radius:50%;background:\${color}"></div><span style="color:#e8edf5">\${STAGE_LABELS[stage]}</span></div>\`).join('')+'<div style="margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.1);color:#414e63">'+withGPS.length+' of '+(window._mapJobs||jobs).length+' jobs have GPS</div>'
 }
 
+function showMobileJobList(){
+  var jlw=document.getElementById('map-job-list-wrap')
+  if(!jlw)return
+  var isHidden=jlw.style.display==='none'||!jlw.style.display
+  if(isHidden){
+    jlw.style.display='block'
+    jlw.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:999;background:#0c1220;border-top:1px solid rgba(255,255,255,.1);max-height:50vh;overflow-y:auto;border-radius:12px 12px 0 0;padding:12px'
+  }else{
+    jlw.style.display='none'
+  }
+}
+
+function toggleMapFilters(){
+  var s=document.getElementById('map-filter-sheet')
+  var l=document.getElementById('map-list-sheet')
+  if(l)l.style.display='none'
+  if(s)s.style.display=s.style.display==='none'?'block':'none'
+}
+function toggleMapList(){
+  var s=document.getElementById('map-filter-sheet')
+  var l=document.getElementById('map-list-sheet')
+  if(s)s.style.display='none'
+  if(l){
+    l.style.display=l.style.display==='none'?'block':'none'
+    // Populate mobile list
+    var mob=document.getElementById('map-job-list-mobile')
+    var desk=document.getElementById('map-job-list')
+    if(mob&&desk)mob.innerHTML=desk.innerHTML
+  }
+}
+function syncMapFilters(type,val){
+  // Sync mobile filters to desktop selects
+  if(type==='pm'){var el=document.getElementById('map-filter-pm');if(el)el.value=val}
+  if(type==='gc'){var el=document.getElementById('map-filter-gc');if(el)el.value=val}
+  if(type==='stage'){var el=document.getElementById('map-filter-stage');if(el)el.value=val}
+  filterMapPins()
+}
 function renderMapJobList(jobs){
   const el=document.getElementById('map-job-list');if(!el)return
   el.innerHTML=jobs.map(j=>\`<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onclick="mapFlyTo('\${j.id}')">
@@ -3144,9 +3234,9 @@ function mapFlyTo(jobId){
 }
 
 function filterMapPins(){
-  const pm=document.getElementById('map-filter-pm')?.value||''
+  const pm=(document.getElementById('map-filter-pm')||document.getElementById('mob-f-pm'))?.value||''
   const gc=document.getElementById('map-filter-gc')?.value||''
-  const stage=document.getElementById('map-filter-stage')?.value||''
+  const stage=(document.getElementById('map-filter-stage')||document.getElementById('mob-f-stage'))?.value||''
   const sub=document.getElementById('map-filter-sub')?.value||''
   const filtered=(window._mapJobs||[]).filter(j=>
     (!pm||j.project_manager===pm)&&
