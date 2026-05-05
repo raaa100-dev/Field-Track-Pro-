@@ -992,12 +992,15 @@ async function updateJobPct(pct){await sb.from('jobs').update({pct_complete:pars
 function renderInfoTab(el,j){
   el.innerHTML=\`<div class="two">
   <div>
-    <div class="fg"><label class="fl">Job Name</label><input class="fi" id="ed-name" value="\${j.name||''}"></div>
+    <div class="two"><div class="fg"><label class="fl">Job Name</label><input class="fi" id="ed-name" value="\${j.name||''}"></div><div class="fg"><label class="fl">Job ID / Number</label><input class="fi" id="ed-jobnum" value="\${j.job_number||''}"></div></div>
+    <div class="two"><div class="fg"><label class="fl">Trade</label><input class="fi" id="ed-trade" value="\${j.trade||''}"></div><div class="fg"><label class="fl">Estimator</label><select class="fs" id="ed-estimator"><option value="">— Unassigned —</option></select></div></div>
     <div class="fg" style="position:relative"><label class="fl">Project Address</label><input class="fi" id="ed-addr" value="\${j.address||''}" oninput="addrAC(this.value,'ed-addr-dd')"><div id="ed-addr-dd" class="addr-dd"></div></div>
-    <div class="two"><div class="fg"><label class="fl">GPS Lat</label><input class="fi" id="ed-lat" value="\${j.gps_lat||''}" style="font-family:'DM Mono',monospace;font-size:11px"></div><div class="fg"><label class="fl">GPS Lng</label><input class="fi" id="ed-lng" value="\${j.gps_lng||''}" style="font-family:'DM Mono',monospace;font-size:11px"></div></div>
+    <div class="three"><div class="fg"><label class="fl">City</label><input class="fi" id="ed-city" value="\${j.city||''}"></div><div class="fg"><label class="fl">State</label><input class="fi" id="ed-state" value="\${j.state||''}" style="max-width:80px"></div><div class="fg"><label class="fl">Zip</label><input class="fi" id="ed-zip" value="\${j.zip||''}"></div></div>
+    <div class="two"><div class="fg"><label class="fl">GPS Lat</label><input class="fi" id="ed-lat" value="\${j.gps_lat||''}" style="font-size:11px"></div><div class="fg"><label class="fl">GPS Lng</label><input class="fi" id="ed-lng" value="\${j.gps_lng||''}" style="font-size:11px"></div></div>
     <div class="fg"><label class="fl">Check-in Radius</label><select class="fs" id="ed-rad"><option value="100">100ft</option><option value="250">250ft</option><option value="500">500ft</option><option value="750">750ft</option><option value="1000">1000ft</option></select></div>
     <div class="fg"><label class="fl">GC Company</label><input class="fi" id="ed-gc" value="\${j.gc_company||''}"></div>
     <div class="two"><div class="fg"><label class="fl">GC Contact</label><input class="fi" id="ed-gcc" value="\${j.gc_contact||''}"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="ed-gcp" value="\${j.gc_phone||''}"></div></div>
+    <div class="fg"><label class="fl">GC Email</label><input class="fi" id="ed-gce" value="\${j.gc_email||''}" type="email"></div>
     <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="ed-sup" value="\${j.super_name||''}"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="ed-supp" value="\${j.super_phone||''}"></div></div>
     <div class="fg"><label class="fl">Project Manager (Internal)</label><select class="fs" id="ed-pm"><option value="">— Unassigned —</option></select></div>
     <div class="two"><div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="ed-pmschedule"><option value="none">No visits</option><option value="pre_start">14 days before start</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">Milestones only</option></select></div><div class="fg"><label class="fl">Next PM Visit Due</label><input class="fi" type="date" id="ed-pmvisit" value="\${j.next_pm_visit||''}"></div></div>
@@ -1005,12 +1008,15 @@ function renderInfoTab(el,j){
   <div>
     <div class="sec-hdr">Key Dates</div>
     <div class="two"><div class="fg"><label class="fl">Start Date</label><input class="fi" type="date" id="ed-start" value="\${j.date_start||''}"></div><div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="ed-due" value="\${j.due_date||''}"></div></div>
-    <div class="two"><div class="fg"><label class="fl">Expected On Site</label><input class="fi" type="date" id="ed-eos" value="\${j.expected_onsite_date||''}"></div><div class="fg"><label class="fl">Next Visit Date</label><input class="fi" type="date" id="ed-nvd" value="\${j.next_visit_date||''}"></div></div>
+    <div class="two"><div class="fg"><label class="fl">Projected Start</label><input class="fi" type="date" id="ed-proj-start" value="\${j.projected_start||''}"></div><div class="fg"><label class="fl">Projected Closeout</label><input class="fi" type="date" id="ed-proj-close" value="\${j.projected_closeout||''}"></div></div>
+    <div class="two"><div class="fg"><label class="fl">Contract Date</label><input class="fi" type="date" id="ed-dc" value="\${j.date_contract||''}"></div><div class="fg"><label class="fl">Expected On Site</label><input class="fi" type="date" id="ed-eos" value="\${j.expected_onsite_date||''}"></div></div>
+    <div class="two"><div class="fg"><label class="fl">Next Visit Date</label><input class="fi" type="date" id="ed-nvd" value="\${j.next_visit_date||''}"></div><div class="fg"><label class="fl">Closeout Date</label><input class="fi" type="date" id="ed-dco" value="\${j.date_closeout||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Rough-in</label><input class="fi" type="date" id="ed-dr" value="\${j.date_roughin||''}"></div><div class="fg"><label class="fl">Trim-out</label><input class="fi" type="date" id="ed-dt" value="\${j.date_trimout||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Inspection</label><input class="fi" type="date" id="ed-di" value="\${j.date_inspection||''}"></div><div class="fg"><label class="fl">Closeout</label><input class="fi" type="date" id="ed-dco" value="\${j.date_closeout||''}"></div></div>
     <div class="fg"><label class="fl">Completion Date</label><input class="fi" type="date" id="ed-comp" value="\${j.completion_date||''}"></div>
     <div class="sec-hdr">Budget</div>
-    <div class="two"><div class="fg"><label class="fl">Contract $</label><input class="fi" type="number" id="ed-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="ed-lr" value="\${j.labor_rate||''}"></div></div>
+    <div class="fg"><label class="fl">Original Contract $</label><input class="fi" type="number" id="ed-ocv" value="\${j.original_contract_value||''}"></div>
+    <div class="two"><div class="fg"><label class="fl">Current Contract $</label><input class="fi" type="number" id="ed-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="ed-lr" value="\${j.labor_rate||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="ed-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="ed-mb" value="\${j.material_budget||''}"></div></div>
   </div>
   </div>
@@ -1037,6 +1043,8 @@ function renderInfoTab(el,j){
   setTimeout(async()=>{
     document.getElementById('ed-rad').value=j.gps_radius_ft||250
     if(document.getElementById('ed-pmschedule'))document.getElementById('ed-pmschedule').value=j.pm_visit_schedule||'none'
+    // Populate estimator dropdown
+    if(document.getElementById('ed-estimator')){var estSel=document.getElementById('ed-estimator');estSel.value=j.estimator||''}
     // Populate PM dropdown from employee list
     const{data:pmUsers}=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
     const sel=document.getElementById('ed-pm')
@@ -1049,7 +1057,7 @@ function renderInfoTab(el,j){
   },50)
 }
 async function saveInfoTab(){
-  const u={name:v('ed-name'),address:v('ed-addr'),gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,permit_status:v('ed-permit-status')||'not_required',permit_number:v('ed-permit-number')||null,date_start:v('ed-start')||null,due_date:v('ed-due')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
+  const u={name:v('ed-name'),job_number:v('ed-jobnum')||null,trade:v('ed-trade')||null,estimator:v('ed-estimator')||null,address:v('ed-addr'),city:v('ed-city')||null,state:v('ed-state')||null,zip:v('ed-zip')||null,gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),gc_email:v('ed-gce')||null,super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,permit_status:v('ed-permit-status')||'not_required',permit_number:v('ed-permit-number')||null,date_start:v('ed-start')||null,due_date:v('ed-due')||null,projected_start:v('ed-proj-start')||null,projected_closeout:v('ed-proj-close')||null,date_contract:v('ed-dc')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,original_contract_value:fN('ed-ocv'),contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
   const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
   if(error){toast(error.message,'error');return}
   currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved')
@@ -1544,6 +1552,11 @@ async function populateNjPM(pmUsers){
   // Also populate estimator dropdown
   var estSel=document.getElementById('nj-estimator')
   if(estSel)estSel.innerHTML='<option value="">— Unassigned —</option>'+users.filter(function(p){return['admin','pm','estimator'].includes(p.role)}).map(p=>'<option value="'+p.full_name+'">'+p.full_name+'</option>').join('')
+  // Also populate ed-pm and ed-estimator (info tab)
+  var edPm=document.getElementById('ed-pm')
+  if(edPm){edPm.innerHTML=opts;if(currentJob)edPm.value=currentJob.project_manager||''}
+  var edEst=document.getElementById('ed-estimator')
+  if(edEst){edEst.innerHTML='<option value="">— Unassigned —</option>'+users.filter(function(p){return['admin','pm','estimator'].includes(p.role)}).map(p=>'<option value="'+p.full_name+'">'+p.full_name+'</option>').join('');if(currentJob)edEst.value=currentJob.estimator||''}
 }
 async function loadNjWorkers(){const coId=v('nj-co');const wrap=document.getElementById('nj-workers');if(!wrap)return;if(!coId){wrap.innerHTML='<div style="font-size:11px;color:#414e63">Select a company first</div>';return};const{data}=await sb.from('profiles').select('id,full_name,is_lead').eq('company_id',coId).eq('is_active',true);wrap.innerHTML=(data||[]).map(w=>\`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><input type="checkbox" id="w-\${w.id}" value="\${w.id}" \${w.is_lead?'checked':''}><label for="w-\${w.id}" style="font-size:12px;color:#8a96ab">\${w.full_name}\${w.is_lead?' (Lead)':''}</label></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No workers</div>'}
 async function submitNewJob(){
