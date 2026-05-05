@@ -2981,6 +2981,61 @@ function initMap(jobs){
 
 const MAP_COLORS={not_started:'#64748b',make_safe:'#ef4444',prewire:'#f97316',roughed_in:'#3b82f6',trimmed:'#06b6d4',ready_for_pretest:'#eab308',ready_for_final:'#a855f7',complete:'#16a34a'}
 
+
+function buildGeocodePopup(j){
+  var color=MAP_COLORS[j.phase]||'#8a96ab'
+  var addr=(j.address||'')+(j.city?', '+j.city:'')+(j.state?' '+j.state:'')
+  var h='<div style="min-width:200px">'
+  h+='<div style="font-weight:700;font-size:13px;margin-bottom:4px">'+j.name+'</div>'
+  if(addr)h+='<div style="font-size:11px;color:#666;margin-bottom:5px">'+addr+'</div>'
+  h+='<span style="background:'+color+'22;color:'+color+';padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600">'+(STAGE_LABELS[j.phase]||j.phase)+'</span>'
+  if(j.project_manager)h+='<div style="font-size:11px;margin-top:4px"><strong>PM:</strong> '+j.project_manager+'</div>'
+  if(j.gc_company)h+='<div style="font-size:11px"><strong>GC:</strong> '+j.gc_company+'</div>'
+  if(j.due_date)h+='<div style="font-size:11px"><strong>Due:</strong> '+fd(j.due_date)+'</div>'
+  if(j.is_urgent)h+='<div style="font-size:11px;color:#dc2626;font-weight:600;margin-top:5px">🔥 URGENT: '+(j.urgent_note||'')+'</div>'
+  h+='<div style="margin-top:7px"><a href="javascript:void(0)" data-jid="'+j.id+'" onclick="openJobFromJid(this)" style="color:#2563eb;font-size:11px;font-weight:600">Open Job →</a></div>'
+  h+='</div>'
+  return h
+}
+
+async function geocodeAndAddPins(jobs,map){
+  // Geocode jobs with address but no GPS, then add their pins
+  // Rate-limit to avoid Nominatim throttling (1 req/sec)
+  for(var i=0;i<jobs.length;i++){
+    var j=jobs[i]
+    var query=''
+    if(j.address&&j.city&&j.state) query=j.address+', '+j.city+', '+j.state+(j.zip?' '+j.zip:'')
+    else if(j.address&&j.city) query=j.address+', '+j.city
+    else if(j.address) query=j.address
+    else if(j.city&&j.state) query=j.city+', '+j.state
+    if(!query)continue
+    try{
+      var r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(query)+'&format=json&limit=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
+      var res=await r.json()
+      if(res[0]){
+        var lat=parseFloat(res[0].lat)
+        var lng=parseFloat(res[0].lon)
+        j.gps_lat=lat;j.gps_lng=lng
+        // Save GPS to DB so we don't geocode again next time
+        sb.from('jobs').update({gps_lat:lat,gps_lng:lng,updated_at:new Date().toISOString()}).eq('id',j.id)
+        // Add pin to map
+        var color=MAP_COLORS[j.phase]||'#8a96ab'
+        var iconHtml=j.is_urgent
+          ?'<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));animation:urgentPulse 1.2s ease-in-out infinite">🔥</div>'
+          :'<div style="width:14px;height:14px;border-radius:50%;background:'+color+';border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>'
+        var sz=j.is_urgent?[28,28]:[14,14]
+        var anc=j.is_urgent?[14,14]:[7,7]
+        var icon=window.L.divIcon({html:iconHtml,className:'',iconSize:sz,iconAnchor:anc})
+        var marker=window.L.marker([lat,lng],{icon}).addTo(map)
+        marker.bindPopup(buildGeocodePopup(j))
+        ;(window._mapMarkers=window._mapMarkers||[]).push(marker)
+      }
+    }catch(e){}
+    // Rate limit: 1 request per 1.1 seconds
+    if(i<jobs.length-1)await new Promise(function(res){setTimeout(res,1100)})
+  }
+}
+
 function addMapPins(jobs,map){
   if(!window.L)return
   // Clear existing
@@ -2996,11 +3051,16 @@ function addMapPins(jobs,map){
     const iconAnchor=j.is_urgent?[14,14]:[7,7]
     const icon=window.L.divIcon({html:iconHtml,className:'',iconSize:iconSize,iconAnchor:iconAnchor})
     const marker=window.L.marker([j.gps_lat,j.gps_lng],{icon}).addTo(map)
-    marker.bindPopup(\`<div style="font-family:'DM Sans',sans-serif;min-width:200px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">\${j.name}</div><div style="font-size:11px;color:#666;margin-bottom:5px">\${j.address||''}</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px"><span style="background:\${color}22;color:\${color};padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600">\${STAGE_LABELS[j.phase]||j.phase}</span></div>\${j.project_manager?\`<div style="font-size:11px"><strong>PM:</strong> \${j.project_manager}</div>\`:''}\${j.gc_company?\`<div style="font-size:11px"><strong>GC:</strong> \${j.gc_company}</div>\`:''}\${j.due_date?\`<div style="font-size:11px"><strong>Due:</strong> \${fd(j.due_date)}</div>\`:''}\${j.is_urgent?\`<div style="font-size:11px;color:#dc2626;font-weight:600;margin-top:5px">🔥 URGENT: \${j.urgent_note||''}</div>\`:''}<div style="margin-top:7px"><a href="javascript:openJob('\${j.id}')" style="color:#2563eb;font-size:11px;font-weight:600">Open Job →</a></div></div>\`)
+        marker.bindPopup(buildGeocodePopup(j))
     window._mapMarkers.push(marker)
   })
   // Fit bounds
   if(withGPS.length>0){const bounds=window.L.latLngBounds(withGPS.map(j=>[j.gps_lat,j.gps_lng]));map.fitBounds(bounds,{padding:[30,30]})}
+  // Geocode jobs that have address but no GPS
+  const noGPS=jobs.filter(j=>(!j.gps_lat||!j.gps_lng)&&(j.address||j.city))
+  if(noGPS.length>0){
+    geocodeAndAddPins(noGPS,map)
+  }
   // Legend
   const el=document.getElementById('map-legend')
   if(el)el.innerHTML=Object.entries(MAP_COLORS).map(([stage,color])=>\`<div style="display:flex;align-items:center;gap:6px;padding:2px 0"><div style="width:10px;height:10px;border-radius:50%;background:\${color}"></div><span style="color:#e8edf5">\${STAGE_LABELS[stage]}</span></div>\`).join('')+'<div style="margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.1);color:#414e63">'+withGPS.length+' of '+(window._mapJobs||jobs).length+' jobs have GPS</div>'
