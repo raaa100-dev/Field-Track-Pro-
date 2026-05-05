@@ -1309,6 +1309,7 @@ async function renderJobDailyTab(el){
     html+='<td style="display:flex;gap:4px" onclick="event.stopPropagation()">'
     html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="dlDailyReportById(this.dataset.rid)">⬇</button>'
     html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="emailDrById(this.dataset.rid)">📧</button>'
+    if(ME&&['admin','pm'].includes(ME.role))html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="editDailyReport(this.dataset.rid)">Edit</button>'
     html+='</td></tr>'
   }
   html+='</tbody></table></div>'
@@ -1562,6 +1563,7 @@ async function renderCOTab(el){
       }
       if(isCanceled||isApproved)h+='<button class="btn btn-sm btn-ghost" data-coid="'+co.id+'" onclick="resetCO(this)">↩ Reset to Pending</button>'
       h+='<button class="btn btn-sm" data-coid="'+co.id+'" onclick="editCO(this)">Edit</button>'
+      if(ME&&ME.role==='admin')h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" data-coid="'+co.id+'" onclick="deleteCO(this.dataset.coid)">Delete</button>'
       h+='</div></div>'
     })
   })
@@ -1618,6 +1620,7 @@ async function editCO(btn){
   h+='<div class="fg"><label class="fl">Days Added</label><input class="fi" type="number" id="eco-dy" value="'+(co.days_added||0)+'"></div></div>'
   h+='<div class="two"><div class="fg"><label class="fl">Submitted Date</label><input class="fi" type="date" id="eco-sub" value="'+(co.submitted_date?co.submitted_date.split('T')[0]:'')+'"></div>'
   h+='<div class="fg"><label class="fl">Approved Date</label><input class="fi" type="date" id="eco-app" value="'+(co.approved_date?co.approved_date.split('T')[0]:'')+'"></div></div>'
+  if(ME&&ME.role==='admin')h+='<div style="padding-top:10px;border-top:1px solid rgba(255,255,255,.06)"><button class="btn btn-ghost btn-sm" style="color:#dc2626" data-coid="'+id+'" onclick="deleteCO(this.dataset.coid)">Delete Change Order</button></div>'
   modal('Edit '+co.co_number, h, async function(){
     var t=(document.getElementById('eco-t').value||'').trim()
     if(!t){toast('Title required','error');return}
@@ -1625,6 +1628,14 @@ async function editCO(btn){
     await updateJobContractValue()
     closeModal();loadJT('jt-co');toast('Saved')
   },'Save')
+}
+async function deleteCO(id){
+  if(!confirm('Delete this change order? This cannot be undone.'))return
+  closeModal()
+  var res=await sb.from('change_orders').delete().eq('id',id)
+  if(res.error){toast(res.error.message,'error');return}
+  await updateJobContractValue()
+  loadJT('jt-co');toast('Change order deleted','warn')
 }
 async function updateJobContractValue(){
   // Sum all approved COs and add to original contract value
@@ -1873,10 +1884,64 @@ function filterDailyReports(){
     html+='<td style="display:flex;gap:4px" onclick="event.stopPropagation()">'
     html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="dlDailyReportById(this.dataset.rid)">⬇</button>'
     html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="emailDrById(this.dataset.rid)">📧</button>'
+    if(ME&&['admin','pm'].includes(ME.role))html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="editDailyReport(this.dataset.rid)">Edit</button>'
     html+='</td></tr>'
   }
   html+='</tbody></table></div>'
   el.innerHTML=html
+}
+
+async function editDailyReport(id){
+  var r2=await sb.from('daily_reports').select('*').eq('id',id).single()
+  var r=r2.data;if(!r){toast('Report not found','error');return}
+  var jobName=(_drJobs&&_drJobs[r.job_id])||''
+  var h='<div class="two"><div class="fg"><label class="fl">Report Date</label><input class="fi" type="date" id="edr-date" value="'+(r.report_date||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Submitted By</label><input class="fi" id="edr-by" value="'+(r.submitted_by||'')+'"></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Crew Count</label><input class="fi" type="number" id="edr-crew" value="'+(r.crew_count||0)+'"></div>'
+  h+='<div class="fg"><label class="fl">Hours Worked</label><input class="fi" type="number" id="edr-hrs" step="0.5" value="'+(r.hours_worked||0)+'"></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Weather</label><input class="fi" id="edr-wx" value="'+(r.weather||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Temp Hi / Lo</label><div style="display:flex;gap:5px"><input class="fi" type="number" id="edr-th" placeholder="Hi" value="'+(r.temp_high||'')+'"><input class="fi" type="number" id="edr-tl" placeholder="Lo" value="'+(r.temp_low||'')+'"></div></div></div>'
+  h+='<div class="fg"><label class="fl">Work Performed *</label><textarea class="ft" id="edr-work" style="min-height:80px">'+(r.work_performed||'')+'</textarea></div>'
+  h+='<div class="fg"><label class="fl">Equipment Used</label><input class="fi" id="edr-eq" value="'+(r.equipment_used||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Issues / Delays</label><textarea class="ft" id="edr-iss">'+(r.issues||'')+'</textarea></div>'
+  h+='<div class="fg"><label class="fl">Visitors</label><input class="fi" id="edr-vis" value="'+(r.visitors||'')+'"></div>'
+  if(jobName)h+='<div style="font-size:11px;color:#414e63;margin-top:4px">Job: '+jobName+'</div>'
+  h+='<div style="padding-top:10px;border-top:1px solid rgba(255,255,255,.06);margin-top:10px"><button class="btn btn-ghost btn-sm" style="color:#dc2626" data-rid="'+id+'" onclick="deleteDailyReport(this.dataset.rid)">Delete Report</button></div>'
+  modal('Edit Daily Report — '+fd(r.report_date), h, async function(){
+    var work=(document.getElementById('edr-work').value||'').trim()
+    if(!work){toast('Work performed required','error');return}
+    var update={
+      report_date:document.getElementById('edr-date').value,
+      submitted_by:document.getElementById('edr-by').value||null,
+      crew_count:parseInt(document.getElementById('edr-crew').value)||0,
+      hours_worked:parseFloat(document.getElementById('edr-hrs').value)||0,
+      weather:document.getElementById('edr-wx').value||null,
+      temp_high:parseFloat(document.getElementById('edr-th').value)||null,
+      temp_low:parseFloat(document.getElementById('edr-tl').value)||null,
+      work_performed:work,
+      equipment_used:document.getElementById('edr-eq').value||null,
+      issues:document.getElementById('edr-iss').value||null,
+      visitors:document.getElementById('edr-vis').value||null,
+      updated_at:new Date().toISOString()
+    }
+    var res=await sb.from('daily_reports').update(update).eq('id',id)
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();toast('Report updated')
+    // Refresh whichever view is active
+    if(document.getElementById('jt-daily'))loadJT('jt-daily')
+    else if(typeof pgDaily==='function')pgDaily()
+    // Update _drAll cache if on daily ops page
+    if(_drAll){var idx=_drAll.findIndex(function(x){return x.id===id});if(idx>=0)Object.assign(_drAll[idx],update)}
+    filterDailyReports&&filterDailyReports()
+  },'Save Changes')
+}
+async function deleteDailyReport(id){
+  if(!confirm('Delete this daily report? This cannot be undone.'))return
+  var res=await sb.from('daily_reports').delete().eq('id',id)
+  if(res.error){toast(res.error.message,'error');return}
+  closeModal();toast('Report deleted','warn')
+  if(document.getElementById('jt-daily'))loadJT('jt-daily')
+  if(_drAll){_drAll=_drAll.filter(function(x){return x.id!==id});filterDailyReports&&filterDailyReports()}
 }
 
 async function viewDailyReport(id){
@@ -1898,7 +1963,7 @@ async function viewDailyReport(id){
   \${r.issues?\`<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);border-radius:7px;padding:10px 12px;margin-bottom:9px"><div class="fl" style="color:#dc2626">Issues</div><div style="font-size:12px;color:#dc2626;white-space:pre-wrap">\${r.issues}</div></div>\`:''}
   \${r.visitors?\`<div class="fg"><div class="fl">Visitors</div><div style="font-size:12px;color:#8a96ab">\${r.visitors}</div></div>\`:''}\`,
   ()=>closeModal(),'Close',false)
-  document.getElementById('modal-footer').innerHTML='<button class="btn" onclick="closeModal()">Close</button><button class="btn btn-sm" onclick="dlDailyReportById(\\''+id+'\\')">⬇ Download</button>'
+  document.getElementById('modal-footer').innerHTML='<button class="btn" onclick="closeModal()">Close</button><button class="btn btn-sm" onclick="dlDailyReportById(\\''+id+'\\')">⬇ Download</button>'+(ME&&['admin','pm'].includes(ME.role)?'<button class="btn btn-sm btn-p" data-rid="'+id+'" onclick="closeModal();editDailyReport(this.dataset.rid)">Edit Report</button>':'')
 }
 async function dlDailyReportById(id){const{data:r}=await sb.from('daily_reports').select('*').eq('id',id).single();dlDailyReport({...r,jobs:r.jobs})}
 function newDailyModal(jobIdOverride){
@@ -1910,6 +1975,7 @@ function newDailyModal(jobIdOverride){
     '<div class="fg"><label class="fl">Report Date</label><input class="fi" type="date" id="dr-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
     '<div class="fg"><label class="fl">Crew Count</label><input class="fi" type="number" id="dr-crew" value="1" min="0"></div>'+
     '</div>'+
+    '<div class="fg"><label class="fl">Submitted By</label><input class="fi" id="dr-by" value="'+((ME&&ME.full_name)||'')+'"></div>'+
     '<div class="three">'+
     '<div class="fg"><label class="fl">Hours Worked</label><input class="fi" type="number" id="dr-hrs" step="0.5" min="0"></div>'+
     '<div class="fg"><label class="fl">Weather</label><input class="fi" id="dr-wx" placeholder="Sunny, Rainy…"></div>'+
@@ -1935,7 +2001,7 @@ function newDailyModal(jobIdOverride){
       const installed=parseInt(row.querySelector('.dr-part-qty')?.value)||0
       if(installed>0) installedParts.push({part_id:partId,part_name:partName,installed_qty:installed,available_qty:available})
     })
-    const{error}=await sb.from('daily_reports').insert({id:uuid(),job_id:jobId,report_date:v('dr-date'),crew_count:parseInt(v('dr-crew'))||0,hours_worked:parseFloat(v('dr-hrs'))||0,weather:v('dr-wx'),temp_high:fN('dr-th'),temp_low:fN('dr-tl'),work_performed:work,equipment_used:v('dr-eq'),issues:v('dr-iss'),visitors:v('dr-vis'),installed_parts:installedParts,submitted_by:ME?.full_name,submitted_at:new Date().toISOString(),created_at:new Date().toISOString()})
+    const{error}=await sb.from('daily_reports').insert({id:uuid(),job_id:jobId,report_date:v('dr-date'),crew_count:parseInt(v('dr-crew'))||0,hours_worked:parseFloat(v('dr-hrs'))||0,weather:v('dr-wx'),temp_high:fN('dr-th'),temp_low:fN('dr-tl'),work_performed:work,equipment_used:v('dr-eq'),issues:v('dr-iss'),visitors:v('dr-vis'),installed_parts:installedParts,submitted_by:v('dr-by')||( ME&&ME.full_name)||'',submitted_at:new Date().toISOString(),created_at:new Date().toISOString()})
     if(error){toast(error.message,'error');return}
     // Update job_parts installed_qty and subtract from available
     for(const ip of installedParts){
