@@ -2,11 +2,11 @@
 async function geocodeAndAddPins(jobs, map){
   // Batch geocode: 3 parallel requests at a time with 1s between batches
   // Nominatim allows ~1 req/sec total, so batches of 3 with 3s delay = 1/sec avg
-  var batchSize = 3
+  var batchSize = 5
   for(var b = 0; b < jobs.length; b += batchSize){
     var batch = jobs.slice(b, b + batchSize)
     await Promise.all(batch.map(function(j){ return geocodeJob(j, map) }))
-    if(b + batchSize < jobs.length) await new Promise(function(r){ setTimeout(r, 1000) })
+    if(b + batchSize < jobs.length) await new Promise(function(r){ setTimeout(r, 1200) })
   }
 }
 
@@ -739,7 +739,7 @@ function jobPartsStatus(j){
 
 // Load jobs and enrich with parts status snapshot
 async function loadJobsWithPartsStatus(){
-  const{data:jobs}=await sb.from('jobs').select('*').eq('archived',false).order('created_at',{ascending:false})
+  const{data:jobs}=await sb.from('jobs').select('id,name,job_number,phase,address,city,state,zip,gps_lat,gps_lng,gps_radius_ft,project_manager,gc_company,due_date,is_urgent,urgent_note,company_id').eq('archived',false).order('created_at',{ascending:false})
   const{data:parts}=await sb.from('job_parts').select('job_id,status')
   allJobs=jobs||[]
   // Build parts map per job
@@ -764,7 +764,7 @@ async function loadJobsWithPartsStatus(){
   })
 }
 function renderJobsTable(q){
-  const rows=allJobs.filter(j=>!q||j.name.toLowerCase().includes(q.toLowerCase())||(j.address||'').toLowerCase().includes(q.toLowerCase()))
+  const rows=allJobs.filter(j=>!q||j.name.toLowerCase().includes(q.toLowerCase())||(j.job_number||'').toLowerCase().includes(q.toLowerCase())||(j.address||'').toLowerCase().includes(q.toLowerCase())||(j.gc_company||'').toLowerCase().includes(q.toLowerCase()))
   document.getElementById('page-area').innerHTML=\`
   <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
     <input class="fi" placeholder="Search jobs…" style="max-width:280px" oninput="renderJobsTable(this.value)" value="\${q}">
@@ -776,6 +776,7 @@ function renderJobsTable(q){
   <div class="card" style="padding:0;overflow:hidden">
   \${rows.length?\`<table class="tbl"><thead><tr>
     <th>Job</th>
+    <th>Job ID</th>
     <th>Job Status</th>
     <th>Parts Status</th>
     <th>Permit</th>
@@ -789,6 +790,7 @@ function renderJobsTable(q){
     const permit=j.permit_status||'not_required'
     return \`<tr onclick="openJob('\${j.id}')" style="cursor:pointer">
       <td><div style="font-weight:500">\${j.name}</div><div style="font-size:10px;color:#414e63">\${j.address||''}</div></td>
+      <td style="font-size:11px;color:#8a96ab;white-space:nowrap">\${j.job_number||'—'}</td>
       <td>\${stageBadge(j.phase)}</td>
       <td>\${ps.badge}</td>
       <td><span class="badge \${PERMIT_STATUS_COLORS[permit]||'bg-gray'}">\${PERMIT_STATUS_LABELS[permit]||permit}</span></td>
@@ -804,9 +806,10 @@ function renderJobsTable(q){
 }
 
 function filterJobsByStage(stage){
-  const rows=stage?allJobs.filter(j=>j.phase===stage):allJobs
+  const q=(document.getElementById('jobs-q-search')||{}).value||''
+  const rows=(stage?allJobs.filter(j=>j.phase===stage):allJobs).filter(j=>!q||(j.name||'').toLowerCase().includes(q.toLowerCase())||(j.job_number||'').toLowerCase().includes(q.toLowerCase())||(j.gc_company||'').toLowerCase().includes(q.toLowerCase()))
   const a=document.getElementById('page-area')
-  a.querySelector('table tbody').innerHTML=rows.map(j=>\`<tr onclick="openJob('\${j.id}')"><td><div style="font-weight:500">\${j.name}</div></td><td>\${j.gc_company||'—'}</td><td>\${stageBadge(j.phase)}</td><td style="font-size:11px">\${fd(j.due_date)}</td><td style="font-size:11px">\${fd(j.next_visit_date)}</td><td>\${j.contract_value?fm(j.contract_value):'—'}</td><td><div class="pbar" style="width:60px"><div class="pb g" style="width:\${j.pct_complete||0}%"></div></div></td></tr>\`).join('')
+  a.querySelector('table tbody').innerHTML=rows.map(j=>\`<tr onclick="openJob('\${j.id}')"><td><div style="font-weight:500">\${j.name}</div>${j.job_number?'<div style="font-size:10px;color:#414e63">'+(j.job_number)+'</div>':''}</td><td style="font-size:11px;color:#8a96ab">\${j.job_number||'—'}</td><td>\${j.gc_company||'—'}</td><td>\${stageBadge(j.phase)}</td><td style="font-size:11px">\${fd(j.due_date)}</td><td style="font-size:11px">\${fd(j.next_visit_date)}</td><td>\${j.contract_value?fm(j.contract_value):'—'}</td><td><div class="pbar" style="width:60px"><div class="pb g" style="width:\${j.pct_complete||0}%"></div></div></td></tr>\`).join('')
 }
 async function importJobsExcel(input){
   const file=input.files[0];if(!file)return
@@ -2129,7 +2132,7 @@ async function completePunchGlobal(id){await sb.from('punch_list').update({statu
 // ══════════════════════════════════════════
 let _scanMode='stage',_batch=[],_camRunning=false,_scanJobId=null
 async function pgScan(){
-  const{data:jobs}=await sb.from('jobs').select('id,name').eq('archived',false).order('name')
+  const{data:jobs}=await sb.from('jobs').select('id,name,job_number').eq('archived',false).order('name')
   allJobs=jobs||[]
   const{data:cat}=await sb.from('catalog').select('*').order('name')
   allCatalog=cat||[]
@@ -2137,7 +2140,7 @@ async function pgScan(){
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
     <div>
       <div class="card">
-        <div class="fg"><label class="fl">Job *</label><select class="fs" id="sc-job" onchange="_scanJobId=this.value;loadJobPartsPanel()"><option value="">— Select job —</option>\${allJobs.map(j=>\`<option value="\${j.id}">\${j.name}</option>\`).join('')}</select></div>
+        <div class="fg"><label class="fl">Job *</label><select class="fs" id="sc-job" onchange="_scanJobId=this.value;loadJobPartsPanel()"><option value="">— Select job —</option>\${allJobs.map(j=>'<option value="'+j.id+'">'+( j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>').join('')}</select></div>
         <div class="mode-toggle" style="margin-bottom:12px">
           <button class="active" id="mt-stage" onclick="setScanMode('stage',this)">📥 Stage In</button>
           <button id="mt-out" onclick="setScanMode('out',this)">📤 Check Out</button>
@@ -3304,7 +3307,8 @@ function buildGeocodePopup(j){
   var color=MAP_COLORS[j.phase]||'#8a96ab'
   var addr=(j.address||'')+(j.city?', '+j.city:'')+(j.state?' '+j.state:'')
   var h='<div style="min-width:200px">'
-  h+='<div style="font-weight:700;font-size:13px;margin-bottom:4px">'+j.name+'</div>'
+  h+='<div style="font-weight:700;font-size:13px;margin-bottom:2px">'+j.name+'</div>'
+  if(j.job_number)h+='<div style="font-size:10px;color:#414e63;margin-bottom:3px">#'+j.job_number+'</div>'
   if(addr)h+='<div style="font-size:11px;color:#666;margin-bottom:5px">'+addr+'</div>'
   h+='<span style="background:'+color+'22;color:'+color+';padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600">'+(STAGE_LABELS[j.phase]||j.phase)+'</span>'
   if(j.project_manager)h+='<div style="font-size:11px;margin-top:4px"><strong>PM:</strong> '+j.project_manager+'</div>'
@@ -3425,7 +3429,7 @@ function syncMapFilters(type,val){
 function renderMapJobList(jobs){
   const el=document.getElementById('map-job-list');if(!el)return
   el.innerHTML=jobs.map(j=>\`<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onclick="mapFlyTo('\${j.id}')">
-    <div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:\${MAP_COLORS[j.phase]||'#8a96ab'};flex-shrink:0"></div><div style="font-size:12px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${j.name}</div></div>
+    <div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:\${MAP_COLORS[j.phase]||'#8a96ab'};flex-shrink:0"></div><div style="flex:1;overflow:hidden"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${j.name}</div>${j.job_number?'<div style="font-size:10px;color:#414e63">'+(j.job_number)+'</div>':''}</div></div>
     <div style="font-size:10px;color:#414e63;margin-top:1px;padding-left:15px">\${j.project_manager?j.project_manager+' · ':''} \${j.gc_company||''}</div>
   </div>\`).join('')||'<div style="font-size:12px;color:#414e63">No jobs match filters</div>'
 }
