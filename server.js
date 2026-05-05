@@ -675,7 +675,7 @@ async function pgDash(){
     <div>
       <div class="card">
         <div class="card-title">Active Jobs <button class="btn btn-sm btn-ghost" onclick="P('jobs',null)">All →</button></div>
-        \${active.length?\`<table class="tbl"><thead><tr><th>Job</th><th>Stage</th><th>Due</th></tr></thead><tbody>\${active.slice(0,8).map(j=>\`<tr onclick="openJob('\${j.id}')"><td><div style="font-weight:500">\${j.name}</div><div style="font-size:10px;color:#414e63">\${j.address||''}</div></td><td>\${stageBadge(j.phase)}</td><td style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">\${fd(j.due_date)}</td></tr>\`).join('')}</tbody></table>\`:empty('📋','No active jobs')}
+        \${active.length?\`<table class="tbl"><thead><tr><th>Job</th><th>Stage</th><th>Due</th></tr></thead><tbody>\${active.slice(0,8).map(j=>\`<tr onclick="openJob('\${j.id}')"><td><div style="font-weight:500">\${j.name}</div><div style="font-size:10px;color:#414e63">\${j.job_number?'#'+j.job_number+(j.address?' · '+j.address:''):(j.address||'')}</div></td><td>\${stageBadge(j.phase)}</td><td style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">\${fd(j.due_date)}</td></tr>\`).join('')}</tbody></table>\`:empty('📋','No active jobs')}
       </div>
       <div class="card">
         <div class="card-title">⚠ Due Within 14 Days</div>
@@ -2140,7 +2140,7 @@ async function pgScan(){
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
     <div>
       <div class="card">
-        <div class="fg"><label class="fl">Job *</label><select class="fs" id="sc-job" onchange="_scanJobId=this.value;loadJobPartsPanel()"><option value="">— Select job —</option>\${allJobs.map(j=>'<option value="'+j.id+'">'+( j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>').join('')}</select></div>
+        <div class="fg"><label class="fl">Job * — search by name or ID</label><input class="fi" id="sc-job-search" placeholder="Type job name or ID…" autocomplete="off" oninput="filterScanJobList(this.value)"><select class="fs" id="sc-job" onchange="_scanJobId=this.value;loadJobPartsPanel()" size="1" style="margin-top:4px"><option value="">— Select job —</option>\${allJobs.map(j=>'<option value="'+j.id+'">'+( j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>').join('')}</select></div>
         <div class="mode-toggle" style="margin-bottom:12px">
           <button class="active" id="mt-stage" onclick="setScanMode('stage',this)">📥 Stage In</button>
           <button id="mt-out" onclick="setScanMode('out',this)">📤 Check Out</button>
@@ -2279,12 +2279,33 @@ async function commitBatch(){
   }catch(e){toast(e.message,'error')}
   btn.disabled=false;btn.textContent='Commit Batch to Job'
 }
+function filterScanJobList(q){
+  var sel=document.getElementById('sc-job');if(!sel)return
+  var opts=['<option value="">— Select job —</option>']
+  ;(allJobs||[]).filter(function(j){
+    if(!q)return true
+    var s=q.toLowerCase()
+    return (j.name||'').toLowerCase().includes(s)||(j.job_number||'').toLowerCase().includes(s)
+  }).forEach(function(j){
+    opts.push('<option value="'+j.id+'">'+(j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>')
+  })
+  sel.innerHTML=opts.join('')
+  if(sel.options.length===2){sel.selectedIndex=1;_scanJobId=sel.value;loadJobPartsPanel()}
+}
 async function loadJobPartsPanel(){
   const jobId=document.getElementById('sc-job')?.value;const el=document.getElementById('job-parts-panel');if(!el)return
   if(!jobId){el.innerHTML='<div style="font-size:12px;color:#414e63">Select a job</div>';return}
   const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',jobId).order('created_at',{ascending:false})
     var isAdm=['admin','pm','estimator'].indexOf((typeof ME!=='undefined'?ME.role:'')||'')>=0
   el.innerHTML=(parts||[]).length?'<table class="tbl"><thead><tr><th>Part</th><th>Qty</th><th>Status</th><th>By</th>'+(isAdm?'<th></th>':'')+'</tr></thead><tbody>'+((parts||[]).map(function(p){return'<tr><td style="font-weight:500;font-size:12px">'+p.part_name+'</td>'+'<td>'+p.assigned_qty+'</td>'+'<td><span class="badge '+(p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-blue':'bg-green')+'">'+p.status.replace(/_/g,' ')+'</span></td>'+'<td style="font-size:10px;color:#8a96ab">'+(p.staged_by||p.checked_out_by||'—')+'</td>'+(isAdm?'<td><button class="btn btn-sm" style="font-size:10px;padding:2px 6px" data-pid="'+p.id+'" data-pname="'+p.part_name+'" data-status="'+p.status+'" onclick="editScanPartStatus(this)">Status</button></td>':'')+'</tr>'}).join(''))+'</tbody></table>':'<div style="font-size:12px;color:#414e63">No parts on this job yet</div>'
+  // Add transfer button if there are staged parts
+  var hasStagedParts=(parts||[]).some(function(p){return p.status==='staged'})
+  if(hasStagedParts&&isAdm){
+    el.innerHTML+='<button class="btn btn-sm" style="margin-top:8px;width:100%" onclick="showScanTransferModal()">↔ Transfer Staged Parts to Another Job</button>'
+  }
+  // Store for transfer
+  window._scanJobParts=parts||[]
+  window._scanCurrentJobId=jobId
 }
 async function loadScanEvents(){
   const el=document.getElementById('scan-events-panel');if(!el)return
@@ -2449,7 +2470,7 @@ function adjStockModal(id='',name='',qty=0,min=0){
 async function pgOrders(filterJobId){
   const[{data:orders},{data:jobs}]=await Promise.all([
     sb.from('orders').select('*,jobs(name)').order('created_at',{ascending:false}),
-    sb.from('jobs').select('id,name').eq('archived',false).order('name')
+    sb.from('jobs').select('id,name,job_number').eq('archived',false).order('name')
   ])
   window._ordFilterJobId=filterJobId||null
   const{data:cat}=await sb.from('catalog').select('*').order('name')
@@ -2471,9 +2492,10 @@ async function pgOrders(filterJobId){
     '</div>'+
     // Filter bar
     '<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">'+
-    '<select class="fs" id="ord-filter-job" style="max-width:260px" onchange="window._ordFilterJobId=this.value;renderOrdersList(window._allOrders,window._allOrderJobs)">'+
+    '<input class="fi" id="ord-search" placeholder="Search job name or ID…" style="max-width:200px" oninput="filterOrdersSearch(this.value)">'+
+    '<select class="fs" id="ord-filter-job" style="max-width:220px" onchange="window._ordFilterJobId=this.value;renderOrdersList(window._allOrders,window._allOrderJobs)">'+
     '<option value="">All Jobs</option>'+
-    (jobs||[]).map(j=>'<option value="'+j.id+'"'+(filterJobId===j.id?' selected':'')+'>'+j.name+'</option>').join('')+
+    (jobs||[]).map(j=>'<option value="'+j.id+'"'+(filterJobId===j.id?' selected':'')+'>'+( j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>').join('')+
     '</select>'+
     '<span style="font-size:11px;color:#414e63" id="ord-filter-count"></span>'+
     '</div>'+
@@ -2482,7 +2504,7 @@ async function pgOrders(filterJobId){
     '<div class="card-title">New Order Request</div>'+
     '<div class="two"><div class="fg"><label class="fl">Job *</label>'+
     '<select class="fs" id="ord-job"><option value="">— Select —</option>'+
-    (jobs||[]).map(j=>'<option value="'+j.id+'"'+(filterJobId===j.id?' selected':'')+'>'+j.name+'</option>').join('')+
+    (jobs||[]).map(j=>'<option value="'+j.id+'"'+(filterJobId===j.id?' selected':'')+'>'+( j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>').join('')+
     '</select></div>'+
     '<div class="fg"><label class="fl">Notes / PO #</label><input class="fi" id="ord-notes"></div></div>'+
     '<div id="ord-items-display" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px"></div>'+
@@ -2498,6 +2520,16 @@ async function pgOrders(filterJobId){
   renderOrdersList(orders||[], jobs||[])
 }
 
+function filterOrdersSearch(q){
+  var jobMap={};(window._allOrderJobs||[]).forEach(function(j){jobMap[j.id]=j})
+  var filtered=(window._allOrders||[]).filter(function(o){
+    if(!q)return true
+    var s=q.toLowerCase()
+    var j=jobMap[o.job_id]||{}
+    return (j.name||'').toLowerCase().includes(s)||(j.job_number||'').toLowerCase().includes(s)||(o.notes||'').toLowerCase().includes(s)
+  })
+  renderOrdersList(filtered,window._allOrderJobs)
+}
 function renderOrdersList(orders, jobs){
   const el=document.getElementById('orders-list');if(!el)return
   const jobMap={}; (jobs||window._allOrderJobs||[]).forEach(j=>jobMap[j.id]=j.name)
@@ -2514,7 +2546,7 @@ function renderOrdersList(orders, jobs){
     const jobName=o.jobs?.name||jobMap[o.job_id]||o.job_id||'—'
     let html='<div class="card" style="margin-bottom:9px">'
     html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
-    html+='<div><div style="font-weight:600;font-size:14px">'+jobName+'</div>'
+    var jobObj=(window._allOrderJobs||[]).find(function(jj){return jj.id===o.job_id});var jobNum=jobObj&&jobObj.job_number?'['+jobObj.job_number+'] ':'';html+='<div><div style="font-weight:600;font-size:14px">'+jobNum+jobName+'</div>'
     html+='<div style="font-size:11px;color:#414e63;margin-top:2px">'+(o.notes||'No notes')+' · By '+(o.created_by||'—')+' · '+fd(o.created_at)+'</div>'
     html+=(o.staged_at?'<div style="font-size:10px;color:#16a34a">Staged by '+(o.staged_by||'?')+' on '+fdt(o.staged_at)+'</div>':'')
     html+='</div><span class="badge '+sc+'">'+o.status+'</span></div>'
@@ -6439,11 +6471,52 @@ async function checkOutAllStaged(){
 // ══════════════════════════════════════════
 // TRANSFER STAGED PARTS TO ANOTHER JOB
 // ══════════════════════════════════════════
+async function showScanTransferModal(){
+  var jobId=window._scanCurrentJobId
+  var parts=window._scanJobParts||[]
+  var staged=parts.filter(function(p){return p.status==='staged'})
+  if(!staged.length){toast('No staged parts to transfer','warn');return}
+  var rJobs=await sb.from('jobs').select('id,name,job_number').eq('archived',false).order('name')
+  var jobs=(rJobs.data||[]).filter(function(j){return j.id!==jobId})
+  var jobOpts=jobs.map(function(j){return'<option value="'+j.id+'">'+(j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>'}).join('')
+  var h='<div class="fg"><label class="fl">Transfer To Job *</label>'
+  h+='<input class="fi" id="str-search" placeholder="Search job name or ID…" oninput="filterStrJobs(this.value,'+JSON.stringify(jobs.map(function(j){return{id:j.id,name:j.name,jn:j.job_number||''}}))+')">'
+  h+='<select class="fs" id="str-job" style="margin-top:4px"><option value="">— Select destination —</option>'+jobOpts+'</select></div>'
+  h+='<div class="fg"><label class="fl">Select Parts to Transfer</label>'
+  staged.forEach(function(p){
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)">'
+    h+='<input type="checkbox" id="str-'+p.id+'" value="'+p.id+'" checked style="width:16px;height:16px">'
+    h+='<label for="str-'+p.id+'" style="font-size:12px;flex:1">'+p.part_name+' (qty: '+(p.assigned_qty||1)+')</label></div>'
+  })
+  h+='</div>'
+  modal('Transfer Staged Parts',h,async function(){
+    var destId=document.getElementById('str-job').value
+    if(!destId){toast('Select destination job','error');return}
+    var selected=staged.filter(function(p){var cb=document.getElementById('str-'+p.id);return cb&&cb.checked})
+    if(!selected.length){toast('Select at least one part','error');return}
+    for(var p of selected){
+      await sb.from('job_parts').update({job_id:destId,status:'staged',updated_at:new Date().toISOString()}).eq('id',p.id)
+    }
+    await sb.from('jobs').update({staging_status:'in_process',updated_at:new Date().toISOString()}).eq('id',destId)
+    closeModal();loadJobPartsPanel();toast('Parts transferred')
+  },'Transfer')
+}
+function filterStrJobs(q,jobs){
+  var sel=document.getElementById('str-job');if(!sel)return
+  var opts=['<option value="">— Select destination —</option>']
+  ;(jobs||[]).filter(function(j){
+    if(!q)return true;var s=q.toLowerCase()
+    return (j.name||'').toLowerCase().includes(s)||(j.jn||'').toLowerCase().includes(s)
+  }).forEach(function(j){
+    opts.push('<option value="'+j.id+'">'+(j.jn?'['+j.jn+'] ':'')+j.name+'</option>')
+  })
+  sel.innerHTML=opts.join('')
+}
 async function showTransferPartsModal(){
   var parts=window._currentJobParts||[]
   var staged=parts.filter(function(p){return p.status==='staged'})
   if(!staged.length){toast('No staged parts to transfer','warn');return}
-  var rJobs=await sb.from('jobs').select('id,name').eq('archived',false).order('name').limit(50)
+  var rJobs=await sb.from('jobs').select('id,name,job_number').eq('archived',false).order('name').limit(50)
   var jobs=(rJobs.data||[]).filter(function(j){return j.id!==currentJobId})
   var jobOpts=jobs.map(function(j){return'<option value="'+j.id+'">'+j.name+'</option>'}).join('')
   var h='<div class="fg"><label class="fl">Transfer To Job *</label><select class="fs" id="tr-job"><option value="">— Select destination —</option>'+jobOpts+'</select></div>'
