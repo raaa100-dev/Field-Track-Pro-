@@ -2527,23 +2527,28 @@ function ordDropdownFilter(sel){
 }
 function filterOrdersSearch(q){
   var jobMap={};(window._allOrderJobs||[]).forEach(function(j){jobMap[j.id]=j})
-  // Clear dropdown filter when using text search
-  if(q){window._ordFilterJobId=null;var dd=document.getElementById('ord-filter-job');if(dd)dd.value=''}  
   var filtered=(window._allOrders||[]).filter(function(o){
     if(!q)return true
     var s=q.toLowerCase()
     var j=jobMap[o.job_id]||{}
     return (j.name||'').toLowerCase().includes(s)||(j.job_number||'').toLowerCase().includes(s)||(o.notes||'').toLowerCase().includes(s)
   })
+  // Reset dropdown when searching
+  if(q){window._ordFilterJobId=null;var dd=document.getElementById('ord-filter-job');if(dd)dd.value=''}
+  // Directly render without re-filtering
+  var el=document.getElementById('orders-list');if(!el)return
+  if(!filtered.length){el.innerHTML=empty('📦','No orders match "'+q+'"');return}
+  // Re-use renderOrdersList but clear _ordFilterJobId first
+  window._ordFilterJobId=null
   renderOrdersList(filtered,window._allOrderJobs)
 }
 function renderOrdersList(orders, jobs){
   const el=document.getElementById('orders-list');if(!el)return
   const jobMap={}; (jobs||window._allOrderJobs||[]).forEach(j=>jobMap[j.id]=j.name)
-  // Apply job filter (skip if called from search - search already filtered)
+  // Apply dropdown job filter only if no text search active
   var searchQ=(document.getElementById('ord-search')||{}).value||''
-  const filterJob=!searchQ&&(window._ordFilterJobId||document.getElementById('ord-filter-job')?.value||'')
-  const filtered=filterJob?(orders||[]).filter(o=>o.job_id===filterJob):(orders||[])
+  const filterJob=searchQ?'':(window._ordFilterJobId||document.getElementById('ord-filter-job')?.value||'')
+  const filtered=filterJob?(orders||[]).filter(function(o){return o.job_id===filterJob}):(orders||[])
   const cnt=document.getElementById('ord-filter-count')
   if(cnt)cnt.textContent=filtered.length+' order'+(filtered.length!==1?'s':'')+( filterJob?' for this job':''+(searchQ?' matching "'+searchQ+'"':''))
   if(!filtered.length){el.innerHTML=empty('📦',filterJob?'No orders for this job yet':'No orders yet');return}
