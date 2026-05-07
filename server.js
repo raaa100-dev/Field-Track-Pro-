@@ -2273,6 +2273,10 @@ async function pgJobWalks(){
   }).join('')}</tbody></table>\`:empty('🚶','No job walks recorded')}
   </div>\`
 }
+function toggleBoosterCount(sel){
+  var el=document.getElementById('wk-booster-count-wrap')
+  if(el)el.style.display=sel.value==='yes'?'block':'none'
+}
 async function newWalkModal(jobIdOverride){
   // Fetch workers for assignment
   var{data:workers}=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
@@ -2295,7 +2299,7 @@ async function newWalkModal(jobIdOverride){
     '<div class="fg"><label class="fl">Device Model</label><input class="fi" id="wk-model" placeholder="e.g. NFS2-3030, SpectrAlert Advance"></div>'+
     '<div class="two">'+
     '<div class="fg"><label class="fl">Running Clip Mode?</label><select class="fs" id="wk-clip"><option value="no">No</option><option value="yes">Yes</option></select></div>'+
-    '<div class="fg"><label class="fl">Spare Booster Circuits?</label><select class="fs" id="wk-booster" onchange="document.getElementById(\'wk-booster-count-wrap\').style.display=this.value===\'yes\'?\'block\':\'none\'">'+
+    '<div class="fg"><label class="fl">Spare Booster Circuits?</label><select class="fs" id="wk-booster" onchange="toggleBoosterCount(this)">'+
     '<option value="no">No</option><option value="yes">Yes</option></select></div>'+
     '</div>'+
     '<div class="fg" id="wk-booster-count-wrap" style="display:none"><label class="fl">How Many Spare Booster Circuits?</label><input class="fi" type="number" id="wk-booster-count" min="0" value="0"></div>'+
