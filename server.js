@@ -3330,16 +3330,13 @@ async function stHandlePdfFile(file){
   if(file.type!=='application/pdf'&&!file.name.endsWith('.pdf')){stSetPdfStatus('Only PDF files are supported','#dc2626');return}
   stSetPdfStatus('Uploading…','#d97706')
   try{
-    var fd=new FormData()
-    fd.append('file',file)
-    fd.append('upload_preset','btgbch6a')
-    fd.append('folder','safety-docs')
-    fd.append('access_mode','public')
-    fd.append('resource_type','raw')
-    var r=await fetch('https://api.cloudinary.com/v1_1/disyczlam/raw/upload',{method:'POST',body:fd})
-    if(!r.ok)throw new Error('Upload failed')
-    var d=await r.json()
-    stSetPdfStatus('✓ '+file.name+' uploaded','#16a34a',d.secure_url)
+    // Upload to Supabase Storage - publicly accessible
+    var fileName='safety-docs/'+Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_')
+    var res=await sb.storage.from('documents').upload(fileName,file,{contentType:'application/pdf',upsert:true})
+    if(res.error)throw new Error(res.error.message)
+    var pub=sb.storage.from('documents').getPublicUrl(fileName)
+    var url=pub.data.publicUrl
+    stSetPdfStatus('✓ '+file.name+' uploaded','#16a34a',url)
   }catch(e){
     stSetPdfStatus('Upload failed: '+e.message,'#dc2626')
   }
