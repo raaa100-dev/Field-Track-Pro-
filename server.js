@@ -1503,8 +1503,13 @@ async function openJobWalk(walkId){
   \${walk.issues_found?\`<div style="margin-bottom:10px;background:rgba(220,38,38,.08);border-radius:7px;padding:9px 11px"><div style="font-size:10px;color:#dc2626;margin-bottom:3px">ISSUES FOUND</div><div style="font-size:12px;color:#dc2626;white-space:pre-wrap">\${walk.issues_found}</div></div>\`:''}
   \${walk.action_items?\`<div style="margin-bottom:10px"><div style="font-size:10px;color:#414e63;margin-bottom:3px">ACTION ITEMS</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap">\${walk.action_items}</div></div>\`:''}
   <div class="sec-hdr">Plans & Markup</div>
-  \${(plans||[]).length?(plans||[]).map(p=>\`<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div>📄</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${p.file_name}</div></div><button class="btn btn-sm" onclick="openPlanMarkup('\${p.id}','\${p.url}','\${p.file_name}',()=>openJobWalk('\${walk.id}'))">✏ Markup</button><a href="\${p.url}" target="_blank" class="btn btn-sm">View</a></div>\`).join(''):'<div style="font-size:12px;color:#414e63;margin-bottom:8px">No plans uploaded</div>'}
-  <input type="file" id="walk-plan-file" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="uploadWalkPlan(this.files,window._openWalkId)">
+  \${(plans||[]).length?(plans||[]).map(p=>\`<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div>📄</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${p.file_name}</div></div><button class="btn btn-sm" onclick="openPlanMarkup('\${p.id}','\${p.url}','\${p.file_name}',()=>openJobWalk('\${walk.id}'))">✏ Markup</button><a href="\${p.url}" target="_blank" class="btn btn-sm">View</a></div>\`).join(''):'<div style="font-size:12px;color:#414e63;margin-bottom:8px">No plans uploaded yet</div>'}
+  <div style="margin-top:10px">
+    <label style="display:inline-flex;align-items:center;gap:8px;background:#2563eb;color:#fff;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500">
+      📄 Upload Plan (PDF or Image)
+      <input type="file" id="walk-plan-file" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="uploadWalkPlan(this.files,window._openWalkId)">
+    </label>
+  </div>
   \`,
   ()=>closeModal(),'Close',false)
   var footBtns='<button class="btn" onclick="closeModal()">Close</button>'
