@@ -2632,6 +2632,10 @@ function adjStockModal(id='',name='',qty=0,min=0){
 // ORDERS PAGE
 // ══════════════════════════════════════════
 async function pgOrders(filterJobId){
+  document.getElementById('topbar-actions').innerHTML=
+    '<label class="btn btn-sm" style="cursor:pointer">⬆ Import Parts List'
+    +'<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importOrderPartsExcel(this)"></label>'
+    +'<button class="btn btn-sm" onclick="downloadOrderPartsTemplate()">📋 Template</button>'
   const[{data:orders},{data:jobs},{data:jobParts}]=await Promise.all([
     sb.from('orders').select('*,jobs(name)').order('created_at',{ascending:false}),
     sb.from('jobs').select('id,name,job_number').eq('archived',false).order('name'),
@@ -2772,6 +2776,108 @@ function renderJobPartsOrdersList(parts, jobs){
     html+='</tbody></table></div>'
   })
   el.innerHTML=html
+}
+function downloadOrderPartsTemplate(){
+  var headers=[['Job Name / Job ID *','Barcode / Part Name *','Qty *','Notes / PO #']]
+  var examples=[
+    ['[2025-001] Fire Alarm Install','1234567890123','10','PO-8821'],
+    ['[2025-001] Fire Alarm Install','Smoke Detector - Addressable','5',''],
+    ['[2025-002] Suppression System','9876543210987','3','Rush order'],
+    ['Kettle Heroes','Horn/Strobe - Red','8',''],
+  ]
+  var ws=XLSX.utils.aoa_to_sheet(headers.concat(examples))
+  ws['!cols']=[{wch:35},{wch:30},{wch:8},{wch:20}]
+  var wb=XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb,ws,'Order')
+  // Notes sheet
+  var notes=[['Field','Required?','Notes'],
+    ['Job Name / Job ID','YES','Enter the job name or job ID (e.g. [2025-001]). Must match an existing job.'],
+    ['Barcode / Part Name','YES','Enter the part barcode OR part name. Must match catalog.'],
+    ['Qty','YES','Number of units to order.'],
+    ['Notes / PO #','No','Optional PO number or notes for this line.']]
+  var ws2=XLSX.utils.aoa_to_sheet(notes)
+  ws2['!cols']=[{wch:22},{wch:12},{wch:60}]
+  XLSX.utils.book_append_sheet(wb,ws2,'Notes')
+  XLSX.writeFile(wb,'FieldAxisHQ-Order-Parts-Template.xlsx')
+  toast('Template downloaded')
+}
+async function importOrderPartsExcel(input){
+  var file=input.files[0];if(!file)return
+  input.value=''
+  var rows=[]
+  try{
+    var data=await file.arrayBuffer()
+    var wb=XLSX.read(data,{type:'array'})
+    var ws=wb.Sheets[wb.SheetNames[0]]
+    rows=XLSX.utils.sheet_to_json(ws,{defval:''})
+  }catch(e){toast('Failed to read file: '+e.message,'error');return}
+  if(!rows.length){toast('No data found','error');return}
+  // Build job lookup map by name and job_number
+  var jobs=window._allOrderJobs||[]
+  var jobByName={},jobByNum={}
+  jobs.forEach(function(j){
+    jobByName[j.name.toLowerCase()]=j
+    if(j.job_number)jobByNum[j.job_number.toLowerCase()]=j
+  })
+  // Build catalog lookup
+  var catByBarcode={},catByName={}
+  ;(allCatalog||[]).forEach(function(p){
+    catByBarcode[p.barcode]=p
+    catByName[p.name.toLowerCase()]=p
+  })
+  var imported=0,errors=[]
+  var preview=[]
+  rows.forEach(function(r,idx){
+    var jobRaw=(r['Job Name / Job ID *']||r['Job Name / Job ID']||r['Job']||'').toString().trim()
+    var partRaw=(r['Barcode / Part Name *']||r['Barcode / Part Name']||r['Part']||'').toString().trim()
+    var qty=parseInt(r['Qty *']||r['Qty']||r['qty']||1)||1
+    var notes=(r['Notes / PO #']||r['Notes']||'').toString().trim()
+    if(!jobRaw||!partRaw){errors.push('Row '+(idx+2)+': missing job or part');return}
+    // Match job
+    var jnMatch=jobRaw.match(/\[([^\]]+)\]/)
+    var job=null
+    if(jnMatch)job=jobByNum[jnMatch[1].toLowerCase()]
+    if(!job)job=jobByName[jobRaw.toLowerCase()]
+    if(!job)job=jobs.find(function(j){return j.name.toLowerCase().includes(jobRaw.toLowerCase())||(j.job_number||'').toLowerCase().includes(jobRaw.toLowerCase())})
+    if(!job){errors.push('Row '+(idx+2)+': job not found "'+jobRaw+'"');return}
+    // Match part
+    var part=catByBarcode[partRaw]||catByName[partRaw.toLowerCase()]
+    if(!part)part=(allCatalog||[]).find(function(p){return p.name.toLowerCase().includes(partRaw.toLowerCase())})
+    preview.push({job,part,partRaw,qty,notes})
+  })
+  if(errors.length)toast(errors.length+' rows could not be matched:\n'+errors.slice(0,5).join('\n'),'warn')
+  if(!preview.length){toast('No valid rows to import','error');return}
+  // Show preview modal
+  var h='<div style="font-size:12px;color:#8a96ab;margin-bottom:10px">'+preview.length+' parts ready to import as order requests'+( errors.length?' ('+errors.length+' skipped)':'')+'</div>'
+  h+='<div style="max-height:300px;overflow-y:auto"><table class="tbl"><thead><tr><th>Job</th><th>Part</th><th>Qty</th><th>Notes</th></tr></thead><tbody>'
+  preview.forEach(function(p){
+    var partName=p.part?p.part.name:p.partRaw
+    var warn=!p.part?' <span style="color:#d97706">⚠ not in catalog</span>':''
+    h+='<tr><td style="font-size:11px">'+(p.job.job_number?'['+p.job.job_number+'] ':'')+p.job.name+'</td>'
+    h+='<td style="font-size:11px">'+partName+warn+'</td>'
+    h+='<td>'+p.qty+'</td><td style="font-size:11px">'+p.notes+'</td></tr>'
+  })
+  h+='</tbody></table></div>'
+  modal('Import Parts Order — '+preview.length+' items', h, async function(){
+    var done=0,errs=[]
+    for(var p of preview){
+      var res=await sb.from('orders').insert({
+        id:uuid(),job_id:p.job.id,
+        part_id:p.part?p.part.id:null,
+        part_name:p.part?p.part.name:p.partRaw,
+        barcode:p.part?p.part.barcode:p.partRaw,
+        qty:p.qty,status:'pending',
+        notes:p.notes||null,
+        ordered_by:(ME&&ME.full_name)||'',
+        created_at:new Date().toISOString()
+      })
+      if(res.error)errs.push(res.error.message)
+      else done++
+    }
+    closeModal()
+    toast('Imported '+done+' order requests'+(errs.length?' · '+errs.length+' errors':''),errs.length?'warn':'success')
+    pgOrders()
+  },'Import '+preview.length+' Orders')
 }
 function renderOrdersList(orders, jobs){
   const el=document.getElementById('orders-list');if(!el)return
