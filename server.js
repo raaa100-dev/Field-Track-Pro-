@@ -2011,7 +2011,7 @@ async function editDailyReport(id){
       report_date:document.getElementById('edr-date').value,
       submitted_by:document.getElementById('edr-by').value||null,
       crew_count:parseInt(document.getElementById('edr-crew').value)||0,
-      hours_worked:parseFloat(document.getElementById('edr-hrs').value)||0,
+      hours_worked:parseFloat(document.getElementById('edr-hrs').value)||0,total_man_hours:parseFloat(document.getElementById('edr-manhrs').value)||0,
       weather:document.getElementById('edr-wx').value||null,
       temp_high:parseFloat(document.getElementById('edr-th').value)||null,
       temp_low:parseFloat(document.getElementById('edr-tl').value)||null,
@@ -2063,6 +2063,18 @@ async function viewDailyReport(id){
   document.getElementById('modal-footer').innerHTML='<button class="btn" onclick="closeModal()">Close</button><button class="btn btn-sm" onclick="dlDailyReportById(\\''+id+'\\')">⬇ Download</button>'+(ME&&['admin','pm'].includes(ME.role)?'<button class="btn btn-sm btn-p" data-rid="'+id+'" onclick="closeModal();editDailyReport(this.dataset.rid)">Edit Report</button>':'')
 }
 async function dlDailyReportById(id){const{data:r}=await sb.from('daily_reports').select('*').eq('id',id).single();dlDailyReport({...r,jobs:r.jobs})}
+function calcDrManHours(){
+  var crew=parseFloat((document.getElementById('dr-crew')||{}).value)||0
+  var hrs=parseFloat((document.getElementById('dr-hrs')||{}).value)||0
+  var total=document.getElementById('dr-manhrs')
+  if(total)total.value=(crew*hrs).toFixed(1)
+}
+function calcEditDrManHours(){
+  var crew=parseFloat((document.getElementById('edr-crew')||{}).value)||0
+  var hrs=parseFloat((document.getElementById('edr-hrs')||{}).value)||0
+  var total=document.getElementById('edr-manhrs')
+  if(total)total.value=(crew*hrs).toFixed(1)
+}
 function newDailyModal(jobIdOverride){
   const jobSel=(!jobIdOverride&&allJobs.length)?
     '<div class="fg"><label class="fl">Job *</label><select class="fs" id="dr-job" onchange="drLoadParts(this.value)"><option value="">— Select —</option>'+allJobs.map(j=>'<option value="'+j.id+'">'+j.name+'</option>').join('')+'</select></div>':
@@ -2070,11 +2082,12 @@ function newDailyModal(jobIdOverride){
   const html=jobSel+
     '<div class="two">'+
     '<div class="fg"><label class="fl">Report Date</label><input class="fi" type="date" id="dr-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
-    '<div class="fg"><label class="fl">Crew Count</label><input class="fi" type="number" id="dr-crew" value="1" min="0"></div>'+
+    '<div class="fg"><label class="fl">Crew Count</label><input class="fi" type="number" id="dr-crew" value="1" min="0" oninput="calcDrManHours()"></div>'+
     '</div>'+
     '<div class="fg"><label class="fl">Submitted By</label><input class="fi" id="dr-by" value="'+((ME&&ME.full_name)||'')+'"></div>'+
     '<div class="three">'+
-    '<div class="fg"><label class="fl">Hours Worked</label><input class="fi" type="number" id="dr-hrs" step="0.5" min="0"></div>'+
+    '<div class="fg"><label class="fl">Hours Per Person</label><input class="fi" type="number" id="dr-hrs" step="0.5" min="0" oninput="calcDrManHours()"></div>'+
+    '<div class="fg"><label class="fl">Total Man-Hours</label><input class="fi" type="number" id="dr-manhrs" step="0.5" min="0" style="background:rgba(37,99,235,.08);color:#60a5fa" readonly></div>'+
     '<div class="fg"><label class="fl">Weather</label><input class="fi" id="dr-wx" placeholder="Sunny, Rainy…"></div>'+
     '<div class="fg"><label class="fl">Temp Hi/Lo (°F)</label><div style="display:flex;gap:5px"><input class="fi" type="number" id="dr-th" placeholder="Hi"><input class="fi" type="number" id="dr-tl" placeholder="Lo"></div></div>'+
     '</div>'+
@@ -2098,7 +2111,7 @@ function newDailyModal(jobIdOverride){
       const installed=parseInt(row.querySelector('.dr-part-qty')?.value)||0
       if(installed>0) installedParts.push({part_id:partId,part_name:partName,installed_qty:installed,available_qty:available})
     })
-    const{error}=await sb.from('daily_reports').insert({id:uuid(),job_id:jobId,report_date:v('dr-date'),crew_count:parseInt(v('dr-crew'))||0,hours_worked:parseFloat(v('dr-hrs'))||0,weather:v('dr-wx'),temp_high:fN('dr-th'),temp_low:fN('dr-tl'),work_performed:work,equipment_used:v('dr-eq'),issues:v('dr-iss'),visitors:v('dr-vis'),installed_parts:installedParts,submitted_by:v('dr-by')||( ME&&ME.full_name)||'',submitted_at:new Date().toISOString(),created_at:new Date().toISOString()})
+    const{error}=await sb.from('daily_reports').insert({id:uuid(),job_id:jobId,report_date:v('dr-date'),crew_count:parseInt(v('dr-crew'))||0,hours_worked:parseFloat(v('dr-hrs'))||0,total_man_hours:parseFloat(v('dr-manhrs'))||0,weather:v('dr-wx'),temp_high:fN('dr-th'),temp_low:fN('dr-tl'),work_performed:work,equipment_used:v('dr-eq'),issues:v('dr-iss'),visitors:v('dr-vis'),installed_parts:installedParts,submitted_by:v('dr-by')||( ME&&ME.full_name)||'',submitted_at:new Date().toISOString(),created_at:new Date().toISOString()})
     if(error){toast(error.message,'error');return}
     // Update job_parts installed_qty and subtract from available
     for(const ip of installedParts){
