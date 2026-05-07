@@ -717,7 +717,15 @@ async function pgDash(){
   const {data:parts} = await sb.from('job_parts').select('id,job_id,status,assigned_qty,ordered_qty,taken_qty,installed_qty')
   const {data:orders} = await sb.from('orders').select('id,status,job_id').order('created_at',{ascending:false})
   const {data:low} = await sb.from('inventory').select('id,name,qty,min_qty').gt('min_qty',0)
-  const {data:safety} = await sb.from('safety_topics').select('id,title,week_of').order('created_at',{ascending:false}).limit(5)
+  // Fetch safety assignments pending for current user
+  const {data:safety} = await sb.from('safety_assignments')
+    .select('*,safety_topics(id,title,week_of,content)')
+    .eq('profile_id', ME&&ME.id||'00000000-0000-0000-0000-000000000000')
+    .order('assigned_at',{ascending:false})
+  // Filter out already acknowledged ones
+  const {data:myAcks} = await sb.from('safety_acks').select('topic_id').eq('profile_id', ME&&ME.id||'')
+  const ackedIds=new Set((myAcks||[]).map(a=>a.topic_id))
+  const pendingSafety=(safety||[]).filter(a=>a.safety_topics&&!ackedIds.has(a.topic_id))
   // Load worker names for check-ins separately (avoid join issues)
   let ciWithNames = ci||[]
   if(ciWithNames.length){
@@ -3033,6 +3041,7 @@ function safetyTopicCard(t, allAcks, allAssigns){
     '<div style="display:flex;gap:6px">'+
     '<button class="btn btn-sm" onclick="viewSafetyAcks(this.dataset.id)" data-id="'+t.id+'">View Acks</button>'+
     '<button class="btn btn-sm btn-p" onclick="assignSafetyModal(this.dataset.id,this.dataset.title)" data-id="'+t.id+'" data-title="'+safeTitle+'">Assign</button>'+
+    (ME&&ME.role==='admin'?'<button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="deleteSafetyTopic(this.dataset.id)" data-id="'+t.id+'">Delete</button>':'')+
     '</div></div>'+
     '<div style="font-size:12px;color:#8a96ab;line-height:1.6;margin-bottom:9px">'+t.content.substring(0,200)+(t.content.length>200?'…':'')+'</div>'+
     '<div style="display:flex;gap:12px;font-size:11px">'+
@@ -3041,7 +3050,21 @@ function safetyTopicCard(t, allAcks, allAssigns){
     (tPending.length?'<span style="color:#dc2626">⚠ '+tPending.length+' pending</span>':'')+
     '</div></div>'
 }
-async function exportSafetyCSV(){
+async function deleteSafetyTopic(id){
+  if(!confirm('Delete this safety topic? All acknowledgements and assignments will also be deleted.'))return
+  await sb.from('safety_acks').delete().eq('topic_id',id)
+  await sb.from('safety_assignments').delete().eq('topic_id',id)
+  var res=await sb.from('safety_topics').delete().eq('id',id)
+  if(res.error){toast(res.error.message,'error');return}
+  toast('Safety topic deleted','warn');pgSafety()
+}
+async async function ackSafetyFromDash(topicId){
+  if(!ME||!ME.id){toast('Not logged in','error');return}
+  var res=await sb.from('safety_acks').upsert({id:uuid(),topic_id:topicId,profile_id:ME.id,acknowledged_at:new Date().toISOString()},{onConflict:'topic_id,profile_id',ignoreDuplicates:true})
+  if(res.error){toast(res.error.message,'error');return}
+  toast('✓ Safety topic acknowledged');pgDash()
+}
+function exportSafetyCSV(){
   const[{data:topics},{data:acks},{data:assigns}]=await Promise.all([
     sb.from('safety_topics').select('*').order('week_of',{ascending:false}),
     sb.from('safety_acks').select('*,profiles:profile_id(full_name,role,companies(name))'),
