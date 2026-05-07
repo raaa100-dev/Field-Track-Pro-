@@ -3284,6 +3284,36 @@ async function ackSafetyFromDash(topicId){
   if(res.error){toast(res.error.message,'error');return}
   toast('✓ Safety topic acknowledged');pgDash()
 }
+async function newSafetyTopicModal(){
+  var h='<div class="two">'
+  h+='<div class="fg"><label class="fl">Title *</label><input class="fi" id="st-title" placeholder="e.g. Fire Extinguisher Safety"></div>'
+  h+='<div class="fg"><label class="fl">Category</label><input class="fi" id="st-cat" placeholder="e.g. Fire Safety, Electrical…"></div>'
+  h+='</div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">Week Of</label><input class="fi" type="date" id="st-week" value="'+new Date().toISOString().split('T')[0]+'"></div>'
+  h+='<div class="fg"><label class="fl">Video URL</label><input class="fi" id="st-video" placeholder="https://youtube.com/…"></div>'
+  h+='</div>'
+  h+='<div class="fg"><label class="fl">Content / Training Material *</label><textarea class="ft" id="st-content" style="min-height:160px" placeholder="Enter the full safety training content here. Employees will read this before acknowledging."></textarea></div>'
+  modal('New Safety Topic', h, async function(){
+    var title=(document.getElementById('st-title').value||'').trim()
+    var content=(document.getElementById('st-content').value||'').trim()
+    if(!title){toast('Title is required','error');return}
+    if(!content){toast('Content is required','error');return}
+    var data={
+      id:uuid(),
+      title:title,
+      category:document.getElementById('st-cat').value||'General',
+      week_of:document.getElementById('st-week').value||null,
+      video_url:document.getElementById('st-video').value||null,
+      content:content,
+      created_by:(ME&&ME.full_name)||'Admin',
+      created_at:new Date().toISOString()
+    }
+    var res=await sb.from('safety_topics').insert(data)
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();toast('Safety topic created');pgSafety()
+  },'Create Topic')
+}
 async function exportSafetyCSV(){
   const[{data:topics},{data:acks},{data:assigns}]=await Promise.all([
     sb.from('safety_topics').select('*').order('week_of',{ascending:false}),
