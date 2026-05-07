@@ -2845,7 +2845,7 @@ async function importOrderPartsExcel(input){
     if(!part)part=(allCatalog||[]).find(function(p){return p.name.toLowerCase().includes(partRaw.toLowerCase())})
     preview.push({job,part,partRaw,qty,notes})
   })
-  if(errors.length)toast(errors.length+' rows could not be matched:\n'+errors.slice(0,5).join('\n'),'warn')
+  if(errors.length)toast(errors.length+' rows could not be matched — check console','warn')
   if(!preview.length){toast('No valid rows to import','error');return}
   // Show preview modal
   var h='<div style="font-size:12px;color:#8a96ab;margin-bottom:10px">'+preview.length+' parts ready to import as order requests'+( errors.length?' ('+errors.length+' skipped)':'')+'</div>'
@@ -3164,13 +3164,13 @@ async function deleteSafetyTopic(id){
   if(res.error){toast(res.error.message,'error');return}
   toast('Safety topic deleted','warn');pgSafety()
 }
-async async function ackSafetyFromDash(topicId){
+async function ackSafetyFromDash(topicId){
   if(!ME||!ME.id){toast('Not logged in','error');return}
   var res=await sb.from('safety_acks').upsert({id:uuid(),topic_id:topicId,profile_id:ME.id,acknowledged_at:new Date().toISOString()},{onConflict:'topic_id,profile_id',ignoreDuplicates:true})
   if(res.error){toast(res.error.message,'error');return}
   toast('✓ Safety topic acknowledged');pgDash()
 }
-function exportSafetyCSV(){
+async function exportSafetyCSV(){
   const[{data:topics},{data:acks},{data:assigns}]=await Promise.all([
     sb.from('safety_topics').select('*').order('week_of',{ascending:false}),
     sb.from('safety_acks').select('*,profiles:profile_id(full_name,role,companies(name))'),
