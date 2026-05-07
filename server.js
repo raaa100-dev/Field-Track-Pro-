@@ -2778,20 +2778,20 @@ function renderJobPartsOrdersList(parts, jobs){
   el.innerHTML=html
 }
 function downloadOrderPartsTemplate(){
-  var headers=[['Job Name / Job ID *','Barcode / Part Name *','Qty *','Notes / PO #']]
+  var headers=[['Job ID *','Barcode / Part Name *','Qty *','Notes / PO #']]
   var examples=[
-    ['[2025-001] Fire Alarm Install','1234567890123','10','PO-8821'],
-    ['[2025-001] Fire Alarm Install','Smoke Detector - Addressable','5',''],
-    ['[2025-002] Suppression System','9876543210987','3','Rush order'],
-    ['Kettle Heroes','Horn/Strobe - Red','8',''],
+    ['2025-001','1234567890123',10,'PO-8821'],
+    ['2025-001','Smoke Detector - Addressable',5,''],
+    ['2025-002','9876543210987',3,'Rush order'],
+    ['2604.KETTLEHEROES.A','Horn/Strobe - Red',8,''],
   ]
   var ws=XLSX.utils.aoa_to_sheet(headers.concat(examples))
-  ws['!cols']=[{wch:35},{wch:30},{wch:8},{wch:20}]
+  ws['!cols']=[{wch:22},{wch:30},{wch:8},{wch:20}]
   var wb=XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb,ws,'Order')
   // Notes sheet
   var notes=[['Field','Required?','Notes'],
-    ['Job Name / Job ID','YES','Enter the job name or job ID (e.g. [2025-001]). Must match an existing job.'],
+    ['Job ID','YES','Enter the Job ID number (e.g. 2025-001 or 2604.KETTLEHEROES.A). Must match exactly what is in the system.'],
     ['Barcode / Part Name','YES','Enter the part barcode OR part name. Must match catalog.'],
     ['Qty','YES','Number of units to order.'],
     ['Notes / PO #','No','Optional PO number or notes for this line.']]
@@ -2828,13 +2828,17 @@ async function importOrderPartsExcel(input){
   var imported=0,errors=[]
   var preview=[]
   rows.forEach(function(r,idx){
-    var jobRaw=(r['Job Name / Job ID *']||r['Job Name / Job ID']||r['Job']||'').toString().trim()
+    var jobRaw=(r['Job ID *']||r['Job ID']||r['Job Name / Job ID *']||r['Job Name / Job ID']||r['Job']||'').toString().trim()
     var partRaw=(r['Barcode / Part Name *']||r['Barcode / Part Name']||r['Part']||'').toString().trim()
     var qty=parseInt(r['Qty *']||r['Qty']||r['qty']||1)||1
     var notes=(r['Notes / PO #']||r['Notes']||'').toString().trim()
     if(!jobRaw||!partRaw){errors.push('Row '+(idx+2)+': missing job or part');return}
     // Match job
-    var jnMatch=jobRaw.match(/\[([^\]]+)\]/)
+    var job=jobByNum[jobRaw.toLowerCase()]
+    if(!job)job=jobs.find(function(j){return (j.job_number||'').toLowerCase()===jobRaw.toLowerCase()})
+    if(!job)job=jobs.find(function(j){return (j.job_number||'').toLowerCase().includes(jobRaw.toLowerCase())})
+    if(!job)job=jobByName[jobRaw.toLowerCase()]
+    if(!job)job=jobs.find(function(j){return j.name.toLowerCase().includes(jobRaw.toLowerCase())})
     var job=null
     if(jnMatch)job=jobByNum[jnMatch[1].toLowerCase()]
     if(!job)job=jobByName[jobRaw.toLowerCase()]
