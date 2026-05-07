@@ -1498,7 +1498,7 @@ async function openJobWalk(walkId){
   \${walk.action_items?\`<div style="margin-bottom:10px"><div style="font-size:10px;color:#414e63;margin-bottom:3px">ACTION ITEMS</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap">\${walk.action_items}</div></div>\`:''}
   <div class="sec-hdr">Plans & Markup</div>
   \${(plans||[]).length?(plans||[]).map(p=>\`<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div>📄</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${p.file_name}</div></div><button class="btn btn-sm" onclick="openPlanMarkup('\${p.id}','\${p.url}','\${p.file_name}',()=>openJobWalk('\${walk.id}'))">✏ Markup</button><a href="\${p.url}" target="_blank" class="btn btn-sm">View</a></div>\`).join(''):'<div style="font-size:12px;color:#414e63;margin-bottom:8px">No plans uploaded</div>'}
-  <label class="btn btn-sm btn-p" style="cursor:pointer;margin-top:6px">+ Upload Plan<input type="file" style="display:none" accept=".pdf,.png,.jpg,.jpeg" onchange="uploadWalkPlan(this.files,'\${walkId}')"></label>\`,
+  <label class="btn btn-sm btn-p" style="cursor:pointer;margin-top:6px">+ Upload Plan<input type="file" style="display:none" accept=".pdf,.png,.jpg,.jpeg" onchange="uploadWalkPlan(this.files,window._openWalkId)"></label>\`,
   ()=>closeModal(),'Close',false)
   var footBtns='<button class="btn" onclick="closeModal()">Close</button>'
   if(canEdit&&walk.status!=='complete'){
@@ -1647,7 +1647,7 @@ async function uploadWalkPlan(files,walkId){
   for(const f of files){
     const path=\`walks/\${walkId}/plans/\${Date.now()}_\${f.name}\`
     const{error,data}=await sb.storage.from('documents').upload(path,f,{upsert:true})
-    if(!error){const{data:{publicUrl}}=sb.storage.from('documents').getPublicUrl(path);await sb.from('job_walk_plans').insert({id:uuid(),job_walk_id:walkId,job_id:currentJobId,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],legend:[]},created_at:new Date().toISOString()})}
+    if(!error){const{data:{publicUrl}}=sb.storage.from('documents').getPublicUrl(path);await sb.from('job_walk_plans').insert({id:uuid(),job_walk_id:walkId,job_id:null,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],legend:[]},created_at:new Date().toISOString()})}
   }
   toast('Plan uploaded');openJobWalk(walkId)
 }
