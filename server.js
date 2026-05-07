@@ -3305,6 +3305,39 @@ async function ackSafetyFromDash(topicId){
   if(res.error){toast(res.error.message,'error');return}
   toast('✓ Safety topic acknowledged');pgDash()
 }
+function stSetPdfStatus(msg, color, url){
+  var el=document.getElementById('st-pdf-status')
+  var drop=document.getElementById('st-pdf-drop')
+  var hidden=document.getElementById('st-pdf')
+  if(!el)return
+  el.style.display='block'
+  el.style.color=color||'#60a5fa'
+  el.innerHTML=msg
+  if(url&&hidden)hidden.value=url
+  if(url&&drop){
+    drop.style.borderColor='#16a34a'
+    drop.innerHTML='<div style="font-size:20px">✅</div><div style="color:#16a34a;font-size:12px">PDF uploaded — click to replace</div>'
+    +'<input type="file" id="st-pdf-file" accept=".pdf" style="display:none" onchange="stHandlePdfFile(this.files[0])">'
+  }
+}
+async function stHandlePdfFile(file){
+  if(!file)return
+  if(file.type!=='application/pdf'&&!file.name.endsWith('.pdf')){stSetPdfStatus('Only PDF files are supported','#dc2626');return}
+  stSetPdfStatus('Uploading…','#d97706')
+  try{
+    var result=await uploadToCloudinary(file,'safety-docs')
+    stSetPdfStatus('✓ '+file.name+' uploaded','#16a34a',result.url)
+  }catch(e){
+    stSetPdfStatus('Upload failed: '+e.message,'#dc2626')
+  }
+}
+function stHandlePdfDrop(event){
+  event.preventDefault()
+  var drop=document.getElementById('st-pdf-drop')
+  if(drop)drop.style.borderColor='rgba(255,255,255,.15)'
+  var file=event.dataTransfer.files[0]
+  if(file)stHandlePdfFile(file)
+}
 async function newSafetyTopicModal(){
   var h='<div class="two">'
   h+='<div class="fg"><label class="fl">Title *</label><input class="fi" id="st-title" placeholder="e.g. Fire Extinguisher Safety"></div>'
@@ -3314,8 +3347,19 @@ async function newSafetyTopicModal(){
   h+='<div class="fg"><label class="fl">Week Of</label><input class="fi" type="date" id="st-week" value="'+new Date().toISOString().split('T')[0]+'"></div>'
   h+='<div class="fg"><label class="fl">Video URL</label><input class="fi" id="st-video" placeholder="https://youtube.com/…"></div>'
   h+='</div>'
-  h+='<div class="fg"><label class="fl">PDF Document URL <span style="font-size:10px;color:#414e63">(optional — employees must open it before acknowledging)</span></label>'
-  h+='<input class="fi" id="st-pdf" placeholder="https://… or upload to Cloudinary and paste link"></div>'
+  h+='<div class="fg"><label class="fl">PDF Document <span style="font-size:10px;color:#414e63">(optional — employees must open it before acknowledging)</span></label>'
+  h+='<div id="st-pdf-drop" onclick="document.getElementById(\'st-pdf-file\').click()" style="border:2px dashed rgba(255,255,255,.15);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:.2s;color:#8a96ab;font-size:13px" '
+  +'ondragover="event.preventDefault();this.style.borderColor=\'#2563eb\'" '
+  +'ondragleave="this.style.borderColor=\'rgba(255,255,255,.15)\'" '
+  +'ondrop="stHandlePdfDrop(event)">'
+  +'<div style="font-size:28px;margin-bottom:6px">📄</div>'
+  +'<div>Drop PDF here or <span style="color:#60a5fa">click to browse</span></div>'
+  +'<div style="font-size:11px;margin-top:4px">PDF files only</div>'
+  +'<input type="file" id="st-pdf-file" accept=".pdf" style="display:none" onchange="stHandlePdfFile(this.files[0])">'
+  +'</div>'
+  +'<div id="st-pdf-status" style="font-size:12px;margin-top:6px;display:none"></div>'
+  +'<input type="hidden" id="st-pdf">'
+  +'</div>'
   h+='<div class="fg"><label class="fl">Content / Training Material *</label><textarea class="ft" id="st-content" style="min-height:160px" placeholder="Enter the full safety training content here. Employees will read this before acknowledging."></textarea></div>'
   modal('New Safety Topic', h, async function(){
     var title=(document.getElementById('st-title').value||'').trim()
