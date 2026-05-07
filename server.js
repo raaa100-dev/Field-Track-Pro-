@@ -1495,11 +1495,16 @@ async function openJobWalk(walkId){
   <label class="btn btn-sm btn-p" style="cursor:pointer;margin-top:6px">+ Upload Plan<input type="file" style="display:none" accept=".pdf,.png,.jpg,.jpeg" onchange="uploadWalkPlan(this.files,'\${walkId}')"></label>\`,
   ()=>closeModal(),'Close',false)
   var footBtns='<button class="btn" onclick="closeModal()">Close</button>'
-  if(canEdit&&walk.status!=='complete')footBtns+='<button class="btn btn-p" onclick="markWalkComplete(\''+walkId+'\')" style="background:#16a34a">✓ Mark Complete</button>'
+  if(canEdit&&walk.status!=='complete'){
+    window._curWalkId=walkId
+    footBtns+='<button class="btn btn-p" onclick="walkComplete()" style="background:#16a34a">\u2713 Mark Complete</button>'
+  }
+
   document.getElementById('modal-footer').innerHTML=footBtns
 }
 
 // MARKUP PAGE
+function walkComplete(id){markWalkComplete(id||window._curWalkId)}
 async function markWalkComplete(walkId){
   var res=await sb.from('job_walks').update({status:'complete',completed_at:new Date().toISOString()}).eq('id',walkId).select().single()
   if(res.error){toast(res.error.message,'error');return}
@@ -6916,7 +6921,7 @@ function buildMyWalksDashWidget(walks, jobMap){
   return'<div class="card">'
   +'<div class="card-title" style="margin-bottom:8px">🚶 My Job Walks</div>'
   +rows
-  +'<button class="btn btn-sm" style="margin-top:8px;width:100%" onclick="navTo(\'jobwalks\',null)">View All Job Walks →</button>'
+  +'<button class="btn btn-sm" style="margin-top:8px;width:100%" onclick="navTo(&quot;jobwalks&quot;,null)">View All Job Walks →</button>'
   +'</div>'
 }
 function buildMyTasksDashWidget(tasks){
