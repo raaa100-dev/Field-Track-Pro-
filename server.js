@@ -487,6 +487,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
     <div class="nav-item" onclick="pgJobMap()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 3l4 1.5L9 3l6 2v8l-6-2-4 1.5L1 11V3z"/><path d="M5 4.5v9M9 3v9"/></svg>Job Map</div>
     <div class="nav-section">Daily Ops</div>
     <div class="nav-item" onclick="P('tasks',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 8l2 2 4-4"/></svg>Tasks<span id="tasks-badge" style="display:none;margin-left:auto;background:#dc2626;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;line-height:1.4"></span></div>
+    <div class="nav-item" onclick="P('my_training',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3z"/><path d="M5 3V1.5M11 3V1.5M2 6h12"/></svg>My Training<span id="training-badge" style="display:none;background:#dc2626;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:auto"></span></div>
     <div class="nav-item" onclick="P('daily',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v10H3z"/><path d="M3 7h10M7 3v10"/></svg>Daily Reports</div>
     <div class="nav-item" onclick="P('jobwalks',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13L8 3l6 10H2z"/><path d="M8 8v3M8 12.5v.5"/></svg>Job Walks</div>
     <div class="nav-item" onclick="P('punch',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M3 4h10M3 12h7"/></svg>Punch List</div>
@@ -648,7 +649,7 @@ async function deleteJobConfirm(){
 function doSignOut(){sb.auth.signOut().then(function(){location.href='index.html?signout=1'})}
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const PAGE_TITLES={tasks:'Tasks',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
+const PAGE_TITLES={tasks:'Tasks',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
 function P(page,navEl){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
   if(navEl)navEl.classList.add('active')
@@ -656,7 +657,7 @@ function P(page,navEl){
   document.getElementById('topbar-actions').innerHTML=''
   const a=document.getElementById('page-area')
   a.innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
-  const map={dashboard:pgDash,jobs:pgJobs,tasks:pgTasks,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications}
+  const map={dashboard:pgDash,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications}
   if(map[page])map[page]()
   else a.innerHTML='<div class="empty">Coming soon</div>'
 }
@@ -791,9 +792,8 @@ async function pgDash(){
     <div>
       \${buildMyTasksDashWidget(myTasks)}
       <div class="card">
-        <div class="card-title">🔔 Safety Pending</div>
-        \${(safety||[]).length?(safety||[]).map(s=>\`<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px"><div style="font-weight:500">\${s.safety_topics?.title||'Topic'}</div><div style="color:#414e63;margin-top:1px">\${s.assigned_name} · Week of \${fd(s.safety_topics?.week_of)}</div></div>\`).join(''):'<div style="font-size:12px;color:#414e63">No pending safety reviews ✓</div>'}
-        <button class="btn btn-sm" style="margin-top:8px;width:100%;justify-content:center" onclick="P('safety',null)">Manage Safety →</button>
+        <div class="card-title">🎓 My Training<span id="dash-training-badge" style="display:none;background:#dc2626;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:8px;font-weight:400"></span></div>
+        \${pendingSafety.length?'<div style="font-size:11px;color:#8a96ab;margin-bottom:8px">'+(pendingSafety.length)+' topic(s) pending — click to read and acknowledge</div>'+(pendingSafety||[]).slice(0,3).map(function(s){return'<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">'+'<div><div style="font-size:12px;font-weight:500">'+(s.safety_topics?s.safety_topics.title:'Topic')+'</div>'+'<div style="font-size:10px;color:#414e63;margin-top:1px">Week of '+fd(s.safety_topics?s.safety_topics.week_of:null)+'</div></div>'+'<button class="btn btn-sm btn-p" style="flex-shrink:0;font-size:10px" onclick="P(\'my_training\',null)">Open →</button>'+'</div>'}).join('')+'<button class="btn btn-sm btn-p" style="margin-top:8px;width:100%" onclick="P(\'my_training\',null)">View All My Training →</button>':'<div style="font-size:12px;color:#16a34a;padding:8px 0">✓ All training complete!</div><button class="btn btn-sm" style="margin-top:6px;width:100%" onclick="P(\'my_training\',null)">View Training History</button>'}
       </div>
     </div>
   </div>\`
@@ -3167,6 +3167,106 @@ async function deleteSafetyTopic(id){
   var res=await sb.from('safety_topics').delete().eq('id',id)
   if(res.error){toast(res.error.message,'error');return}
   toast('Safety topic deleted','warn');pgSafety()
+}
+
+// ════════════════════════════════════════════════════════════════
+// MY TRAINING PAGE
+// ════════════════════════════════════════════════════════════════
+async function pgMyTraining(){
+  document.getElementById('topbar-actions').innerHTML=
+    '<button class="btn btn-sm" onclick="pgMyTraining()">↻ Refresh</button>'
+  if(!ME||!ME.id){document.getElementById('page-area').innerHTML=empty('🔒','Please log in');return}
+
+  var[assignRes,ackRes]=await Promise.all([
+    sb.from('safety_assignments').select('*,safety_topics(id,title,week_of,content,category,video_url,created_by)').eq('profile_id',ME.id).order('assigned_at',{ascending:false}),
+    sb.from('safety_acks').select('topic_id,acknowledged_at').eq('profile_id',ME.id)
+  ])
+  var assigns=assignRes.data||[]
+  var ackedIds=new Set((ackRes.data||[]).map(function(a){return a.topic_id}))
+  var ackDates={};(ackRes.data||[]).forEach(function(a){ackDates[a.topic_id]=a.acknowledged_at})
+
+  var pending=assigns.filter(function(a){return a.safety_topics&&!ackedIds.has(a.topic_id)})
+  var completed=assigns.filter(function(a){return a.safety_topics&&ackedIds.has(a.topic_id)})
+
+  // Update badge
+  var badge=document.getElementById('training-badge')
+  if(badge){if(pending.length){badge.textContent=pending.length;badge.style.display='inline'}else badge.style.display='none'}
+
+  var h='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
+  h+='<div class="stat"><div class="stat-label">Assigned</div><div class="stat-value">'+assigns.length+'</div></div>'
+  h+='<div class="stat" style="border-left:3px solid #dc2626"><div class="stat-label">Pending</div><div class="stat-value" style="color:#dc2626">'+pending.length+'</div></div>'
+  h+='<div class="stat" style="border-left:3px solid #16a34a"><div class="stat-label">Completed</div><div class="stat-value" style="color:#16a34a">'+completed.length+'</div></div>'
+  h+='</div>'
+
+  if(!assigns.length){
+    h+=empty('📋','No training assigned to you yet')
+    document.getElementById('page-area').innerHTML=h
+    return
+  }
+
+  // Pending section
+  if(pending.length){
+    h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#dc2626;margin-bottom:10px">⚠ Pending ('+pending.length+')</div>'
+    pending.forEach(function(a){
+      var t=a.safety_topics
+      h+=buildTrainingCard(t,a,false,null)
+    })
+  }
+
+  // Completed section
+  if(completed.length){
+    h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#16a34a;margin:16px 0 10px">✓ Completed ('+completed.length+')</div>'
+    completed.forEach(function(a){
+      var t=a.safety_topics
+      h+=buildTrainingCard(t,a,true,ackDates[t.id])
+    })
+  }
+
+  document.getElementById('page-area').innerHTML=h
+}
+
+function buildTrainingCard(t,a,isComplete,ackedAt){
+  var h='<div class="card" style="margin-bottom:12px;border-left:3px solid '+(isComplete?'#16a34a':'#dc2626')+'">'
+  h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'
+  h+='<div><div style="font-weight:700;font-size:14px">'+t.title+'</div>'
+  h+='<div style="font-size:11px;color:#414e63;margin-top:3px">'+(t.category||'Safety')+' · Week of '+fd(t.week_of)
+  if(a.due_date)h+=' · <span style="color:'+(new Date(a.due_date)<new Date()&&!isComplete?'#dc2626':'#8a96ab')+'">Due: '+fd(a.due_date)+'</span>'
+  h+='</div></div>'
+  if(isComplete)h+='<span class="badge bg-green" style="flex-shrink:0">✓ Done '+fd(ackedAt)+'</span>'
+  else h+='<span class="badge bg-red" style="flex-shrink:0">Pending</span>'
+  h+='</div>'
+  if(t.content){
+    h+='<div style="background:#060a10;border-radius:8px;padding:14px;margin-bottom:12px;font-size:13px;line-height:1.7;color:#c8d0dc;white-space:pre-wrap">'+t.content+'</div>'
+  }
+  if(t.video_url){
+    h+='<div style="margin-bottom:12px"><a href="'+t.video_url+'" target="_blank" class="btn btn-sm">▶ Watch Video</a></div>'
+  }
+  if(!isComplete){
+    h+='<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:8px;padding:12px;display:flex;align-items:center;gap:12px">'
+    h+='<input type="checkbox" id="ack-chk-'+t.id+'" style="width:18px;height:18px;cursor:pointer" onchange="document.getElementById(\'ack-btn-'+t.id+'\').disabled=!this.checked">'
+    h+='<label for="ack-chk-'+t.id+'" style="font-size:12px;cursor:pointer;flex:1">I have read and understood this safety training material</label>'
+    h+='<button class="btn btn-g btn-sm" id="ack-btn-'+t.id+'" disabled data-tid="'+t.id+'" onclick="ackTraining(this.dataset.tid)">✓ Acknowledge</button>'
+    h+='</div>'
+  }
+  h+='</div>'
+  return h
+}
+
+async function ackTraining(topicId){
+  if(!ME||!ME.id){toast('Not logged in','error');return}
+  var btn=document.getElementById('ack-btn-'+topicId)
+  if(btn){btn.disabled=true;btn.textContent='Saving...'}
+  var res=await sb.from('safety_acks').upsert({id:uuid(),topic_id:topicId,profile_id:ME.id,acknowledged_at:new Date().toISOString()},{onConflict:'topic_id,profile_id',ignoreDuplicates:true})
+  if(res.error){toast(res.error.message,'error');if(btn){btn.disabled=false;btn.textContent='✓ Acknowledge'}return}
+  toast('✓ Training acknowledged!')
+  pgMyTraining()
+}
+
+
+function openTrainingTopic(topicId){
+  // Navigate to My Training and scroll to topic
+  P('my_training', document.querySelector('.nav-item[onclick*="my_training"]'))
+  window._openTrainingTopicId=topicId
 }
 async function ackSafetyFromDash(topicId){
   if(!ME||!ME.id){toast('Not logged in','error');return}
