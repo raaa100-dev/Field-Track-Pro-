@@ -725,12 +725,13 @@ async function pgDash(){
   const {data:low} = await sb.from('inventory').select('id,name,qty,min_qty').gt('min_qty',0)
   // Fetch assigned job walks for current user
   var meId=ME&&ME.id?ME.id:null
-  const {data:myWalks} = meId ? await sb.from('job_walks')
-    .select('id,walk_date,status,job_id')
-    .eq('assigned_to', meId)
-    .neq('status','complete')
-    .order('walk_date',{ascending:true})
-    .limit(5) : {data:[]}
+  var myWalks=[]
+  try{
+    if(meId){
+      var wRes=await sb.from('job_walks').select('id,walk_date,status,job_id').eq('assigned_to',meId).neq('status','complete').order('walk_date',{ascending:true}).limit(5)
+      myWalks=wRes.data||[]
+    }
+  }catch(e){myWalks=[]}
   // Fetch safety assignments pending for current user
   const {data:safety} = await sb.from('safety_assignments')
     .select('*,safety_topics(id,title,week_of,content)')
