@@ -3305,6 +3305,10 @@ async function ackSafetyFromDash(topicId){
   if(res.error){toast(res.error.message,'error');return}
   toast('✓ Safety topic acknowledged');pgDash()
 }
+function stPdfDropClick(){
+  var f=document.getElementById('st-pdf-file')
+  if(f)f.click()
+}
 function stSetPdfStatus(msg, color, url){
   var el=document.getElementById('st-pdf-status')
   var drop=document.getElementById('st-pdf-drop')
@@ -3318,6 +3322,7 @@ function stSetPdfStatus(msg, color, url){
     drop.style.borderColor='#16a34a'
     drop.innerHTML='<div style="font-size:20px">✅</div><div style="color:#16a34a;font-size:12px">PDF uploaded — click to replace</div>'
     +'<input type="file" id="st-pdf-file" accept=".pdf" style="display:none" onchange="stHandlePdfFile(this.files[0])">'
+    drop.onclick=function(){document.getElementById('st-pdf-file')&&document.getElementById('st-pdf-file').click()}
   }
 }
 async function stHandlePdfFile(file){
@@ -3348,9 +3353,9 @@ async function newSafetyTopicModal(){
   h+='<div class="fg"><label class="fl">Video URL</label><input class="fi" id="st-video" placeholder="https://youtube.com/…"></div>'
   h+='</div>'
   h+='<div class="fg"><label class="fl">PDF Document <span style="font-size:10px;color:#414e63">(optional — employees must open it before acknowledging)</span></label>'
-  h+='<div id="st-pdf-drop" onclick="document.getElementById(\'st-pdf-file\').click()" style="border:2px dashed rgba(255,255,255,.15);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:.2s;color:#8a96ab;font-size:13px" '
-  +'ondragover="event.preventDefault();this.style.borderColor=\'#2563eb\'" '
-  +'ondragleave="this.style.borderColor=\'rgba(255,255,255,.15)\'" '
+  h+='<div id="st-pdf-drop" onclick="stPdfDropClick()" style="border:2px dashed rgba(255,255,255,.15);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:.2s;color:#8a96ab;font-size:13px" '
+  +'ondragover="event.preventDefault();this.style.borderColor=&quot;#2563eb&quot;" '
+  +'ondragleave="this.style.borderColor=&quot;rgba(255,255,255,.15)&quot;" '
   +'ondrop="stHandlePdfDrop(event)">'
   +'<div style="font-size:28px;margin-bottom:6px">📄</div>'
   +'<div>Drop PDF here or <span style="color:#60a5fa">click to browse</span></div>'
