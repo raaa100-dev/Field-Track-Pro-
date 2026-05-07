@@ -1498,9 +1498,10 @@ async function openJobWalk(walkId){
   \${walk.action_items?\`<div style="margin-bottom:10px"><div style="font-size:10px;color:#414e63;margin-bottom:3px">ACTION ITEMS</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap">\${walk.action_items}</div></div>\`:''}
   <div class="sec-hdr">Plans & Markup</div>
   \${(plans||[]).length?(plans||[]).map(p=>\`<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div>📄</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${p.file_name}</div></div><button class="btn btn-sm" onclick="openPlanMarkup('\${p.id}','\${p.url}','\${p.file_name}',()=>openJobWalk('\${walk.id}'))">✏ Markup</button><a href="\${p.url}" target="_blank" class="btn btn-sm">View</a></div>\`).join(''):'<div style="font-size:12px;color:#414e63;margin-bottom:8px">No plans uploaded</div>'}
-  <label class="btn btn-sm btn-p" style="cursor:pointer;margin-top:6px">+ Upload Plan<input type="file" style="display:none" accept=".pdf,.png,.jpg,.jpeg" onchange="uploadWalkPlan(this.files,window._openWalkId)"></label>\`,
+  \`,
   ()=>closeModal(),'Close',false)
   var footBtns='<button class="btn" onclick="closeModal()">Close</button>'
+  footBtns+='<label class="btn btn-sm btn-p" style="cursor:pointer">📄 Upload Plan<input type="file" style="display:none" accept=".pdf,.png,.jpg,.jpeg" onchange="uploadWalkPlan(this.files,window._openWalkId)"></label>'
   if(canEdit&&walk.status!=='complete'){
     window._curWalkId=walkId
     footBtns+='<button class="btn btn-p" onclick="walkComplete()" style="background:#16a34a">\u2713 Mark Complete</button>'
