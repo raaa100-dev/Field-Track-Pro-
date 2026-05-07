@@ -3448,17 +3448,17 @@ async function assignSafetyModal(topicId,topicTitle){
 }
 async function viewSafetyAcks(topicId){
   const[{data:acks},{data:assignments}]=await Promise.all([
-    sb.from('safety_acks').select('*').eq('topic_id',topicId).order('acknowledged_at',{ascending:false}),
-    sb.from('safety_assignments').select('*').eq('topic_id',topicId)
+    sb.from('safety_acks').select('*,profiles:profile_id(full_name)').eq('topic_id',topicId).order('acknowledged_at',{ascending:false}),
+    sb.from('safety_assignments').select('*,profiles:profile_id(full_name)').eq('topic_id',topicId)
   ])
-  const ackedIds=new Set((acks||[]).map(a=>a.user_name))
-  const pending=(assignments||[]).filter(a=>!ackedIds.has(a.assigned_name))
+  const ackedProfileIds=new Set((acks||[]).map(a=>a.profile_id))
+  const pending=(assignments||[]).filter(a=>!ackedProfileIds.has(a.profile_id))
   modal('Acknowledgements',\`
   <div class="two" style="margin-bottom:12px">
     <div style="background:rgba(22,163,74,.08);border-radius:7px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:300;color:#16a34a">\${(acks||[]).length}</div><div style="font-size:10px;color:#414e63">Acknowledged</div></div>
     <div style="background:rgba(217,119,6,.08);border-radius:7px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:300;color:#d97706">\${pending.length}</div><div style="font-size:10px;color:#414e63">Pending</div></div>
   </div>
-  \${(acks||[]).length?\`<div class="sec-hdr">Acknowledged</div>\${(acks||[]).map(a=>\`<div class="safety-ack-row"><span class="badge bg-green" style="flex-shrink:0">✓</span><div style="flex:1"><div style="font-size:12px;font-weight:500">\${a.user_name}</div><div style="font-size:10px;color:#414e63">\${fdt(a.acknowledged_at)}</div></div></div>\`).join('')}\`:''}
+  \${(acks||[]).length?\`<div class="sec-hdr">Acknowledged</div>\${(acks||[]).map(a=>\`<div class="safety-ack-row"><span class="badge bg-green" style="flex-shrink:0">✓</span><div style="flex:1"><div style="font-size:12px;font-weight:500">\${a.profiles?.full_name||a.user_name||'Unknown'}</div><div style="font-size:10px;color:#414e63">\${fdt(a.acknowledged_at)}</div></div></div>\`).join('')}\`:''}
   \${pending.length?\`<div class="sec-hdr" style="margin-top:10px">Pending Review</div>\${pending.map(a=>\`<div class="safety-ack-row"><span class="badge bg-amber" style="flex-shrink:0">⏳</span><div style="flex:1"><div style="font-size:12px;font-weight:500">\${a.assigned_name}</div><div style="font-size:10px;color:#414e63">Assigned \${fd(a.assigned_at)}\${a.due_date?' · Due '+fd(a.due_date):''}</div></div></div>\`).join('')}\`:''}\`,
   ()=>closeModal(),'Close',false)
   document.getElementById('modal-footer').innerHTML='<button class="btn" onclick="closeModal()">Close</button>'
