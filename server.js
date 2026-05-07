@@ -1502,7 +1502,7 @@ async function openJobWalk(walkId){
   \`,
   ()=>closeModal(),'Close',false)
   var footBtns='<button class="btn" onclick="closeModal()">Close</button>'
-  footBtns+='<button class="btn btn-sm btn-p" onclick="document.getElementById(\'walk-plan-file\').click()">📄 Upload Plan</button>'
+  footBtns+='<button class="btn btn-sm btn-p" onclick="triggerWalkPlanUpload()">📄 Upload Plan</button>'
   if(canEdit&&walk.status!=='complete'){
     window._curWalkId=walkId
     footBtns+='<button class="btn btn-p" onclick="walkComplete()" style="background:#16a34a">\u2713 Mark Complete</button>'
@@ -1512,6 +1512,10 @@ async function openJobWalk(walkId){
 }
 
 // MARKUP PAGE
+function triggerWalkPlanUpload(){
+  var f=document.getElementById('walk-plan-file')
+  if(f)f.click()
+}
 function walkComplete(id){markWalkComplete(id||window._curWalkId)}
 async function markWalkComplete(walkId){
   var res=await sb.from('job_walks').update({status:'complete',completed_at:new Date().toISOString()}).eq('id',walkId).select().single()
