@@ -1650,12 +1650,22 @@ async function downloadMarkup(){
   const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='plan-markup-'+new Date().toISOString().split('T')[0]+'.png';a.click();toast('Downloading…')
 }
 async function uploadWalkPlan(files,walkId){
-  for(const f of files){
-    const path=\`walks/\${walkId}/plans/\${Date.now()}_\${f.name}\`
-    const{error,data}=await sb.storage.from('documents').upload(path,f,{upsert:true})
-    if(!error){const{data:{publicUrl}}=sb.storage.from('documents').getPublicUrl(path);await sb.from('job_walk_plans').insert({id:uuid(),job_walk_id:walkId,job_id:null,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],legend:[]},created_at:new Date().toISOString()})}
+  if(!walkId){toast('No walk selected','error');return}
+  if(!files||!files.length){toast('No file selected','error');return}
+  toast('Uploading...')
+  var uploaded=0
+  for(var i=0;i<files.length;i++){
+    var f=files[i]
+    var path='walks/'+walkId+'/plans/'+Date.now()+'_'+f.name.replace(/[^a-zA-Z0-9._-]/g,'_')
+    var upRes=await sb.storage.from('documents').upload(path,f,{upsert:true})
+    if(upRes.error){toast('Upload failed: '+upRes.error.message,'error');console.error('Upload error:',upRes.error);continue}
+    var pubRes=sb.storage.from('documents').getPublicUrl(path)
+    var publicUrl=pubRes.data.publicUrl
+    var insRes=await sb.from('job_walk_plans').insert({id:uuid(),job_walk_id:walkId,job_id:null,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],legend:[]},created_at:new Date().toISOString()})
+    if(insRes.error){toast('DB error: '+insRes.error.message,'error');continue}
+    uploaded++
   }
-  toast('Plan uploaded');openJobWalk(walkId)
+  if(uploaded>0){toast(uploaded+' plan(s) uploaded ✓');openJobWalk(walkId)}
 }
 
 // PHOTOS TAB
