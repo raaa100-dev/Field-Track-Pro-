@@ -1467,8 +1467,14 @@ async function renderJobWalksTab(el){
 
 async function openJobWalk(walkId){
   window._openWalkId=walkId
-  const{data:walk}=await sb.from('job_walks').select('*').eq('id',walkId).single()
-  const{data:plans}=await sb.from('job_walk_plans').select('*').eq('job_walk_id',walkId)
+  var walkRes=await sb.from('job_walks').select('id,job_id,walk_date,walked_by,attendees,scope_notes,measurements,issues_found,action_items,follow_up_date,status').eq('id',walkId).single()
+  var walk=walkRes.data
+  if(!walk){toast('Could not load job walk','error');return}
+  // Try to load extra columns gracefully
+  var extraRes=await sb.from('job_walks').select('assigned_to,assigned_name,panel_type,clip_mode,spare_booster_circuits,spare_booster_count,device_manufacturer,device_model').eq('id',walkId).single()
+  if(extraRes.data)Object.assign(walk,extraRes.data)
+  var plansRes=await sb.from('job_walk_plans').select('*').eq('job_walk_id',walkId)
+  var plans=plansRes.data||[]
   var isAssigned=walk.assigned_to===ME?.id
   var canEdit=ME&&(['admin','pm'].includes(ME.role)||isAssigned)
   modal('Job Walk — '+fd(walk.walk_date),\`
