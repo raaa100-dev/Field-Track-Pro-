@@ -3183,7 +3183,7 @@ async function pgMyTraining(){
   if(!ME||!ME.id){document.getElementById('page-area').innerHTML=empty('🔒','Please log in');return}
 
   var[assignRes,ackRes]=await Promise.all([
-    sb.from('safety_assignments').select('*,safety_topics(id,title,week_of,content,category,video_url,created_by)').eq('profile_id',ME.id).order('assigned_at',{ascending:false}),
+    sb.from('safety_assignments').select('*,safety_topics(id,title,week_of,content,category,video_url,pdf_url,created_by)').eq('profile_id',ME.id).order('assigned_at',{ascending:false}),
     sb.from('safety_acks').select('topic_id,acknowledged_at').eq('profile_id',ME.id)
   ])
   var assigns=assignRes.data||[]
@@ -3246,10 +3246,21 @@ function buildTrainingCard(t,a,isComplete,ackedAt){
   if(t.video_url){
     h+='<div style="margin-bottom:12px"><a href="'+t.video_url+'" target="_blank" class="btn btn-sm">▶ Watch Video</a></div>'
   }
+  if(t.pdf_url&&!isComplete){
+    h+='<div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.2);border-radius:8px;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:12px">'
+    h+='<span style="font-size:20px">📄</span>'
+    h+='<div style="flex:1"><div style="font-weight:500;font-size:13px">Training Document Required</div>'
+    h+='<div style="font-size:11px;color:#8a96ab;margin-top:2px">You must open and read the PDF before you can acknowledge.</div></div>'
+    h+='<a href="'+t.pdf_url+'" target="_blank" class="btn btn-sm btn-p" data-tid="'+t.id+'" onclick="markPdfOpened(this.dataset.tid)">📄 Open PDF</a>'
+    h+='</div>'
+  }
+  if(t.pdf_url&&isComplete){
+    h+='<div style="margin-bottom:12px"><a href="'+t.pdf_url+'" target="_blank" class="btn btn-sm btn-ghost">📄 View PDF</a></div>'
+  }
   if(!isComplete){
     h+='<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:8px;padding:12px;display:flex;align-items:center;gap:12px">'
-    h+='<input type="checkbox" id="ack-chk-'+t.id+'" style="width:18px;height:18px;cursor:pointer" data-tid='+t.id+' onchange="toggleAckBtn(this)">'
-    h+='<label for="ack-chk-'+t.id+'" style="font-size:12px;cursor:pointer;flex:1">I have read and understood this safety training material</label>'
+    h+='<input type="checkbox" id="ack-chk-'+t.id+'" style="width:18px;height:18px;cursor:pointer" data-tid="'+t.id+'" '+(t.pdf_url?'disabled id2="ack-pdf-gate-'+t.id+'" title="Open the PDF first"':'')+' onchange="toggleAckBtn(this)">'
+    h+='<label for="ack-chk-'+t.id+'" style="font-size:12px;cursor:pointer;flex:1">'+(t.pdf_url?'<span id="ack-pdf-label-'+t.id+'" style="color:#d97706">Open the PDF above before acknowledging</span>':'I have read and understood this safety training material')+'</label>'
     h+='<button class="btn btn-g btn-sm" id="ack-btn-'+t.id+'" disabled data-tid="'+t.id+'" onclick="ackTraining(this.dataset.tid)">✓ Acknowledge</button>'
     h+='</div>'
   }
@@ -3257,6 +3268,16 @@ function buildTrainingCard(t,a,isComplete,ackedAt){
   return h
 }
 
+function markPdfOpened(tid){
+  // Unlock the checkbox once PDF is opened
+  var chk=document.getElementById('ack-chk-'+tid)
+  if(chk){
+    chk.disabled=false
+    chk.title=''
+  }
+  var lbl=document.getElementById('ack-pdf-label-'+tid)
+  if(lbl)lbl.innerHTML='I have read and understood this safety training material'
+}
 function toggleAckBtn(cb){
   var tid=cb.getAttribute('data-tid')
   var btn=document.getElementById('ack-btn-'+tid)
@@ -3293,19 +3314,23 @@ async function newSafetyTopicModal(){
   h+='<div class="fg"><label class="fl">Week Of</label><input class="fi" type="date" id="st-week" value="'+new Date().toISOString().split('T')[0]+'"></div>'
   h+='<div class="fg"><label class="fl">Video URL</label><input class="fi" id="st-video" placeholder="https://youtube.com/…"></div>'
   h+='</div>'
+  h+='<div class="fg"><label class="fl">PDF Document URL <span style="font-size:10px;color:#414e63">(optional — employees must open it before acknowledging)</span></label>'
+  h+='<input class="fi" id="st-pdf" placeholder="https://… or upload to Cloudinary and paste link"></div>'
   h+='<div class="fg"><label class="fl">Content / Training Material *</label><textarea class="ft" id="st-content" style="min-height:160px" placeholder="Enter the full safety training content here. Employees will read this before acknowledging."></textarea></div>'
   modal('New Safety Topic', h, async function(){
     var title=(document.getElementById('st-title').value||'').trim()
     var content=(document.getElementById('st-content').value||'').trim()
     if(!title){toast('Title is required','error');return}
-    if(!content){toast('Content is required','error');return}
+    var pdfUrl=document.getElementById('st-pdf').value||''
+    if(!content&&!pdfUrl){toast('Either content or a PDF is required','error');return}
     var data={
       id:uuid(),
       title:title,
       category:document.getElementById('st-cat').value||'General',
       week_of:document.getElementById('st-week').value||null,
       video_url:document.getElementById('st-video').value||null,
-      content:content,
+      pdf_url:pdfUrl||null,
+      content:content||null,
       created_by:(ME&&ME.full_name)||'Admin',
       created_at:new Date().toISOString()
     }
