@@ -3330,8 +3330,14 @@ async function stHandlePdfFile(file){
   if(file.type!=='application/pdf'&&!file.name.endsWith('.pdf')){stSetPdfStatus('Only PDF files are supported','#dc2626');return}
   stSetPdfStatus('Uploading…','#d97706')
   try{
-    var result=await uploadToCloudinary(file,'safety-docs')
-    stSetPdfStatus('✓ '+file.name+' uploaded','#16a34a',result.url)
+    var fd=new FormData()
+    fd.append('file',file)
+    fd.append('upload_preset','btgbch6a')
+    fd.append('folder','safety-docs')
+    var r=await fetch('https://api.cloudinary.com/v1_1/disyczlam/auto/upload',{method:'POST',body:fd})
+    if(!r.ok)throw new Error('Upload failed')
+    var d=await r.json()
+    stSetPdfStatus('✓ '+file.name+' uploaded','#16a34a',d.secure_url)
   }catch(e){
     stSetPdfStatus('Upload failed: '+e.message,'#dc2626')
   }
