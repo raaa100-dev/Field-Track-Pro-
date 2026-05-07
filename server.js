@@ -3248,7 +3248,7 @@ function buildTrainingCard(t,a,isComplete,ackedAt){
   }
   if(!isComplete){
     h+='<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:8px;padding:12px;display:flex;align-items:center;gap:12px">'
-    h+='<input type="checkbox" id="ack-chk-'+t.id+'" style="width:18px;height:18px;cursor:pointer" onchange="document.getElementById(\'ack-btn-'+t.id+'\').disabled=!this.checked">'
+    h+='<input type="checkbox" id="ack-chk-'+t.id+'" style="width:18px;height:18px;cursor:pointer" data-tid='+t.id+' onchange="toggleAckBtn(this)">'
     h+='<label for="ack-chk-'+t.id+'" style="font-size:12px;cursor:pointer;flex:1">I have read and understood this safety training material</label>'
     h+='<button class="btn btn-g btn-sm" id="ack-btn-'+t.id+'" disabled data-tid="'+t.id+'" onclick="ackTraining(this.dataset.tid)">✓ Acknowledge</button>'
     h+='</div>'
@@ -3257,6 +3257,11 @@ function buildTrainingCard(t,a,isComplete,ackedAt){
   return h
 }
 
+function toggleAckBtn(cb){
+  var tid=cb.getAttribute('data-tid')
+  var btn=document.getElementById('ack-btn-'+tid)
+  if(btn)btn.disabled=!cb.checked
+}
 async function ackTraining(topicId){
   if(!ME||!ME.id){toast('Not logged in','error');return}
   var btn=document.getElementById('ack-btn-'+topicId)
