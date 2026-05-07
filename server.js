@@ -726,7 +726,7 @@ async function pgDash(){
   // Fetch assigned job walks for current user
   var meId=ME&&ME.id?ME.id:null
   const {data:myWalks} = meId ? await sb.from('job_walks')
-    .select('id,walk_date,status,job_id,panel_type,device_manufacturer')
+    .select('id,walk_date,status,job_id')
     .eq('assigned_to', meId)
     .neq('status','complete')
     .order('walk_date',{ascending:true})
