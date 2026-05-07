@@ -1466,6 +1466,7 @@ async function renderJobWalksTab(el){
 }
 
 async function openJobWalk(walkId){
+  window._openWalkId=walkId
   const{data:walk}=await sb.from('job_walks').select('*').eq('id',walkId).single()
   const{data:plans}=await sb.from('job_walk_plans').select('*').eq('job_walk_id',walkId)
   var isAssigned=walk.assigned_to===ME?.id
@@ -1645,8 +1646,8 @@ async function downloadMarkup(){
 async function uploadWalkPlan(files,walkId){
   for(const f of files){
     const path=\`walks/\${walkId}/plans/\${Date.now()}_\${f.name}\`
-    const{error,data}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true})
-    if(!error){const{data:{publicUrl}}=sb.storage.from('fieldtrack-plans').getPublicUrl(path);await sb.from('job_walk_plans').insert({id:uuid(),job_walk_id:walkId,job_id:currentJobId,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],legend:[]},created_at:new Date().toISOString()})}
+    const{error,data}=await sb.storage.from('documents').upload(path,f,{upsert:true})
+    if(!error){const{data:{publicUrl}}=sb.storage.from('documents').getPublicUrl(path);await sb.from('job_walk_plans').insert({id:uuid(),job_walk_id:walkId,job_id:currentJobId,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],legend:[]},created_at:new Date().toISOString()})}
   }
   toast('Plan uploaded');openJobWalk(walkId)
 }
@@ -1849,7 +1850,7 @@ async function renderDocsTab(el){
   el.innerHTML=\`<label class="btn btn-p btn-sm" style="cursor:pointer;margin-bottom:12px">+ Upload Document<input type="file" style="display:none" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg" onchange="uploadJobDoc(this.files)"></label>
   \${(docs||[]).map(d=>\`<div class="doc-row"><div style="font-size:18px">\${d.file_name.endsWith('.pdf')?'📄':d.file_name.match(/\\.(png|jpg|jpeg)$/i)?'🖼':'📎'}</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${d.name}</div><div style="font-size:10px;color:#414e63">\${d.category||'General'} · \${d.uploaded_by||''} · \${fd(d.created_at)}</div></div><a href="\${d.url}" target="_blank" class="btn btn-sm">View</a></div>\`).join('')||empty('📁','No documents uploaded')}\` 
 }
-async function uploadJobDoc(files){for(const f of files){const path=\`jobs/\${currentJobId}/docs/\${Date.now()}_\${f.name}\`;const{error}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true});if(!error){const{data:{publicUrl}}=sb.storage.from('fieldtrack-plans').getPublicUrl(path);await sb.from('job_documents').insert({id:uuid(),job_id:currentJobId,name:f.name,file_name:f.name,category:'general',storage_path:path,url:publicUrl,uploaded_by:ME?.full_name,created_at:new Date().toISOString()})}};toast('Uploaded');loadJT('jt-docs')}
+async function uploadJobDoc(files){for(const f of files){const path=\`jobs/\${currentJobId}/docs/\${Date.now()}_\${f.name}\`;const{error}=await sb.storage.from('documents').upload(path,f,{upsert:true});if(!error){const{data:{publicUrl}}=sb.storage.from('documents').getPublicUrl(path);await sb.from('job_documents').insert({id:uuid(),job_id:currentJobId,name:f.name,file_name:f.name,category:'general',storage_path:path,url:publicUrl,uploaded_by:ME?.full_name,created_at:new Date().toISOString()})}};toast('Uploaded');loadJT('jt-docs')}
 
 // DAILY LOG TAB
 async function renderLogTab(el){
@@ -2322,23 +2323,26 @@ async function newWalkModal(jobIdOverride){
     var assignName=assignSel&&assignSel.selectedIndex>0?assignSel.options[assignSel.selectedIndex].getAttribute('data-name'):''
     var hasBooster=v('wk-booster')==='yes'
     var status=v('wk-status')
+    // Build insert - include new columns only if they exist (post-migration)
     var data={
       id:uuid(),job_id:jobId,walk_date:v('wk-date'),
       walked_by:assignName||(ME&&ME.full_name)||'',
-      assigned_to:assignId||null,assigned_name:assignName||null,
       attendees:v('wk-att'),scope_notes:v('wk-scope'),
       measurements:v('wk-meas'),issues_found:v('wk-iss'),
       action_items:v('wk-act'),follow_up_date:v('wk-fup')||null,
-      panel_type:v('wk-panel')||null,
-      clip_mode:v('wk-clip')==='yes',
-      spare_booster_circuits:hasBooster,
-      spare_booster_count:hasBooster?parseInt(v('wk-booster-count')||0):0,
-      device_manufacturer:v('wk-mfg')||null,
-      device_model:v('wk-model')||null,
       status:status,
-      completed_at:status==='complete'?new Date().toISOString():null,
       created_at:new Date().toISOString()
     }
+    // Add new columns if available
+    if(assignId)data.assigned_to=assignId
+    if(assignName)data.assigned_name=assignName
+    data.panel_type=v('wk-panel')||null
+    data.clip_mode=v('wk-clip')==='yes'
+    data.spare_booster_circuits=hasBooster
+    data.spare_booster_count=hasBooster?parseInt(v('wk-booster-count')||0):0
+    data.device_manufacturer=v('wk-mfg')||null
+    data.device_model=v('wk-model')||null
+    if(status==='complete')data.completed_at=new Date().toISOString()
     var res=await sb.from('job_walks').insert(data).select().single()
     if(res.error){toast(res.error.message,'error');return}
     // Notify admins if complete
@@ -3697,8 +3701,8 @@ async function uploadGlobalDoc(files){
     const jobId=v('ud-job')||null;const cat=v('ud-cat')
     for(const f of files){
       const path=\`documents/\${Date.now()}_\${f.name}\`
-      const{error}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true})
-      if(!error){const{data:{publicUrl}}=sb.storage.from('fieldtrack-plans').getPublicUrl(path);await sb.from('job_documents').insert({id:uuid(),job_id:jobId,name:f.name,file_name:f.name,category:cat,storage_path:path,url:publicUrl,uploaded_by:ME?.full_name,created_at:new Date().toISOString()})}
+      const{error}=await sb.storage.from('documents').upload(path,f,{upsert:true})
+      if(!error){const{data:{publicUrl}}=sb.storage.from('documents').getPublicUrl(path);await sb.from('job_documents').insert({id:uuid(),job_id:jobId,name:f.name,file_name:f.name,category:cat,storage_path:path,url:publicUrl,uploaded_by:ME?.full_name,created_at:new Date().toISOString()})}
     }
     closeModal();toast('Uploaded');pgDocuments()
   })
@@ -4503,9 +4507,9 @@ function delDrawing(btn){deleteJobPlan(btn.getAttribute('data-pid'),btn.getAttri
 async function uploadJobDrawing(files){
   for(const f of files){
     const path='jobs/'+currentJobId+'/drawings/'+Date.now()+'_'+f.name
-    const{error}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true})
+    const{error}=await sb.storage.from('documents').upload(path,f,{upsert:true})
     if(!error){
-      const{data:{publicUrl}}=sb.storage.from('fieldtrack-plans').getPublicUrl(path)
+      const{data:{publicUrl}}=sb.storage.from('documents').getPublicUrl(path)
       await sb.from('job_walk_plans').insert({id:uuid(),job_id:currentJobId,job_walk_id:null,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],lines:[],legend:[]},created_at:new Date().toISOString()})
     }
   }
@@ -4516,9 +4520,9 @@ async function uploadJobDrawing(files){
 async function uploadJobAsbuilt(files){
   for(const f of files){
     const path=\`jobs/\${currentJobId}/asbuilts/\${Date.now()}_\${f.name}\`
-    const{error}=await sb.storage.from('fieldtrack-plans').upload(path,f,{upsert:true})
+    const{error}=await sb.storage.from('documents').upload(path,f,{upsert:true})
     if(!error){
-      const{data:{publicUrl}}=sb.storage.from('fieldtrack-plans').getPublicUrl(path)
+      const{data:{publicUrl}}=sb.storage.from('documents').getPublicUrl(path)
       await sb.from('job_walk_plans').insert({id:uuid(),job_walk_id:null,job_id:currentJobId,file_name:f.name,storage_path:path,url:publicUrl,markup_json:{dots:[],textboxes:[],legend:[]},created_at:new Date().toISOString()})
     }
   }
@@ -4543,7 +4547,7 @@ async function renderAsbuiltsTab(el){
 }
 async function deleteJobPlan(planId,storagePath){
   if(!confirm('Delete this plan?'))return
-  if(storagePath)await sb.storage.from('fieldtrack-plans').remove([storagePath]).catch(()=>{})
+  if(storagePath)await sb.storage.from('documents').remove([storagePath]).catch(()=>{})
   await sb.from('job_walk_plans').delete().eq('id',planId)
   toast('Deleted');loadJT('jt-asbuilts')
 }
