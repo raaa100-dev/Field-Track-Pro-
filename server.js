@@ -723,6 +723,13 @@ async function pgDash(){
   const {data:parts} = await sb.from('job_parts').select('id,job_id,status,assigned_qty,ordered_qty,taken_qty,installed_qty')
   const {data:orders} = await sb.from('orders').select('id,status,job_id').order('created_at',{ascending:false})
   const {data:low} = await sb.from('inventory').select('id,name,qty,min_qty').gt('min_qty',0)
+  // Fetch assigned job walks for current user
+  const {data:myWalks} = await sb.from('job_walks')
+    .select('id,walk_date,status,job_id,panel_type,device_manufacturer')
+    .eq('assigned_to', ME&&ME.id||'00000000-0000-0000-0000-000000000000')
+    .neq('status','complete')
+    .order('walk_date',{ascending:true})
+    .limit(5)
   // Fetch safety assignments pending for current user
   const {data:safety} = await sb.from('safety_assignments')
     .select('*,safety_topics(id,title,week_of,content)')
@@ -746,6 +753,7 @@ async function pgDash(){
     ciWithNames=ciWithNames.map(c=>({...c,workerName:wMap[c.worker_id]||'?',jobName:jMap[c.job_id]||''}))
   }
   allJobs=jobs||[]
+  var _dashJobMap={};(jobs||[]).forEach(function(j){_dashJobMap[j.id]=j})
   const active=allJobs.filter(j=>j.phase!=='complete'&&!j.archived)
   const activeJobIds=new Set(active.map(j=>j.id))
   const allParts=(parts||[]).filter(p=>activeJobIds.has(p.job_id))
@@ -796,6 +804,7 @@ async function pgDash(){
     </div>
     <div>
       \${buildMyTasksDashWidget(myTasks)}
+      \${buildMyWalksDashWidget(myWalks||[],_dashJobMap||{})}
       <div class="card">
         <div class="card-title">🎓 My Training<span id="dash-training-badge" style="display:none;background:#dc2626;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:8px;font-weight:400"></span></div>
         \${pendingSafety.length?'<div style="font-size:11px;color:#8a96ab;margin-bottom:8px">'+(pendingSafety.length)+' topic(s) pending — click to read and acknowledge</div>'+(pendingSafety||[]).slice(0,3).map(function(s){return'<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">'+'<div><div style="font-size:12px;font-weight:500">'+(s.safety_topics?s.safety_topics.title:'Topic')+'</div>'+'<div style="font-size:10px;color:#414e63;margin-top:1px">Week of '+fd(s.safety_topics?s.safety_topics.week_of:null)+'</div></div>'+'<button class="btn btn-sm btn-p" style="flex-shrink:0;font-size:10px" onclick="navTo(&quot;my_training&quot;)">Open →</button>'+'</div>'}).join('')+'<button class="btn btn-sm btn-p" style="margin-top:8px;width:100%" onclick="navTo(&quot;my_training&quot;)">View All My Training →</button>':'<div style="font-size:12px;color:#16a34a;padding:8px 0">✓ All training complete!</div><button class="btn btn-sm" style="margin-top:6px;width:100%" onclick="navTo(&quot;my_training&quot;)">View Training History</button>'}
@@ -1454,11 +1463,30 @@ async function renderJobWalksTab(el){
 async function openJobWalk(walkId){
   const{data:walk}=await sb.from('job_walks').select('*').eq('id',walkId).single()
   const{data:plans}=await sb.from('job_walk_plans').select('*').eq('job_walk_id',walkId)
+  var isAssigned=walk.assigned_to===ME?.id
+  var canEdit=ME&&(['admin','pm'].includes(ME.role)||isAssigned)
   modal('Job Walk — '+fd(walk.walk_date),\`
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <span class="badge \${walk.status==='complete'?'bg-green':walk.status==='in_progress'?'bg-blue':'bg-amber'}">\${walk.status||'open'}</span>
+    \${walk.assigned_name?\`<span style="font-size:11px;color:#8a96ab">Assigned to: <strong>\${walk.assigned_name}</strong></span>\`:''}
+  </div>
   <div class="two" style="margin-bottom:12px">
     <div><div style="font-size:10px;color:#414e63">WALKED BY</div><div style="font-size:13px;font-weight:500;margin-top:2px">\${walk.walked_by||'—'}</div></div>
-    <div><div style="font-size:10px;color:#414e63">ATTENDEES</div><div style="font-size:13px;font-weight:500;margin-top:2px">\${walk.attendees||'—'}</div></div>
+    <div><div style="font-size:10px;color:#414e63">DATE</div><div style="font-size:13px;font-weight:500;margin-top:2px">\${fd(walk.walk_date)}</div></div>
   </div>
+  \${(walk.panel_type||walk.device_manufacturer)?\`
+  <div style="background:#060a10;border-radius:8px;padding:12px;margin-bottom:12px">
+    <div style="font-size:10px;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">🔌 System Info</div>
+    <div class="two">
+      \${walk.panel_type?\`<div><div style="font-size:10px;color:#414e63">PANEL TYPE</div><div style="font-size:12px;font-weight:500">\${walk.panel_type}</div></div>\`:''}
+      \${walk.device_manufacturer?\`<div><div style="font-size:10px;color:#414e63">MANUFACTURER</div><div style="font-size:12px;font-weight:500">\${walk.device_manufacturer}</div></div>\`:''}
+    </div>
+    \${walk.device_model?\`<div style="margin-top:6px"><div style="font-size:10px;color:#414e63">MODEL</div><div style="font-size:12px;font-weight:500">\${walk.device_model}</div></div>\`:''}
+    <div class="two" style="margin-top:8px">
+      <div><div style="font-size:10px;color:#414e63">CLIP MODE</div><div style="font-size:12px;font-weight:500\${walk.clip_mode?';color:#d97706':''}"}>\${walk.clip_mode?'Yes — Running Clip Mode':'No'}</div></div>
+      <div><div style="font-size:10px;color:#414e63">SPARE BOOSTER CIRCUITS</div><div style="font-size:12px;font-weight:500">\${walk.spare_booster_circuits?'Yes — '+walk.spare_booster_count+' circuit(s)':'No'}</div></div>
+    </div>
+  </div>\`:''}
   \${walk.scope_notes?\`<div style="margin-bottom:10px"><div style="font-size:10px;color:#414e63;margin-bottom:3px">SCOPE NOTES</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap">\${walk.scope_notes}</div></div>\`:''}
   \${walk.issues_found?\`<div style="margin-bottom:10px;background:rgba(220,38,38,.08);border-radius:7px;padding:9px 11px"><div style="font-size:10px;color:#dc2626;margin-bottom:3px">ISSUES FOUND</div><div style="font-size:12px;color:#dc2626;white-space:pre-wrap">\${walk.issues_found}</div></div>\`:''}
   \${walk.action_items?\`<div style="margin-bottom:10px"><div style="font-size:10px;color:#414e63;margin-bottom:3px">ACTION ITEMS</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap">\${walk.action_items}</div></div>\`:''}
@@ -1466,10 +1494,37 @@ async function openJobWalk(walkId){
   \${(plans||[]).length?(plans||[]).map(p=>\`<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div>📄</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${p.file_name}</div></div><button class="btn btn-sm" onclick="openPlanMarkup('\${p.id}','\${p.url}','\${p.file_name}',()=>openJobWalk('\${walk.id}'))">✏ Markup</button><a href="\${p.url}" target="_blank" class="btn btn-sm">View</a></div>\`).join(''):'<div style="font-size:12px;color:#414e63;margin-bottom:8px">No plans uploaded</div>'}
   <label class="btn btn-sm btn-p" style="cursor:pointer;margin-top:6px">+ Upload Plan<input type="file" style="display:none" accept=".pdf,.png,.jpg,.jpeg" onchange="uploadWalkPlan(this.files,'\${walkId}')"></label>\`,
   ()=>closeModal(),'Close',false)
-  document.getElementById('modal-footer').innerHTML='<button class="btn" onclick="closeModal()">Close</button>'
+  var footBtns='<button class="btn" onclick="closeModal()">Close</button>'
+  if(canEdit&&walk.status!=='complete')footBtns+='<button class="btn btn-p" onclick="markWalkComplete(\''+walkId+'\')" style="background:#16a34a">✓ Mark Complete</button>'
+  document.getElementById('modal-footer').innerHTML=footBtns
 }
 
 // MARKUP PAGE
+async function markWalkComplete(walkId){
+  var res=await sb.from('job_walks').update({status:'complete',completed_at:new Date().toISOString()}).eq('id',walkId).select().single()
+  if(res.error){toast(res.error.message,'error');return}
+  closeModal();toast('Job walk marked complete ✓')
+  notifyAdminsWalkComplete(res.data)
+  pgJobWalks()
+}
+async function notifyAdminsWalkComplete(walk){
+  // Create a task notification for all admins/PMs
+  var{data:admins}=await sb.from('profiles').select('id,full_name').in('role',['admin','pm']).eq('is_active',true)
+  var jobName=walk.job_id||'Unknown Job'
+  var{data:job}=await sb.from('jobs').select('name,job_number').eq('id',walk.job_id).single()
+  if(job)jobName=(job.job_number?'['+job.job_number+'] ':'')+job.name
+  ;(admins||[]).forEach(async function(admin){
+    await sb.from('job_tasks').insert({
+      id:uuid(),
+      job_id:walk.job_id,job_name:jobName,
+      title:'Job Walk Completed: '+jobName,
+      description:'Job walk completed by '+(walk.walked_by||walk.assigned_name||'Unknown')+' on '+(new Date().toLocaleDateString()),
+      assigned_to:admin.id,assigned_name:admin.full_name,
+      priority:'medium',status:'open',source:'job_walk',
+      created_by:'System',created_at:new Date().toISOString()
+    })
+  })
+}
 async function openMarkup(planId,planUrl,walkId){
   closeModal()
   // Load existing markup
@@ -2194,32 +2249,89 @@ async function checkPartsVariance(jobId){
 // ══════════════════════════════════════════
 async function pgJobWalks(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="newWalkModal()">+ New Job Walk</button>'
-  const{data:walks}=await sb.from('job_walks').select('*').order('walk_date',{ascending:false}).limit(40)
+  const[{data:walks},{data:jobs}]=await Promise.all([
+    sb.from('job_walks').select('*').order('walk_date',{ascending:false}).limit(100),
+    sb.from('jobs').select('id,name,job_number').eq('archived',false)
+  ])
+  const jobMap={};(jobs||[]).forEach(j=>jobMap[j.id]=j)
+  const myWalks=(walks||[]).filter(w=>w.assigned_to===ME?.id)
+  const allWalks=(walks||[])
+  const isAdm=ME&&['admin','pm'].includes(ME.role)
+  const shown=isAdm?allWalks:myWalks
   document.getElementById('page-area').innerHTML=\`
+  \${isAdm&&myWalks.filter(w=>w.status!=='complete').length?\`<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">🚶</span><div><div style="font-weight:500;font-size:13px">You have \${myWalks.filter(w=>w.status!=='complete').length} assigned job walk(s)</div><div style="font-size:11px;color:#8a96ab">Scroll down to find yours</div></div></div>\`:''}
   <div class="card" style="padding:0;overflow:hidden">
-  \${(walks||[]).length?\`<table class="tbl"><thead><tr><th>Date</th><th>Job</th><th>Walked By</th><th>Attendees</th><th>Status</th><th>Issues</th></tr></thead><tbody>\${(walks||[]).map(w=>\`<tr onclick="openJobWalk('\${w.id}')"><td style="font-weight:500">\${fd(w.walk_date)}</td><td>\${w.job_id||'—'}</td><td style="font-size:11px">\${w.walked_by||'—'}</td><td style="font-size:11px;color:#8a96ab">\${w.attendees||'—'}</td><td><span class="badge \${w.status==='complete'?'bg-green':'bg-amber'}">\${w.status}</span></td><td style="font-size:11px;color:\${w.issues_found?'#d97706':'#414e63'}">\${w.issues_found?'Yes':'None'}</td></tr>\`).join('')}</tbody></table>\`:empty('🚶','No job walks recorded')}
+  \${shown.length?\`<table class="tbl"><thead><tr><th>Date</th><th>Job</th><th>Assigned To</th><th>Status</th><th>Panel Type</th><th>Manufacturer</th><th>Issues</th></tr></thead><tbody>\${shown.map(w=>{
+    const j=jobMap[w.job_id]||{}
+    const isMe=w.assigned_to===ME?.id
+    return \`<tr onclick="openJobWalk('\${w.id}')" style="cursor:pointer\${isMe&&w.status!=='complete'?' background:rgba(37,99,235,.06)':''}"><td style="font-weight:500">\${fd(w.walk_date)}</td><td>\${j.name||w.job_id||'—'}\${j.job_number?\`<div style='font-size:10px;color:#414e63'>#\${j.job_number}</div>\`:''}</td><td style="font-size:11px">\${w.assigned_name||w.walked_by||'—'}\${isMe?\` <span style='color:#60a5fa;font-size:9px'>(you)</span>\`:''}</td><td><span class="badge \${w.status==='complete'?'bg-green':w.status==='in_progress'?'bg-blue':'bg-amber'}">\${w.status||'open'}</span></td><td style="font-size:11px">\${w.panel_type||'—'}</td><td style="font-size:11px">\${w.device_manufacturer||'—'}</td><td style="font-size:11px;color:\${w.issues_found?'#d97706':'#414e63'}">\${w.issues_found?'Yes':'None'}</td></tr>\`
+  }).join('')}</tbody></table>\`:empty('🚶','No job walks recorded')}
   </div>\`
 }
-function newWalkModal(jobIdOverride){
-  let jobSel=''
-  if(!jobIdOverride)jobSel=\`<div class="fg"><label class="fl">Job *</label><select class="fs" id="wk-job"><option value="">— Select —</option>\${allJobs.map(j=>\`<option value="\${j.id}">\${j.name}</option>\`).join('')}</select></div>\`
-  modal('New Job Walk',\`
-  \${jobIdOverride?\`<input type="hidden" id="wk-job" value="\${jobIdOverride}">\`:jobSel}
-  <div class="two">
-    <div class="fg"><label class="fl">Walk Date *</label><input class="fi" type="date" id="wk-date" value="\${new Date().toISOString().split('T')[0]}"></div>
-    <div class="fg"><label class="fl">Walked By</label><input class="fi" id="wk-by" value="\${ME?.full_name||''}"></div>
-  </div>
-  <div class="fg"><label class="fl">Attendees</label><input class="fi" id="wk-att" placeholder="Names of everyone present"></div>
-  <div class="fg"><label class="fl">Scope / Conditions</label><textarea class="ft" id="wk-scope" placeholder="Site conditions, access, scope observations…"></textarea></div>
-  <div class="fg"><label class="fl">Measurements / Notes</label><textarea class="ft" id="wk-meas"></textarea></div>
-  <div class="fg"><label class="fl">Issues Found</label><textarea class="ft" id="wk-iss" placeholder="Problems, concerns, items requiring attention…"></textarea></div>
-  <div class="fg"><label class="fl">Action Items</label><textarea class="ft" id="wk-act" placeholder="What needs to happen and by whom…"></textarea></div>
-  <div class="two"><div class="fg"><label class="fl">Follow-up Date</label><input class="fi" type="date" id="wk-fup"></div><div class="fg"><label class="fl">Status</label><select class="fs" id="wk-status"><option value="open">Open</option><option value="complete">Complete</option></select></div></div>\`,
-  async()=>{
-    const jobId=v('wk-job');if(!jobId){toast('Select a job','error');return}
-    const{data:walk,error}=await sb.from('job_walks').insert({id:uuid(),job_id:jobId,walk_date:v('wk-date'),walked_by:v('wk-by'),attendees:v('wk-att'),scope_notes:v('wk-scope'),measurements:v('wk-meas'),issues_found:v('wk-iss'),action_items:v('wk-act'),follow_up_date:v('wk-fup')||null,status:v('wk-status'),created_at:new Date().toISOString()}).select().single()
-    if(error)toast(error.message,'error');else{closeModal();toast('Job walk saved OK');if(jobIdOverride)loadJT('jt-walks');else{openJobWalk(walk.id)}}
-  })
+async function newWalkModal(jobIdOverride){
+  // Fetch workers for assignment
+  var{data:workers}=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
+  workers=workers||[]
+  var workerOpts=workers.map(function(w){return'<option value="'+w.id+'" data-name="'+w.full_name+'">'+w.full_name+' ('+w.role+')</option>'}).join('')
+  var jobSel=jobIdOverride
+    ?'<input type="hidden" id="wk-job" value="'+jobIdOverride+'">'
+    :'<div class="fg"><label class="fl">Job *</label><select class="fs" id="wk-job"><option value="">— Select —</option>'+allJobs.map(function(j){return'<option value="'+j.id+'">'+(j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>'}).join('')+'</select></div>'
+  modal('New Job Walk', jobSel+
+    '<div class="two">'+
+    '<div class="fg"><label class="fl">Walk Date *</label><input class="fi" type="date" id="wk-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '<div class="fg"><label class="fl">Assign To *</label><select class="fs" id="wk-assign"><option value="">— Select Worker —</option>'+workerOpts+'</select></div>'+
+    '</div>'+
+    '<div class="fg"><label class="fl">Attendees</label><input class="fi" id="wk-att" placeholder="Names of everyone present"></div>'+
+    '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#60a5fa;margin:12px 0 8px">🔌 System Information</div>'+
+    '<div class="two">'+
+    '<div class="fg"><label class="fl">Panel Type</label><input class="fi" id="wk-panel" placeholder="e.g. FACP, Addressable, Conventional"></div>'+
+    '<div class="fg"><label class="fl">Device Manufacturer</label><input class="fi" id="wk-mfg" placeholder="e.g. Notifier, System Sensor"></div>'+
+    '</div>'+
+    '<div class="fg"><label class="fl">Device Model</label><input class="fi" id="wk-model" placeholder="e.g. NFS2-3030, SpectrAlert Advance"></div>'+
+    '<div class="two">'+
+    '<div class="fg"><label class="fl">Running Clip Mode?</label><select class="fs" id="wk-clip"><option value="no">No</option><option value="yes">Yes</option></select></div>'+
+    '<div class="fg"><label class="fl">Spare Booster Circuits?</label><select class="fs" id="wk-booster" onchange="document.getElementById(\'wk-booster-count-wrap\').style.display=this.value===\'yes\'?\'block\':\'none\'">'+
+    '<option value="no">No</option><option value="yes">Yes</option></select></div>'+
+    '</div>'+
+    '<div class="fg" id="wk-booster-count-wrap" style="display:none"><label class="fl">How Many Spare Booster Circuits?</label><input class="fi" type="number" id="wk-booster-count" min="0" value="0"></div>'+
+    '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#60a5fa;margin:12px 0 8px">📋 Walk Details</div>'+
+    '<div class="fg"><label class="fl">Scope / Conditions</label><textarea class="ft" id="wk-scope" placeholder="Site conditions, access, scope observations…"></textarea></div>'+
+    '<div class="fg"><label class="fl">Measurements / Notes</label><textarea class="ft" id="wk-meas"></textarea></div>'+
+    '<div class="fg"><label class="fl">Issues Found</label><textarea class="ft" id="wk-iss" placeholder="Problems, concerns, items requiring attention…"></textarea></div>'+
+    '<div class="fg"><label class="fl">Action Items</label><textarea class="ft" id="wk-act" placeholder="What needs to happen and by whom…"></textarea></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Follow-up Date</label><input class="fi" type="date" id="wk-fup"></div>'+
+    '<div class="fg"><label class="fl">Status</label><select class="fs" id="wk-status"><option value="open">Open</option><option value="in_progress">In Progress</option><option value="complete">Complete</option></select></div></div>',
+  async function(){
+    var jobId=v('wk-job');if(!jobId){toast('Select a job','error');return}
+    var assignSel=document.getElementById('wk-assign')
+    var assignId=assignSel?assignSel.value:''
+    var assignName=assignSel&&assignSel.selectedIndex>0?assignSel.options[assignSel.selectedIndex].getAttribute('data-name'):''
+    var hasBooster=v('wk-booster')==='yes'
+    var status=v('wk-status')
+    var data={
+      id:uuid(),job_id:jobId,walk_date:v('wk-date'),
+      walked_by:assignName||(ME&&ME.full_name)||'',
+      assigned_to:assignId||null,assigned_name:assignName||null,
+      attendees:v('wk-att'),scope_notes:v('wk-scope'),
+      measurements:v('wk-meas'),issues_found:v('wk-iss'),
+      action_items:v('wk-act'),follow_up_date:v('wk-fup')||null,
+      panel_type:v('wk-panel')||null,
+      clip_mode:v('wk-clip')==='yes',
+      spare_booster_circuits:hasBooster,
+      spare_booster_count:hasBooster?parseInt(v('wk-booster-count')||0):0,
+      device_manufacturer:v('wk-mfg')||null,
+      device_model:v('wk-model')||null,
+      status:status,
+      completed_at:status==='complete'?new Date().toISOString():null,
+      created_at:new Date().toISOString()
+    }
+    var res=await sb.from('job_walks').insert(data).select().single()
+    if(res.error){toast(res.error.message,'error');return}
+    // Notify admins if complete
+    if(status==='complete')notifyAdminsWalkComplete(res.data)
+    closeModal();toast('Job walk assigned!')
+    if(jobIdOverride)loadJT('jt-walks');else openJobWalk(res.data.id)
+  },'Create & Assign')
 }
 
 // ══════════════════════════════════════════
@@ -6789,6 +6901,24 @@ function filterMyTasks(){
   }
 }
 
+function buildMyWalksDashWidget(walks, jobMap){
+  if(!walks||!walks.length)return''
+  var rows=walks.map(function(w){
+    var j=jobMap[w.job_id]||{}
+    var jName=(j.job_number?'['+j.job_number+'] ':'')+( j.name||'Job')
+    var statusColor=w.status==='in_progress'?'#60a5fa':'#d97706'
+    return'<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+    +'<div><div style="font-size:12px;font-weight:500">'+jName+'</div>'
+    +'<div style="font-size:10px;color:#414e63;margin-top:1px">Walk date: '+fd(w.walk_date)+(w.panel_type?' · '+w.panel_type:'')+'</div></div>'
+    +'<span class="badge" style="background:'+statusColor+'1a;color:'+statusColor+';flex-shrink:0">'+( w.status||'open')+'</span>'
+    +'</div>'
+  }).join('')
+  return'<div class="card">'
+  +'<div class="card-title" style="margin-bottom:8px">🚶 My Job Walks</div>'
+  +rows
+  +'<button class="btn btn-sm" style="margin-top:8px;width:100%" onclick="navTo(\'jobwalks\',null)">View All Job Walks →</button>'
+  +'</div>'
+}
 function buildMyTasksDashWidget(tasks){
   if(!tasks||!tasks.length)return ''
   var priBadge={critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'}
