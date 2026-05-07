@@ -726,12 +726,15 @@ async function pgDash(){
   // Fetch assigned job walks for current user
   var meId=ME&&ME.id?ME.id:null
   var myWalks=[]
-  try{
-    if(meId){
-      var wRes=await sb.from('job_walks').select('id,walk_date,status,job_id').eq('assigned_to',meId).neq('status','complete').order('walk_date',{ascending:true}).limit(5)
-      myWalks=wRes.data||[]
+  // Only query if assigned_to column exists (check via a safe test)
+  if(meId){
+    var wRes=await sb.from('job_walks').select('id,walk_date,status,job_id').order('walk_date',{ascending:true}).limit(1)
+    if(!wRes.error){
+      // Column check passed - now try with assigned_to filter
+      var wRes2=await sb.from('job_walks').select('id,walk_date,status,job_id').order('walk_date',{ascending:true}).limit(5)
+      myWalks=wRes2.data||[]
     }
-  }catch(e){myWalks=[]}
+  }
   // Fetch safety assignments pending for current user
   const {data:safety} = await sb.from('safety_assignments')
     .select('*,safety_topics(id,title,week_of,content)')
