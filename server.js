@@ -935,6 +935,10 @@ async function importJobsExcel(input){
     const ws=wb.Sheets[wb.SheetNames[0]]
     const rows=XLSX.utils.sheet_to_json(ws,{defval:''})
     if(!rows.length){toast('No data found in file','error');return}
+    // Pre-fetch existing jobs for preview
+    var prevExisting=await sb.from('jobs').select('name,job_number').eq('archived',false)
+    var prevNames=new Set((prevExisting.data||[]).map(j=>(j.name||'').toLowerCase()))
+    var prevNums=new Set((prevExisting.data||[]).filter(j=>j.job_number).map(j=>j.job_number.toLowerCase()))
     // Preview modal
     const validRows=rows.filter(r=>r['Job Name']||r['name']||r['job_name'])
     if(!validRows.length){
@@ -970,7 +974,12 @@ async function importJobsExcel(input){
     var skipBad=validRows.filter(r=>!(r['Job Name']||r['name']||r['job_name'])).length
     if(skipBad)h+='<div style="font-size:11px;color:#d97706;margin-bottom:8px">⚠ '+skipBad+' rows will be skipped (missing Job Name)</div>'
     modal('Import '+validRows.length+' Jobs', h, async function(){
-      var created=0,errors=[]
+      var created=0,errors=[],skipped=0,skippedNames=[]
+      // Pre-fetch existing jobs for duplicate detection
+      var existingRes=await sb.from('jobs').select('id,name,job_number').eq('archived',false)
+      var existingJobs=existingRes.data||[]
+      var existingNames=new Set(existingJobs.map(j=>(j.name||'').toLowerCase()))
+      var existingNums=new Set(existingJobs.filter(j=>j.job_number).map(j=>j.job_number.toLowerCase()))
       for(var i=0;i<validRows.length;i++){
         var r=validRows[i]
         var name=r['Job Name']||r['name']||r['job_name']||''
@@ -1011,6 +1020,9 @@ async function importJobsExcel(input){
           created_by:(ME&&ME.full_name)||'',
           created_at:new Date().toISOString(),updated_at:new Date().toISOString()
         }
+        // Check for duplicate using pre-fetched sets
+        var isDup=(job.job_number&&existingNums.has(job.job_number.toLowerCase()))||existingNames.has(job.name.toLowerCase())
+        if(isDup){skipped++;skippedNames.push(name);continue}
         var res=await sb.from('jobs').insert(job)
         if(res.error)errors.push(name+': '+res.error.message)
         else created++
