@@ -517,6 +517,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
     <div class="nav-section">Admin</div>
     <div class="nav-item" onclick="P('documents',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="1" width="10" height="14" rx="1"/><path d="M6 5h4M6 8h4M6 11h2"/></svg>Documents</div>
     <div class="nav-item" onclick="P('users',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/></svg>Users</div>
+  <div class="nav-item" onclick="P('settings',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5V3M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"/></svg>Settings</div>
   </div>
   <div class="sidebar-foot">
     <div class="user-pill" onclick="doSignOut()">
@@ -654,7 +655,7 @@ async function deleteJobConfirm(){
 function doSignOut(){sb.auth.signOut().then(function(){location.href='index.html?signout=1'})}
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const PAGE_TITLES={tasks:'Tasks',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
+const PAGE_TITLES={tasks:'Tasks',settings:'Settings',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
 function P(page,navEl){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
   if(navEl)navEl.classList.add('active')
@@ -662,7 +663,7 @@ function P(page,navEl){
   document.getElementById('topbar-actions').innerHTML=''
   const a=document.getElementById('page-area')
   a.innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
-  const map={dashboard:pgDash,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications}
+  const map={dashboard:pgDash,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications,settings:pgSettings}
   if(map[page])map[page]()
   else a.innerHTML='<div class="empty">Coming soon</div>'
 }
@@ -3861,6 +3862,183 @@ async function uploadGlobalDoc(files){
 // ══════════════════════════════════════════
 // USERS PAGE
 // ══════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════
+// SETTINGS PAGE
+// ════════════════════════════════════════════════════════════════
+async function pgSettings(){
+  if(!ME||ME.role!=='admin'){
+    document.getElementById('page-area').innerHTML=empty('🔒','Admin access required')
+    return
+  }
+  document.getElementById('topbar-actions').innerHTML=''
+
+  // Load company info if saved
+  var co={}
+  try{
+    var coRes=await sb.from('company_settings').select('*').limit(1).single()
+    if(coRes.data)co=coRes.data
+  }catch(e){}
+
+  var h=''
+
+  // ── Company Information ──────────────────────────────────────
+  h+='<div class="card" style="margin-bottom:14px">'
+  h+='<div class="card-title" style="margin-bottom:12px">🏢 Company Information</div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">Company Name</label><input class="fi" id="co-name" value="'+(co.company_name||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">License / Contractor #</label><input class="fi" id="co-license" value="'+(co.license_number||'')+'"></div>'
+  h+='</div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">Phone</label><input class="fi" id="co-phone" value="'+(co.phone||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Email</label><input class="fi" id="co-email" value="'+(co.email||'')+'"></div>'
+  h+='</div>'
+  h+='<div class="fg"><label class="fl">Address</label><input class="fi" id="co-addr" value="'+(co.address||'')+'"></div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">City</label><input class="fi" id="co-city" value="'+(co.city||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">State</label><input class="fi" id="co-state" value="'+(co.state||'')+'"></div>'
+  h+='</div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">ZIP</label><input class="fi" id="co-zip" value="'+(co.zip||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Website</label><input class="fi" id="co-web" value="'+(co.website||'')+'"></div>'
+  h+='</div>'
+  h+='<button class="btn btn-p" onclick="saveCompanySettings()" style="margin-top:10px">💾 Save Company Info</button>'
+  h+='</div>'
+
+  // ── Database Backup ──────────────────────────────────────────
+  h+='<div class="card" style="margin-bottom:14px">'
+  h+='<div class="card-title" style="margin-bottom:4px">💾 Database Backup</div>'
+  h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">Download a full JSON backup of your data. This includes jobs, contacts, daily reports, tasks, orders, and more.</div>'
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap">'
+  h+='<button class="btn btn-p" onclick="downloadDatabaseBackup()">⬇ Download Full Backup</button>'
+  h+='<button class="btn btn-sm btn-ghost" onclick="downloadTableBackup(\'jobs\')">Jobs only</button>'
+  h+='<button class="btn btn-sm btn-ghost" onclick="downloadTableBackup(\'daily_reports\')">Daily Reports only</button>'
+  h+='<button class="btn btn-sm btn-ghost" onclick="downloadTableBackup(\'orders\')">Orders only</button>'
+  h+='</div>'
+  h+='<div id="backup-progress" style="display:none;margin-top:10px;font-size:12px;color:#60a5fa"></div>'
+  h+='</div>'
+
+  // ── Restore / Load Database ──────────────────────────────────
+  h+='<div class="card" style="margin-bottom:14px">'
+  h+='<div class="card-title" style="margin-bottom:4px">📂 Restore from Backup</div>'
+  h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">Load a previously downloaded JSON backup file. Existing data will be merged (records with matching IDs will be updated).</div>'
+  h+='<label class="btn btn-sm" style="cursor:pointer">📂 Load Backup File<input type="file" accept=".json" style="display:none" onchange="loadDatabaseBackup(this.files[0])"></label>'
+  h+='<div id="restore-status" style="margin-top:10px;font-size:12px"></div>'
+  h+='</div>'
+
+  // ── Fresh Database ───────────────────────────────────────────
+  h+='<div class="card" style="border:1px solid rgba(220,38,38,.3);margin-bottom:14px">'
+  h+='<div class="card-title" style="color:#dc2626;margin-bottom:4px">⚠ Reset Database</div>'
+  h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">Start with a fresh database. This will permanently delete ALL jobs, reports, tasks, orders, contacts, and other data. Company settings and user accounts are preserved. <strong style="color:#dc2626">This cannot be undone.</strong></div>'
+  h+='<button class="btn btn-ghost" style="color:#dc2626;border:1px solid rgba(220,38,38,.3)" onclick="resetDatabase()">🗑 Reset to Fresh Database</button>'
+  h+='</div>'
+
+  document.getElementById('page-area').innerHTML=h
+}
+
+async function saveCompanySettings(){
+  var data={
+    company_name:document.getElementById('co-name').value||null,
+    license_number:document.getElementById('co-license').value||null,
+    phone:document.getElementById('co-phone').value||null,
+    email:document.getElementById('co-email').value||null,
+    address:document.getElementById('co-addr').value||null,
+    city:document.getElementById('co-city').value||null,
+    state:document.getElementById('co-state').value||null,
+    zip:document.getElementById('co-zip').value||null,
+    website:document.getElementById('co-web').value||null,
+    updated_at:new Date().toISOString()
+  }
+  // Upsert - use id=1 as singleton
+  data.id='00000000-0000-0000-0000-000000000001'
+  var res=await sb.from('company_settings').upsert(data,{onConflict:'id'})
+  if(res.error){toast(res.error.message,'error');return}
+  toast('Company info saved ✓')
+}
+
+async function downloadTableBackup(table){
+  var prog=document.getElementById('backup-progress')
+  if(prog){prog.style.display='block';prog.textContent='Fetching '+table+'...'}
+  var{data,error}=await sb.from(table).select('*')
+  if(error){toast('Error: '+error.message,'error');return}
+  var blob=new Blob([JSON.stringify({table,exported_at:new Date().toISOString(),rows:data||[]},null,2)],{type:'application/json'})
+  var a=document.createElement('a')
+  a.href=URL.createObjectURL(blob)
+  a.download='FieldAxisHQ-'+table+'-'+new Date().toISOString().split('T')[0]+'.json'
+  a.click()
+  if(prog)prog.style.display='none'
+  toast('Downloaded '+table+' ('+( data||[]).length+' records)')
+}
+
+async function downloadDatabaseBackup(){
+  var prog=document.getElementById('backup-progress')
+  var tables=['jobs','job_tasks','job_parts','job_walk_plans','job_walks','daily_reports','orders','order_requests','catalog','safety_topics','safety_assignments','safety_acks','crm_accounts','crm_contacts','crm_activities','pm_visits','change_orders','company_settings']
+  var backup={exported_at:new Date().toISOString(),version:'FieldAxisHQ-v2',tables:{}}
+  for(var t of tables){
+    if(prog){prog.style.display='block';prog.textContent='Backing up: '+t+'...'}
+    try{
+      var res=await sb.from(t).select('*')
+      backup.tables[t]=res.data||[]
+    }catch(e){backup.tables[t]=[]}
+  }
+  if(prog){prog.textContent='Creating file...'}
+  var blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'})
+  var a=document.createElement('a')
+  a.href=URL.createObjectURL(blob)
+  a.download='FieldAxisHQ-backup-'+new Date().toISOString().split('T')[0]+'.json'
+  a.click()
+  if(prog)prog.style.display='none'
+  var total=Object.values(backup.tables).reduce(function(s,r){return s+r.length},0)
+  toast('Backup downloaded ('+total+' total records)')
+}
+
+async function loadDatabaseBackup(file){
+  if(!file)return
+  var status=document.getElementById('restore-status')
+  try{
+    var text=await file.text()
+    var backup=JSON.parse(text)
+    if(!backup.tables){toast('Invalid backup file','error');return}
+    var tables=Object.keys(backup.tables)
+    var imported=0,errors=[]
+    if(status)status.innerHTML='<span style="color:#60a5fa">Restoring...</span>'
+    for(var t of tables){
+      var rows=backup.tables[t]
+      if(!rows||!rows.length)continue
+      if(status)status.innerHTML='<span style="color:#60a5fa">Restoring '+t+' ('+rows.length+' records)...</span>'
+      var res=await sb.from(t).upsert(rows,{onConflict:'id',ignoreDuplicates:false})
+      if(res.error){errors.push(t+': '+res.error.message)}
+      else imported+=rows.length
+    }
+    if(errors.length){
+      if(status)status.innerHTML='<span style="color:#d97706">⚠ Restored '+imported+' records. Errors: '+errors.join(', ')+'</span>'
+    }else{
+      if(status)status.innerHTML='<span style="color:#16a34a">✓ Restored '+imported+' records successfully</span>'
+      toast('Database restored ✓')
+    }
+  }catch(e){
+    toast('Failed to read file: '+e.message,'error')
+    if(status)status.innerHTML='<span style="color:#dc2626">Error: '+e.message+'</span>'
+  }
+}
+
+async function resetDatabase(){
+  var first=confirm('WARNING: This will permanently delete ALL data including jobs, reports, tasks, orders, contacts, walks, and parts.\n\nUser accounts and company settings will be preserved.\n\nAre you sure?')
+  if(!first)return
+  var second=prompt('Type DELETE to confirm reset:')
+  if(second!=='DELETE'){toast('Reset cancelled');return}
+  var tables=['job_tasks','job_parts','job_walk_plans','job_walks','daily_reports','orders','catalog','safety_topics','safety_assignments','safety_acks','crm_accounts','crm_contacts','crm_activities','pm_visits','change_orders','job_parts']
+  toast('Resetting database...')
+  for(var t of tables){
+    try{await sb.from(t).delete().neq('id','00000000-0000-0000-0000-000000000000')}catch(e){}
+  }
+  // Delete jobs last
+  await sb.from('jobs').delete().neq('id','00000000-0000-0000-0000-000000000000')
+  toast('Database reset complete','warn')
+  pgSettings()
+}
+
+
 async function pgUsers(){
   document.getElementById('topbar-actions').innerHTML=
     '<button class="btn btn-sm" onclick="exportEmployeesCSV()">⬆ Export</button>'+
