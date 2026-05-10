@@ -1482,59 +1482,110 @@ async function openJobWalk(walkId){
   var walkRes=await sb.from('job_walks').select('id,job_id,walk_date,walked_by,attendees,scope_notes,measurements,issues_found,action_items,follow_up_date,status').eq('id',walkId).single()
   var walk=walkRes.data
   if(!walk){toast('Could not load job walk','error');return}
-  // Try to load extra columns gracefully
   var extraRes=await sb.from('job_walks').select('assigned_to,assigned_name,panel_type,clip_mode,spare_booster_circuits,spare_booster_count,device_manufacturer,device_model').eq('id',walkId).single()
   if(extraRes.data)Object.assign(walk,extraRes.data)
   var plansRes=await sb.from('job_walk_plans').select('*').eq('job_walk_id',walkId)
   var plans=plansRes.data||[]
   var isAssigned=walk.assigned_to===ME?.id
   var canEdit=ME&&(['admin','pm'].includes(ME.role)||isAssigned)
-  modal('Job Walk — '+fd(walk.walk_date),\`
-  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-    <span class="badge \${walk.status==='complete'?'bg-green':walk.status==='in_progress'?'bg-blue':'bg-amber'}">\${walk.status||'open'}</span>
-    \${walk.assigned_name?\`<span style="font-size:11px;color:#8a96ab">Assigned to: <strong>\${walk.assigned_name}</strong></span>\`:''}
-  </div>
-  <div class="two" style="margin-bottom:12px">
-    <div><div style="font-size:10px;color:#414e63">WALKED BY</div><div style="font-size:13px;font-weight:500;margin-top:2px">\${walk.walked_by||'—'}</div></div>
-    <div><div style="font-size:10px;color:#414e63">DATE</div><div style="font-size:13px;font-weight:500;margin-top:2px">\${fd(walk.walk_date)}</div></div>
-  </div>
-  \${(walk.panel_type||walk.device_manufacturer)?\`
-  <div style="background:#060a10;border-radius:8px;padding:12px;margin-bottom:12px">
-    <div style="font-size:10px;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">🔌 System Info</div>
-    <div class="two">
-      \${walk.panel_type?\`<div><div style="font-size:10px;color:#414e63">PANEL TYPE</div><div style="font-size:12px;font-weight:500">\${walk.panel_type}</div></div>\`:''}
-      \${walk.device_manufacturer?\`<div><div style="font-size:10px;color:#414e63">MANUFACTURER</div><div style="font-size:12px;font-weight:500">\${walk.device_manufacturer}</div></div>\`:''}
-    </div>
-    \${walk.device_model?\`<div style="margin-top:6px"><div style="font-size:10px;color:#414e63">MODEL</div><div style="font-size:12px;font-weight:500">\${walk.device_model}</div></div>\`:''}
-    <div class="two" style="margin-top:8px">
-      <div><div style="font-size:10px;color:#414e63">CLIP MODE</div><div style="font-size:12px;font-weight:500\${walk.clip_mode?';color:#d97706':''}"}>\${walk.clip_mode?'Yes — Running Clip Mode':'No'}</div></div>
-      <div><div style="font-size:10px;color:#414e63">SPARE BOOSTER CIRCUITS</div><div style="font-size:12px;font-weight:500">\${walk.spare_booster_circuits?'Yes — '+walk.spare_booster_count+' circuit(s)':'No'}</div></div>
-    </div>
-  </div>\`:''}
-  \${walk.scope_notes?\`<div style="margin-bottom:10px"><div style="font-size:10px;color:#414e63;margin-bottom:3px">SCOPE NOTES</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap">\${walk.scope_notes}</div></div>\`:''}
-  \${walk.issues_found?\`<div style="margin-bottom:10px;background:rgba(220,38,38,.08);border-radius:7px;padding:9px 11px"><div style="font-size:10px;color:#dc2626;margin-bottom:3px">ISSUES FOUND</div><div style="font-size:12px;color:#dc2626;white-space:pre-wrap">\${walk.issues_found}</div></div>\`:''}
-  \${walk.action_items?\`<div style="margin-bottom:10px"><div style="font-size:10px;color:#414e63;margin-bottom:3px">ACTION ITEMS</div><div style="font-size:12px;color:#8a96ab;white-space:pre-wrap">\${walk.action_items}</div></div>\`:''}
-  <div class="sec-hdr">Plans & Markup</div>
-  \${(plans||[]).length?(plans||[]).map(p=>\`<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div>📄</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${p.file_name}</div></div><button class="btn btn-sm" onclick="openPlanMarkup('\${p.id}','\${p.url}','\${p.file_name}',()=>openJobWalk('\${walk.id}'))">✏ Markup</button><a href="\${p.url}" target="_blank" class="btn btn-sm">View</a></div>\`).join(''):'<div style="font-size:12px;color:#414e63;margin-bottom:8px">No plans uploaded yet</div>'}
-  <div style="margin-top:10px">
-    <label style="display:inline-flex;align-items:center;gap:8px;background:#2563eb;color:#fff;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500">
-      📄 Upload Plan (PDF or Image)
-      <input type="file" id="walk-plan-file" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="uploadWalkPlan(this.files,window._openWalkId)">
-    </label>
-  </div>
-  \`,
-  ()=>closeModal(),'Close',false)
-  var footBtns='<button class="btn" onclick="closeModal()">Close</button>'
-  footBtns+='<button class="btn btn-sm btn-p" onclick="triggerWalkPlanUpload()">📄 Upload Plan</button>'
-  if(canEdit&&walk.status!=='complete'){
-    window._curWalkId=walkId
-    footBtns+='<button class="btn btn-p" onclick="walkComplete()" style="background:#16a34a">\u2713 Mark Complete</button>'
-  }
+  var isComplete=walk.status==='complete'
+  var ro=isComplete?'disabled':''  // disable inputs if complete
 
+  // Build modal
+  var h=''
+  // Status banner
+  h+='<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">'
+  h+='<span class="badge '+(isComplete?'bg-green':walk.status==='in_progress'?'bg-blue':'bg-amber')+'">'+( walk.status||'open')+'</span>'
+  if(walk.assigned_name)h+='<span style="font-size:11px;color:#8a96ab">Assigned to: <strong>'+walk.assigned_name+'</strong></span>'
+  if(walk.scope_notes)h+='<div style="font-size:11px;color:#8a96ab;width:100%">'+walk.scope_notes+'</div>'
+  h+='</div>'
+
+  // Plans section - always at top
+  h+='<div style="background:#060a10;border-radius:8px;padding:12px;margin-bottom:14px">'
+  h+='<div style="font-size:11px;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">📄 Plans & Markup</div>'
+  if(plans.length){
+    h+=plans.map(function(p){
+      return'<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)">'
+      +'<div style="font-size:20px">📄</div>'
+      +'<div style="flex:1;font-size:12px;font-weight:500">'+p.file_name+'</div>'
+      +'<button class="btn btn-sm btn-p" data-pid="'+p.id+'" data-url="'+p.url+'" data-pname="'+p.file_name+'" onclick="openWalkPlanMarkup(this)">✏ Markup</button>'
+      +'<a href="'+p.url+'" target="_blank" class="btn btn-sm">View</a>'
+      +'</div>'
+    }).join('')
+  }else{
+    h+='<div style="font-size:12px;color:#414e63;margin-bottom:8px">No plans uploaded yet</div>'
+  }
+  h+='<input type="file" id="walk-plan-file" accept=".pdf,.png,.jpg,.jpeg" multiple style="display:none" onchange="uploadWalkPlan(this.files,window._openWalkId)">'
+  h+='<button class="btn btn-sm" style="margin-top:8px" onclick="triggerWalkPlanUpload()">+ Upload Plan</button>'
+  h+='</div>'
+
+  // Editable fields
+  h+='<div style="font-size:11px;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">🔌 System Information</div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">Panel Type</label><input class="fi" id="ow-panel" value="'+(walk.panel_type||'')+'" '+ro+' placeholder="e.g. FACP, Addressable"></div>'
+  h+='<div class="fg"><label class="fl">Device Manufacturer</label><input class="fi" id="ow-mfg" value="'+(walk.device_manufacturer||'')+'" '+ro+' placeholder="e.g. Notifier, System Sensor"></div>'
+  h+='</div>'
+  h+='<div class="fg"><label class="fl">Device Model</label><input class="fi" id="ow-model" value="'+(walk.device_model||'')+'" '+ro+' placeholder="e.g. NFS2-3030"></div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">Running Clip Mode?</label><select class="fs" id="ow-clip" '+ro+'><option value="no"'+(walk.clip_mode?'':' selected')+'>No</option><option value="yes"'+(walk.clip_mode?' selected':'')+'>Yes</option></select></div>'
+  h+='<div class="fg"><label class="fl">Spare Booster Circuits?</label><select class="fs" id="ow-booster" '+ro+' onchange="toggleOwBooster(this)"><option value="no"'+(walk.spare_booster_circuits?'':' selected')+'>No</option><option value="yes"'+(walk.spare_booster_circuits?' selected':'')+'>Yes</option></select></div>'
+  h+='</div>'
+  h+='<div class="fg" id="ow-booster-wrap" style="display:'+(walk.spare_booster_circuits?'block':'none')+'"><label class="fl">How many spare booster circuits?</label><input class="fi" type="number" id="ow-booster-count" value="'+(walk.spare_booster_count||0)+'" '+ro+'></div>'
+
+  h+='<div style="font-size:11px;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:.07em;margin:12px 0 10px">📋 Walk Details</div>'
+  h+='<div class="fg"><label class="fl">Attendees</label><input class="fi" id="ow-att" value="'+(walk.attendees||'')+'" '+ro+' placeholder="Names of everyone present"></div>'
+  h+='<div class="fg"><label class="fl">Scope / Site Conditions</label><textarea class="ft" id="ow-scope" '+ro+' style="min-height:80px">'+(walk.scope_notes||'')+'</textarea></div>'
+  h+='<div class="fg"><label class="fl">Measurements / Notes</label><textarea class="ft" id="ow-meas" '+ro+' style="min-height:80px">'+(walk.measurements||'')+'</textarea></div>'
+  h+='<div class="fg"><label class="fl">Issues Found</label><textarea class="ft" id="ow-iss" '+ro+' style="min-height:80px" placeholder="Problems, concerns, items requiring attention…">'+(walk.issues_found||'')+'</textarea></div>'
+  h+='<div class="fg"><label class="fl">Action Items</label><textarea class="ft" id="ow-act" '+ro+' style="min-height:80px" placeholder="What needs to happen and by whom…">'+(walk.action_items||'')+'</textarea></div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">Follow-up Date</label><input class="fi" type="date" id="ow-fup" value="'+(walk.follow_up_date||'')+'" '+ro+'></div>'
+  h+='<div class="fg"><label class="fl">Walk Date</label><input class="fi" type="date" id="ow-date" value="'+(walk.walk_date||'')+'" '+ro+'></div>'
+  h+='</div>'
+
+  modal('Job Walk — '+(walk.walk_date?new Date(walk.walk_date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'New'), h,
+  async function(){
+    if(!canEdit){toast('Not authorized to edit','error');return}
+    var update={
+      scope_notes:document.getElementById('ow-scope').value||null,
+      attendees:document.getElementById('ow-att').value||null,
+      measurements:document.getElementById('ow-meas').value||null,
+      issues_found:document.getElementById('ow-iss').value||null,
+      action_items:document.getElementById('ow-act').value||null,
+      follow_up_date:document.getElementById('ow-fup').value||null,
+      walk_date:document.getElementById('ow-date').value||null,
+      panel_type:document.getElementById('ow-panel').value||null,
+      device_manufacturer:document.getElementById('ow-mfg').value||null,
+      device_model:document.getElementById('ow-model').value||null,
+      clip_mode:document.getElementById('ow-clip').value==='yes',
+      spare_booster_circuits:document.getElementById('ow-booster').value==='yes',
+      spare_booster_count:parseInt(document.getElementById('ow-booster-count').value)||0,
+    }
+    var res=await sb.from('job_walks').update(update).eq('id',walkId)
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();toast('Walk saved ✓')
+    if(document.getElementById('jt-walks'))loadJT('jt-walks')
+    else pgJobWalks()
+  },'Save Walk')
+
+  window._curWalkId=walkId
+  var footBtns='<button class="btn" onclick="closeModal()">Close</button>'
+  if(canEdit&&!isComplete)footBtns+='<button class="btn btn-p" onclick="walkComplete()" style="background:#16a34a">✓ Mark Complete</button>'
   document.getElementById('modal-footer').innerHTML=footBtns
 }
 
 // MARKUP PAGE
+function toggleOwBooster(sel){
+  var el=document.getElementById('ow-booster-wrap')
+  if(el)el.style.display=sel.value==='yes'?'block':'none'
+}
+function openWalkPlanMarkup(btn){
+  var pid=btn.getAttribute('data-pid')
+  var url=btn.getAttribute('data-url')
+  var name=btn.getAttribute('data-name')||btn.getAttribute('data-pname')
+  var walkId=window._openWalkId
+  openPlanMarkup(pid,url,name,function(){openJobWalk(walkId)})
+}
 function triggerWalkPlanUpload(){
   var f=document.getElementById('walk-plan-file')
   if(f)f.click()
@@ -2318,6 +2369,15 @@ async function pgJobWalks(){
   }).join('')}</tbody></table>\`:empty('🚶','No job walks recorded')}
   </div>\`
 }
+window._wkStagedFiles=[]
+function wkAddPlanFile(files){
+  if(!files||!files.length)return
+  window._wkStagedFiles=Array.from(files)
+  var el=document.getElementById('wk-plan-list')
+  if(el)el.innerHTML=window._wkStagedFiles.map(function(f){
+    return'<div style="color:#16a34a;font-size:11px">✓ '+f.name+'</div>'
+  }).join('')
+}
 function toggleBoosterCount(sel){
   var el=document.getElementById('wk-booster-count-wrap')
   if(el)el.style.display=sel.value==='yes'?'block':'none'
@@ -2335,59 +2395,41 @@ async function newWalkModal(jobIdOverride){
     '<div class="fg"><label class="fl">Walk Date *</label><input class="fi" type="date" id="wk-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
     '<div class="fg"><label class="fl">Assign To *</label><select class="fs" id="wk-assign"><option value="">— Select Worker —</option>'+workerOpts+'</select></div>'+
     '</div>'+
-    '<div class="fg"><label class="fl">Attendees</label><input class="fi" id="wk-att" placeholder="Names of everyone present"></div>'+
-    '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#60a5fa;margin:12px 0 8px">🔌 System Information</div>'+
-    '<div class="two">'+
-    '<div class="fg"><label class="fl">Panel Type</label><input class="fi" id="wk-panel" placeholder="e.g. FACP, Addressable, Conventional"></div>'+
-    '<div class="fg"><label class="fl">Device Manufacturer</label><input class="fi" id="wk-mfg" placeholder="e.g. Notifier, System Sensor"></div>'+
+    '<div class="fg"><label class="fl">Notes for Worker <span style="font-size:10px;color:#414e63">(optional)</span></label><textarea class="ft" id="wk-scope" placeholder="Any instructions, access notes, or context for the worker…" style="min-height:70px"></textarea></div>'+
+    '<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:8px;padding:12px;margin-top:8px">'+
+    '<div style="font-size:11px;font-weight:600;color:#60a5fa;margin-bottom:8px">📄 Upload Plans <span style="font-weight:400;color:#8a96ab">(worker will mark these up on-site)</span></div>'+
+    '<div id="wk-plan-list" style="margin-bottom:8px;font-size:11px;color:#414e63">No plans uploaded yet</div>'+
+    '<label style="display:inline-flex;align-items:center;gap:6px;background:#1e293b;border:1px solid rgba(255,255,255,.1);color:#e8edf5;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:12px">'+
+    '📄 Add Plan (PDF or Image)<input type="file" id="wk-plan-input" accept=".pdf,.png,.jpg,.jpeg" multiple style="display:none" onchange="wkAddPlanFile(this.files)"></label>'+
     '</div>'+
-    '<div class="fg"><label class="fl">Device Model</label><input class="fi" id="wk-model" placeholder="e.g. NFS2-3030, SpectrAlert Advance"></div>'+
-    '<div class="two">'+
-    '<div class="fg"><label class="fl">Running Clip Mode?</label><select class="fs" id="wk-clip"><option value="no">No</option><option value="yes">Yes</option></select></div>'+
-    '<div class="fg"><label class="fl">Spare Booster Circuits?</label><select class="fs" id="wk-booster" onchange="toggleBoosterCount(this)">'+
-    '<option value="no">No</option><option value="yes">Yes</option></select></div>'+
-    '</div>'+
-    '<div class="fg" id="wk-booster-count-wrap" style="display:none"><label class="fl">How Many Spare Booster Circuits?</label><input class="fi" type="number" id="wk-booster-count" min="0" value="0"></div>'+
-    '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#60a5fa;margin:12px 0 8px">📋 Walk Details</div>'+
-    '<div class="fg"><label class="fl">Scope / Conditions</label><textarea class="ft" id="wk-scope" placeholder="Site conditions, access, scope observations…"></textarea></div>'+
-    '<div class="fg"><label class="fl">Measurements / Notes</label><textarea class="ft" id="wk-meas"></textarea></div>'+
-    '<div class="fg"><label class="fl">Issues Found</label><textarea class="ft" id="wk-iss" placeholder="Problems, concerns, items requiring attention…"></textarea></div>'+
-    '<div class="fg"><label class="fl">Action Items</label><textarea class="ft" id="wk-act" placeholder="What needs to happen and by whom…"></textarea></div>'+
-    '<div class="two"><div class="fg"><label class="fl">Follow-up Date</label><input class="fi" type="date" id="wk-fup"></div>'+
-    '<div class="fg"><label class="fl">Status</label><select class="fs" id="wk-status"><option value="open">Open</option><option value="in_progress">In Progress</option><option value="complete">Complete</option></select></div></div>',
+    '<div class="fg" style="margin-top:10px"><label class="fl">Status</label><select class="fs" id="wk-status"><option value="open">Open — Assigned</option><option value="in_progress">In Progress</option></select></div>',
   async function(){
     var jobId=v('wk-job');if(!jobId){toast('Select a job','error');return}
     var assignSel=document.getElementById('wk-assign')
     var assignId=assignSel?assignSel.value:''
     var assignName=assignSel&&assignSel.selectedIndex>0?assignSel.options[assignSel.selectedIndex].getAttribute('data-name'):''
-    var hasBooster=v('wk-booster')==='yes'
     var status=v('wk-status')
-    // Build insert - include new columns only if they exist (post-migration)
+    var status=v('wk-status')||'open'
     var data={
       id:uuid(),job_id:jobId,walk_date:v('wk-date'),
       walked_by:assignName||(ME&&ME.full_name)||'',
-      attendees:v('wk-att'),scope_notes:v('wk-scope'),
-      measurements:v('wk-meas'),issues_found:v('wk-iss'),
-      action_items:v('wk-act'),follow_up_date:v('wk-fup')||null,
+      scope_notes:v('wk-scope')||null,
       status:status,
       created_at:new Date().toISOString()
     }
-    // Add new columns if available
     if(assignId)data.assigned_to=assignId
     if(assignName)data.assigned_name=assignName
-    data.panel_type=v('wk-panel')||null
-    data.clip_mode=v('wk-clip')==='yes'
-    data.spare_booster_circuits=hasBooster
-    data.spare_booster_count=hasBooster?parseInt(v('wk-booster-count')||0):0
-    data.device_manufacturer=v('wk-mfg')||null
-    data.device_model=v('wk-model')||null
-    if(status==='complete')data.completed_at=new Date().toISOString()
     var res=await sb.from('job_walks').insert(data).select().single()
     if(res.error){toast(res.error.message,'error');return}
-    // Notify admins if complete
-    if(status==='complete')notifyAdminsWalkComplete(res.data)
-    closeModal();toast('Job walk assigned!')
-    if(jobIdOverride)loadJT('jt-walks');else openJobWalk(res.data.id)
+    var newWalkId=res.data.id
+    // Upload any staged plans
+    if(window._wkStagedFiles&&window._wkStagedFiles.length){
+      toast('Uploading plans...')
+      await uploadWalkPlan(window._wkStagedFiles,newWalkId)
+      window._wkStagedFiles=[]
+    }
+    closeModal();toast('Job walk assigned ✓')
+    if(jobIdOverride)loadJT('jt-walks');else openJobWalk(newWalkId)
   },'Create & Assign')
 }
 
