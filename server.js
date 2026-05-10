@@ -1675,31 +1675,29 @@ function initMarkupCanvas(url, existingMarkup, planId){
     drawMarkup(ctx,img)
     renderLegend();renderTextboxList()
   }
-  // Check if it's a PDF - show in iframe alongside canvas
-  var isPdf=url.toLowerCase().includes('.pdf')||url.toLowerCase().includes('application/pdf')||fileName.toLowerCase().endsWith('.pdf')
-  if(isPdf){
-    // Show PDF viewer alongside markup tools
-    var pdfViewer=document.getElementById('markup-pdf-viewer')
-    if(!pdfViewer){
-      var leftPanel=canvas.parentElement
-      var container=leftPanel.parentElement
-      var pdfDiv=document.createElement('div')
-      pdfDiv.id='markup-pdf-viewer'
-      pdfDiv.style='width:100%;height:45%;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.1);margin-bottom:8px'
-      pdfDiv.innerHTML='<iframe src="'+url+'" style="width:100%;height:100%;border:none" title="Plan PDF"></iframe>'
-      leftPanel.insertBefore(pdfDiv, leftPanel.firstChild)
+  img.onerror=()=>{
+    // Show PDF in a split layout above the canvas
+    var canvasWrap=canvas.parentElement
+    if(canvasWrap&&!document.getElementById('pdf-embed-wrap')){
+      var wrap=document.createElement('div')
+      wrap.id='pdf-embed-wrap'
+      wrap.style='width:100%;height:60vh;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.1);margin-bottom:10px;background:#1e293b'
+      wrap.innerHTML='<object data="'+url+'" type="application/pdf" style="width:100%;height:100%">'
+        +'<div style="padding:20px;text-align:center">'
+        +'<div style="font-size:36px;margin-bottom:12px">📄</div>'
+        +'<div style="font-size:14px;color:#e8edf5;margin-bottom:8px">'+fileName+'</div>'
+        +'<div style="font-size:12px;color:#8a96ab;margin-bottom:16px">Your browser cannot display this PDF inline.</div>'
+        +'<a href="'+url+'" target="_blank" style="background:#2563eb;color:#fff;padding:9px 18px;border-radius:8px;text-decoration:none;font-size:13px">📄 Open PDF in New Tab</a>'
+        +'</div></object>'
+      canvasWrap.insertBefore(wrap,canvasWrap.firstChild)
     }
-    // Set canvas to a reasonable size for annotations
-    canvas.width=1200;canvas.height=900;canvas.style.maxWidth='100%'
-    ctx.fillStyle='#0c1835';ctx.fillRect(0,0,canvas.width,canvas.height)
-    ctx.fillStyle='#414e63';ctx.font='14px DM Sans';ctx.textAlign='center'
-    ctx.fillText('Draw your annotations here — PDF shown above',canvas.width/2,canvas.height/2-10)
-    ctx.fillText('Click anywhere on the canvas to add dots, text, and lines',canvas.width/2,canvas.height/2+20)
+    canvas.width=1200;canvas.height=600;canvas.style.maxWidth='100%'
+    ctx.fillStyle='#060a10';ctx.fillRect(0,0,canvas.width,canvas.height)
+    ctx.fillStyle='#414e63';ctx.font='13px DM Sans';ctx.textAlign='center'
+    ctx.fillText('Draw your markup annotations here',canvas.width/2,canvas.height/2)
     drawMarkup(ctx,null)
-  }else{
-    img.onerror=()=>{ctx.fillStyle='#1a2540';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#414e63';ctx.font='16px DM Sans';ctx.textAlign='center';ctx.fillText('Preview not available',canvas.width/2,canvas.height/2);drawMarkup(ctx,null)}
-    img.src=url
   }
+  img.src=url
   canvas.onclick=e=>{
     const rect=canvas.getBoundingClientRect()
     const scaleX=canvas.width/rect.width,scaleY=canvas.height/rect.height
