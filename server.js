@@ -3956,6 +3956,7 @@ async function saveCompanySettings(){
   toast('Company info saved ✓')
 }
 
+function dlTableBackup(t){downloadTableBackup(t)}
 async function downloadTableBackup(table){
   var prog=document.getElementById('backup-progress')
   if(prog){prog.style.display='block';prog.textContent='Fetching '+table+'...'}
@@ -4023,11 +4024,11 @@ async function loadDatabaseBackup(file){
 }
 
 async function resetDatabase(){
-  var first=confirm('WARNING: This will permanently delete ALL data including jobs, reports, tasks, orders, contacts, walks, and parts.\n\nUser accounts and company settings will be preserved.\n\nAre you sure?')
+  var first=confirm('WARNING: This will permanently delete ALL data. User accounts and company settings will be preserved. Are you sure?')
   if(!first)return
   var second=prompt('Type DELETE to confirm reset:')
   if(second!=='DELETE'){toast('Reset cancelled');return}
-  var tables=['job_tasks','job_parts','job_walk_plans','job_walks','daily_reports','orders','catalog','safety_topics','safety_assignments','safety_acks','crm_accounts','crm_contacts','crm_activities','pm_visits','change_orders','job_parts']
+  var tables=['job_tasks','job_parts','job_walk_plans','job_walks','daily_reports','orders','catalog','safety_topics','safety_assignments','safety_acks','crm_accounts','crm_contacts','crm_activities','pm_visits','change_orders']
   toast('Resetting database...')
   for(var t of tables){
     try{await sb.from(t).delete().neq('id','00000000-0000-0000-0000-000000000000')}catch(e){}
