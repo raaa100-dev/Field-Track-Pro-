@@ -934,8 +934,30 @@ async function loadJobsWithPartsStatus(){
     else j._parts_status='none'
   })
 }
+function sortJobsBy(col){
+  var q=document.querySelector('#page-area input[placeholder="Search jobs…"]')
+  var qVal=q?q.value:''
+  if(window._jobSortCol===col)window._jobSortDir=(window._jobSortDir||1)*-1
+  else{window._jobSortCol=col;window._jobSortDir=1}
+  renderJobsTable(qVal)
+}
 function renderJobsTable(q){
   const rows=allJobs.filter(j=>!q||j.name.toLowerCase().includes(q.toLowerCase())||(j.job_number||'').toLowerCase().includes(q.toLowerCase())||(j.address||'').toLowerCase().includes(q.toLowerCase())||(j.gc_company||'').toLowerCase().includes(q.toLowerCase()))
+  // Apply sort
+  var sc=window._jobSortCol||'',sd=window._jobSortDir||1
+  var stageOrder={'not_started':0,'make_safe':1,'prewire':2,'roughed_in':3,'trimmed':4,'ready_for_pretest':5,'ready_for_final':6,'complete':7}
+  var partsOrder={'none':0,'ordered':1,'partial':2,'staged':3,'checked_out':4,'installed':5}
+  var permitOrder={'not_required':0,'pending':1,'submitted':2,'approved':3,'issued':4,'failed':5,'expired':6}
+  if(sc)rows.sort(function(a,b){
+    var av,bv
+    if(sc==='status'){av=stageOrder[a.phase||'not_started']||0;bv=stageOrder[b.phase||'not_started']||0}
+    else if(sc==='parts'){var pa=jobPartsStatus(a),pb=jobPartsStatus(b);av=partsOrder[pa.key||'none']||0;bv=partsOrder[pb.key||'none']||0}
+    else if(sc==='permit'){av=permitOrder[a.permit_status||'not_required']||0;bv=permitOrder[b.permit_status||'not_required']||0}
+    else if(sc==='pm'){av=(a.project_manager||'').toLowerCase();bv=(b.project_manager||'').toLowerCase()}
+    else if(sc==='due'){av=a.due_date||'9999';bv=b.due_date||'9999'}
+    else if(sc==='name'){av=(a.name||'').toLowerCase();bv=(b.name||'').toLowerCase()}
+    if(av<bv)return -1*sd;if(av>bv)return 1*sd;return 0
+  })
   var _hadFocus=document.activeElement&&document.activeElement.tagName==='INPUT'
   var _cursorPos=_hadFocus?document.activeElement.selectionStart:-1
   document.getElementById('page-area').innerHTML=\`
@@ -947,18 +969,7 @@ function renderJobsTable(q){
     </select>
   </div>
   <div class="card" style="padding:0;overflow:hidden">
-  \${rows.length?\`<table class="tbl"><thead><tr>
-    <th>Job</th>
-    <th>Job ID</th>
-    <th>Job Status</th>
-    <th>Parts Status</th>
-    <th>Permit</th>
-    <th>PM</th>
-    <th>Due Date</th>
-    <th>Progress</th>
-    <th></th>
-  </tr></thead><tbody>
-  \${rows.map(j=>{
+  \${rows.length?\`<table class="tbl"><thead><tr><th onclick="sortJobsBy('name')" style="cursor:pointer">Job</th><th>Job ID</th><th onclick="sortJobsBy('status')" style="cursor:pointer">Status</th><th onclick="sortJobsBy('parts')" style="cursor:pointer">Parts</th><th onclick="sortJobsBy('permit')" style="cursor:pointer">Permit</th><th onclick="sortJobsBy('pm')" style="cursor:pointer">PM</th><th onclick="sortJobsBy('due')" style="cursor:pointer">Due Date</th><th>Progress</th><th></th></tr></thead><tbody>\n  \${rows.map(j=>{
     const ps=jobPartsStatus(j)
     const permit=j.permit_status||'not_required'
     return \`<tr onclick="openJob('\${j.id}')" style="cursor:pointer">
