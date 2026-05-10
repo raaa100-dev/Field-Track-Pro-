@@ -3911,9 +3911,12 @@ async function pgSettings(){
   h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">Download a full JSON backup of your data. This includes jobs, contacts, daily reports, tasks, orders, and more.</div>'
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap">'
   h+='<button class="btn btn-p" onclick="downloadDatabaseBackup()">⬇ Download Full Backup</button>'
-  h+='<button class="btn btn-sm btn-ghost" onclick="downloadTableBackup(\'jobs\')">Jobs only</button>'
-  h+='<button class="btn btn-sm btn-ghost" onclick="downloadTableBackup(\'daily_reports\')">Daily Reports only</button>'
-  h+='<button class="btn btn-sm btn-ghost" onclick="downloadTableBackup(\'orders\')">Orders only</button>'
+  h+='<button class="btn btn-sm btn-ghost" data-tbl="jobs" onclick="dlTableBackup(this.dataset.tbl)">Jobs only</button>'
+
+  h+='<button class="btn btn-sm btn-ghost" data-tbl="daily_reports" onclick="dlTableBackup(this.dataset.tbl)">Daily Reports only</button>'
+
+  h+='<button class="btn btn-sm btn-ghost" data-tbl="orders" onclick="dlTableBackup(this.dataset.tbl)">Orders only</button>'
+
   h+='</div>'
   h+='<div id="backup-progress" style="display:none;margin-top:10px;font-size:12px;color:#60a5fa"></div>'
   h+='</div>'
@@ -3956,7 +3959,7 @@ async function saveCompanySettings(){
   toast('Company info saved ✓')
 }
 
-function dlTableBackup(t){downloadTableBackup(t)}
+function dlTableBackup(t){downloadTableBackup(typeof t==='string'?t:t.dataset.tbl)}
 async function downloadTableBackup(table){
   var prog=document.getElementById('backup-progress')
   if(prog){prog.style.display='block';prog.textContent='Fetching '+table+'...'}
