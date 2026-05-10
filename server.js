@@ -4508,6 +4508,7 @@ function editUserModal(id,role,active,name){
 async function pgJobMap(){
   document.getElementById('page-title').textContent='Job Map'
   document.getElementById('topbar-actions').innerHTML=\`
+    <div id="map-stats" style="display:flex;gap:8px;align-items:center;flex-shrink:0"></div>
     <select class="fs" id="map-filter-pm" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All PMs</option></select>
     <select class="fs" id="map-filter-gc" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All GC Companies</option></select>
     <select class="fs" id="map-filter-stage" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All Stages</option>\${STAGES.map(s=>\`<option value="\${s}">\${STAGE_LABELS[s]}</option>\`).join('')}</select>
@@ -4515,6 +4516,7 @@ async function pgJobMap(){
 
   const{data:jobs}=await sb.from('jobs').select('*').eq('archived',false)
   window._mapJobs=jobs||[]
+  updateMapStats(jobs||[])
 
   // Populate filter dropdowns
   const pms=[...new Set((jobs||[]).map(j=>j.project_manager).filter(Boolean))]
@@ -4750,6 +4752,29 @@ function mapFlyTo(jobId){
   if(window._leafletMap)window._leafletMap.flyTo([j.gps_lat,j.gps_lng],16)
 }
 
+function updateMapStats(jobs){
+  var el=document.getElementById('map-stats');if(!el)return
+  var total=jobs.length
+  var pinned=jobs.filter(function(j){return j.gps_lat&&j.gps_lng}).length
+  var byStage={}
+  jobs.forEach(function(j){byStage[j.stage||'not_started']=(byStage[j.stage||'not_started']||0)+1})
+  var stageColors={'not_started':'#8a96ab','make_safe':'#dc2626','prewire':'#d97706','roughed_in':'#f59e0b','trimmed':'#16a34a','ready_for_pretest':'#2563eb','ready_for_final':'#7c3aed','complete':'#0d9488'}
+  var html=''
+  html+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 12px;display:flex;gap:14px;align-items:center;font-size:12px">'
+  html+='<div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#e8edf5;line-height:1">'+total+'</div><div style="color:#414e63;font-size:10px">Total</div></div>'
+  html+='<div style="width:1px;height:28px;background:rgba(255,255,255,.08)"></div>'
+  html+='<div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#60a5fa;line-height:1">'+pinned+'</div><div style="color:#414e63;font-size:10px">On Map</div></div>'
+  html+='<div style="width:1px;height:28px;background:rgba(255,255,255,.08)"></div>'
+  // Top 3 stages
+  var stageEntries=Object.entries(byStage).sort(function(a,b){return b[1]-a[1]}).slice(0,3)
+  stageEntries.forEach(function(e){
+    var col=stageColors[e[0]]||'#8a96ab'
+    var lbl=(STAGE_LABELS[e[0]]||e[0]).replace('Ready for ','').replace('Not Started','Not Strtd')
+    html+='<div style="text-align:center"><div style="font-size:18px;font-weight:700;line-height:1;color:'+col+'">'+e[1]+'</div><div style="color:#414e63;font-size:10px">'+lbl+'</div></div>'
+  })
+  html+='</div>'
+  el.innerHTML=html
+}
 function filterMapPins(){
   const pm=(document.getElementById('map-filter-pm')||document.getElementById('mob-f-pm'))?.value||''
   const gc=document.getElementById('map-filter-gc')?.value||''
