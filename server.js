@@ -1580,6 +1580,7 @@ async function openJobWalk(walkId){
   window._curWalkId=walkId
   var footBtns='<button class="btn" onclick="closeModal()">Close</button>'
   if(canEdit&&!isComplete)footBtns+='<button class="btn btn-p" onclick="walkComplete()" style="background:#16a34a">✓ Mark Complete</button>'
+  if(ME&&ME.role==='admin')footBtns+='<button class="btn btn-ghost" style="color:#dc2626" onclick="deleteJobWalk(window._curWalkId)">Delete Walk</button>'
   document.getElementById('modal-footer').innerHTML=footBtns
 }
 
@@ -1598,6 +1599,18 @@ function openWalkPlanMarkup(btn){
 function triggerWalkPlanUpload(){
   var f=document.getElementById('walk-plan-file')
   if(f)f.click()
+}
+async function deleteJobWalk(walkId){
+  if(!confirm('Delete this job walk? All plans and markup will also be deleted. This cannot be undone.'))return
+  // Delete plans from storage and DB
+  var{data:plans}=await sb.from('job_walk_plans').select('storage_path').eq('job_walk_id',walkId)
+  for(var p of(plans||[])){
+    if(p.storage_path)await sb.storage.from('documents').remove([p.storage_path])
+  }
+  await sb.from('job_walk_plans').delete().eq('job_walk_id',walkId)
+  var res=await sb.from('job_walks').delete().eq('id',walkId)
+  if(res.error){toast(res.error.message,'error');return}
+  closeModal();toast('Job walk deleted','warn');pgJobWalks()
 }
 function walkComplete(id){markWalkComplete(id||window._curWalkId)}
 async function markWalkComplete(walkId){
