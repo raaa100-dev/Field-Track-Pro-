@@ -6874,12 +6874,24 @@ function renderTaskList(tasks){
     if(t.status!=='resolved')h+='<button class="btn btn-sm btn-g" data-tid="'+t.id+'" onclick="resolveTask(this)">Resolve</button>'
     h+='<button class="btn btn-sm" data-tid="'+t.id+'" onclick="editTask(this)">Edit</button>'
     h+='<button class="btn btn-sm btn-ghost" data-tid="'+t.id+'" onclick="viewTask(this)">View</button>'
+    if(ME&&ME.role==='admin')h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" data-tid="'+t.id+'" data-src="'+t.source+'" onclick="deleteTask(this)">Delete</button>'
     h+='</td></tr>'
   })
   h+='</tbody></table>'
   document.getElementById('page-area').innerHTML=h
 }
 
+async function deleteTask(btn){
+  var id=btn.getAttribute('data-tid')
+  var src=btn.getAttribute('data-src')
+  var msg=src==='urgent_flag'?'Delete this urgent request?':'Delete this task?'
+  if(!confirm(msg))return
+  var res=await sb.from('job_tasks').delete().eq('id',id)
+  if(res.error){toast(res.error.message,'error');return}
+  toast('Deleted','warn')
+  window._allTasks=(window._allTasks||[]).filter(function(t){return t.id!==id})
+  renderTasksTable(window._allTasks)
+}
 async function progressTask(btn){
   var id=btn.getAttribute('data-tid')
   await sb.from('job_tasks').update({status:'in_progress',updated_at:new Date().toISOString()}).eq('id',id)
