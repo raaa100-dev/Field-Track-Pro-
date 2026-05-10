@@ -1045,6 +1045,13 @@ async function importJobsExcel(input){
         var dueRaw=r['Due Date']||r['due_date']||r['due']||''
         var dueDate=null
         if(dueRaw){try{var d=new Date(dueRaw);if(!isNaN(d))dueDate=d.toISOString().split('T')[0]}catch(e){}}
+        var parseCurrency=function(v){
+          if(!v&&v!==0)return null
+          if(typeof v==='number')return v
+          var s=String(v).replace(/[$,\s]/g,'').trim()
+          var n=parseFloat(s)
+          return isNaN(n)?null:n
+        }
         var parseDate=function(v){
           if(!v)return null
           try{
@@ -1090,8 +1097,8 @@ async function importJobsExcel(input){
           projected_start:parseDate(r['Projected Start']||r['projected_start']),
           projected_closeout:parseDate(r['Projected Closeout']||r['projected_closeout']),
           date_contract:parseDate(r['Contract Date']||r['contract_date']),
-          original_contract_value:parseFloat(r['Original Contract Value']||r['original_contract_value'])||null,
-          contract_value:parseFloat(r['Original Contract Value']||r['Contract Value']||r['contract_value'])||null,
+          original_contract_value:parseCurrency(r['Original Contract Value']||r['original_contract_value']),
+          contract_value:parseCurrency(r['Original Contract Value']||r['Contract Value']||r['contract_value'])||null,
           pm_visit_schedule:r['PM Visit Schedule']||r['pm_visit_schedule']||'none',
           next_pm_visit:parseDate(r['Next PM Visit Due']||r['next_pm_visit']),
           expected_onsite_date:parseDate(r['Expected On Site']||r['expected_onsite_date']),
