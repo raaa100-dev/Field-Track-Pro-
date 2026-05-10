@@ -4168,6 +4168,12 @@ async function pgSettings(){
   h+='</div>'
 
   // ── Fresh Database ───────────────────────────────────────────
+  h+='<div class="card" style="margin-bottom:14px">'
+  h+='<div class="card-title" style="margin-bottom:4px">🔍 Find & Remove Duplicate Jobs</div>'
+  h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">Scans for jobs with the same name or job number and lets you review and delete duplicates. Keeps the oldest record.</div>'
+  h+='<button class="btn btn-p" onclick="findDuplicateJobs()">🔍 Scan for Duplicates</button>'
+  h+='<div id="dedupe-results" style="margin-top:12px"></div>'
+  h+='</div>'
   h+='<div class="card" style="border:1px solid rgba(220,38,38,.3);margin-bottom:14px">'
   h+='<div class="card-title" style="color:#dc2626;margin-bottom:4px">⚠ Reset Database</div>'
   h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">Start with a fresh database. This will permanently delete ALL jobs, reports, tasks, orders, contacts, and other data. Company settings and user accounts are preserved. <strong style="color:#dc2626">This cannot be undone.</strong></div>'
@@ -4176,6 +4182,113 @@ async function pgSettings(){
 
   document.getElementById('page-area').innerHTML=h
 }
+
+
+async function findDuplicateJobs(){
+  var el=document.getElementById('dedupe-results')
+  if(el)el.innerHTML='<div style="color:#60a5fa;font-size:12px">Scanning...</div>'
+  var{data:jobs}=await sb.from('jobs').select('id,name,job_number,created_at,stage,address').eq('archived',false).order('created_at',{ascending:true})
+  if(!jobs||!jobs.length){if(el)el.innerHTML='<div style="color:#16a34a;font-size:12px">No jobs found.</div>';return}
+
+  // Group by name (lowercase)
+  var byName={}
+  jobs.forEach(function(j){
+    var key=(j.name||'').toLowerCase().trim()
+    if(!byName[key])byName[key]=[]
+    byName[key].push(j)
+  })
+  // Group by job_number
+  var byNum={}
+  jobs.forEach(function(j){
+    if(!j.job_number)return
+    var key=j.job_number.toLowerCase().trim()
+    if(!byNum[key])byNum[key]=[]
+    byNum[key].push(j)
+  })
+
+  // Find groups with duplicates
+  var dupGroups=[]
+  Object.values(byName).forEach(function(group){
+    if(group.length>1)dupGroups.push({type:'name',jobs:group})
+  })
+  Object.values(byNum).forEach(function(group){
+    if(group.length>1){
+      // Don't double-report if already caught by name
+      var ids=group.map(function(j){return j.id}).sort().join(',')
+      var alreadyFound=dupGroups.some(function(g){return g.jobs.map(function(j){return j.id}).sort().join(',')===ids})
+      if(!alreadyFound)dupGroups.push({type:'job_number',jobs:group})
+    }
+  })
+
+  if(!dupGroups.length){
+    if(el)el.innerHTML='<div style="color:#16a34a;font-size:12px;padding:10px 0">✓ No duplicates found!</div>'
+    return
+  }
+
+  // Count total duplicates (extras beyond the first)
+  var totalDups=dupGroups.reduce(function(s,g){return s+g.jobs.length-1},0)
+  var h='<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">'
+  h+='<div><div style="font-weight:600;font-size:13px;color:#dc2626">'+dupGroups.length+' duplicate group'+(dupGroups.length!==1?'s':'')+' found</div>'
+  h+='<div style="font-size:11px;color:#8a96ab;margin-top:2px">'+totalDups+' extra record'+(totalDups!==1?'s':'')+' to remove (oldest kept)</div></div>'
+  h+='<button class="btn btn-ghost" style="color:#dc2626;border:1px solid rgba(220,38,38,.3);font-size:12px" onclick="deleteAllDuplicates()">🗑 Delete All Duplicates</button>'
+  h+='</div>'
+
+  h+='<div style="max-height:400px;overflow-y:auto">'
+  dupGroups.forEach(function(group,gi){
+    var keep=group.jobs[0]  // oldest (first created)
+    var dupes=group.jobs.slice(1)
+    h+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:10px 12px;margin-bottom:8px">'
+    h+='<div style="font-size:12px;font-weight:600;color:#e8edf5;margin-bottom:6px">'+keep.name+'</div>'
+    h+='<div style="font-size:10px;color:#16a34a;margin-bottom:4px">✓ KEEP: '+keep.id.substring(0,8)+'… — created '+new Date(keep.created_at).toLocaleDateString()+(keep.address?' · '+keep.address:'')+'</div>'
+    dupes.forEach(function(d){
+      h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">'
+      h+='<div style="font-size:10px;color:#dc2626">✗ DUPLICATE: '+d.id.substring(0,8)+'… — created '+new Date(d.created_at).toLocaleDateString()+(d.address?' · '+d.address:'')+'</div>'
+      h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626;font-size:11px" data-did="'+d.id+'" onclick="deleteDuplicateJob(this)">Delete</button>'
+      h+='</div>'
+    })
+    h+='</div>'
+  })
+  h+='</div>'
+
+  // Store duplicate IDs for bulk delete
+  var allDupIds=[]
+  dupGroups.forEach(function(g){g.jobs.slice(1).forEach(function(j){allDupIds.push(j.id)})})
+  window._allDupIds=allDupIds
+
+  if(el)el.innerHTML=h
+}
+
+async function deleteDuplicateJob(btn){
+  var id=btn.getAttribute('data-did')
+  if(!confirm('Delete this duplicate job and all its data?'))return
+  btn.disabled=true;btn.textContent='Deleting...'
+  await sb.from('job_tasks').delete().eq('job_id',id)
+  await sb.from('job_parts').delete().eq('job_id',id)
+  await sb.from('daily_reports').delete().eq('job_id',id)
+  await sb.from('change_orders').delete().eq('job_id',id)
+  var res=await sb.from('jobs').delete().eq('id',id)
+  if(res.error){toast(res.error.message,'error');btn.disabled=false;btn.textContent='Delete';return}
+  btn.closest('div[style*="display:flex"]').remove()
+  toast('Duplicate deleted')
+}
+
+async function deleteAllDuplicates(){
+  var ids=window._allDupIds||[]
+  if(!ids.length){toast('Nothing to delete');return}
+  if(!confirm('Delete all '+ids.length+' duplicate job records? This cannot be undone.'))return
+  toast('Deleting '+ids.length+' duplicates...')
+  for(var i=0;i<ids.length;i++){
+    var id=ids[i]
+    await sb.from('job_tasks').delete().eq('job_id',id)
+    await sb.from('job_parts').delete().eq('job_id',id)
+    await sb.from('daily_reports').delete().eq('job_id',id)
+    await sb.from('change_orders').delete().eq('job_id',id)
+    await sb.from('jobs').delete().eq('id',id)
+  }
+  toast('All duplicates deleted ✓','warn')
+  findDuplicateJobs()
+}
+
 
 async function saveCompanySettings(){
   var data={
