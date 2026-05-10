@@ -1310,7 +1310,7 @@ async function loadJT(id){
   else if(id==='jt-docs') await renderDocsTab(el)
   else if(id==='jt-log') await renderLogTab(el)
 }
-async function updateJobStage(phase){await sb.from('jobs').update({phase,updated_at:new Date().toISOString()}).eq('id',currentJobId);currentJob.phase=phase;toast('Stage updated')}
+async function updateJobStage(phase){await sb.var pu={phase,updated_at:new Date().toISOString()};if(phase==='ready_for_final'||phase==='complete')pu.pct_complete=100;await sb.from('jobs').update(pu).eq('id',currentJobId);currentJob.phase=phase;if(pu.pct_complete){currentJob.pct_complete=100;}toast('Stage updated'+(pu.pct_complete?' (100% set)':''))}
 async function updateJobPct(pct){await sb.from('jobs').update({pct_complete:parseInt(pct)||0,updated_at:new Date().toISOString()}).eq('id',currentJobId);currentJob.pct_complete=parseInt(pct)||0;toast('Progress updated')}
 
 // INFO TAB
@@ -1412,6 +1412,7 @@ function renderInfoTab(el,j){
 }
 async function saveInfoTab(){
   const u={name:v('ed-name'),job_number:v('ed-jobnum')||null,trade:v('ed-trade')||null,estimator:v('ed-estimator')||null,address:v('ed-addr'),city:v('ed-city')||null,state:v('ed-state')||null,zip:v('ed-zip')||null,gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),gc_email:v('ed-gce')||null,super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,permit_status:v('ed-permit-status')||'not_required',permit_number:v('ed-permit-number')||null,date_start:v('ed-start')||null,due_date:v('ed-due')||null,projected_start:v('ed-proj-start')||null,projected_closeout:v('ed-proj-close')||null,date_contract:v('ed-dc')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,original_contract_value:fN('ed-ocv'),contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
+  if(u.phase==='ready_for_final'||u.phase==='complete')u.pct_complete=100
   const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
   if(error){toast(error.message,'error');return}
   currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved')
@@ -5843,7 +5844,7 @@ async function autoUpdateJobPhase(jobId){
   else if(allOrdered&&job.phase==='not_started') newPhase='parts_ordered'
 
   if(newPhase){
-    await sb.from('jobs').update({phase:newPhase,updated_at:new Date().toISOString()}).eq('id',jobId)
+    await sb.from('jobs').update({phase:newPhase,pct_complete:(newPhase==='ready_for_final'||newPhase==='complete'?100:undefined),updated_at:new Date().toISOString()}).eq('id',jobId)
     // Update local allJobs cache
     const j=allJobs.find(x=>x.id===jobId);if(j)j.phase=newPhase
     toast('Job status auto-updated to: '+STAGE_LABELS[newPhase])
@@ -6054,7 +6055,7 @@ async function autoUpdateJobPhase(jobId){
   else if(allOrdered&&job.phase==='not_started') newPhase='parts_ordered'
 
   if(newPhase){
-    await sb.from('jobs').update({phase:newPhase,updated_at:new Date().toISOString()}).eq('id',jobId)
+    await sb.from('jobs').update({phase:newPhase,pct_complete:(newPhase==='ready_for_final'||newPhase==='complete'?100:undefined),updated_at:new Date().toISOString()}).eq('id',jobId)
     // Update local allJobs cache
     const j=allJobs.find(x=>x.id===jobId);if(j)j.phase=newPhase
     toast('Job status auto-updated to: '+STAGE_LABELS[newPhase])
