@@ -674,7 +674,16 @@ function modal(title,html,onOk,okLabel='Save',hideFooter=false){
   const ft=document.getElementById('modal-footer');ft.style.display=hideFooter?'none':'flex'
   document.getElementById('modal').style.display='block'
 }
-function closeModal(){document.getElementById('modal').style.display='none'}
+function closeModal(){
+  var m=document.getElementById('modal')
+  if(m)m.style.display='none'
+  // Reset modal body so stale content doesn't block next open
+  var mb=document.getElementById('modal-body')
+  if(mb)mb.innerHTML=''
+  // Reset footer to default
+  var mf=document.getElementById('modal-footer')
+  if(mf)mf.innerHTML='<button class="btn" onclick="closeModal()">Close</button><button class="btn btn-p" id="modal-ok">Save</button>'
+}
 // ── HELPERS ───────────────────────────────────────────────────
 function toast(msg,type='success'){const c={success:'#16a34a',error:'#dc2626',warn:'#d97706',info:'#2563eb'};const i={success:'✓',error:'✗',warn:'⚠',info:'ℹ'};const t=document.createElement('div');t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#0c1220;border-radius:99px;padding:10px 20px;border-left:3px solid '+c[type]+';box-shadow:0 6px 24px rgba(0,0,0,.9);display:flex;align-items:center;gap:8px;font-size:13px;color:#e8edf5;white-space:nowrap;pointer-events:none';t.innerHTML='<span style="color:'+c[type]+'">'+i[type]+'</span>'+msg;document.body.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='.3s'},2800);setTimeout(()=>t.remove(),3100)}
 function beep(){try{const a=new AudioContext();const o=a.createOscillator();const g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=1200;g.gain.setValueAtTime(.4,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.15);o.start();o.stop(a.currentTime+.15)}catch{}}
@@ -1681,14 +1690,14 @@ function initMarkupCanvas(url, existingMarkup, planId){
     if(canvasWrap&&!document.getElementById('pdf-embed-wrap')){
       var wrap=document.createElement('div')
       wrap.id='pdf-embed-wrap'
-      wrap.style='width:100%;height:60vh;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.1);margin-bottom:10px;background:#1e293b'
-      wrap.innerHTML='<object data="'+url+'" type="application/pdf" style="width:100%;height:100%">'
-        +'<div style="padding:20px;text-align:center">'
-        +'<div style="font-size:36px;margin-bottom:12px">📄</div>'
-        +'<div style="font-size:14px;color:#e8edf5;margin-bottom:8px">'+fileName+'</div>'
-        +'<div style="font-size:12px;color:#8a96ab;margin-bottom:16px">Your browser cannot display this PDF inline.</div>'
-        +'<a href="'+url+'" target="_blank" style="background:#2563eb;color:#fff;padding:9px 18px;border-radius:8px;text-decoration:none;font-size:13px">📄 Open PDF in New Tab</a>'
-        +'</div></object>'
+      wrap.style='width:100%;height:60vh;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.1);margin-bottom:10px;background:#1e293b;position:relative'
+      // Try Google Docs viewer - works cross-origin
+      var gdocsUrl='https://docs.google.com/viewer?url='+encodeURIComponent(url)+'&embedded=true'
+      wrap.innerHTML='<iframe src="'+gdocsUrl+'" style="width:100%;height:100%;border:none" title="Plan PDF">'
+        +'</iframe>'
+        +'<div style="position:absolute;bottom:8px;right:8px">'
+        +'<a href="'+url+'" target="_blank" style="background:#2563eb;color:#fff;padding:6px 12px;border-radius:6px;text-decoration:none;font-size:11px">↗ Open PDF</a>'
+        +'</div>'
       canvasWrap.insertBefore(wrap,canvasWrap.firstChild)
     }
     canvas.width=1200;canvas.height=600;canvas.style.maxWidth='100%'
