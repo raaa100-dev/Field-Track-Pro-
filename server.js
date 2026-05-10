@@ -532,6 +532,10 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
   <div class="topbar"><div id="hamburger" onclick="toggleSidebar()" style="display:none">☰</div>
     <div class="topbar-title" id="page-title">Dashboard</div>
     <div class="tb-right" id="topbar-actions">
+      <div id="admin-checkin-btn" onclick="adminCheckInModal()" title="Check In to Job" style="cursor:pointer;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px">
+        <span id="checkin-status-dot" style="width:8px;height:8px;border-radius:50%;background:#414e63;flex-shrink:0"></span>
+        <span id="checkin-status-txt">Check In</span>
+      </div>
       <div style="position:relative;cursor:pointer" onclick="P('notifications',null)" title="Notifications">
         <div style="font-size:18px;line-height:1;padding:4px 6px">🔔</div>
         <div id="notif-badge" style="display:none;position:absolute;top:0;right:0;background:#dc2626;color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:99px;min-width:16px;text-align:center">0</div>
@@ -719,6 +723,9 @@ function ld(){return'<div class="loading"><div class="spin"></div> Loading…</d
 // DASHBOARD
 // ══════════════════════════════════════════
 async function pgDash(){
+  // Refresh check-in status on every dashboard load
+  if(ME)adminCheckInInit()
+
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="P(\\'newjob\\',null)">+ New Job</button>'
   try {
   // Run queries individually so one failure doesn't break everything
@@ -3866,6 +3873,117 @@ async function uploadGlobalDoc(files){
 // ════════════════════════════════════════════════════════════════
 // SETTINGS PAGE
 // ════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════
+// ADMIN CHECK IN / OUT
+// ════════════════════════════════════════════════════════════════
+var _adminCheckinId=null
+var _adminCheckinJobId=null
+
+async function adminCheckInInit(){
+  // Check if already checked in
+  try{
+    var res=await sb.from('checkins').select('id,job_id,checkin_at,jobs(name,job_number)').eq('worker_id',ME.id).is('checkout_at',null).limit(1)
+    if(res.data&&res.data.length){
+      var ci=res.data[0]
+      _adminCheckinId=ci.id
+      _adminCheckinJobId=ci.job_id
+      var jname=(ci.jobs?.job_number?'#'+ci.jobs.job_number+' ':'')+( ci.jobs?.name||'Job')
+      document.getElementById('checkin-status-dot').style.background='#16a34a'
+      document.getElementById('checkin-status-txt').textContent='On Site: '+jname.substring(0,20)+(jname.length>20?'…':'')
+      document.getElementById('admin-checkin-btn').style.borderColor='rgba(22,163,74,.4)'
+    }
+  }catch(e){}
+}
+
+async function adminCheckInModal(){
+  if(_adminCheckinId){
+    // Already checked in - show checkout option
+    var jRes=await sb.from('jobs').select('name,job_number').eq('id',_adminCheckinJobId).single()
+    var j=jRes.data||{}
+    var jname=(j.job_number?'['+j.job_number+'] ':'')+( j.name||'Job')
+    var checkinTime=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})
+    modal('You Are Checked In',
+      '<div style="background:#0a1f0a;border:1px solid #16a34a;border-radius:8px;padding:14px;margin-bottom:12px">'+
+      '<div style="font-size:13px;font-weight:600;color:#16a34a;margin-bottom:4px">✓ Currently on site</div>'+
+      '<div style="font-size:14px;font-weight:500">'+jname+'</div>'+
+      '</div>'+
+      '<div style="font-size:12px;color:#8a96ab">Click Check Out to log your time and mark yourself off site.</div>',
+      async function(){
+        await adminCheckOut()
+      },'Check Out ✓')
+  }else{
+    // Not checked in - show job picker
+    var jobs=allJobs.filter(function(j){return j.phase!=='complete'&&!j.archived}).slice(0,200)
+    var opts=jobs.map(function(j){return'<option value="'+j.id+'">'+(j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>'}).join('')
+    modal('Check In to Job',
+      '<div class="fg"><label class="fl">Search Job</label>'+
+      '<input class="fi" id="ci-search" placeholder="Type job name or ID…" oninput="adminCiFilter(this.value)" autocomplete="off">'+
+      '</div>'+
+      '<div class="fg"><label class="fl">Select Job *</label>'+
+      '<select class="fs" id="ci-job" size="6" style="height:140px"><option value="">— Select —</option>'+opts+'</select>'+
+      '</div>',
+      async function(){
+        var jobId=document.getElementById('ci-job').value
+        if(!jobId){toast('Select a job','error');return}
+        await adminCheckIn(jobId)
+      },'Check In ✓')
+  }
+}
+
+function adminCiFilter(q){
+  var sel=document.getElementById('ci-job');if(!sel)return
+  var s=q.toLowerCase()
+  var jobs=allJobs.filter(function(j){return j.phase!=='complete'&&!j.archived})
+  var filtered=q?jobs.filter(function(j){return(j.name||'').toLowerCase().includes(s)||(j.job_number||'').toLowerCase().includes(s)}):jobs
+  sel.innerHTML='<option value="">— Select —</option>'+filtered.slice(0,50).map(function(j){
+    return'<option value="'+j.id+'">'+(j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>'
+  }).join('')
+}
+
+async function adminCheckIn(jobId){
+  var pos=null
+  try{
+    pos=await new Promise(function(res,rej){
+      navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000})
+    })
+  }catch(e){}
+  var payload={
+    job_id:jobId,
+    action:'checkin',
+    checkin_lat:pos?pos.coords.latitude:null,
+    checkin_lng:pos?pos.coords.longitude:null
+  }
+  var r=await fetch('/api/checkins',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(await sb.auth.getSession()).data.session?.access_token},
+    body:JSON.stringify(payload)
+  })
+  if(!r.ok){var e=await r.json();toast(e.error||'Check-in failed','error');return}
+  closeModal()
+  toast('Checked in ✓')
+  _adminCheckinJobId=jobId
+  // Refresh checkin state
+  adminCheckInInit()
+}
+
+async function adminCheckOut(){
+  if(!_adminCheckinJobId)return
+  var r=await fetch('/api/checkins',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(await sb.auth.getSession()).data.session?.access_token},
+    body:JSON.stringify({job_id:_adminCheckinJobId,action:'checkout'})
+  })
+  if(!r.ok){var e=await r.json();toast(e.error||'Check-out failed','error');return}
+  closeModal()
+  _adminCheckinId=null;_adminCheckinJobId=null
+  document.getElementById('checkin-status-dot').style.background='#414e63'
+  document.getElementById('checkin-status-txt').textContent='Check In'
+  document.getElementById('admin-checkin-btn').style.borderColor='rgba(255,255,255,.1)'
+  toast('Checked out — time logged ✓')
+}
+
+
 async function pgSettings(){
   if(!ME||ME.role!=='admin'){
     document.getElementById('page-area').innerHTML=empty('🔒','Admin access required')
