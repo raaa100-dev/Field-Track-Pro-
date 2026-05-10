@@ -1030,9 +1030,9 @@ async function importJobsExcel(input){
     var skipBad=validRows.filter(r=>!(r['Job Name']||r['name']||r['job_name'])).length
     if(skipBad)h+='<div style="font-size:11px;color:#d97706;margin-bottom:8px">⚠ '+skipBad+' rows will be skipped (missing Job Name)</div>'
     modal('Import '+validRows.length+' Jobs', h, async function(){
-      var created=0,errors=[],skipped=0,skippedNames=[],newJobIds=[]
+      var created=0,errors=[],skipped=0,updated=0,skippedNames=[],newJobIds=[]
       // Pre-fetch existing jobs for duplicate detection
-      var existingRes=await sb.from('jobs').select('id,name,job_number').eq('archived',false)
+      var existingRes=await sb.from('jobs').select('id,name,job_number,original_contract_value,contract_value,contract_date,address,city,state,zip,gc_company,gc_contact,gc_phone,gc_email,project_manager,description').eq('archived',false)
       var existingJobs=existingRes.data||[]
       var existingNames=new Set(existingJobs.map(j=>(j.name||'').toLowerCase()))
       var existingNums=new Set(existingJobs.filter(j=>j.job_number).map(j=>j.job_number.toLowerCase()))
@@ -1109,7 +1109,39 @@ async function importJobsExcel(input){
         }
         // Check for duplicate using pre-fetched sets
         var isDup=(job.job_number&&existingNums.has(job.job_number.toLowerCase()))||existingNames.has(job.name.toLowerCase())
-        if(isDup){skipped++;skippedNames.push(name);continue}
+        if(isDup){
+          // Option 2: update ONLY empty/null fields on existing job
+          var existingJob=existingJobs.find(function(j){
+            return (job.job_number&&j.job_number&&j.job_number.toLowerCase()===job.job_number.toLowerCase())||j.name.toLowerCase()===job.name.toLowerCase()
+          })
+          if(existingJob){
+            var patch={}
+            // Only fill fields that are currently null/empty/zero
+            if(!existingJob.original_contract_value&&job.original_contract_value)patch.original_contract_value=job.original_contract_value
+            if(!existingJob.contract_value&&job.contract_value)patch.contract_value=job.contract_value
+            if(!existingJob.contract_date&&job.contract_date)patch.contract_date=job.contract_date
+            if(!existingJob.address&&job.address)patch.address=job.address
+            if(!existingJob.city&&job.city)patch.city=job.city
+            if(!existingJob.state&&job.state)patch.state=job.state
+            if(!existingJob.zip&&job.zip)patch.zip=job.zip
+            if(!existingJob.gc_company&&job.gc_company)patch.gc_company=job.gc_company
+            if(!existingJob.gc_contact&&job.gc_contact)patch.gc_contact=job.gc_contact
+            if(!existingJob.gc_phone&&job.gc_phone)patch.gc_phone=job.gc_phone
+            if(!existingJob.gc_email&&job.gc_email)patch.gc_email=job.gc_email
+            if(!existingJob.project_manager&&job.project_manager)patch.project_manager=job.project_manager
+            if(!existingJob.description&&job.description)patch.description=job.description
+            if(Object.keys(patch).length){
+              patch.updated_at=new Date().toISOString()
+              await sb.from('jobs').update(patch).eq('id',existingJob.id)
+              updated++
+            }else{
+              skipped++
+            }
+          }else{
+            skipped++
+          }
+          continue
+        }
         var res=await sb.from('jobs').insert(job)
         if(res.error)errors.push(name+': '+res.error.message)
         else{created++;newJobIds.push({id:job.id,address:job.address,city:job.city,state:job.state,zip:job.zip})}
