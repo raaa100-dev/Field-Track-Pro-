@@ -942,7 +942,7 @@ async function importJobsExcel(input){
     const data=await file.arrayBuffer()
     const wb=XLSX.read(data,{type:'array'})
     const ws=wb.Sheets[wb.SheetNames[0]]
-    const rows=XLSX.utils.sheet_to_json(ws,{defval:''})
+    const rows=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false,dateNF:'yyyy-mm-dd'})
     if(!rows.length){toast('No data found in file','error');return}
     // Pre-fetch existing jobs for preview
     var prevExisting=await sb.from('jobs').select('name,job_number').eq('archived',false)
@@ -998,7 +998,31 @@ async function importJobsExcel(input){
         var dueRaw=r['Due Date']||r['due_date']||r['due']||''
         var dueDate=null
         if(dueRaw){try{var d=new Date(dueRaw);if(!isNaN(d))dueDate=d.toISOString().split('T')[0]}catch(e){}}
-        var parseDate=function(v){if(!v)return null;try{var d=new Date(v);return isNaN(d)?null:d.toISOString().split('T')[0]}catch(e){return null}}
+        var parseDate=function(v){
+          if(!v)return null
+          try{
+            // Handle Excel serial number dates
+            if(typeof v==='number'){
+              var excelEpoch=new Date(1899,11,30)
+              var d=new Date(excelEpoch.getTime()+v*86400000)
+              return isNaN(d)?null:d.toISOString().split('T')[0]
+            }
+            // Handle JS Date objects (from XLSX)
+            if(v instanceof Date)return isNaN(v)?null:v.toISOString().split('T')[0]
+            // Handle string dates
+            var s=String(v).trim()
+            if(!s)return null
+            var d=new Date(s)
+            if(!isNaN(d))return d.toISOString().split('T')[0]
+            // Handle MM/DD/YYYY format
+            var parts=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/)
+            if(parts){
+              var yr=parts[3].length===2?'20'+parts[3]:parts[3]
+              return yr+'-'+parts[1].padStart(2,'0')+'-'+parts[2].padStart(2,'0')
+            }
+            return null
+          }catch(e){return null}
+        }
         var job={
           id:uuid(),name:name,
           job_number:r['Job Number']||r['job_number']||null,
