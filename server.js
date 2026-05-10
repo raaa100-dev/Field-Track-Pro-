@@ -4449,32 +4449,58 @@ function setMarkupColor(c,el){
 async function loadMarkupData(planId,planUrl){
   const{data:plan}=await sb.from('job_walk_plans').select('markup_json').eq('id',planId).single()
   _mData=plan?.markup_json||{dots:[],textboxes:[],lines:[],legend:[]};if(!_mData.lines)_mData.lines=[]
-  // Load image
   const canvas=document.getElementById('markup-canvas')
   const ctx=canvas.getContext('2d')
   _mCanvas=canvas;_mCtx=ctx
-  const img=new Image();img.crossOrigin='anonymous'
-  img.onload=()=>{
-    canvas.width=img.naturalWidth||1200;canvas.height=img.naturalHeight||800
+
+  var isPdf=planUrl.toLowerCase().includes('.pdf')||planUrl.toLowerCase().includes('%2Fpdf')||planUrl.includes('application/pdf')
+  if(isPdf){
+    // For PDFs: add viewer panel above canvas, canvas used for annotation overlay
+    var canvasWrap=canvas.closest('[style*="overflow:auto"]')||canvas.parentElement
+    var pageArea=document.getElementById('page-area')
+    if(pageArea&&!document.getElementById('pdf-view-panel')){
+      var panel=document.createElement('div')
+      panel.id='pdf-view-panel'
+      panel.style='background:#1e3a5f;border:1px solid #2563eb;border-radius:8px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px'
+      panel.innerHTML='<span style="font-size:32px">📄</span>'        +'<div style="flex:1">'        +'<div style="font-size:13px;font-weight:600;color:#e8edf5;margin-bottom:4px">'+planUrl.split('/').pop().replace(/%20/g,' ').replace(/_/g,' ')+'</div>'        +'<div style="font-size:11px;color:#8a96ab">Use the canvas below to draw your markup annotations. Click Save when done.</div>'        +'</div>'        +'<a href="'+planUrl+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#2563eb;color:#fff;padding:9px 16px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:500;white-space:nowrap">📄 View PDF</a>'
+      canvasWrap.insertBefore(panel,canvasWrap.firstChild)
+    }
+    canvas.width=1400;canvas.height=900
     canvas.style.width='100%'
-    _mImg=img
-    document.getElementById('canvas-loading').style.display='none'
-    redrawMarkup()
-    renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount()
-    // Attach click handler
-    canvas.onclick=handleMarkupClick
-  }
-  img.onerror=()=>{
-    canvas.width=1200;canvas.height=800;canvas.style.width='100%'
-    ctx.fillStyle='#1a2540';ctx.fillRect(0,0,1200,800)
-    ctx.fillStyle='#414e63';ctx.font='16px DM Sans,sans-serif';ctx.textAlign='center'
-    ctx.fillText('PDF/image preview not available',600,400)
-    ctx.fillText('Markup will still be saved. Use Download to view with annotations.',600,430)
+    ctx.fillStyle='#0c1835';ctx.fillRect(0,0,canvas.width,canvas.height)
+    ctx.fillStyle='#2d4a7a';ctx.fillRect(40,40,canvas.width-80,canvas.height-80)
+    ctx.fillStyle='#60a5fa';ctx.font='bold 18px DM Sans,sans-serif';ctx.textAlign='center'
+    ctx.fillText('Annotation Canvas — Click "View PDF" to open the plans in a new tab',canvas.width/2,canvas.height/2-30)
+    ctx.fillStyle='#8a96ab';ctx.font='14px DM Sans,sans-serif'
+    ctx.fillText('Then come back here and click to place dots, text, and lines on this canvas',canvas.width/2,canvas.height/2+10)
+    ctx.fillStyle='#414e63';ctx.font='12px DM Sans,sans-serif'
+    ctx.fillText('Your annotations will be saved and overlaid on the PDF when downloaded',canvas.width/2,canvas.height/2+40)
     _mImg=null
     document.getElementById('canvas-loading').style.display='none'
     redrawMarkup();canvas.onclick=handleMarkupClick
+  }else{
+    // Image plan - load directly onto canvas
+    const img=new Image();img.crossOrigin='anonymous'
+    img.onload=()=>{
+      canvas.width=img.naturalWidth||1200;canvas.height=img.naturalHeight||800
+      canvas.style.width='100%'
+      _mImg=img
+      document.getElementById('canvas-loading').style.display='none'
+      redrawMarkup()
+      renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount()
+      canvas.onclick=handleMarkupClick
+    }
+    img.onerror=()=>{
+      canvas.width=1200;canvas.height=800;canvas.style.width='100%'
+      ctx.fillStyle='#1a2540';ctx.fillRect(0,0,1200,800)
+      ctx.fillStyle='#414e63';ctx.font='16px DM Sans,sans-serif';ctx.textAlign='center'
+      ctx.fillText('Preview not available — markup will still be saved',600,400)
+      _mImg=null
+      document.getElementById('canvas-loading').style.display='none'
+      redrawMarkup();canvas.onclick=handleMarkupClick
+    }
+    img.src=planUrl
   }
-  img.src=planUrl
 }
 
 function handleMarkupClick(e){
