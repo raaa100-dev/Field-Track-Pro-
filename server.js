@@ -936,6 +936,8 @@ async function loadJobsWithPartsStatus(){
 }
 function renderJobsTable(q){
   const rows=allJobs.filter(j=>!q||j.name.toLowerCase().includes(q.toLowerCase())||(j.job_number||'').toLowerCase().includes(q.toLowerCase())||(j.address||'').toLowerCase().includes(q.toLowerCase())||(j.gc_company||'').toLowerCase().includes(q.toLowerCase()))
+  var _hadFocus=document.activeElement&&document.activeElement.tagName==='INPUT'
+  var _cursorPos=_hadFocus?document.activeElement.selectionStart:-1
   document.getElementById('page-area').innerHTML=\`
   <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
     <input class="fi" placeholder="Search jobs…" style="max-width:280px" oninput="renderJobsTable(this.value)" value="\${q}">
@@ -974,6 +976,13 @@ function renderJobsTable(q){
   </tbody></table>\`
   :empty('🏗','No jobs found')}
   </div>\`
+  // Restore focus to search box after re-render
+  if(q!==undefined){
+    setTimeout(function(){
+      var si=document.querySelector('#page-area input[placeholder="Search jobs…"]')
+      if(si&&document.activeElement!==si){si.focus();var l=si.value.length;try{si.setSelectionRange(l,l)}catch(e){}}
+    },0)
+  }
 }
 
 function filterJobsByStage(stage){
@@ -1144,7 +1153,7 @@ async function importJobsExcel(input){
         }
         var res=await sb.from('jobs').insert(job)
         if(res.error)errors.push(name+': '+res.error.message)
-        else{created++;newJobIds.push({id:job.id,address:job.address,city:job.city,state:job.state,zip:job.zip})}
+        else{created++;newJobIds.push({id:job.id,address:job.address,city:job.city,state:job.state,zip:job.zip});existingNames.add(job.name.toLowerCase());if(job.job_number)existingNums.add(job.job_number.toLowerCase())}
       }
       closeModal()
       if(errors.length){
