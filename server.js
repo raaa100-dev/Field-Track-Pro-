@@ -7006,9 +7006,9 @@ function buildMyWalksDashWidget(walks, jobMap){
     var j=jobMap[w.job_id]||{}
     var jName=(j.job_number?'['+j.job_number+'] ':'')+( j.name||'Job')
     var statusColor=w.status==='in_progress'?'#60a5fa':'#d97706'
-    return'<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
-    +'<div><div style="font-size:12px;font-weight:500">'+jName+'</div>'
-    +'<div style="font-size:10px;color:#414e63;margin-top:1px">Walk date: '+fd(w.walk_date)+(w.panel_type?' · '+w.panel_type:'')+'</div></div>'
+    return'<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" data-wid="'+w.id+'" onclick="openJobWalk(this.dataset.wid)">'
+    +'<div><div style="font-size:12px;font-weight:500;color:#60a5fa">'+jName+'</div>'
+    +'<div style="font-size:10px;color:#414e63;margin-top:1px">Walk date: '+fd(w.walk_date)+'</div></div>'
     +'<span class="badge" style="background:'+statusColor+'1a;color:'+statusColor+';flex-shrink:0">'+( w.status||'open')+'</span>'
     +'</div>'
   }).join('')
