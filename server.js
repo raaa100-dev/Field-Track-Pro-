@@ -1685,25 +1685,27 @@ function initMarkupCanvas(url, existingMarkup, planId){
     renderLegend();renderTextboxList()
   }
   img.onerror=()=>{
-    // Show PDF in a split layout above the canvas
+    // PDF: open in new window and show annotation canvas
+    window.open(url,'_blank')
     var canvasWrap=canvas.parentElement
     if(canvasWrap&&!document.getElementById('pdf-embed-wrap')){
       var wrap=document.createElement('div')
       wrap.id='pdf-embed-wrap'
-      wrap.style='width:100%;height:60vh;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.1);margin-bottom:10px;background:#1e293b;position:relative'
-      // Try Google Docs viewer - works cross-origin
-      var gdocsUrl='https://docs.google.com/viewer?url='+encodeURIComponent(url)+'&embedded=true'
-      wrap.innerHTML='<iframe src="'+gdocsUrl+'" style="width:100%;height:100%;border:none" title="Plan PDF">'
-        +'</iframe>'
-        +'<div style="position:absolute;bottom:8px;right:8px">'
-        +'<a href="'+url+'" target="_blank" style="background:#2563eb;color:#fff;padding:6px 12px;border-radius:6px;text-decoration:none;font-size:11px">↗ Open PDF</a>'
+      wrap.style='background:#1e3a5f;border:1px solid #2563eb;border-radius:8px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px'
+      wrap.innerHTML='<span style="font-size:28px">📄</span>'
+        +'<div style="flex:1">'
+        +'<div style="font-size:13px;font-weight:600;color:#e8edf5;margin-bottom:3px">'+fileName+'</div>'
+        +'<div style="font-size:11px;color:#8a96ab">PDF opened in a new tab. Use the canvas below to add your markup annotations, then click 💾 Save.</div>'
         +'</div>'
+        +'<a href="'+url+'" target="_blank" style="background:#2563eb;color:#fff;padding:8px 14px;border-radius:7px;text-decoration:none;font-size:12px;white-space:nowrap;flex-shrink:0">📄 Reopen PDF</a>'
       canvasWrap.insertBefore(wrap,canvasWrap.firstChild)
     }
-    canvas.width=1200;canvas.height=600;canvas.style.maxWidth='100%'
+    canvas.width=1200;canvas.height=700;canvas.style.maxWidth='100%'
     ctx.fillStyle='#060a10';ctx.fillRect(0,0,canvas.width,canvas.height)
-    ctx.fillStyle='#414e63';ctx.font='13px DM Sans';ctx.textAlign='center'
-    ctx.fillText('Draw your markup annotations here',canvas.width/2,canvas.height/2)
+    ctx.fillStyle='#60a5fa';ctx.font='bold 15px DM Sans';ctx.textAlign='center'
+    ctx.fillText('📄 PDF opened in new tab',canvas.width/2,canvas.height/2-20)
+    ctx.fillStyle='#8a96ab';ctx.font='13px DM Sans'
+    ctx.fillText('Click here to place markup dots, text, and lines',canvas.width/2,canvas.height/2+15)
     drawMarkup(ctx,null)
   }
   img.src=url
@@ -4368,6 +4370,7 @@ async function deleteSubAssign(id){if(!confirm('Remove this assignment?'))return
 let _markupPlanId=null,_markupReturnFn=null
 
 function openPlanMarkup(planId,planUrl,fileName,returnFn){
+  closeModal()  // Close job walk modal before opening markup editor
   _markupPlanId=planId;_markupReturnFn=returnFn
   document.getElementById('page-title').textContent='Plan Markup — '+fileName
   document.getElementById('topbar-actions').innerHTML=\`
