@@ -4191,7 +4191,7 @@ async function findDuplicateJobs(){
   // Fetch in pages to get all jobs (Supabase default limit is 1000)
   var jobs=[],from=0,pageSize=1000
   while(true){
-    var res=await sb.from('jobs').select('id,name,job_number,created_at,stage,address,archived').eq('archived',false).range(from,from+pageSize-1).order('created_at',{ascending:true})
+    var res=await sb.from('jobs').select('id,name,job_number,created_at,address,archived').eq('archived',false).range(from,from+pageSize-1).order('created_at',{ascending:true})
     if(res.error){if(el)el.innerHTML='<div style="color:#dc2626;font-size:12px">Error: '+res.error.message+'</div>';return}
     jobs=jobs.concat(res.data||[])
     if(!res.data||res.data.length<pageSize)break
