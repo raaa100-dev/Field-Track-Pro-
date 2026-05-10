@@ -3966,18 +3966,54 @@ async function adminCheckIn(jobId){
 
 async function adminCheckOut(){
   if(!_adminCheckinJobId)return
+  var ciRes=await sb.from('checkins').select('checkin_at').eq('worker_id',ME.id).is('checkout_at',null).limit(1)
+  var checkinAt=ciRes.data&&ciRes.data[0]?ciRes.data[0].checkin_at:null
+  var hoursWorked=0
+  if(checkinAt){
+    var ms=Date.now()-new Date(checkinAt).getTime()
+    hoursWorked=Math.round(ms/360000)/10
+  }
+  var savedJobId=_adminCheckinJobId
+  var hrsStr=hoursWorked>0?String(hoursWorked.toFixed(1)):''
   var r=await fetch('/api/checkins',{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+(await sb.auth.getSession()).data.session?.access_token},
-    body:JSON.stringify({job_id:_adminCheckinJobId,action:'checkout'})
+    body:JSON.stringify({job_id:savedJobId,action:'checkout'})
   })
   if(!r.ok){var e=await r.json();toast(e.error||'Check-out failed','error');return}
-  closeModal()
   _adminCheckinId=null;_adminCheckinJobId=null
   document.getElementById('checkin-status-dot').style.background='#414e63'
   document.getElementById('checkin-status-txt').textContent='Check In'
   document.getElementById('admin-checkin-btn').style.borderColor='rgba(255,255,255,.1)'
-  toast('Checked out — time logged ✓')
+  // Show checkout confirmation + daily report prompt
+  var bodyHtml='<div style="background:#0a1f0a;border:1px solid #16a34a;border-radius:8px;padding:12px;margin-bottom:12px">'
+    +'<div style="color:#16a34a;font-weight:600;margin-bottom:4px">Checked out successfully</div>'
+  if(hrsStr)bodyHtml+='<div style="font-size:12px;color:#8a96ab">Time on site: '+hrsStr+' hours</div>'
+  bodyHtml+='</div><div style="font-size:13px;color:#e8edf5;margin-bottom:4px">File a daily report for this job?</div>'
+  bodyHtml+='<div style="font-size:12px;color:#8a96ab">Hours will be pre-filled from your check-in.</div>'
+  modal('Checked Out',bodyHtml,
+    function(){
+      closeModal()
+      newDailyModal(savedJobId)
+      setTimeout(function(){
+        var h=document.getElementById('dr-hrs')
+        var b=document.getElementById('dr-by')
+        if(h&&hrsStr)h.value=hrsStr
+        if(b&&ME)b.value=ME.full_name||''
+        calcDrManHours()
+      },250)
+    },'File Daily Report')
+  // Add Skip button
+  setTimeout(function(){
+    var mf=document.getElementById('modal-footer')
+    if(mf){
+      var skip=document.createElement('button')
+      skip.className='btn'
+      skip.textContent='Skip'
+      skip.onclick=closeModal
+      mf.insertBefore(skip,mf.firstChild)
+    }
+  },50)
 }
 
 
