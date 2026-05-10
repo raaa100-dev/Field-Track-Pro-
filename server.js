@@ -531,8 +531,12 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
 <div id="main">
   <div class="topbar"><div id="hamburger" onclick="toggleSidebar()" style="display:none">☰</div>
     <div class="topbar-title" id="page-title">Dashboard</div>
-    <div id="admin-checkin-btn" onclick="adminCheckInModal()" style="cursor:pointer;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;flex-shrink:0;margin-right:6px"><span id="checkin-status-dot" style="width:8px;height:8px;border-radius:50%;background:#414e63;flex-shrink:0"></span><span id="checkin-status-txt">Check In</span></div>
-    <div class="tb-right" id="topbar-actions">
+    <div class="tb-right" id="topbar-actions"></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <div id="admin-checkin-btn" onclick="adminCheckInModal()" title="Check In to Job" style="cursor:pointer;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px">
+        <span id="checkin-status-dot" style="width:8px;height:8px;border-radius:50%;background:#414e63;flex-shrink:0"></span>
+        <span id="checkin-status-txt">Check In</span>
+      </div>
       <div style="position:relative;cursor:pointer" onclick="P('notifications',null)" title="Notifications">
         <div style="font-size:18px;line-height:1;padding:4px 6px">🔔</div>
         <div id="notif-badge" style="display:none;position:absolute;top:0;right:0;background:#dc2626;color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:99px;min-width:16px;text-align:center">0</div>
