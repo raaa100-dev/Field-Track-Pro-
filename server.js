@@ -4188,8 +4188,15 @@ async function findDuplicateJobs(){
   var el=document.getElementById('dedupe-results')
   if(el)el.innerHTML='<div style="color:#60a5fa;font-size:12px">Scanning all jobs...</div>'
   // Fetch ALL jobs including archived to be thorough
-  var{data:jobs}=await sb.from('jobs').select('id,name,job_number,created_at,stage,address,archived').order('created_at',{ascending:true})
-  jobs=(jobs||[]).filter(function(j){return !j.archived})
+  // Fetch in pages to get all jobs (Supabase default limit is 1000)
+  var jobs=[],from=0,pageSize=1000
+  while(true){
+    var res=await sb.from('jobs').select('id,name,job_number,created_at,stage,address,archived').eq('archived',false).range(from,from+pageSize-1).order('created_at',{ascending:true})
+    if(res.error){if(el)el.innerHTML='<div style="color:#dc2626;font-size:12px">Error: '+res.error.message+'</div>';return}
+    jobs=jobs.concat(res.data||[])
+    if(!res.data||res.data.length<pageSize)break
+    from+=pageSize
+  }
   if(!jobs.length){if(el)el.innerHTML='<div style="color:#16a34a;font-size:12px">No jobs found.</div>';return}
 
   // Normalize name: lowercase, collapse whitespace, strip special chars
