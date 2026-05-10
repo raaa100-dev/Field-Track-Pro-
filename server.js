@@ -1675,8 +1675,31 @@ function initMarkupCanvas(url, existingMarkup, planId){
     drawMarkup(ctx,img)
     renderLegend();renderTextboxList()
   }
-  img.onerror=()=>{ctx.fillStyle='#1a2540';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#414e63';ctx.font='16px DM Sans';ctx.textAlign='center';ctx.fillText('PDF preview not available — download to view',canvas.width/2,canvas.height/2);ctx.fillText('Dots and text will still be saved',canvas.width/2,canvas.height/2+30);drawMarkup(ctx,null)}
-  img.src=url
+  // Check if it's a PDF - show in iframe alongside canvas
+  var isPdf=url.toLowerCase().includes('.pdf')||url.toLowerCase().includes('application/pdf')||fileName.toLowerCase().endsWith('.pdf')
+  if(isPdf){
+    // Show PDF viewer alongside markup tools
+    var pdfViewer=document.getElementById('markup-pdf-viewer')
+    if(!pdfViewer){
+      var leftPanel=canvas.parentElement
+      var container=leftPanel.parentElement
+      var pdfDiv=document.createElement('div')
+      pdfDiv.id='markup-pdf-viewer'
+      pdfDiv.style='width:100%;height:45%;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.1);margin-bottom:8px'
+      pdfDiv.innerHTML='<iframe src="'+url+'" style="width:100%;height:100%;border:none" title="Plan PDF"></iframe>'
+      leftPanel.insertBefore(pdfDiv, leftPanel.firstChild)
+    }
+    // Set canvas to a reasonable size for annotations
+    canvas.width=1200;canvas.height=900;canvas.style.maxWidth='100%'
+    ctx.fillStyle='#0c1835';ctx.fillRect(0,0,canvas.width,canvas.height)
+    ctx.fillStyle='#414e63';ctx.font='14px DM Sans';ctx.textAlign='center'
+    ctx.fillText('Draw your annotations here — PDF shown above',canvas.width/2,canvas.height/2-10)
+    ctx.fillText('Click anywhere on the canvas to add dots, text, and lines',canvas.width/2,canvas.height/2+20)
+    drawMarkup(ctx,null)
+  }else{
+    img.onerror=()=>{ctx.fillStyle='#1a2540';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#414e63';ctx.font='16px DM Sans';ctx.textAlign='center';ctx.fillText('Preview not available',canvas.width/2,canvas.height/2);drawMarkup(ctx,null)}
+    img.src=url
+  }
   canvas.onclick=e=>{
     const rect=canvas.getBoundingClientRect()
     const scaleX=canvas.width/rect.width,scaleY=canvas.height/rect.height
