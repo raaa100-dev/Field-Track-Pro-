@@ -4186,22 +4186,30 @@ async function pgSettings(){
 
 async function findDuplicateJobs(){
   var el=document.getElementById('dedupe-results')
-  if(el)el.innerHTML='<div style="color:#60a5fa;font-size:12px">Scanning...</div>'
-  var{data:jobs}=await sb.from('jobs').select('id,name,job_number,created_at,stage,address').eq('archived',false).order('created_at',{ascending:true})
-  if(!jobs||!jobs.length){if(el)el.innerHTML='<div style="color:#16a34a;font-size:12px">No jobs found.</div>';return}
+  if(el)el.innerHTML='<div style="color:#60a5fa;font-size:12px">Scanning all jobs...</div>'
+  // Fetch ALL jobs including archived to be thorough
+  var{data:jobs}=await sb.from('jobs').select('id,name,job_number,created_at,stage,address,archived').order('created_at',{ascending:true})
+  jobs=(jobs||[]).filter(function(j){return !j.archived})
+  if(!jobs.length){if(el)el.innerHTML='<div style="color:#16a34a;font-size:12px">No jobs found.</div>';return}
 
-  // Group by name (lowercase)
+  // Normalize name: lowercase, collapse whitespace, strip special chars
+  function normName(s){return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim()}
+  function normNum(s){return (s||'').toLowerCase().replace(/[^a-z0-9]/g,'').trim()}
+
+  // Group by normalized name
   var byName={}
   jobs.forEach(function(j){
-    var key=(j.name||'').toLowerCase().trim()
+    var key=normName(j.name)
+    if(!key)return
     if(!byName[key])byName[key]=[]
     byName[key].push(j)
   })
-  // Group by job_number
+  // Group by normalized job_number
   var byNum={}
   jobs.forEach(function(j){
     if(!j.job_number)return
-    var key=j.job_number.toLowerCase().trim()
+    var key=normNum(j.job_number)
+    if(!key)return
     if(!byNum[key])byNum[key]=[]
     byNum[key].push(j)
   })
