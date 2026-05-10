@@ -4291,16 +4291,26 @@ async function deleteAllDuplicates(){
   var ids=window._allDupIds||[]
   if(!ids.length){toast('Nothing to delete');return}
   if(!confirm('Delete all '+ids.length+' duplicate job records? This cannot be undone.'))return
-  toast('Deleting '+ids.length+' duplicates...')
-  for(var i=0;i<ids.length;i++){
-    var id=ids[i]
-    await sb.from('job_tasks').delete().eq('job_id',id)
-    await sb.from('job_parts').delete().eq('job_id',id)
-    await sb.from('daily_reports').delete().eq('job_id',id)
-    await sb.from('change_orders').delete().eq('job_id',id)
-    await sb.from('jobs').delete().eq('id',id)
+  var el=document.getElementById('dedupe-results')
+  var deleted=0
+  var batchSize=50
+  // Delete related records in bulk using .in() filter, then delete jobs
+  for(var b=0;b<ids.length;b+=batchSize){
+    var batch=ids.slice(b,b+batchSize)
+    if(el)el.innerHTML='<div style="color:#60a5fa;font-size:12px">Deleting '+deleted+' of '+ids.length+'...</div>'
+    await Promise.all([
+      sb.from('job_tasks').delete().in('job_id',batch),
+      sb.from('job_parts').delete().in('job_id',batch),
+      sb.from('daily_reports').delete().in('job_id',batch),
+      sb.from('change_orders').delete().in('job_id',batch),
+      sb.from('job_walks').delete().in('job_id',batch)
+    ])
+    var res=await sb.from('jobs').delete().in('id',batch)
+    if(res.error){toast('Error: '+res.error.message,'error');break}
+    deleted+=batch.length
   }
-  toast('All duplicates deleted ✓','warn')
+  toast(deleted+' duplicates deleted ✓','warn')
+  window._allDupIds=[]
   findDuplicateJobs()
 }
 
