@@ -3955,12 +3955,10 @@ async function adminCheckIn(jobId){
     checkin_lat:pos?pos.coords.latitude:null,
     checkin_lng:pos?pos.coords.longitude:null
   }
-  var r=await fetch('/api/checkins',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(await sb.auth.getSession()).data.session?.access_token},
-    body:JSON.stringify(payload)
-  })
-  if(!r.ok){var e=await r.json();toast(e.error||'Check-in failed','error');return}
+  var ciData={id:uuid(),job_id:jobId,worker_id:ME.id,company_id:ME.company_id||null,checkin_at:new Date().toISOString(),checkin_lat:pos?pos.coords.latitude:null,checkin_lng:pos?pos.coords.longitude:null}
+  var ciRes=await sb.from('checkins').insert(ciData)
+  if(ciRes.error){toast(ciRes.error.message,'error');return}
+  _adminCheckinId=ciData.id
   closeModal()
   toast('Checked in ✓')
   _adminCheckinJobId=jobId
@@ -3979,12 +3977,11 @@ async function adminCheckOut(){
   }
   var savedJobId=_adminCheckinJobId
   var hrsStr=hoursWorked>0?String(hoursWorked.toFixed(1)):''
-  var r=await fetch('/api/checkins',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(await sb.auth.getSession()).data.session?.access_token},
-    body:JSON.stringify({job_id:savedJobId,action:'checkout'})
-  })
-  if(!r.ok){var e=await r.json();toast(e.error||'Check-out failed','error');return}
+  var activeRes=await sb.from('checkins').select('id').eq('worker_id',ME.id).is('checkout_at',null).limit(1)
+  var active=activeRes.data&&activeRes.data[0]
+  if(!active){toast('Not checked in','error');return}
+  var coRes=await sb.from('checkins').update({checkout_at:new Date().toISOString(),hours_logged:hoursWorked}).eq('id',active.id)
+  if(coRes.error){toast(coRes.error.message,'error');return}
   _adminCheckinId=null;_adminCheckinJobId=null
   document.getElementById('checkin-status-dot').style.background='#414e63'
   document.getElementById('checkin-status-txt').textContent='Check In'
