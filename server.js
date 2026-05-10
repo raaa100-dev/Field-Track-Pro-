@@ -10,6 +10,36 @@ async function geocodeAndAddPins(jobs, map){
   }
 }
 
+// Geocode a job by address and save GPS to DB immediately
+async function geocodeJobAddress(jobId, address, city, state, zip){
+  var parts=[]
+  var cleanAddr=(address||'').replace(/\s+(suite|ste|unit|#|apt|floor|fl)\s*[\w-]*/gi,'').trim()
+  if(cleanAddr)parts.push(cleanAddr)
+  if(city)parts.push(city)
+  if(state)parts.push(state)
+  if(zip)parts.push(zip)
+  if(!parts.length)return null
+  var query=parts.join(', ')
+  try{
+    var r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(query)+'&format=json&limit=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
+    var res=await r.json()
+    if(res[0]){
+      var lat=parseFloat(res[0].lat),lng=parseFloat(res[0].lon)
+      await sb.from('jobs').update({gps_lat:lat,gps_lng:lng,updated_at:new Date().toISOString()}).eq('id',jobId)
+      return {lat,lng}
+    }
+    if(city&&state&&parts.length>2){
+      var r2=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(city+', '+state+(zip?' '+zip:''))+'&format=json&limit=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
+      var res2=await r2.json()
+      if(res2[0]){
+        var lat2=parseFloat(res2[0].lat),lng2=parseFloat(res2[0].lon)
+        await sb.from('jobs').update({gps_lat:lat2,gps_lng:lng2,updated_at:new Date().toISOString()}).eq('id',jobId)
+        return {lat:lat2,lng:lng2}
+      }
+    }
+  }catch(e){console.warn('Geocode failed',jobId,e)}
+  return null
+}
 async function geocodeJob(j, map){
   var query = ''
   if(j.address && j.city && j.state) query = j.address + ', ' + j.city + ', ' + j.state + (j.zip ? ' ' + j.zip : '')
@@ -992,7 +1022,7 @@ async function importJobsExcel(input){
     var skipBad=validRows.filter(r=>!(r['Job Name']||r['name']||r['job_name'])).length
     if(skipBad)h+='<div style="font-size:11px;color:#d97706;margin-bottom:8px">⚠ '+skipBad+' rows will be skipped (missing Job Name)</div>'
     modal('Import '+validRows.length+' Jobs', h, async function(){
-      var created=0,errors=[],skipped=0,skippedNames=[]
+      var created=0,errors=[],skipped=0,skippedNames=[],newJobIds=[]
       // Pre-fetch existing jobs for duplicate detection
       var existingRes=await sb.from('jobs').select('id,name,job_number').eq('archived',false)
       var existingJobs=existingRes.data||[]
@@ -1067,7 +1097,7 @@ async function importJobsExcel(input){
         if(isDup){skipped++;skippedNames.push(name);continue}
         var res=await sb.from('jobs').insert(job)
         if(res.error)errors.push(name+': '+res.error.message)
-        else created++
+        else{created++;newJobIds.push({id:job.id,address:job.address,city:job.city,state:job.state,zip:job.zip})}
       }
       closeModal()
       if(errors.length){
