@@ -12,32 +12,40 @@ async function geocodeAndAddPins(jobs, map){
 
 // Geocode a job by address and save GPS to DB immediately
 async function geocodeJobAddress(jobId, address, city, state, zip){
-  var parts=[]
-  var cleanAddr=(address||'').replace(/\s+(suite|ste|unit|#|apt|floor|fl)\s*[\w-]*/gi,'').trim()
-  if(cleanAddr)parts.push(cleanAddr)
-  if(city)parts.push(city)
-  if(state)parts.push(state)
-  if(zip)parts.push(zip)
-  if(!parts.length)return null
-  var query=parts.join(', ')
-  try{
-    var r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(query)+'&format=json&limit=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
-    var res=await r.json()
-    if(res[0]){
-      var lat=parseFloat(res[0].lat),lng=parseFloat(res[0].lon)
-      await sb.from('jobs').update({gps_lat:lat,gps_lng:lng,updated_at:new Date().toISOString()}).eq('id',jobId)
-      return {lat,lng}
-    }
-    if(city&&state&&parts.length>2){
-      var r2=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(city+', '+state+(zip?' '+zip:''))+'&format=json&limit=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
-      var res2=await r2.json()
-      if(res2[0]){
-        var lat2=parseFloat(res2[0].lat),lng2=parseFloat(res2[0].lon)
-        await sb.from('jobs').update({gps_lat:lat2,gps_lng:lng2,updated_at:new Date().toISOString()}).eq('id',jobId)
-        return {lat:lat2,lng:lng2}
+  // Build progressively simpler queries to try in order
+  var addr=address||''
+  // Strip suite/unit/floor from address - multiple patterns
+  var cleanAddr=addr
+    .replace(/,?\s*(suite|ste|unit|apt|apartment|floor|fl|bldg|building|#)\s*[\w\d-]*/gi,'')
+    .replace(/,?\s*\d+[a-z]?\s*$/i,'')  // trailing unit number
+    .replace(/,\s*,/g,',')
+    .trim()
+  var queries=[]
+  // Try 1: clean address + city + state + zip
+  if(cleanAddr&&city&&state)queries.push(cleanAddr+', '+city+', '+state+(zip?' '+zip:''))
+  // Try 2: clean address + city + state (no zip)
+  if(cleanAddr&&city&&state)queries.push(cleanAddr+', '+city+', '+state)
+  // Try 3: clean address + city
+  if(cleanAddr&&city)queries.push(cleanAddr+', '+city)
+  // Try 4: city + state + zip
+  if(city&&state)queries.push(city+', '+state+(zip?' '+zip:''))
+  // Try 5: zip only
+  if(zip)queries.push(zip+', USA')
+
+  for(var qi=0;qi<queries.length;qi++){
+    var q=queries[qi]
+    try{
+      var r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
+      var res=await r.json()
+      if(res[0]){
+        var lat=parseFloat(res[0].lat),lng=parseFloat(res[0].lon)
+        await sb.from('jobs').update({gps_lat:lat,gps_lng:lng,updated_at:new Date().toISOString()}).eq('id',jobId)
+        return {lat,lng}
       }
-    }
-  }catch(e){console.warn('Geocode failed',jobId,e)}
+    }catch(e){console.warn('Geocode attempt failed',q,e)}
+    // Small delay between attempts to respect rate limit
+    if(qi<queries.length-1)await new Promise(function(r){setTimeout(r,300)})
+  }
   return null
 }
 async function geocodeJob(j, map){
