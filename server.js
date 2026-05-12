@@ -1188,13 +1188,13 @@ function downloadJobTemplate(){
   var headers=[['Job Name','Job Number','Trade','Address','City','State','Zip',
     'GC Company','GC Contact','GC Phone','GC Email',
     'Project Manager','Estimator',
-    'Stage','Start Date','Due Date','Projected Start','Projected Closeout','Contract Date','Original Contract Value',
+    'Stage','Start Date','Due Date','Projected Start','Projected Closeout','Contract Date','Original Contract Value','Labor Budget',
     'PM Visit Schedule','Next PM Visit Due',
     'Expected On Site','Description','Notes']]
   var example=[['Fire Alarm Install - 123 Main','2025-001','Fire Alarm','123 Main St','Phoenix','AZ','85001',
     'ABC Construction','John Smith','555-1234','john@abc.com',
     'Jane Doe','Bob Smith',
-    'not_started','2025-11-01','2025-12-01','2025-10-15','2025-12-15','2025-09-01','85000',
+    'not_started','2025-11-01','2025-12-01','2025-10-15','2025-12-15','2025-09-01','85000','42000',
     'none','',
     '','New construction FA install','']]
   var ws=XLSX.utils.aoa_to_sheet(headers.concat(example))
@@ -1202,7 +1202,7 @@ function downloadJobTemplate(){
     {wch:32},{wch:14},{wch:14},{wch:25},{wch:15},{wch:8},{wch:8},
     {wch:22},{wch:18},{wch:14},{wch:24},
     {wch:18},{wch:16},
-    {wch:18},{wch:14},{wch:12},{wch:16},{wch:18},{wch:16},{wch:20},
+    {wch:18},{wch:14},{wch:12},{wch:16},{wch:18},{wch:16},{wch:20},{wch:14},
     {wch:20},{wch:16},
     {wch:16},{wch:30},{wch:20}
   ]
