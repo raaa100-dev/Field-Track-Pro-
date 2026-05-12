@@ -1052,10 +1052,16 @@ async function importJobsExcel(input){
     modal('Import '+validRows.length+' Jobs', h, async function(){
       var created=0,errors=[],skipped=0,updated=0,skippedNames=[],newJobIds=[]
       // Pre-fetch existing jobs for duplicate detection
-      var existingRes=await sb.from('jobs').select('id,name,job_number,original_contract_value,contract_value,contract_date,address,city,state,zip,gc_company,gc_contact,gc_phone,gc_email,project_manager,description').eq('archived',false)
-      var existingJobs=existingRes.data||[]
-      var existingNames=new Set(existingJobs.map(j=>(j.name||'').toLowerCase()))
-      var existingNums=new Set(existingJobs.filter(j=>j.job_number).map(j=>j.job_number.toLowerCase()))
+      // Fetch ALL existing jobs in pages (Supabase default limit is 1000)
+      var existingJobs=[],exFrom=0,exPage=1000
+      while(true){
+        var exRes=await sb.from('jobs').select('id,name,job_number,original_contract_value,contract_value,contract_date,address,city,state,zip,gc_company,gc_contact,gc_phone,gc_email,project_manager,description,labor_budget').eq('archived',false).range(exFrom,exFrom+exPage-1)
+        existingJobs=existingJobs.concat(exRes.data||[])
+        if(!exRes.data||exRes.data.length<exPage)break
+        exFrom+=exPage
+      }
+      var existingNames=new Set(existingJobs.map(j=>(j.name||'').toLowerCase().trim().replace(/\s+/g,' ')))
+      var existingNums=new Set(existingJobs.filter(j=>j.job_number).map(j=>j.job_number.toLowerCase().trim()))
       for(var i=0;i<validRows.length;i++){
         var r=validRows[i]
         var name=r['Job Name']||r['name']||r['job_name']||''
@@ -1129,7 +1135,9 @@ async function importJobsExcel(input){
           created_at:new Date().toISOString(),updated_at:new Date().toISOString()
         }
         // Check for duplicate using pre-fetched sets
-        var isDup=(job.job_number&&existingNums.has(job.job_number.toLowerCase()))||existingNames.has(job.name.toLowerCase())
+        var normJobName=(job.name||'').toLowerCase().trim().replace(/\s+/g,' ')
+        var normJobNum=(job.job_number||'').toLowerCase().trim()
+        var isDup=(normJobNum&&existingNums.has(normJobNum))||existingNames.has(normJobName)
         if(isDup){
           // Option 2: update ONLY empty/null fields on existing job
           var existingJob=existingJobs.find(function(j){
@@ -1166,7 +1174,7 @@ async function importJobsExcel(input){
         }
         var res=await sb.from('jobs').insert(job)
         if(res.error)errors.push(name+': '+res.error.message)
-        else{created++;newJobIds.push({id:job.id,address:job.address,city:job.city,state:job.state,zip:job.zip});existingNames.add(job.name.toLowerCase());if(job.job_number)existingNums.add(job.job_number.toLowerCase())}
+        else{created++;newJobIds.push({id:job.id,address:job.address,city:job.city,state:job.state,zip:job.zip});existingNames.add((job.name||'').toLowerCase().trim().replace(/\s+/g,' '));if(job.job_number)existingNums.add(job.job_number.toLowerCase().trim())}
       }
       closeModal()
       if(errors.length){
