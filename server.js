@@ -1260,6 +1260,12 @@ async function exportJobsExcel(){
 // JOB DETAIL
 // ══════════════════════════════════════════
 async function openJob(id){
+  sb.from('checkins').select('hours_logged').eq('job_id',id).then(function(res){
+    var hrs=(res.data||[]).reduce(function(s,c){return s+(c.hours_logged||0)},0)
+    if(currentJob)currentJob._cachedHrs=hrs
+    var el=document.getElementById('ed-hrs-display')
+    if(el){el.textContent=hrs>0?hrs.toFixed(1)+' hrs on site':'No hours logged';el.style.color=hrs>0?'#e8edf5':'#414e63'}
+  })
   currentJobId=id
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
   document.getElementById('page-title').textContent='Job Detail'
@@ -1373,7 +1379,7 @@ function renderInfoTab(el,j){
     <div class="fg"><label class="fl">Original Contract $</label><input class="fi" type="number" id="ed-ocv" value="\${j.original_contract_value||''}"></div>
     <div class="two"><div class="fg"><label class="fl">Current Contract $</label><input class="fi" type="number" id="ed-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="ed-lr" value="\${j.labor_rate||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="ed-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="ed-mb" value="\${j.material_budget||''}"></div></div>
-    <div class="fg"><label class="fl">Hours Logged on Job</label><div class="fi" style="background:rgba(255,255,255,.03);cursor:default" id="ed-hrs-display">\\${currentJob._cachedHrs!==undefined?fh(currentJob._cachedHrs)+' hrs on site':'—'}</div></div>\n    <div id="co-budget-summary"></div>
+    <div class="fg"><label class="fl">Hours Logged on Job</label><div class="fi" style="background:rgba(255,255,255,.03);cursor:default;color:#8a96ab" id="ed-hrs-display">Loading...</div></div>
   </div>
   </div>
   <div class="sec-hdr" style="margin-top:14px">Permit Status</div>
@@ -2133,13 +2139,17 @@ async function schedulePmReviewTask(job,reason){
 }
 async function renderJobFinTab(el){
   const{data:ci}=await sb.from('checkins').select('hours_logged').eq('job_id',currentJobId)
-  const hrs=(ci||[]).reduce((s,c)=>s+(c.hours_logged||0),0)
+  const ciHrs=(ci||[]).reduce((s,c)=>s+(c.hours_logged||0),0)
+  const{data:dr}=await sb.from('daily_reports').select('total_man_hours,hours_per_person,crew_count').eq('job_id',currentJobId)
+  const drHrs=(dr||[]).reduce((s,r)=>s+(r.total_man_hours||((r.hours_per_person||0)*(r.crew_count||1))),0)
+  const hrs=Math.max(ciHrs,drHrs)
   if(currentJob)currentJob._cachedHrs=hrs
   var hrsEl=document.getElementById('ed-hrs-display')
   if(hrsEl)hrsEl.textContent=fh(hrs)+' hrs on site'
   const j=currentJob
   const labor=hrs*(j.labor_rate||0)
-  const profit=(j.contract_value||0)-labor
+  const totalCost=labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.misc_cost||0)
+  const profit=(j.contract_value||0)-totalCost
   const margin=j.contract_value>0?profit/j.contract_value*100:null
   // Labor budget threshold logic
   const lb=j.labor_budget||0
@@ -2161,11 +2171,31 @@ async function renderJobFinTab(el){
   +'<span style="font-weight:600;color:'+lbColor+'">'+fh(hrs)+' hrs'+(lbOver?' ⚠ OVER BUDGET':lbWarn?' ⚠ 75%+':'')+'</span></div>'
   +(lb>0?'<div style="font-size:10px;color:'+lbColor+';margin-top:2px;padding:0 6px">'+Math.round(lbPct)+'% of labor budget used</div>':'')
   +'</div>'
-  +'<div class="card"><div class="card-title">Costs</div><div class="fin-row"><span style="color:#8a96ab">Labor ('+fh(hrs)+' hrs)</span><span>'+fm(labor)+'</span></div><div class="fin-row"><span style="font-weight:600">Total Cost</span><span>'+fm(labor)+'</span></div></div>'
+  +'<div class="card"><div class="card-title">Costs</div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Labor ('+fh(hrs)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm(labor)+'</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Parts & Materials</span><span>'+fm(j.parts_cost||0)+'</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Shipping</span><span>'+fm(j.shipping_cost||0)+'</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Tariff / Misc</span><span>'+fm(j.misc_cost||0)+'</span></div>'
+  +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.misc_cost||0))+'</span></div>'
+  +'<button class="btn btn-sm" style="margin-top:8px" onclick="editJobCosts()">+ Edit Costs</button></div>'
   +'</div>'
   +'<div class="card" style="background:'+(profit>=0?'rgba(22,163,74,.08)':'rgba(220,38,38,.08)')+'">'
   +'<div style="font-size:26px;font-weight:300;color:'+(profit>=0?'#16a34a':'#dc2626')+'">'+fm(profit)+(margin!=null?' ('+margin.toFixed(1)+'% margin)':'')+'</div>'
   +'<div style="font-size:12px;color:#8a96ab;margin-top:3px">Gross Profit &middot; '+fh(hrs)+' logged</div></div>'
+}
+function editJobCosts(){
+  const j=currentJob
+  modal('Edit Job Costs',
+    '<div class="fg"><label class="fl">Parts & Materials ($)</label><input class="fi" type="number" id="ec-parts" value="'+(j.parts_cost||'')+'" placeholder="0.00"></div>'
+    +'<div class="fg"><label class="fl">Shipping ($)</label><input class="fi" type="number" id="ec-ship" value="'+(j.shipping_cost||'')+'" placeholder="0.00"></div>'
+    +'<div class="fg"><label class="fl">Tariff ($)</label><input class="fi" type="number" id="ec-tariff" value="'+(j.tariff_cost||'')+'" placeholder="0.00"></div>'
+    +'<div class="fg"><label class="fl">Misc Charges ($)</label><input class="fi" type="number" id="ec-misc" value="'+(j.misc_cost||'')+'" placeholder="0.00"></div>'
+    +'<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ec-notes">'+(j.cost_notes||'')+'</textarea></div>',
+    async function(){
+      var u={parts_cost:parseFloat(document.getElementById('ec-parts').value)||0,shipping_cost:parseFloat(document.getElementById('ec-ship').value)||0,tariff_cost:parseFloat(document.getElementById('ec-tariff').value)||0,misc_cost:(parseFloat(document.getElementById('ec-tariff').value)||0)+(parseFloat(document.getElementById('ec-misc').value)||0),cost_notes:document.getElementById('ec-notes').value||null,updated_at:new Date().toISOString()}
+      await sb.from('jobs').update(u).eq('id',currentJobId)
+      Object.assign(currentJob,u);closeModal();toast('Costs saved');loadJT('jt-fin')
+    },'Save Costs')
 }
 function editBudget(){const j=currentJob;modal('Edit Budget',\`<div class="two"><div class="fg"><label class="fl">Contract $</label><input class="fi" type="number" id="eb-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="eb-lr" value="\${j.labor_rate||''}"></div></div><div class="two"><div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="eb-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="eb-mb" value="\${j.material_budget||''}"></div></div>\`,async()=>{const u={contract_value:fN('eb-cv'),labor_rate:fN('eb-lr'),labor_budget:fN('eb-lb'),material_budget:fN('eb-mb')};await sb.from('jobs').update(u).eq('id',currentJobId);currentJob={...currentJob,...u};closeModal();toast('Saved');loadJT('jt-fin')})}
 
