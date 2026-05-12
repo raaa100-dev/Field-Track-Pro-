@@ -1373,7 +1373,7 @@ function renderInfoTab(el,j){
     <div class="fg"><label class="fl">Original Contract $</label><input class="fi" type="number" id="ed-ocv" value="\${j.original_contract_value||''}"></div>
     <div class="two"><div class="fg"><label class="fl">Current Contract $</label><input class="fi" type="number" id="ed-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="ed-lr" value="\${j.labor_rate||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="ed-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="ed-mb" value="\${j.material_budget||''}"></div></div>
-    <div id="co-budget-summary"></div>
+    <div class="fg"><label class="fl">Hours Logged on Job</label><div class="fi" style="background:rgba(255,255,255,.03);cursor:default" id="ed-hrs-display">\\${currentJob._cachedHrs!==undefined?fh(currentJob._cachedHrs)+' hrs on site':'—'}</div></div>\n    <div id="co-budget-summary"></div>
   </div>
   </div>
   <div class="sec-hdr" style="margin-top:14px">Permit Status</div>
@@ -2134,6 +2134,9 @@ async function schedulePmReviewTask(job,reason){
 async function renderJobFinTab(el){
   const{data:ci}=await sb.from('checkins').select('hours_logged').eq('job_id',currentJobId)
   const hrs=(ci||[]).reduce((s,c)=>s+(c.hours_logged||0),0)
+  if(currentJob)currentJob._cachedHrs=hrs
+  var hrsEl=document.getElementById('ed-hrs-display')
+  if(hrsEl)hrsEl.textContent=fh(hrs)+' hrs on site'
   const j=currentJob
   const labor=hrs*(j.labor_rate||0)
   const profit=(j.contract_value||0)-labor
