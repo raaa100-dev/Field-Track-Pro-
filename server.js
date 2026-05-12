@@ -895,6 +895,11 @@ async function pgDash(){
 // ALL JOBS
 // ══════════════════════════════════════════
 async function pgJobs(){
+  try{
+    var drRes=await sb.from('daily_reports').select('job_id,total_man_hours,hours_worked')
+    var hmap={};(drRes.data||[]).forEach(function(r){hmap[r.job_id]=(hmap[r.job_id]||0)+(r.total_man_hours||r.hours_worked||0)})
+    window._jobHrsMap=hmap
+  }catch(e){window._jobHrsMap={}}
   document.getElementById('topbar-actions').innerHTML=\`
     <button class="btn btn-sm btn-ghost" onclick="downloadJobTemplate()">📋 Template</button>
     <label class="btn btn-sm" style="cursor:pointer">⬆ Import Excel<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importJobsExcel(this)"></label>
@@ -924,7 +929,14 @@ function jobPartsStatus(j){
 
 // Load jobs and enrich with parts status snapshot
 async function loadJobsWithPartsStatus(){
-  const{data:jobs}=await sb.from('jobs').select('id,name,job_number,phase,address,city,state,zip,gps_lat,gps_lng,gps_radius_ft,project_manager,gc_company,due_date,is_urgent,urgent_note,company_id').eq('archived',false).order('created_at',{ascending:false})
+  var allJobsRaw=[],ajFrom=0
+  while(true){
+    var ajRes=await sb.from('jobs').select('id,name,job_number,phase,address,city,state,zip,gps_lat,gps_lng,gps_radius_ft,project_manager,gc_company,due_date,is_urgent,urgent_note,company_id,labor_budget').eq('archived',false).order('created_at',{ascending:false}).range(ajFrom,ajFrom+999)
+    allJobsRaw=allJobsRaw.concat(ajRes.data||[])
+    if(!ajRes.data||ajRes.data.length<1000)break
+    ajFrom+=1000
+  }
+  const jobs=allJobsRaw
   const{data:parts}=await sb.from('job_parts').select('job_id,status')
   allJobs=jobs||[]
   // Build parts map per job
@@ -956,6 +968,7 @@ function sortJobsBy(col){
   renderJobsTable(qVal)
 }
 function renderJobsTable(q){
+  var hrsMap=window._jobHrsMap||{}
   const rows=allJobs.filter(j=>!q||j.name.toLowerCase().includes(q.toLowerCase())||(j.job_number||'').toLowerCase().includes(q.toLowerCase())||(j.address||'').toLowerCase().includes(q.toLowerCase())||(j.gc_company||'').toLowerCase().includes(q.toLowerCase()))
   // Apply sort
   var sc=window._jobSortCol||'',sd=window._jobSortDir||1
@@ -987,9 +1000,7 @@ function renderJobsTable(q){
     const ps=jobPartsStatus(j)
     const permit=j.permit_status||'not_required'
     return \`<tr onclick="openJob('\${j.id}')" style="cursor:pointer">
-      <td><div style="font-weight:500">\${j.name}</div><div style="font-size:10px;color:#414e63">\${j.address||''}</div></td>
-      <td style="font-size:11px;color:#8a96ab;white-space:nowrap">\${j.job_number||'—'}</td>
-      <td>\${stageBadge(j.phase)}</td>
+      <td><div style="font-weight:500;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'inherit'}">\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'⚠ ':''}\${j.name}</div><div style="font-size:10px;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'#414e63'}">\${j.address||''}</div></td>
       <td>\${ps.badge}</td>
       <td><span class="badge \${PERMIT_STATUS_COLORS[permit]||'bg-gray'}">\${PERMIT_STATUS_LABELS[permit]||permit}</span></td>
       <td style="font-size:12px">\${j.project_manager||'—'}</td>
@@ -2318,7 +2329,14 @@ async function submitNewJob(){
 // SCHEDULE PAGE
 // ══════════════════════════════════════════
 async function pgSchedule(){
-  const{data:jobs}=await sb.from('jobs').select('*').eq('archived',false).order('name')
+  var allJobsData=[],ajFrom2=0
+  while(true){
+    var aj2Res=await sb.from('jobs').select('*').eq('archived',false).order('name').range(ajFrom2,ajFrom2+999)
+    allJobsData=allJobsData.concat(aj2Res.data||[])
+    if(!aj2Res.data||aj2Res.data.length<1000)break
+    ajFrom2+=1000
+  }
+  const jobs=allJobsData
   const events=[];const today=new Date();today.setHours(0,0,0,0)
   ;(jobs||[]).forEach(j=>{
     const fields=[['expected_onsite_date','📍 Expected On Site','#60a5fa'],['next_visit_date','🔄 Next Visit','#d97706'],['date_roughin','🔨 Rough-in','#fb923c'],['date_trimout','✂ Trim-out','#2dd4bf'],['date_inspection','🔍 Inspection','#a78bfa'],['date_closeout','📋 Closeout','#16a34a'],['due_date','⚑ Due Date','#dc2626']]
@@ -4762,12 +4780,20 @@ async function pgJobMap(){
   document.getElementById('page-title').textContent='Job Map'
   document.getElementById('topbar-actions').innerHTML=\`
     <div id="map-stats" style="display:flex;gap:8px;align-items:center;flex-shrink:0"></div>
+    <button class="btn btn-sm btn-ghost" onclick="geocodeMissingJobs()" style="font-size:11px">Geocode Missing</button>
     <select class="fs" id="map-filter-pm" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All PMs</option></select>
     <select class="fs" id="map-filter-gc" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All GC Companies</option></select>
     <select class="fs" id="map-filter-stage" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All Stages</option>\${STAGES.map(s=>\`<option value="\${s}">\${STAGE_LABELS[s]}</option>\`).join('')}</select>
     <select class="fs" id="map-filter-sub" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All Subs</option></select>\`
 
-  const{data:jobs}=await sb.from('jobs').select('*').eq('archived',false)
+  var mapJobs=[],mapFrom=0
+  while(true){
+    var mRes=await sb.from('jobs').select('*').eq('archived',false).range(mapFrom,mapFrom+999)
+    mapJobs=mapJobs.concat(mRes.data||[])
+    if(!mRes.data||mRes.data.length<1000)break
+    mapFrom+=1000
+  }
+  var jobs=mapJobs
   window._mapJobs=jobs||[]
   updateMapStats(jobs||[])
 
@@ -4948,7 +4974,7 @@ function addMapPins(jobs,map){
   const noGPS=jobs.filter(j=>(!j.gps_lat||!j.gps_lng)&&(j.address||j.city))
   if(noGPS.length>0){
     toast('📍 Geocoding '+noGPS.length+' jobs in background — pins will appear as they resolve','info')
-    geocodeAndAddPins(noGPS,map).then(function(){toast('✓ All job locations resolved','success')})
+    if(noGPS.length>0){toast(noGPS.length+' jobs missing GPS. Click Geocode Missing to add.');window._noGPSJobs=noGPS}
   }
   // Legend
   const el=document.getElementById('map-legend')
@@ -5027,6 +5053,21 @@ function updateMapStats(jobs){
   })
   html+='</div>'
   el.innerHTML=html
+}
+async function geocodeMissingJobs(){
+  var jobs=window._noGPSJobs||[]
+  if(!jobs.length){toast('No jobs missing GPS');return}
+  if(!confirm('Geocode '+jobs.length+' jobs at 2s each to avoid rate limits. Continue?'))return
+  var done=0,failed=0
+  for(var i=0;i<jobs.length;i++){
+    var j=jobs[i]
+    var r=await geocodeJobAddress(j.id,j.address,j.city,j.state,j.zip)
+    if(r)done++;else failed++
+    if(i<jobs.length-1)await new Promise(function(res){setTimeout(res,2100)})
+    if((i+1)%5===0||i===jobs.length-1)toast((i+1)+'/'+jobs.length+' geocoded...')
+  }
+  toast('Done: '+done+' geocoded, '+failed+' failed')
+  pgJobMap()
 }
 function filterMapPins(){
   const pm=(document.getElementById('map-filter-pm')||document.getElementById('mob-f-pm'))?.value||''
