@@ -1260,8 +1260,8 @@ async function exportJobsExcel(){
 // JOB DETAIL
 // ══════════════════════════════════════════
 async function openJob(id){
-  sb.from('checkins').select('hours_logged').eq('job_id',id).then(function(res){
-    var hrs=(res.data||[]).reduce(function(s,c){return s+(c.hours_logged||0)},0)
+  sb.from('daily_reports').select('total_man_hours,hours_worked').eq('job_id',id).then(function(res){
+    var hrs=(res.data||[]).reduce(function(s,r){return s+(r.total_man_hours||(r.hours_worked||0))},0)
     if(currentJob)currentJob._cachedHrs=hrs
     var el=document.getElementById('ed-hrs-display')
     if(el){el.textContent=hrs>0?hrs.toFixed(1)+' hrs on site':'No hours logged';el.style.color=hrs>0?'#e8edf5':'#414e63'}
@@ -2139,8 +2139,8 @@ async function schedulePmReviewTask(job,reason){
 }
 async function renderJobFinTab(el){
   // Daily reports are the single source of truth for hours
-  const{data:dr}=await sb.from('daily_reports').select('total_man_hours,hours_per_person,crew_count').eq('job_id',currentJobId)
-  const hrs=(dr||[]).reduce((s,r)=>s+(r.total_man_hours||((r.hours_per_person||0)*(r.crew_count||1))),0)
+  const{data:dr}=await sb.from('daily_reports').select('total_man_hours,hours_worked,crew_count').eq('job_id',currentJobId)
+  const hrs=(dr||[]).reduce((s,r)=>s+(r.total_man_hours||(r.hours_worked||0)),0)
   if(currentJob)currentJob._cachedHrs=hrs
   var hrsEl=document.getElementById('ed-hrs-display')
   if(hrsEl)hrsEl.textContent=fh(hrs)+' hrs on site'
