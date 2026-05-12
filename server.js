@@ -1013,15 +1013,9 @@ async function importJobsExcel(input){
     if(!rows.length){toast('No data found in file','error');return}
     // Pre-fetch existing jobs for preview
     // Paginate preview pre-fetch to get ALL jobs
-    var prevAllJobs=[],prevFrom=0
-    while(true){
-      var prevRes=await sb.from('jobs').select('name,job_number').eq('archived',false).range(prevFrom,prevFrom+999)
-      prevAllJobs=prevAllJobs.concat(prevRes.data||[])
-      if(!prevRes.data||prevRes.data.length<1000)break
-      prevFrom+=1000
-    }
+        var prevAllJobs=allJobs||[]
     var prevNames=new Set(prevAllJobs.map(j=>(j.name||'').toLowerCase().trim().replace(/\s+/g,' ')))
-    var prevNums=new Set(prevAllJobs.filter(j=>j.job_number).map(j=>j.job_number.toLowerCase().trim()))
+    var prevNums=new Set(prevAllJobs.filter(j=>j.job_number).map(j=>(j.job_number||'').toLowerCase().trim()))
     // Preview modal
     const validRows=rows.filter(r=>r['Job Name']||r['name']||r['job_name'])
     if(!validRows.length){
@@ -1064,12 +1058,11 @@ async function importJobsExcel(input){
       var created=0,errors=[],skipped=0,updated=0,skippedNames=[],newJobIds=[]
       // Pre-fetch existing jobs for duplicate detection
       // Fetch ALL existing jobs in pages (Supabase default limit is 1000)
-      var existingJobs=[],exFrom=0,exPage=1000
-      while(true){
-        var exRes=await sb.from('jobs').select('id,name,job_number,original_contract_value,contract_value,contract_date,address,city,state,zip,gc_company,gc_contact,gc_phone,gc_email,project_manager,description,labor_budget').eq('archived',false).range(exFrom,exFrom+exPage-1)
-        existingJobs=existingJobs.concat(exRes.data||[])
-        if(!exRes.data||exRes.data.length<exPage)break
-        exFrom+=exPage
+      // Use allJobs already in memory - avoids column/RLS issues
+      var existingJobs=allJobs||[]
+      if(!existingJobs.length){
+        var exRes=await sb.from('jobs').select('id,name,job_number').limit(5000)
+        existingJobs=exRes.data||[]
       }
       var existingNames=new Set(existingJobs.map(j=>(j.name||'').toLowerCase().trim().replace(/\s+/g,' ')))
       var existingNums=new Set(existingJobs.filter(j=>j.job_number).map(j=>j.job_number.toLowerCase().trim()))
