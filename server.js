@@ -1119,6 +1119,7 @@ async function importJobsExcel(input){
           date_contract:parseDate(r['Contract Date']||r['contract_date']),
           original_contract_value:parseCurrency(r['Original Contract Value']||r['original_contract_value']),
           contract_value:parseCurrency(r['Original Contract Value']||r['Contract Value']||r['contract_value'])||null,
+          labor_budget:parseCurrency(r['Labor Budget']||r['labor_budget'])||null,
           pm_visit_schedule:r['PM Visit Schedule']||r['pm_visit_schedule']||'none',
           next_pm_visit:parseDate(r['Next PM Visit Due']||r['next_pm_visit']),
           expected_onsite_date:parseDate(r['Expected On Site']||r['expected_onsite_date']),
@@ -1139,6 +1140,7 @@ async function importJobsExcel(input){
             // Only fill fields that are currently null/empty/zero
             if(!existingJob.original_contract_value&&job.original_contract_value)patch.original_contract_value=job.original_contract_value
             if(!existingJob.contract_value&&job.contract_value)patch.contract_value=job.contract_value
+            if(!existingJob.labor_budget&&job.labor_budget)patch.labor_budget=job.labor_budget
             if(!existingJob.contract_date&&job.contract_date)patch.contract_date=job.contract_date
             if(!existingJob.address&&job.address)patch.address=job.address
             if(!existingJob.city&&job.city)patch.city=job.city
