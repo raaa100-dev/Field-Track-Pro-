@@ -525,7 +525,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
     <div class="nav-item" onclick="pgJobMap()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 3l4 1.5L9 3l6 2v8l-6-2-4 1.5L1 11V3z"/><path d="M5 4.5v9M9 3v9"/></svg>Job Map</div>
     <div class="nav-section">Daily Ops</div>
     <div class="nav-item" onclick="P('tasks',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 8l2 2 4-4"/></svg>Tasks<span id="tasks-badge" style="display:none;margin-left:auto;background:#dc2626;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;line-height:1.4"></span></div>
-    <div class="nav-item" onclick="P('my_training',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3z"/><path d="M5 3V1.5M11 3V1.5M2 6h12"/></svg>My Training<span id="training-badge" style="display:none;background:#dc2626;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:auto"></span></div>
+    <div class="nav-item" onclick="if(typeof P==='function')P('my_training',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3z"/><path d="M5 3V1.5M11 3V1.5M2 6h12"/></svg>My Training<span id="training-badge" style="display:none;background:#dc2626;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:auto"></span></div>
     <div class="nav-item" onclick="P('daily',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v10H3z"/><path d="M3 7h10M7 3v10"/></svg>Daily Reports</div>
     <div class="nav-item" onclick="P('jobwalks',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13L8 3l6 10H2z"/><path d="M8 8v3M8 12.5v.5"/></svg>Job Walks</div>
     <div class="nav-item" onclick="P('punch',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M3 4h10M3 12h7"/></svg>Punch List</div>
@@ -1310,7 +1310,7 @@ async function loadJT(id){
   else if(id==='jt-docs') await renderDocsTab(el)
   else if(id==='jt-log') await renderLogTab(el)
 }
-async function updateJobStage(phase){await sb.var pu={phase,updated_at:new Date().toISOString()};if(phase==='ready_for_final'||phase==='complete')pu.pct_complete=100;await sb.from('jobs').update(pu).eq('id',currentJobId);currentJob.phase=phase;if(pu.pct_complete){currentJob.pct_complete=100;}toast('Stage updated'+(pu.pct_complete?' (100% set)':''))}
+async function updateJobStage(phase){var pu={phase,updated_at:new Date().toISOString()};if(phase==='ready_for_final'||phase==='complete')pu.pct_complete=100;await sb.from('jobs').update(pu).eq('id',currentJobId);currentJob.phase=phase;if(pu.pct_complete){currentJob.pct_complete=100;}toast('Stage updated'+(pu.pct_complete?' (100% set)':''))}
 async function updateJobPct(pct){await sb.from('jobs').update({pct_complete:parseInt(pct)||0,updated_at:new Date().toISOString()}).eq('id',currentJobId);currentJob.pct_complete=parseInt(pct)||0;toast('Progress updated')}
 
 // INFO TAB
