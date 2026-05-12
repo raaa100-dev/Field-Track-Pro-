@@ -1378,7 +1378,7 @@ function renderInfoTab(el,j){
     <div class="sec-hdr">Budget</div>
     <div class="fg"><label class="fl">Original Contract $</label><input class="fi" type="number" id="ed-ocv" value="\${j.original_contract_value||''}"></div>
     <div class="two"><div class="fg"><label class="fl">Current Contract $</label><input class="fi" type="number" id="ed-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="ed-lr" value="\${j.labor_rate||''}"></div></div>
-    <div class="two"><div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="ed-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="ed-mb" value="\${j.material_budget||''}"></div></div>
+    <div class="two"><div class="fg"><label class="fl">Labor Budget (hrs)</label><input class="fi" type="number" id="ed-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="ed-mb" value="\${j.material_budget||''}"></div></div>
     <div class="fg"><label class="fl">Hours Logged on Job</label><div class="fi" style="background:rgba(255,255,255,.03);cursor:default;color:#8a96ab" id="ed-hrs-display">Loading...</div></div>
   </div>
   </div>
@@ -2139,8 +2139,8 @@ async function schedulePmReviewTask(job,reason){
 }
 async function renderJobFinTab(el){
   // Daily reports are the single source of truth for hours
-  const{data:dr}=await sb.from('daily_reports').select('total_man_hours,hours_worked,crew_count').eq('job_id',currentJobId)
-  const hrs=(dr||[]).reduce((s,r)=>s+(r.total_man_hours||(r.hours_worked||0)),0)
+  const{data:dr}=await sb.from('daily_reports').select('*').eq('job_id',currentJobId)
+  const hrs=(dr||[]).reduce((s,r)=>s+(r.total_man_hours||r.hours_worked||r.hours||0),0)
   if(currentJob)currentJob._cachedHrs=hrs
   var hrsEl=document.getElementById('ed-hrs-display')
   if(hrsEl)hrsEl.textContent=fh(hrs)+' hrs on site'
@@ -2162,7 +2162,7 @@ async function renderJobFinTab(el){
   +'<div class="two">'
   +'<div class="card"><div class="card-title">Revenue</div>'
   +'<div class="fin-row"><span style="color:#8a96ab">Contract Value</span><span style="font-weight:500">'+fm(j.contract_value)+'</span></div>'
-  +'<div class="fin-row"><span style="color:#8a96ab">Labor Budget</span><span>'+fm(j.labor_budget)+'</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Labor Budget</span><span>'+fh(j.labor_budget)+' hrs ('+fm((j.labor_budget||0)*(j.labor_rate||0))+')</span></div>'
   +'<div class="fin-row"><span style="color:#8a96ab">Material Budget</span><span>'+fm(j.material_budget)+'</span></div>'
   +'<div class="fin-row" style="background:'+lbBg+';border-radius:6px;padding:4px 6px;margin:4px -6px">'
   +'<span style="color:#8a96ab">Hours on Site</span> '
@@ -2170,7 +2170,9 @@ async function renderJobFinTab(el){
   +(lb>0?'<div style="font-size:10px;color:'+lbColor+';margin-top:2px;padding:0 6px">'+Math.round(lbPct)+'% of labor budget used</div>':'')
   +'</div>'
   +'<div class="card"><div class="card-title">Costs</div>'
-  +'<div class="fin-row"><span style="color:#8a96ab">Labor ('+fh(hrs)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm(labor)+'</span></div>'
+  +'<div class="card"><div class="card-title">Costs</div>'
+  +(j.labor_budget&&j.labor_rate?'<div class="fin-row" style="color:#414e63"><span>Budget Labor Cost ('+fh(j.labor_budget)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm((j.labor_budget||0)*(j.labor_rate||0))+'</span></div>':'')
+  +'<div class="fin-row"><span style="color:#8a96ab">Labor Actual ('+fh(hrs)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm(labor)+'</span></div>'
   +'<div class="fin-row"><span style="color:#8a96ab">Parts & Materials</span><span>'+fm(j.parts_cost||0)+'</span></div>'
   +'<div class="fin-row"><span style="color:#8a96ab">Shipping</span><span>'+fm(j.shipping_cost||0)+'</span></div>'
   +'<div class="fin-row"><span style="color:#8a96ab">Tariff / Misc</span><span>'+fm(j.misc_cost||0)+'</span></div>'
@@ -2195,7 +2197,7 @@ function editJobCosts(){
       Object.assign(currentJob,u);closeModal();toast('Costs saved');loadJT('jt-fin')
     },'Save Costs')
 }
-function editBudget(){const j=currentJob;modal('Edit Budget',\`<div class="two"><div class="fg"><label class="fl">Contract $</label><input class="fi" type="number" id="eb-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="eb-lr" value="\${j.labor_rate||''}"></div></div><div class="two"><div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="eb-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="eb-mb" value="\${j.material_budget||''}"></div></div>\`,async()=>{const u={contract_value:fN('eb-cv'),labor_rate:fN('eb-lr'),labor_budget:fN('eb-lb'),material_budget:fN('eb-mb')};await sb.from('jobs').update(u).eq('id',currentJobId);currentJob={...currentJob,...u};closeModal();toast('Saved');loadJT('jt-fin')})}
+function editBudget(){const j=currentJob;modal('Edit Budget',\`<div class="two"><div class="fg"><label class="fl">Contract $</label><input class="fi" type="number" id="eb-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="eb-lr" value="\${j.labor_rate||''}"></div></div><div class="two"><div class="fg"><label class="fl">Labor Budget (hrs)</label><input class="fi" type="number" id="eb-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="eb-mb" value="\${j.material_budget||''}"></div></div>\`,async()=>{const u={contract_value:fN('eb-cv'),labor_rate:fN('eb-lr'),labor_budget:fN('eb-lb'),material_budget:fN('eb-mb')};await sb.from('jobs').update(u).eq('id',currentJobId);currentJob={...currentJob,...u};closeModal();toast('Saved');loadJT('jt-fin')})}
 
 // DOCUMENTS TAB (per job)
 async function renderDocsTab(el){
@@ -2237,7 +2239,7 @@ async function pgNewJob(){
       <div class="fg"><label class="fl">Closeout Date</label><input class="fi" type="date" id="nj-dco"></div>
       <div class="fg"><label class="fl">Contract Date</label><input class="fi" type="date" id="nj-dc2"></div></div>
       <div class="three"><div class="fg"><label class="fl">Original Contract $</label><input class="fi" type="number" id="nj-cv"></div>
-      <div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="nj-lb"></div>
+      <div class="fg"><label class="fl">Labor Budget (hrs)</label><input class="fi" type="number" id="nj-lb"></div>
       <div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="nj-lr"></div></div>
       <div class="fg"><label class="fl">GC Company</label><input class="fi" id="nj-gc"></div>
       <div class="two"><div class="fg"><label class="fl">GC Contact</label><input class="fi" id="nj-gcc"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="nj-gcp"></div></div>
