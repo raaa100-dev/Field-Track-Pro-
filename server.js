@@ -751,8 +751,8 @@ const STAGE_COLORS={not_started:'bg-gray',make_safe:'bg-red',prewire:'bg-orange'
 // Parts statuses displayed on job cards
 const PARTS_STATUS_LABELS={ordered:'Ordered',staged:'Staged',delivered:'Delivered to Site',partial:'Partial',none:'None'}
 // Permit statuses
-const PERMIT_STATUS_LABELS={not_required:'Not Required',pending:'Pending',submitted:'Submitted',approved:'Approved',rejected:'Rejected',expired:'Expired'}
-const PERMIT_STATUS_COLORS={not_required:'bg-gray',pending:'bg-amber',submitted:'bg-blue',approved:'bg-green',rejected:'bg-red',expired:'bg-red'}
+const PERMIT_STATUS_LABELS={not_required:'Not Required',needs_cads:'Needs CADs',needs_job_walk:'Needs Job Walk',pending:'Pending',submitted:'Submitted',otc:'OTC (Over the Counter)',approved:'Approved',issued:'Issued',rejected:'Rejected',expired:'Expired',failed:'Failed'}
+const PERMIT_STATUS_COLORS={not_required:'bg-gray',needs_cads:'bg-amber',needs_job_walk:'bg-amber',pending:'bg-amber',submitted:'bg-blue',otc:'bg-blue',approved:'bg-green',issued:'bg-green',rejected:'bg-red',expired:'bg-red',failed:'bg-red'}
 function stageBadge(p){return\`<span class="badge \${STAGE_COLORS[p]||'bg-gray'}">\${STAGE_LABELS[p]||p||'—'}</span>\`}
 function roleBadge(r){const m={admin:'bg-purple',pm:'bg-blue',estimator:'bg-blue',stager:'bg-amber',foreman:'bg-teal',technician:'bg-green',sub_lead:'bg-amber',sub_worker:'bg-gray'};return\`<span class="badge \${m[r]||'bg-gray'}">\${r||'—'}</span>\`}
 function empty(icon,txt){return\`<div class="empty"><div class="empty-icon">\${icon}</div><div style="color:#414e63;font-size:12px">\${txt}</div></div>\`}
@@ -1386,12 +1386,17 @@ function renderInfoTab(el,j){
   <div class="two" style="margin-bottom:4px">
     <div class="fg"><label class="fl">Permit Status</label>
       <select class="fs" id="ed-permit-status">
-        <option value="not_required" \\\${(j.permit_status||'not_required')==='not_required'?'selected':''}>Not Required</option>
-        <option value="pending" \\\${j.permit_status==='pending'?'selected':''}>Pending</option>
-        <option value="submitted" \\\${j.permit_status==='submitted'?'selected':''}>Submitted</option>
-        <option value="approved" \\\${j.permit_status==='approved'?'selected':''}>Approved</option>
-        <option value="rejected" \\\${j.permit_status==='rejected'?'selected':''}>Rejected</option>
-        <option value="expired" \\\${j.permit_status==='expired'?'selected':''}>Expired</option>
+        <option value="not_required" \\${(j.permit_status||'not_required')==='not_required'?'selected':''}>Not Required</option>
+        <option value="needs_cads" \\${j.permit_status==='needs_cads'?'selected':''}>Needs CADs</option>
+        <option value="needs_job_walk" \\${j.permit_status==='needs_job_walk'?'selected':''}>Needs Job Walk</option>
+        <option value="pending" \\${j.permit_status==='pending'?'selected':''}>Pending</option>
+        <option value="submitted" \\${j.permit_status==='submitted'?'selected':''}>Submitted</option>
+        <option value="otc" \\${j.permit_status==='otc'?'selected':''}>OTC (Over the Counter)</option>
+        <option value="approved" \\${j.permit_status==='approved'?'selected':''}>Approved</option>
+        <option value="issued" \\${j.permit_status==='issued'?'selected':''}>Issued</option>
+        <option value="rejected" \\${j.permit_status==='rejected'?'selected':''}>Rejected</option>
+        <option value="failed" \\${j.permit_status==='failed'?'selected':''}>Failed</option>
+        <option value="expired" \\${j.permit_status==='expired'?'selected':''}>Expired</option>
       </select>
     </div>
     <div class="fg"><label class="fl">Permit Number</label>
@@ -2146,7 +2151,7 @@ async function renderJobFinTab(el){
   if(hrsEl)hrsEl.textContent=fh(hrs)+' hrs on site'
   const j=currentJob
   const labor=hrs*(j.labor_rate||0)
-  const totalCost=labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.misc_cost||0)
+  const totalCost=labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0)
   const profit=(j.contract_value||0)-totalCost
   const margin=j.contract_value>0?profit/j.contract_value*100:null
   // Labor budget threshold logic
@@ -2175,8 +2180,9 @@ async function renderJobFinTab(el){
   +'<div class="fin-row"><span style="color:#8a96ab">Labor Actual ('+fh(hrs)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm(labor)+'</span></div>'
   +'<div class="fin-row"><span style="color:#8a96ab">Parts & Materials</span><span>'+fm(j.parts_cost||0)+'</span></div>'
   +'<div class="fin-row"><span style="color:#8a96ab">Shipping</span><span>'+fm(j.shipping_cost||0)+'</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Equipment Rental</span><span>'+fm(j.equipment_rental_cost||0)+'</span></div>'
   +'<div class="fin-row"><span style="color:#8a96ab">Tariff / Misc</span><span>'+fm(j.misc_cost||0)+'</span></div>'
-  +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.misc_cost||0))+'</span></div>'
+  +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0))+'</span></div>'
   +'<button class="btn btn-sm" style="margin-top:8px" onclick="editJobCosts()">+ Edit Costs</button></div>'
   +'</div>'
   +'<div class="card" style="background:'+(profit>=0?'rgba(22,163,74,.08)':'rgba(220,38,38,.08)')+'">'
@@ -2189,10 +2195,11 @@ function editJobCosts(){
     '<div class="fg"><label class="fl">Parts & Materials ($)</label><input class="fi" type="number" id="ec-parts" value="'+(j.parts_cost||'')+'" placeholder="0.00"></div>'
     +'<div class="fg"><label class="fl">Shipping ($)</label><input class="fi" type="number" id="ec-ship" value="'+(j.shipping_cost||'')+'" placeholder="0.00"></div>'
     +'<div class="fg"><label class="fl">Tariff ($)</label><input class="fi" type="number" id="ec-tariff" value="'+(j.tariff_cost||'')+'" placeholder="0.00"></div>'
+    +'<div class="fg"><label class="fl">Equipment Rental ($)</label><input class="fi" type="number" id="ec-equip" value="'+(j.equipment_rental_cost||'')+'" placeholder="0.00"></div>'
     +'<div class="fg"><label class="fl">Misc Charges ($)</label><input class="fi" type="number" id="ec-misc" value="'+(j.misc_cost||'')+'" placeholder="0.00"></div>'
     +'<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ec-notes">'+(j.cost_notes||'')+'</textarea></div>',
     async function(){
-      var u={parts_cost:parseFloat(document.getElementById('ec-parts').value)||0,shipping_cost:parseFloat(document.getElementById('ec-ship').value)||0,tariff_cost:parseFloat(document.getElementById('ec-tariff').value)||0,misc_cost:(parseFloat(document.getElementById('ec-tariff').value)||0)+(parseFloat(document.getElementById('ec-misc').value)||0),cost_notes:document.getElementById('ec-notes').value||null,updated_at:new Date().toISOString()}
+      var u={parts_cost:parseFloat(document.getElementById('ec-parts').value)||0,shipping_cost:parseFloat(document.getElementById('ec-ship').value)||0,tariff_cost:parseFloat(document.getElementById('ec-tariff').value)||0,equipment_rental_cost:parseFloat(document.getElementById('ec-equip').value)||0,misc_cost:(parseFloat(document.getElementById('ec-tariff').value)||0)+(parseFloat(document.getElementById('ec-misc').value)||0),cost_notes:document.getElementById('ec-notes').value||null,updated_at:new Date().toISOString()}
       await sb.from('jobs').update(u).eq('id',currentJobId)
       Object.assign(currentJob,u);closeModal();toast('Costs saved');loadJT('jt-fin')
     },'Save Costs')
