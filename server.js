@@ -791,6 +791,19 @@ async function pgDash(){
       myWalks=wRes2.data||[]
     }
   }
+  // Labor over-budget alerts
+  var laborAlerts=[]
+  try{
+    var ciAllRes=await sb.from('checkins').select('job_id,hours_logged')
+    if(ciAllRes.data&&allJobs&&allJobs.length){
+      var hrsMap={};ciAllRes.data.forEach(function(c){hrsMap[c.job_id]=(hrsMap[c.job_id]||0)+(c.hours_logged||0)})
+      allJobs.forEach(function(j){
+        var lb=j.labor_budget||0,h=hrsMap[j.id]||0
+        if(lb>0&&h>0){var pct=Math.round(h/lb*100);if(pct>=75)laborAlerts.push({job:j,hrs:h,lb:lb,pct:pct,over:h>lb})}
+      })
+      laborAlerts.sort(function(a,b){return b.pct-a.pct})
+    }
+  }catch(e){}
   // Fetch safety assignments pending for current user
   const {data:safety} = await sb.from('safety_assignments')
     .select('*,safety_topics(id,title,week_of,content)')
@@ -865,6 +878,7 @@ async function pgDash(){
     </div>
     <div>
       \${buildMyTasksDashWidget(myTasks)}
+      \${laborAlerts.length?buildLaborAlertWidget(laborAlerts):''}
       \${buildMyWalksDashWidget(myWalks||[],_dashJobMap||{})}
       <div class="card">
         <div class="card-title">🎓 My Training<span id="dash-training-badge" style="display:none;background:#dc2626;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:8px;font-weight:400"></span></div>
@@ -2107,6 +2121,16 @@ async function updateJobContractValue(){
 async function signCO(id){await sb.from('change_orders').update({pm_signed_by:ME?.full_name,pm_signed_at:new Date().toISOString(),status:'signed'}).eq('id',id);toast('Signed');loadJT('jt-co')}
 
 // FINANCIALS TAB (per job)
+async function schedulePmReviewTask(job,reason){
+  var title='PM Review: '+job.name
+  var{data:existing}=await sb.from('job_tasks').select('id').eq('job_id',job.id).ilike('title','%PM Review%').eq('status','open').limit(1)
+  if(existing&&existing.length)return
+  var pm=job.project_manager||''
+  var pmProfile=null
+  if(pm){var{data:prs}=await sb.from('profiles').select('id,full_name').ilike('full_name','%'+pm.split(' ')[0]+'%').limit(1);if(prs&&prs.length)pmProfile=prs[0]}
+  await sb.from('job_tasks').insert({id:uuid(),job_id:job.id,job_name:job.name,title:title,description:reason,assigned_to:pmProfile?pmProfile.id:null,assigned_name:pmProfile?pmProfile.full_name:pm||'PM',priority:'high',status:'open',source:'labor_alert',created_by:'System',created_at:new Date().toISOString()})
+  toast('PM Review task created','warn')
+}
 async function renderJobFinTab(el){
   const{data:ci}=await sb.from('checkins').select('hours_logged').eq('job_id',currentJobId)
   const hrs=(ci||[]).reduce((s,c)=>s+(c.hours_logged||0),0)
@@ -2114,15 +2138,31 @@ async function renderJobFinTab(el){
   const labor=hrs*(j.labor_rate||0)
   const profit=(j.contract_value||0)-labor
   const margin=j.contract_value>0?profit/j.contract_value*100:null
-  el.innerHTML=\`<button class="btn btn-sm" style="float:right;margin-bottom:11px" onclick="editBudget()">Edit Budget</button>
-  <div class="two">
-    <div class="card"><div class="card-title">Revenue</div><div class="fin-row"><span style="color:#8a96ab">Contract Value</span><span style="font-weight:500">\${fm(j.contract_value)}</span></div><div class="fin-row"><span style="color:#8a96ab">Labor Budget</span><span>\${fm(j.labor_budget)}</span></div><div class="fin-row"><span style="color:#8a96ab">Material Budget</span><span>\${fm(j.material_budget)}</span></div></div>
-    <div class="card"><div class="card-title">Costs</div><div class="fin-row"><span style="color:#8a96ab">Labor (\${fh(hrs)} @ \${fm(j.labor_rate||0)}/hr)</span><span>\${fm(labor)}</span></div><div class="fin-row"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">\${fm(labor)}</span></div></div>
-  </div>
-  <div class="card" style="background:\${profit>=0?'rgba(22,163,74,.08)':'rgba(220,38,38,.08)'};border-color:\${profit>=0?'rgba(22,163,74,.2)':'rgba(220,38,38,.2)'}">
-    <div style="font-size:26px;font-weight:300;color:\${profit>=0?'#16a34a':'#dc2626'}">\${fm(profit)} \${margin!=null?'('+margin.toFixed(1)+'% margin)':''}</div>
-    <div style="font-size:12px;color:#8a96ab;margin-top:3px">Gross Profit · \${fh(hrs)} logged</div>
-  </div>\` 
+  // Labor budget threshold logic
+  const lb=j.labor_budget||0
+  const lbPct=lb>0?(hrs/lb)*100:0
+  const lbOver=lb>0&&hrs>lb
+  const lbWarn=lb>0&&lbPct>=75&&!lbOver
+  if(lbWarn)schedulePmReviewTask(j,'Labor at '+Math.round(lbPct)+'% of budget: '+fh(hrs)+' of '+fh(lb)+' hrs')
+  if(lbOver)schedulePmReviewTask(j,'OVER Labor Budget: '+fh(hrs)+' hrs vs '+fh(lb)+' budgeted')
+  const lbColor=lbOver?'#dc2626':lbWarn?'#d97706':'inherit'
+  const lbBg=lbOver?'rgba(220,38,38,.12)':lbWarn?'rgba(217,119,6,.12)':'transparent'
+  el.innerHTML='<button class="btn btn-sm" style="float:right;margin-bottom:11px" onclick="editBudget()">Edit Budget</button>'
+  +'<div class="two">'
+  +'<div class="card"><div class="card-title">Revenue</div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Contract Value</span><span style="font-weight:500">'+fm(j.contract_value)+'</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Labor Budget</span><span>'+fm(j.labor_budget)+'</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Material Budget</span><span>'+fm(j.material_budget)+'</span></div>'
+  +'<div class="fin-row" style="background:'+lbBg+';border-radius:6px;padding:4px 6px;margin:4px -6px">'
+  +'<span style="color:#8a96ab">Hours on Site</span> '
+  +'<span style="font-weight:600;color:'+lbColor+'">'+fh(hrs)+' hrs'+(lbOver?' ⚠ OVER BUDGET':lbWarn?' ⚠ 75%+':'')+'</span></div>'
+  +(lb>0?'<div style="font-size:10px;color:'+lbColor+';margin-top:2px;padding:0 6px">'+Math.round(lbPct)+'% of labor budget used</div>':'')
+  +'</div>'
+  +'<div class="card"><div class="card-title">Costs</div><div class="fin-row"><span style="color:#8a96ab">Labor ('+fh(hrs)+' hrs)</span><span>'+fm(labor)+'</span></div><div class="fin-row"><span style="font-weight:600">Total Cost</span><span>'+fm(labor)+'</span></div></div>'
+  +'</div>'
+  +'<div class="card" style="background:'+(profit>=0?'rgba(22,163,74,.08)':'rgba(220,38,38,.08)')+'">'
+  +'<div style="font-size:26px;font-weight:300;color:'+(profit>=0?'#16a34a':'#dc2626')+'">'+fm(profit)+(margin!=null?' ('+margin.toFixed(1)+'% margin)':'')+'</div>'
+  +'<div style="font-size:12px;color:#8a96ab;margin-top:3px">Gross Profit &middot; '+fh(hrs)+' logged</div></div>'
 }
 function editBudget(){const j=currentJob;modal('Edit Budget',\`<div class="two"><div class="fg"><label class="fl">Contract $</label><input class="fi" type="number" id="eb-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="eb-lr" value="\${j.labor_rate||''}"></div></div><div class="two"><div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="eb-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="eb-mb" value="\${j.material_budget||''}"></div></div>\`,async()=>{const u={contract_value:fN('eb-cv'),labor_rate:fN('eb-lr'),labor_budget:fN('eb-lb'),material_budget:fN('eb-mb')};await sb.from('jobs').update(u).eq('id',currentJobId);currentJob={...currentJob,...u};closeModal();toast('Saved');loadJT('jt-fin')})}
 
@@ -7719,6 +7759,26 @@ function filterMyTasks(){
   }
 }
 
+function buildLaborAlertWidget(alerts){
+  var over=alerts.filter(function(a){return a.over})
+  var near=alerts.filter(function(a){return !a.over})
+  var h='<div class="card" style="border:1px solid rgba(220,38,38,.3);margin-bottom:14px">'
+  h+='<div class="card-title" style="color:#dc2626;margin-bottom:8px">⚠ Labor Budget Alerts</div>'
+  over.slice(0,5).forEach(function(a){
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+    h+='<div><div style="font-size:12px;font-weight:500">'+a.job.name+'</div>'
+    h+='<div style="font-size:10px;color:#dc2626">'+a.hrs.toFixed(1)+' hrs / '+a.lb+' budgeted</div></div>'
+    h+='<span class="badge" style="background:rgba(220,38,38,.15);color:#dc2626">'+a.pct+'% ↗</span></div>'
+  })
+  near.slice(0,3).forEach(function(a){
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+    h+='<div><div style="font-size:12px;font-weight:500">'+a.job.name+'</div>'
+    h+='<div style="font-size:10px;color:#d97706">'+a.hrs.toFixed(1)+' hrs / '+a.lb+' budgeted</div></div>'
+    h+='<span class="badge" style="background:rgba(217,119,6,.15);color:#d97706">'+a.pct+'%</span></div>'
+  })
+  h+='</div>'
+  return h
+}
 function buildMyWalksDashWidget(walks, jobMap){
   if(!walks||!walks.length)return''
   var rows=walks.map(function(w){
