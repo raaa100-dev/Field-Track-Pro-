@@ -1073,7 +1073,8 @@ async function importJobsExcel(input){
       }
       var existingNames=new Set(existingJobs.map(j=>(j.name||'').toLowerCase().trim().replace(/\s+/g,' ')))
       var existingNums=new Set(existingJobs.filter(j=>j.job_number).map(j=>j.job_number.toLowerCase().trim()))
-      toast('Loaded '+existingJobs.length+' existing jobs for dupe check...')
+      var existingCount=existingJobs.length
+      if(!confirm('Ready to import. Found '+existingCount+' existing jobs in database.\nIf this number seems wrong, click Cancel.\n\nContinue?'))return
       for(var i=0;i<validRows.length;i++){
         var r=validRows[i]
         var name=r['Job Name']||r['name']||r['job_name']||''
