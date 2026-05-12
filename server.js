@@ -1012,9 +1012,16 @@ async function importJobsExcel(input){
     const rows=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false,dateNF:'yyyy-mm-dd'})
     if(!rows.length){toast('No data found in file','error');return}
     // Pre-fetch existing jobs for preview
-    var prevExisting=await sb.from('jobs').select('name,job_number').eq('archived',false)
-    var prevNames=new Set((prevExisting.data||[]).map(j=>(j.name||'').toLowerCase()))
-    var prevNums=new Set((prevExisting.data||[]).filter(j=>j.job_number).map(j=>j.job_number.toLowerCase()))
+    // Paginate preview pre-fetch to get ALL jobs
+    var prevAllJobs=[],prevFrom=0
+    while(true){
+      var prevRes=await sb.from('jobs').select('name,job_number').eq('archived',false).range(prevFrom,prevFrom+999)
+      prevAllJobs=prevAllJobs.concat(prevRes.data||[])
+      if(!prevRes.data||prevRes.data.length<1000)break
+      prevFrom+=1000
+    }
+    var prevNames=new Set(prevAllJobs.map(j=>(j.name||'').toLowerCase().trim().replace(/\s+/g,' ')))
+    var prevNums=new Set(prevAllJobs.filter(j=>j.job_number).map(j=>j.job_number.toLowerCase().trim()))
     // Preview modal
     const validRows=rows.filter(r=>r['Job Name']||r['name']||r['job_name'])
     if(!validRows.length){
@@ -1029,13 +1036,17 @@ async function importJobsExcel(input){
     h+='<table class="tbl" style="font-size:11px"><thead><tr><th>#</th><th>Job Name</th><th>Address</th><th>Stage</th><th>Due Date</th><th>Contract Value</th><th>Status</th></tr></thead><tbody>'
     validRows.forEach(function(r,i){
       var name=r['Job Name']||r['name']||r['job_name']||''
+      var jobNum=r['Job Number']||r['job_number']||''
       var addr=r['Address']||r['address']||''
       var rawStage=String(r['Stage']||r['stage']||r['Phase']||r['phase']||'not_started').trim().toLowerCase()
       var stage=validStages.includes(rawStage)?rawStage:(stageMap[rawStage]||'not_started')
       var stageOk=validStages.includes(rawStage)||stageMap[rawStage]
       var due=r['Due Date']||r['due_date']||r['due']||''
       var val=r['Contract Value']||r['contract_value']||r['value']||''
-      var warn=!name?'<span style="color:#dc2626">Missing name</span>':''
+      var normPN=(name||'').toLowerCase().trim().replace(/\s+/g,' ')
+      var normPNum=(jobNum||'').toLowerCase().trim()
+      var isDupPrev=(normPNum&&prevNums.has(normPNum))||prevNames.has(normPN)
+      var warn=!name?'<span style="color:#dc2626">Missing name</span>':isDupPrev?'<span style="color:#d97706">⚠ Will Update</span>':''
       h+='<tr>'
       h+='<td style="color:#414e63">'+(i+1)+'</td>'
       h+='<td style="font-weight:500">'+(name||'<span style="color:#dc2626">—</span>')+'</td>'
