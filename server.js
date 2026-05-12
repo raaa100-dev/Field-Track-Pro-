@@ -5061,8 +5061,14 @@ async function geocodeMissingJobs(){
   var done=0,failed=0
   for(var i=0;i<jobs.length;i++){
     var j=jobs[i]
-    var r=await geocodeJobAddress(j.id,j.address,j.city,j.state,j.zip)
-    if(r)done++;else failed++
+    try{
+      var addr=(j.address||'').replace(/,?\s*(suite|ste|unit|apt|floor|fl|bldg|#)\s*[\w\d-]*/gi,'').trim()
+      var q=[addr,j.city,j.state,j.zip].filter(Boolean).join(', ')
+      if(!q){failed++;continue}
+      var resp=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
+      var geo=await resp.json()
+      if(geo[0]){await sb.from('jobs').update({gps_lat:parseFloat(geo[0].lat),gps_lng:parseFloat(geo[0].lon)}).eq('id',j.id);done++}else failed++
+    }catch(e){failed++}
     if(i<jobs.length-1)await new Promise(function(res){setTimeout(res,2100)})
     if((i+1)%5===0||i===jobs.length-1)toast((i+1)+'/'+jobs.length+' geocoded...')
   }
