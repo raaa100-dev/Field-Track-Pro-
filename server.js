@@ -2138,11 +2138,9 @@ async function schedulePmReviewTask(job,reason){
   toast('PM Review task created','warn')
 }
 async function renderJobFinTab(el){
-  const{data:ci}=await sb.from('checkins').select('hours_logged').eq('job_id',currentJobId)
-  const ciHrs=(ci||[]).reduce((s,c)=>s+(c.hours_logged||0),0)
+  // Daily reports are the single source of truth for hours
   const{data:dr}=await sb.from('daily_reports').select('total_man_hours,hours_per_person,crew_count').eq('job_id',currentJobId)
-  const drHrs=(dr||[]).reduce((s,r)=>s+(r.total_man_hours||((r.hours_per_person||0)*(r.crew_count||1))),0)
-  const hrs=Math.max(ciHrs,drHrs)
+  const hrs=(dr||[]).reduce((s,r)=>s+(r.total_man_hours||((r.hours_per_person||0)*(r.crew_count||1))),0)
   if(currentJob)currentJob._cachedHrs=hrs
   var hrsEl=document.getElementById('ed-hrs-display')
   if(hrsEl)hrsEl.textContent=fh(hrs)+' hrs on site'
@@ -4173,34 +4171,30 @@ async function adminCheckOut(){
   document.getElementById('checkin-status-dot').style.background='#414e63'
   document.getElementById('checkin-status-txt').textContent='Check In'
   document.getElementById('admin-checkin-btn').style.borderColor='rgba(255,255,255,.1)'
-  // Show checkout confirmation + daily report prompt
+  // Check if daily report already exists for today
+  var today=new Date().toISOString().split('T')[0]
+  var drCheck=await sb.from('daily_reports').select('id').eq('job_id',savedJobId).eq('report_date',today).limit(1)
+  if(drCheck.data&&drCheck.data.length>0){
+    toast('Checked out - daily report already filed for today')
+    return
+  }
+  // Prompt to file daily report
   var bodyHtml='<div style="background:#0a1f0a;border:1px solid #16a34a;border-radius:8px;padding:12px;margin-bottom:12px">'
-    +'<div style="color:#16a34a;font-weight:600;margin-bottom:4px">Checked out successfully</div>'
-  if(hrsStr)bodyHtml+='<div style="font-size:12px;color:#8a96ab">Time on site: '+hrsStr+' hours</div>'
-  bodyHtml+='</div><div style="font-size:13px;color:#e8edf5;margin-bottom:4px">File a daily report for this job?</div>'
-  bodyHtml+='<div style="font-size:12px;color:#8a96ab">Hours will be pre-filled from your check-in.</div>'
+  bodyHtml+='<div style="color:#16a34a;font-weight:600">Checked out'+(hrsStr?' - '+hrsStr+' hrs on site':'')+'</div></div>'
+  bodyHtml+='<div style="font-size:13px;color:#e8edf5;margin-bottom:4px">No daily report filed yet today. File one now to capture your hours?</div>'
   modal('Checked Out',bodyHtml,
     function(){
-      closeModal()
-      newDailyModal(savedJobId)
+      closeModal();newDailyModal(savedJobId)
       setTimeout(function(){
-        var h=document.getElementById('dr-hrs')
-        var b=document.getElementById('dr-by')
+        var h=document.getElementById('dr-hrs'),b=document.getElementById('dr-by')
         if(h&&hrsStr)h.value=hrsStr
         if(b&&ME)b.value=ME.full_name||''
         calcDrManHours()
       },250)
     },'File Daily Report')
-  // Add Skip button
   setTimeout(function(){
     var mf=document.getElementById('modal-footer')
-    if(mf){
-      var skip=document.createElement('button')
-      skip.className='btn'
-      skip.textContent='Skip'
-      skip.onclick=closeModal
-      mf.insertBefore(skip,mf.firstChild)
-    }
+    if(mf){var s=document.createElement('button');s.className='btn';s.textContent='Skip';s.onclick=closeModal;mf.insertBefore(s,mf.firstChild)}
   },50)
 }
 
