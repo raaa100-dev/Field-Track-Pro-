@@ -1386,17 +1386,17 @@ function renderInfoTab(el,j){
   <div class="two" style="margin-bottom:4px">
     <div class="fg"><label class="fl">Permit Status</label>
       <select class="fs" id="ed-permit-status">
-        <option value="not_required" \\${(j.permit_status||'not_required')==='not_required'?'selected':''}>Not Required</option>
-        <option value="needs_cads" \\${j.permit_status==='needs_cads'?'selected':''}>Needs CADs</option>
-        <option value="needs_job_walk" \\${j.permit_status==='needs_job_walk'?'selected':''}>Needs Job Walk</option>
-        <option value="pending" \\${j.permit_status==='pending'?'selected':''}>Pending</option>
-        <option value="submitted" \\${j.permit_status==='submitted'?'selected':''}>Submitted</option>
-        <option value="otc" \\${j.permit_status==='otc'?'selected':''}>OTC (Over the Counter)</option>
-        <option value="approved" \\${j.permit_status==='approved'?'selected':''}>Approved</option>
-        <option value="issued" \\${j.permit_status==='issued'?'selected':''}>Issued</option>
-        <option value="rejected" \\${j.permit_status==='rejected'?'selected':''}>Rejected</option>
-        <option value="failed" \\${j.permit_status==='failed'?'selected':''}>Failed</option>
-        <option value="expired" \\${j.permit_status==='expired'?'selected':''}>Expired</option>
+        <option value="not_required">Not Required</option>
+        <option value="needs_cads">Needs CADs</option>
+        <option value="needs_job_walk">Needs Job Walk</option>
+        <option value="pending">Pending</option>
+        <option value="submitted">Submitted</option>
+        <option value="otc">OTC (Over the Counter)</option>
+        <option value="approved">Approved</option>
+        <option value="issued">Issued</option>
+        <option value="rejected">Rejected</option>
+        <option value="failed">Failed</option>
+        <option value="expired">Expired</option>
       </select>
     </div>
     <div class="fg"><label class="fl">Permit Number</label>
@@ -1450,6 +1450,8 @@ function renderInfoTab(el,j){
       el.innerHTML=h
     })
   },50)
+  var ps=document.getElementById('ed-permit-status')
+  if(ps)ps.value=j.permit_status||'not_required'
 }
 async function saveInfoTab(){
   const u={name:v('ed-name'),job_number:v('ed-jobnum')||null,trade:v('ed-trade')||null,estimator:v('ed-estimator')||null,address:v('ed-addr'),city:v('ed-city')||null,state:v('ed-state')||null,zip:v('ed-zip')||null,gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),gc_email:v('ed-gce')||null,super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,permit_status:v('ed-permit-status')||'not_required',permit_number:v('ed-permit-number')||null,date_start:v('ed-start')||null,due_date:v('ed-due')||null,projected_start:v('ed-proj-start')||null,projected_closeout:v('ed-proj-close')||null,date_contract:v('ed-dc')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,original_contract_value:fN('ed-ocv'),contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
