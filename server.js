@@ -4705,7 +4705,11 @@ function addUserModal(){
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
         body:JSON.stringify({email:em,full_name:nm,role:v('au-rl'),phone:v('au-ph'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep')})
       })
-      const result=await res.json()
+      let result={}
+      try{result=await res.json()}catch(je){
+        const txt=await res.text().catch(()=>'')
+        result={error:txt.slice(0,200)||'Status '+res.status}
+      }
       if(res.ok&&result.success){
         closeModal()
         toast('Employee added! Password setup email sent to '+em)
