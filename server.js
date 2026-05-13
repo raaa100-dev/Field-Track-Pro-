@@ -256,7 +256,7 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .stat-label{font-size:10px;color:#414e63;font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
 .stat-value{font-size:24px;font-weight:300}
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
-.tbl th{text-align:left;padding:8px 11px;border-bottom:1px solid rgba(255,255,255,.06);color:#414e63;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.tbl th{text-align:left;padding:8px 11px;border-bottom:1px solid rgba(255,255,255,.06);color:#414e63;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;position:sticky;top:0;background:#0d1626;z-index:2}
 .tbl td{padding:9px 11px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
 .tbl tbody tr:hover td{background:rgba(255,255,255,.02);cursor:pointer}
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap}
@@ -995,7 +995,7 @@ function renderJobsTable(q){
       \${STAGES.map(s=>\`<option value="\${s}">\${STAGE_LABELS[s]}</option>\`).join('')}
     </select>
   </div>
-  <div class="card" style="padding:0;overflow:hidden">
+  <div class="card" style="padding:0;overflow:hidden;max-height:calc(100vh - 160px);overflow-y:auto">
   \${rows.length?\`<table class="tbl"><thead><tr><th onclick="sortJobsBy('name')" style="cursor:pointer">Job</th><th>Job ID</th><th onclick="sortJobsBy('status')" style="cursor:pointer">Stage</th><th onclick="sortJobsBy('parts')" style="cursor:pointer">Parts</th><th onclick="sortJobsBy('permit')" style="cursor:pointer">Permit Status</th><th onclick="sortJobsBy('pm')" style="cursor:pointer">PM</th><th onclick="sortJobsBy('due')" style="cursor:pointer">Due Date</th><th>Progress</th><th></th></tr></thead><tbody>\n  \${rows.map(j=>{
     const ps=jobPartsStatus(j)
     const permit=j.permit_status||'not_required'
@@ -1003,6 +1003,7 @@ function renderJobsTable(q){
       <td><div style="font-weight:500;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'inherit'}">\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'⚠ ':''}\${j.name}</div><div style="font-size:10px;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'#414e63'}">\${j.address||''}</div></td>
       <td style="font-size:11px;color:#8a96ab;white-space:nowrap">\${j.job_number||'\u2014'}</td>
       <td>\${stageBadge(j.phase)}</td>
+      <td>\${ps.badge}</td>
       <td><span class="badge \${PERMIT_STATUS_COLORS[permit]||'bg-gray'}">\${PERMIT_STATUS_LABELS[permit]||permit}</span></td>
       <td style="font-size:12px">\${j.project_manager||'—'}</td>
       <td style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">\${j.due_date?fd(j.due_date):'—'}</td>
