@@ -4604,7 +4604,7 @@ function filterEmployees(){
     html+='<td style="font-size:11px">'+(u.companies?.name||'Internal')+'</td>'
     html+='<td style="font-size:10px;color:#8a96ab">'+(u.emergency_contact||'—')+'<br>'+(u.emergency_phone?'<span style="color:#414e63">'+u.emergency_phone+'</span>':'')+'</td>'
     html+='<td><span class="badge '+(u.is_active?'bg-green':'bg-gray')+'">'+(u.is_active?'Active':'Inactive')+'</span></td>'
-    html+='<td style="display:flex;gap:4px"><button class="btn btn-sm" data-id="'+u.id+'" onclick="viewEmployeeModal(this.dataset.id)">View</button><button class="btn btn-sm" data-id="'+u.id+'" data-role="'+u.role+'" data-active="'+u.is_active+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="editUserModal(this.dataset.id,this.dataset.role,this.dataset.active,this.dataset.name)">Edit</button></td>'
+    html+='<td style="display:flex;gap:4px"><button class="btn btn-sm" data-id="'+u.id+'" onclick="viewEmployeeModal(this.dataset.id)">View</button><button class="btn btn-sm" data-id="'+u.id+'" data-role="'+u.role+'" data-active="'+u.is_active+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="editUserModal(this.dataset.id,this.dataset.role,this.dataset.active,this.dataset.name)">Edit</button><button class="btn btn-sm" style="color:#dc2626;border-color:rgba(220,38,38,.3)" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="deleteUserConfirm(this.dataset.id,this.dataset.name)">Delete</button></td>'
     html+='</tr>'
   }
   html+='</tbody></table></div>'
@@ -4722,6 +4722,19 @@ function addUserModal(){
   },'Save')
 }
 
+async function deleteUserConfirm(id,name){
+  if(!confirm('Delete '+name+'? This cannot be undone.'))return
+  var{error}=await sb.from('profiles').delete().eq('id',id)
+  if(error){toast(error.message,'error');return}
+  try{
+    var{data:{session}}=await sb.auth.getSession()
+    await fetch('/api/delete-user',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify({user_id:id})})
+  }catch(e){}
+  toast(name+' has been deleted')
+  pgUsers()
+}
 function editUserModal(id,role,active,name){
   const coOpts=(window._empCos||[]).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')
   const html=
@@ -10834,7 +10847,18 @@ const server = http.createServer(async (req, res) => {
     try { return json(res, 200, (await dbUpdate('invoices', await readBody(req), { id: 'eq.' + invIM[1] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
   }
 
-  // ── INVITE / CREATE USER ─────────────────────────────────────
+  if(p==='/api/delete-user'&&method==='POST'){
+    const u=await requireAuth(req,res);if(!u)return
+    const body=await readBody(req)
+    const{user_id}=body
+    if(!user_id)return json(res,400,{error:'user_id required'})
+    const serviceKey=SB_SERVICE||SB_ANON
+    const delRes=await sbFetch('DELETE','/auth/v1/admin/users/'+user_id,null,serviceKey)
+    if(delRes.error)return json(res,400,{error:delRes.error.message||'Could not delete auth user'})
+    return json(res,200,{success:true})
+  }
+
+  // ── INVITE / CREATE USER ─────────────────────────────────────────
   if (p === '/api/invite-user' && method === 'POST') {
     const u = await requireAuth(req, res); if (!u) return;
     const body = await readBody(req);
