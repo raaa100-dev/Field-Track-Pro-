@@ -1000,7 +1000,18 @@ function renderJobsTable(q){
     const ps=jobPartsStatus(j)
     const permit=j.permit_status||'not_required'
     return \`<tr onclick="openJob('\${j.id}')" style="cursor:pointer">
-    return \`<tr onclick="openJob('\${j.id}')" style="cursor:pointer"><td><div style="font-weight:500">\${j.name}</div><div style="font-size:10px;color:#414e63">\${j.address||''}</div></td><td style="font-size:11px;color:#8a96ab">\${j.job_number||'\u2014'}</td><td>\${stageBadge(j.phase)}</td><td>\${ps.badge}</td><td><span class="badge \${PERMIT_STATUS_COLORS[permit]||'bg-gray'}">\${PERMIT_STATUS_LABELS[permit]||permit}</span></td><td style="font-size:12px">\${j.project_manager||'\u2014'}</td><td style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">\${j.due_date?fd(j.due_date):'\u2014'}</td><td><div style="display:flex;align-items:center;gap:5px"><div class="pbar"><div class="pb" style="width:\${j.pct_complete||0}%"></div></div><span style="font-size:10px">\${j.pct_complete||0}%</span></div></td><td><button class="btn btn-sm" onclick="event.stopPropagation();openJob('\${j.id}')">Open</button></td></tr>\`\n  }).join('')}\n  </tbody></table>\`\n  </div>\`
+      <td><div style="font-weight:500;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'inherit'}">\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'⚠ ':''}\${j.name}</div><div style="font-size:10px;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'#414e63'}">\${j.address||''}</div></td>
+      <td>\${ps.badge}</td>
+      <td><span class="badge \${PERMIT_STATUS_COLORS[permit]||'bg-gray'}">\${PERMIT_STATUS_LABELS[permit]||permit}</span></td>
+      <td style="font-size:12px">\${j.project_manager||'—'}</td>
+      <td style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">\${j.due_date?fd(j.due_date):'—'}</td>
+      <td><div style="display:flex;align-items:center;gap:5px"><div class="pbar"><div class="pb" style="width:\${j.pct_complete||0}%"></div></div><span style="font-size:10px">\${j.pct_complete||0}%</span></div></td>
+      <td><button class="btn btn-sm" onclick="event.stopPropagation();openJob('\${j.id}')">Open</button></td>
+    </tr>\`
+  }).join('')}
+  </tbody></table>\`
+  :empty('🏗','No jobs found')}
+  </div>\`
   // Restore focus to search box after re-render
   if(q!==undefined){
     setTimeout(function(){
@@ -4963,7 +4974,7 @@ function addMapPins(jobs,map){
   const noGPS=jobs.filter(j=>(!j.gps_lat||!j.gps_lng)&&(j.address||j.city))
   if(noGPS.length>0){
     toast('📍 Geocoding '+noGPS.length+' jobs in background — pins will appear as they resolve','info')
-    if(noGPS.length>0){toast(noGPS.length+' jobs missing GPS. Click Geocode Missing to add.');window._noGPSJobs=noGPS}
+    if(noGPS.length>0){toast(noGPS.length+' jobs missing GPS. Click Geocode Missing.');window._noGPSJobs=noGPS}
   }
   // Legend
   const el=document.getElementById('map-legend')
@@ -5046,23 +5057,19 @@ function updateMapStats(jobs){
 async function geocodeMissingJobs(){
   var jobs=window._noGPSJobs||[]
   if(!jobs.length){toast('No jobs missing GPS');return}
-  if(!confirm('Geocode '+jobs.length+' jobs at 2s each to avoid rate limits. Continue?'))return
+  if(!confirm('Geocode '+jobs.length+' jobs at 2s each. Continue?'))return
   var done=0,failed=0
   for(var i=0;i<jobs.length;i++){
-    var j=jobs[i]
-    try{
-      var addr=(j.address||'').replace(/,?\s*(suite|ste|unit|apt|floor|fl|bldg|#)\s*[\w\d-]*/gi,'').trim()
-      var q=[addr,j.city,j.state,j.zip].filter(Boolean).join(', ')
-      if(!q){failed++;continue}
+    var j=jobs[i];try{
+      var q=[j.address,j.city,j.state,j.zip].filter(Boolean).join(', ')
       var resp=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
       var geo=await resp.json()
       if(geo[0]){await sb.from('jobs').update({gps_lat:parseFloat(geo[0].lat),gps_lng:parseFloat(geo[0].lon)}).eq('id',j.id);done++}else failed++
     }catch(e){failed++}
-    if(i<jobs.length-1)await new Promise(function(res){setTimeout(res,2100)})
+    if(i<jobs.length-1)await new Promise(function(r){setTimeout(r,2100)})
     if((i+1)%5===0||i===jobs.length-1)toast((i+1)+'/'+jobs.length+' geocoded...')
   }
-  toast('Done: '+done+' geocoded, '+failed+' failed')
-  pgJobMap()
+  toast('Done: '+done+' geocoded, '+failed+' failed');pgJobMap()
 }
 function filterMapPins(){
   const pm=(document.getElementById('map-filter-pm')||document.getElementById('mob-f-pm'))?.value||''
