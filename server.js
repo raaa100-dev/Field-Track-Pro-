@@ -996,19 +996,11 @@ function renderJobsTable(q){
     </select>
   </div>
   <div class="card" style="padding:0;overflow:hidden">
-  \${rows.length?\`<table class="tbl"><thead><tr><th onclick="sortJobsBy('name')" style="cursor:pointer">Job</th><th>Job ID</th><th onclick="sortJobsBy('status')" style="cursor:pointer">Status</th><th onclick="sortJobsBy('parts')" style="cursor:pointer">Parts</th><th onclick="sortJobsBy('permit')" style="cursor:pointer">Permit</th><th onclick="sortJobsBy('pm')" style="cursor:pointer">PM</th><th onclick="sortJobsBy('due')" style="cursor:pointer">Due Date</th><th>Progress</th><th></th></tr></thead><tbody>\n  \${rows.map(j=>{
+  \${rows.length?\`<table class="tbl"><thead><tr><th onclick="sortJobsBy('name')" style="cursor:pointer">Job</th><th>Job ID</th><th onclick="sortJobsBy('status')" style="cursor:pointer">Stage</th><th onclick="sortJobsBy('parts')" style="cursor:pointer">Parts</th><th onclick="sortJobsBy('permit')" style="cursor:pointer">Permit Status</th><th onclick="sortJobsBy('pm')" style="cursor:pointer">PM</th><th onclick="sortJobsBy('due')" style="cursor:pointer">Due Date</th><th>Progress</th><th></th></tr></thead><tbody>\n  \${rows.map(j=>{
     const ps=jobPartsStatus(j)
     const permit=j.permit_status||'not_required'
     return \`<tr onclick="openJob('\${j.id}')" style="cursor:pointer">
-      <td><div style="font-weight:500;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'inherit'}">\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'⚠ ':''}\${j.name}</div><div style="font-size:10px;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'#414e63'}">\${j.address||''}</div></td>
-      <td>\${ps.badge}</td>
-      <td><span class="badge \${PERMIT_STATUS_COLORS[permit]||'bg-gray'}">\${PERMIT_STATUS_LABELS[permit]||permit}</span></td>
-      <td style="font-size:12px">\${j.project_manager||'—'}</td>
-      <td style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">\${j.due_date?fd(j.due_date):'—'}</td>
-      <td><div style="display:flex;align-items:center;gap:5px"><div class="pbar"><div class="pb" style="width:\${j.pct_complete||0}%"></div></div><span style="font-size:10px">\${j.pct_complete||0}%</span></div></td>
-      <td><button class="btn btn-sm" onclick="event.stopPropagation();openJob('\${j.id}')">Open</button></td>
-    </tr>\`
-  }).join('')}
+      <td><div style="font-weight:500">\\${j.name}</div><div style="font-size:10px;color:#414e63">\\${j.address||''}</div></td>\n      <td style="font-size:11px;color:#8a96ab;white-space:nowrap">\\${j.job_number||'—'}</td>\n      <td>\\${stageBadge(j.phase)}</td>\n      <td>\\${ps.badge}</td>\n      <td><span class="badge \\${PERMIT_STATUS_COLORS[permit]||'bg-gray'}">\\${PERMIT_STATUS_LABELS[permit]||permit}</span></td>\n      <td style="font-size:12px">\\${j.project_manager||'—'}</td>\n      <td style="font-size:11px;color:\\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">\\${j.due_date?fd(j.due_date):'—'}</td>\n      <td><div style="display:flex;align-items:center;gap:5px"><div class="pbar"><div class="pb" style="width:\\${j.pct_complete||0}%"></div></div><span style="font-size:10px">\\${j.pct_complete||0}%</span></div></td>\n      <td><button class="btn btn-sm" onclick="event.stopPropagation();openJob('\\${j.id}')">Open</button></td>\n  }).join('')}
   </tbody></table>\`
   :empty('🏗','No jobs found')}
   </div>\`
