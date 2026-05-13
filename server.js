@@ -4698,47 +4698,27 @@ function addUserModal(){
     const btn=document.getElementById('modal-ok')
     btn.disabled=true;btn.textContent='Adding…'
     try{
-      // Try server route first (creates auth account + profile + sends password email)
-      const{data:{session}}=await sb.auth.getSession()
-      const res=await fetch('/api/invite-user',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
-        body:JSON.stringify({email:em,full_name:nm,role:v('au-rl'),phone:v('au-ph'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep')})
-      })
-      let result={}
-      try{result=await res.json()}catch(je){
-        const txt=await res.text().catch(()=>'')
-        result={error:txt.slice(0,200)||'Status '+res.status}
+      btn.disabled=true;btn.textContent='Adding...'
+      var tempPw=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2).toUpperCase()+'!9'
+      var{data:signUpData,error:signUpErr}=await sb.auth.signUp({email:em,password:tempPw,options:{data:{full_name:nm,role:v('au-rl')}}})
+      var authId=signUpData?.user?.id
+      if(signUpErr&&!authId){
+        var{data:existP}=await sb.from('profiles').select('id').eq('email',em).limit(1)
+        if(existP&&existP[0])authId=existP[0].id
+        else{toast(signUpErr.message||'Could not create account','error');btn.disabled=false;btn.textContent='Save';return}
       }
-      if(res.ok&&result.success){
-        closeModal()
-        toast('Employee added! Password setup email sent to '+em)
-        pgUsers()
-        return
-      }
-      // If service key not set, fall back to profile-only (no auth account)
-      console.warn('Invite route result:',result)
-      if(result.error?.includes('SUPABASE_SERVICE_KEY')||result.error?.includes('service')){
-        // Fallback: create auth user via signUp then insert profile
-        const tempPw=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2).toUpperCase()+'!9'
-        const{data:signUpData,error:signUpErr}=await sb.auth.signUp({email:em,password:tempPw,options:{data:{full_name:nm,role:v('au-rl')}}})
-        const authId=signUpData?.user?.id
-        if(signUpErr&&!authId){toast(signUpErr.message,'error');btn.disabled=false;btn.textContent='Save';return}
-        // Wait a moment then insert profile
-        await new Promise(r=>setTimeout(r,500))
-        const{error:profErr}=await sb.from('profiles').upsert({id:authId,full_name:nm,email:em,phone:v('au-ph'),role:v('au-rl'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep'),is_active:true,created_at:new Date().toISOString()},{onConflict:'id'})
-        if(profErr){toast(profErr.message,'error');btn.disabled=false;btn.textContent='Save';return}
-        closeModal()
-        toast('Employee added. They will get a confirmation email to set their password.','info')
-        pgUsers()
-        return
-      }
-      throw new Error(result.error||'Failed to create employee')
+      await new Promise(r=>setTimeout(r,400))
+      var prof={full_name:nm,email:em,phone:v('au-ph')||'',role:v('au-rl')||'sub_worker',company_id:v('au-co')||null,hire_date:v('au-hd')||null,emergency_contact:v('au-ec')||'',emergency_phone:v('au-ep')||'',is_active:true,created_at:new Date().toISOString()}
+      if(authId)prof.id=authId
+      var{error:profErr}=authId?await sb.from('profiles').upsert(prof):await sb.from('profiles').insert(prof)
+      if(profErr){toast(profErr.message,'error');btn.disabled=false;btn.textContent='Save';return}
+      closeModal()
+      toast('Employee added! They will receive a confirmation email to set their password.')
+      pgUsers()
     }catch(e){
-      toast(e.message,'error')
+      toast(e.message||'Error adding employee','error')
       btn.disabled=false;btn.textContent='Save'
     }
-  })
 }
 
 function editUserModal(id,role,active,name){
