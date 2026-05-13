@@ -4719,6 +4719,7 @@ function addUserModal(){
       toast(e.message||'Error adding employee','error')
       btn.disabled=false;btn.textContent='Save'
     }
+  },'Save')
 }
 
 function editUserModal(id,role,active,name){
