@@ -969,7 +969,11 @@ function sortJobsBy(col){
 }
 function renderJobsTable(q){
   var hrsMap=window._jobHrsMap||{}
-  const rows=allJobs.filter(j=>!q||j.name.toLowerCase().includes(q.toLowerCase())||(j.job_number||'').toLowerCase().includes(q.toLowerCase())||(j.address||'').toLowerCase().includes(q.toLowerCase())||(j.gc_company||'').toLowerCase().includes(q.toLowerCase()))
+  const rows=allJobs.filter(j=>{
+    if(window._stageFilter&&window._stageFilter.length&&!window._stageFilter.includes(j.phase||'not_started'))return false
+    if(!q)return true
+    return j.name.toLowerCase().includes(q.toLowerCase())||(j.job_number||'').toLowerCase().includes(q.toLowerCase())||(j.address||'').toLowerCase().includes(q.toLowerCase())||(j.gc_company||'').toLowerCase().includes(q.toLowerCase())
+  })
   // Apply sort
   var sc=window._jobSortCol||'',sd=window._jobSortDir||1
   var stageOrder={'not_started':0,'make_safe':1,'prewire':2,'roughed_in':3,'trimmed':4,'ready_for_pretest':5,'ready_for_final':6,'complete':7}
@@ -990,10 +994,19 @@ function renderJobsTable(q){
   document.getElementById('page-area').innerHTML=\`
   <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
     <input class="fi" placeholder="Search jobs…" style="max-width:280px" oninput="renderJobsTable(this.value)" value="\${q}">
-    <select class="fs" style="width:180px" onchange="filterJobsByStage(this.value)">
-      <option value="">All Stages</option>
-      \${STAGES.map(s=>\`<option value="\${s}">\${STAGE_LABELS[s]}</option>\`).join('')}
-    </select>
+    <div style="position:relative;display:inline-block" id="stage-filter-wrap">
+      <button class="btn btn-sm" onclick="toggleStageFilter(this)" style="min-width:150px;display:flex;align-items:center;justify-content:space-between;gap:6px">
+        <span id="stage-filter-label">All Stages</span><span>&#9660;</span></button>
+      <div id="stage-filter-menu" style="display:none;position:absolute;top:110%;left:0;z-index:200;background:#1a2535;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
+        <div style="display:flex;gap:6px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.06)">
+          <button class="btn btn-sm" onclick="setAllStages(true)" style="flex:1;font-size:11px">All</button>
+          <button class="btn btn-sm" onclick="setAllStages(false)" style="flex:1;font-size:11px">None</button></div>
+        \${STAGES.map(s=>{
+          var chk=!window._stageFilter||window._stageFilter.includes(s)
+          return '<label style="display:flex;align-items:center;gap:8px;padding:5px 4px;cursor:pointer;border-radius:4px;font-size:12px"><input type="checkbox" value="'+s+'" '+(chk?'checked':'')+' onchange="stageCheckChange()"> '+STAGE_LABELS[s]+'</label>'
+        }).join('')}
+      </div>
+    </div>
   </div>
   <div class="card" style="padding:0;overflow:hidden;max-height:calc(100vh - 160px);overflow-y:auto">
   \${rows.length?\`<table class="tbl"><thead><tr><th onclick="sortJobsBy('name')" style="cursor:pointer">Job</th><th>Job ID</th><th onclick="sortJobsBy('status')" style="cursor:pointer">Stage</th><th onclick="sortJobsBy('parts')" style="cursor:pointer">Parts</th><th onclick="sortJobsBy('permit')" style="cursor:pointer">Permit Status</th><th onclick="sortJobsBy('pm')" style="cursor:pointer">PM</th><th onclick="sortJobsBy('due')" style="cursor:pointer">Due Date</th><th>Progress</th><th></th></tr></thead><tbody>\n  \${rows.map(j=>{
@@ -1023,6 +1036,27 @@ function renderJobsTable(q){
   }
 }
 
+function toggleStageFilter(btn){
+  var menu=document.getElementById('stage-filter-menu')
+  if(!menu)return
+  var isOpen=menu.style.display!=='none'
+  menu.style.display=isOpen?'none':'block'
+  if(!isOpen){var close=function(e){if(!document.getElementById('stage-filter-wrap').contains(e.target)){menu.style.display='none';document.removeEventListener('click',close)}};setTimeout(function(){document.addEventListener('click',close)},50)}
+}
+function stageCheckChange(){
+  var boxes=document.querySelectorAll('#stage-filter-menu input[type=checkbox]:checked')
+  var all=document.querySelectorAll('#stage-filter-menu input[type=checkbox]')
+  var checked=[].map.call(boxes,function(b){return b.value})
+  window._stageFilter=checked.length===all.length?null:checked
+  var lbl=document.getElementById('stage-filter-label')
+  if(lbl)lbl.textContent=window._stageFilter?checked.length+' Stages':'All Stages'
+  var q=document.querySelector('#page-area input[placeholder]')
+  renderJobsTable(q?q.value:'')
+}
+function setAllStages(v){
+  document.querySelectorAll('#stage-filter-menu input[type=checkbox]').forEach(function(b){b.checked=v})
+  stageCheckChange()
+}
 function filterJobsByStage(stage){
   const q=(document.getElementById('jobs-q-search')||{}).value||''
   const rows=(stage?allJobs.filter(j=>j.phase===stage):allJobs).filter(j=>!q||(j.name||'').toLowerCase().includes(q.toLowerCase())||(j.job_number||'').toLowerCase().includes(q.toLowerCase())||(j.gc_company||'').toLowerCase().includes(q.toLowerCase()))
@@ -2458,7 +2492,9 @@ async function editDailyReport(id){
   var h='<div class="two"><div class="fg"><label class="fl">Report Date</label><input class="fi" type="date" id="edr-date" value="'+(r.report_date||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Submitted By</label><input class="fi" id="edr-by" value="'+(r.submitted_by||'')+'"></div></div>'
   h+='<div class="two"><div class="fg"><label class="fl">Crew Count</label><input class="fi" type="number" id="edr-crew" value="'+(r.crew_count||0)+'"></div>'
-  h+='<div class="fg"><label class="fl">Hours Worked</label><input class="fi" type="number" id="edr-hrs" step="0.5" value="'+(r.hours_worked||0)+'"></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Crew Count</label><input class="fi" type="number" id="edr-crew" value="'+(r.crew_count||0)+'" oninput="calcEdrManHours()"></div>'
+  h+='<div class="fg"><label class="fl">Hours Worked (per person)</label><input class="fi" type="number" id="edr-hrs" step="0.5" value="'+(r.hours_worked||0)+'" oninput="calcEdrManHours()"></div></div>'
+  h+='<div class="fg"><label class="fl">Total Man-Hours</label><input class="fi" type="number" id="edr-manhrs" value="'+(r.total_man_hours||Math.round((r.hours_worked||0)*(r.crew_count||1)*10)/10)+'" readonly style="background:rgba(255,255,255,.03);cursor:default"></div>'
   h+='<div class="two"><div class="fg"><label class="fl">Weather</label><input class="fi" id="edr-wx" value="'+(r.weather||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Temp Hi / Lo</label><div style="display:flex;gap:5px"><input class="fi" type="number" id="edr-th" placeholder="Hi" value="'+(r.temp_high||'')+'"><input class="fi" type="number" id="edr-tl" placeholder="Lo" value="'+(r.temp_low||'')+'"></div></div></div>'
   h+='<div class="fg"><label class="fl">Work Performed *</label><textarea class="ft" id="edr-work" style="min-height:80px">'+(r.work_performed||'')+'</textarea></div>'
