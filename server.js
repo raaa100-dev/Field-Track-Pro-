@@ -876,12 +876,16 @@ async function pgDash(){
         <div id="due-widget-list"></div>
       </div>
       <div class="card">
-        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">Inspections
-          <span style="display:flex;gap:5px">
-            <label style="font-size:10px;font-weight:400;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" id="dash-pretest-chk" checked onchange="renderReadyWidget()"> PT</label>
-            <label style="font-size:10px;font-weight:400;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" id="dash-final-chk" checked onchange="renderReadyWidget()"> Final</label>
-          </span></div>
-        <div id="dash-ready-list"></div>
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>&#128197; Jobs Starting <span id="starting-days-label">14</span>d</span>
+          <span style="display:flex;gap:3px">
+            <button class="btn btn-sm starting-day-btn" data-days="14" onclick="setStartingDays(14)" style="padding:1px 6px;font-size:10px;background:rgba(59,130,246,.25);color:#60a5fa">14d</button>
+            <button class="btn btn-sm starting-day-btn" data-days="30" onclick="setStartingDays(30)" style="padding:1px 6px;font-size:10px">30d</button>
+            <button class="btn btn-sm starting-day-btn" data-days="60" onclick="setStartingDays(60)" style="padding:1px 6px;font-size:10px">60d</button>
+            <button class="btn btn-sm starting-day-btn" data-days="90" onclick="setStartingDays(90)" style="padding:1px 6px;font-size:10px">90d</button>
+          </span>
+        </div>
+        <div id="starting-widget-list"></div>
       </div>
     </div>
     <div style="min-width:0;overflow:hidden">
@@ -901,10 +905,19 @@ async function pgDash(){
         <div class="card-title">&#127891; My Training<span id="dash-training-badge" style="display:none;background:#dc2626;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:6px"></span></div>
         <div id="dash-training-list"></div>
       </div>
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">Inspections
+          <span style="display:flex;gap:5px">
+            <label style="font-size:10px;font-weight:400;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" id="dash-pretest-chk" checked onchange="renderReadyWidget()"> PT</label>
+            <label style="font-size:10px;font-weight:400;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" id="dash-final-chk" checked onchange="renderReadyWidget()"> Final</label>
+          </span></div>
+        <div id="dash-ready-list"></div>
+      </div>
     </div>
   </div>\`
   renderReadyWidget()
   setDueDays(window._dueDays||14)
+  setStartingDays(window._startingDays||14)
   var tw=document.getElementById('dash-tasks-widget');if(tw)tw.innerHTML=buildMyTasksDashWidget(myTasks)
   var lw=document.getElementById('dash-labor-widget');if(lw&&laborAlerts.length)lw.innerHTML=buildLaborAlertWidget(laborAlerts)
   var ls=document.getElementById('dash-low-stock-list')
@@ -1031,6 +1044,41 @@ function buildReadyWidget(){
     +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#8a96ab">'+(j.job_number?'#'+j.job_number+' · ':'')+(j.project_manager||'')+'</div></div>'
     +'<span style="font-size:10px;font-weight:600;color:'+clr+';border:1px solid '+clr+';padding:2px 8px;border-radius:12px;white-space:nowrap">'+lbl+'</span></div>'
   }).join('')
+}
+function setStartingDays(d){
+  window._startingDays=d
+  var lbl=document.getElementById('starting-days-label');if(lbl)lbl.textContent=d
+  var list=document.getElementById('starting-widget-list');if(!list)return
+  var jobs=(allJobs||[]).filter(function(j){
+    var dateStr=j.start_date||j.projected_start||j.expected_onsite_date
+    if(!dateStr)return false
+    var da=daysAway(dateStr)
+    return da!=null&&da>=0&&da<=d
+  }).sort(function(a,b){
+    var da=daysAway(a.start_date||a.projected_start||a.expected_onsite_date||'')
+    var db=daysAway(b.start_date||b.projected_start||b.expected_onsite_date||'')
+    return (da==null?999:da)-(db==null?999:db)
+  })
+  list.innerHTML=jobs.length?jobs.map(function(j){
+    var dateStr=j.start_date||j.projected_start||j.expected_onsite_date
+    var da=daysAway(dateStr)
+    var clr=da<=3?'#16a34a':da<=7?'#3b82f6':'#8a96ab'
+    return '<div class="sched-item dash-starting-row" data-jid="'+j.id+'" style="cursor:pointer">'
+      +'<div class="sched-dot" style="background:'+clr+';margin-top:4px"></div>'
+      +'<div style="flex:1"><div style="font-size:12px;font-weight:500">'+j.name+'</div>'
+      +'<div style="font-size:10px;color:#414e63">'+(j.job_number?'#'+j.job_number+' · ':'')+(da===0?'Today':fd(dateStr))+'</div></div>'
+      +'<span class="badge" style="background:rgba(59,130,246,.15);color:#60a5fa">'+(da===0?'Today':da+'d')+'</span></div>'
+  }).join(''):'<div style="text-align:center;padding:16px;color:#414e63">No jobs starting in '+d+' days</div>'
+  list.querySelectorAll('.dash-starting-row').forEach(function(el){
+    el.onclick=function(){openJob(this.dataset.jid)}
+    el.onmouseover=function(){this.style.background='rgba(255,255,255,.04)'}
+    el.onmouseout=function(){this.style.background=''}
+  })
+  document.querySelectorAll('.starting-day-btn').forEach(function(b){
+    var active=parseInt(b.dataset.days)===d
+    b.style.background=active?'rgba(59,130,246,.25)':''
+    b.style.color=active?'#60a5fa':''
+  })
 }
 function setDueDays(d){
   window._dueDays=d
