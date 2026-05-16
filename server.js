@@ -2986,25 +2986,38 @@ async function toggleCam(){
   document.getElementById('cam-status').textContent='Starting camera...'
   try{
     _zxReader=new ZXing.BrowserMultiFormatReader()
-    var devices=await ZXing.BrowserMultiFormatReader.listVideoInputDevices()
+    // List devices then pick back camera
     var deviceId=null
-    var back=devices.filter(function(d){return /back|rear|environment/i.test(d.label)})
-    if(back.length)deviceId=back[back.length-1].deviceId
-    else if(devices.length)deviceId=devices[devices.length-1].deviceId
+    try{
+      var devices=await _zxReader.listVideoInputDevices()
+      var back=devices.filter(function(d){return /back|rear|environment/i.test(d.label)})
+      if(back.length)deviceId=back[back.length-1].deviceId
+      else if(devices.length)deviceId=devices[devices.length-1].deviceId
+    }catch(de){
+      // fallback: use environment facing mode via constraints
+      deviceId=null
+    }
     document.getElementById('cam-status').textContent='Ready — point at barcode'
     _camRunning=true
     var lastCode='',lastTime=0
-    _zxReader.decodeFromVideoDevice(deviceId,'cam-viewport',function(result,err){
-      if(!result)return
-      var code=result.getText(),now=Date.now()
-      if(code===lastCode&&now-lastTime<2000)return
-      lastCode=code;lastTime=now
-      document.getElementById('sc-bc').value=code
-      liveResolveBC(code)
-      var match=allCatalog.find(function(c){return c.barcode===code})
-      if(match){addToBatch(code,match.name);document.getElementById('sc-bc').value='';document.getElementById('sc-resolve').style.display='none'}
-      else{beep();document.getElementById('cam-status').textContent='⚠ Unknown: '+code+' — resolve below'}
-    })
+    var hints=new Map()
+    hints.set(ZXing.DecodeHintType.TRY_HARDER,true)
+    _zxReader=new ZXing.BrowserMultiFormatReader(hints)
+    _zxReader.decodeFromConstraints(
+      {video:{facingMode:'environment'}},
+      'cam-viewport',
+      function(result,err){
+        if(!result)return
+        var code=result.getText(),now=Date.now()
+        if(code===lastCode&&now-lastTime<2000)return
+        lastCode=code;lastTime=now
+        document.getElementById('sc-bc').value=code
+        liveResolveBC(code)
+        var match=allCatalog.find(function(c){return c.barcode===code})
+        if(match){addToBatch(code,match.name);document.getElementById('sc-bc').value='';document.getElementById('sc-resolve').style.display='none'}
+        else{beep();document.getElementById('cam-status').textContent='⚠ Unknown: '+code+' — resolve below'}
+      }
+    )
   }catch(e){toast('Camera error: '+e.message,'error');stopCam()}
 }
 function stopCam(){
