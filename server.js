@@ -873,7 +873,7 @@ async function pgDash(){
             <label style="font-size:11px;font-weight:400;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="dash-pretest-chk" checked onchange="renderReadyWidget()"> Pre-Test</label>
             <label style="font-size:11px;font-weight:400;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="dash-final-chk" checked onchange="renderReadyWidget()"> Final</label>
           </span></div>
-        <div id="dash-ready-list">\\${buildReadyWidget()}</div>
+        <div id="dash-ready-list"></div>\n'
       </div>
     </div>
     <div>
@@ -896,6 +896,7 @@ async function pgDash(){
       </div>
     </div>
   </div>\`
+  renderReadyWidget()
   } catch(e) {
     console.error('Dashboard error:',e)
     document.getElementById('page-area').innerHTML='<div style="padding:20px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px"><div style="color:#dc2626;font-weight:600;margin-bottom:8px">⚠ Dashboard failed to load</div><div style="font-size:12px;color:#f87171;font-family:monospace;background:rgba(0,0,0,.3);padding:10px;border-radius:6px;word-break:break-all">'+e.message+'</div><div style="font-size:11px;color:#8a96ab;margin-top:8px">Check browser console (F12) for full details. This is usually a database connection or missing table issue.</div><button class="btn btn-sm" onclick="pgDash()" style="margin-top:10px">Retry</button></div>'
