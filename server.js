@@ -9643,11 +9643,11 @@ async function pgCrmInspections(){
   h+='<div class="stat" style="border-left:3px solid #16a34a"><div class="stat-label">Completed</div><div class="stat-value">'+done+'</div></div>'
   h+='<div class="stat"><div class="stat-label">Total Tracked</div><div class="stat-value">'+insps.length+'</div></div></div>'
   h+='<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">'
-  h+='<button class="btn btn-sm insp-type-tab active" data-type="all" onclick="filterInspections(\'all\',this)">All</button>'
-  h+='<button class="btn btn-sm insp-type-tab" data-type="Fire Alarm" onclick="filterInspections(\'Fire Alarm\',this)">&#128293; Fire Alarm</button>'
-  h+='<button class="btn btn-sm insp-type-tab" data-type="Sprinkler" onclick="filterInspections(\'Sprinkler\',this)">&#128167; Sprinkler</button>'
-  h+='<button class="btn btn-sm insp-type-tab" data-type="ERRC" onclick="filterInspections(\'ERRC\',this)">&#9888; ERRC</button>'
-  h+='<input class="fi" id="insp-search" placeholder="Search..." style="width:200px;margin-left:auto" oninput="filterInspections((document.querySelector(\'.insp-type-tab.active\')||{}).dataset.type||\'all\')">'
+  h+='<button class="btn btn-sm insp-type-tab active" data-type="all" onclick="inspTabClick(this)">All</button>'
+  h+='<button class="btn btn-sm insp-type-tab" data-type="Fire Alarm" onclick="inspTabClick(this)">&#128293; Fire Alarm</button>'
+  h+='<button class="btn btn-sm insp-type-tab" data-type="Sprinkler" onclick="inspTabClick(this)">&#128167; Sprinkler</button>'
+  h+='<button class="btn btn-sm insp-type-tab" data-type="ERRC" onclick="inspTabClick(this)">&#9888; ERRC</button>'
+  h+='<input class="fi" id="insp-search" placeholder="Search..." style="width:200px;margin-left:auto" oninput="inspSearchInput()">'
   h+='</div>'
   h+='<div id="insp-list">'+buildInspTable(insps)+'</div>'
   document.getElementById('page-area').innerHTML=h
@@ -9682,7 +9682,18 @@ function buildInspTable(insps){
   })
   return h+'</tbody></table>'
 }
+function inspTabClick(btn){
+  document.querySelectorAll('.insp-type-tab').forEach(function(b){b.classList.remove('active')})
+  btn.classList.add('active')
+  filterInspections(btn.dataset.type||'all')
+}
+function inspSearchInput(){
+  var active=document.querySelector('.insp-type-tab.active')
+  filterInspections(active?active.dataset.type:'all')
+}
 function filterInspections(typeFilter,btn){
+  if(btn){document.querySelectorAll('.insp-type-tab').forEach(function(b){b.classList.remove('active')});btn.classList.add('active')}
+
   if(btn){document.querySelectorAll('.insp-type-tab').forEach(function(b){b.classList.remove('active')});btn.classList.add('active')}
   var q=(document.getElementById('insp-search')||{}).value||''
   var insps=(window._crmInspections||[]).filter(function(i){
