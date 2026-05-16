@@ -856,7 +856,7 @@ async function pgDash(){
     <div class="stat"><div class="stat-label">Parts Pipeline</div><div class="stat-value" style="color:#a855f7">\${out.length}</div><div style="font-size:10px;color:#414e63;margin-top:2px">\${staged.length} staged · \${out.length} checked out · \${installed.length} installed</div></div>
     <div class="stat"><div class="stat-label">On Site Now</div><div class="stat-value" style="color:#16a34a">\${checkins.length}</div></div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 280px;gap:13px">
+  <div style="display:grid;grid-template-columns:1fr 230px 1fr 260px;gap:13px">
     <div>
       <div class="card">
         <div class="card-title">Job Search</div>
@@ -864,44 +864,57 @@ async function pgDash(){
         <div id="dash-job-results" style="margin-top:8px"></div>
       </div>
       <div class="card">
+        <div class="card-title">Low Stock</div>
+        <div id="dash-low-stock-list"></div>
+      </div>
+    </div>
+    <div>
       <div class="card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-          <span>\u26a0 Due Within <span id="due-days-label">14</span> Days</span>
-          <span style="display:flex;gap:4px">
-            \\${[14,30,60,90].map(function(d){return '<button class="btn btn-sm due-day-btn" data-days="'+d+'" onclick="setDueDays('+d+')" style="padding:2px 8px;font-size:10px;'+(d===14?'background:rgba(59,130,246,.25);color:#60a5fa;':'')+'">'+d+'d</button>'}).join('')}
+          <span>&#9888; Due <span id="due-days-label">14</span>d</span>
+          <span style="display:flex;gap:3px">
+            <button class="btn btn-sm due-day-btn" data-days="14" onclick="setDueDays(14)" style="padding:1px 5px;font-size:10px;background:rgba(59,130,246,.25);color:#60a5fa">14d</button>
+            <button class="btn btn-sm due-day-btn" data-days="30" onclick="setDueDays(30)" style="padding:1px 5px;font-size:10px">30d</button>
+            <button class="btn btn-sm due-day-btn" data-days="60" onclick="setDueDays(60)" style="padding:1px 5px;font-size:10px">60d</button>
+            <button class="btn btn-sm due-day-btn" data-days="90" onclick="setDueDays(90)" style="padding:1px 5px;font-size:10px">90d</button>
           </span>
         </div>
         <div id="due-widget-list"></div>
+      </div>
       <div class="card">
-        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">Ready for Inspection
-          <span style="display:flex;gap:8px">
-            <label style="font-size:11px;font-weight:400;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="dash-pretest-chk" checked onchange="renderReadyWidget()"> Pre-Test</label>
-            <label style="font-size:11px;font-weight:400;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="dash-final-chk" checked onchange="renderReadyWidget()"> Final</label>
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">Inspections
+          <span style="display:flex;gap:5px">
+            <label style="font-size:10px;font-weight:400;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" id="dash-pretest-chk" checked onchange="renderReadyWidget()"> PT</label>
+            <label style="font-size:10px;font-weight:400;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" id="dash-final-chk" checked onchange="renderReadyWidget()"> Final</label>
           </span></div>
-        <div id="dash-ready-list"></div>\n'
+        <div id="dash-ready-list"></div>
       </div>
     </div>
     <div>
-      <div class="card">
-        <div class="card-title">Low Stock</div>
-        \${lowStock.length?lowStock.slice(0,5).map(i=>\`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span>\${i.name}</span><span style="color:#dc2626;font-weight:500">\${i.qty}/\${i.min_qty}</span></div>\`).join(''):'<div style="font-size:12px;color:#414e63">All stock OK ✓</div>'}
-      </div>
       <div class="card">
         <div class="card-title">Live Check-ins</div>
-        \${checkins.length?checkins.slice(0,5).map(c=>\`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div class="av" style="width:22px;height:22px;font-size:8px;\${Object.entries(avS(c.workerName)).map(([k,v])=>k+':'+v).join(';')}">\${ini(c.workerName)}</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${c.workerName||'?'}</div><div style="font-size:10px;color:#414e63">\${c.jobName||''} · \${ft(c.checkin_at)}</div></div><span class="gps-live" style="font-size:9px"><span class="pulse"></span></span></div>\`).join(''):'<div style="font-size:12px;color:#414e63">No one on site</div>'}
+        <div id="dash-checkins-list"></div>
       </div>
     </div>
     <div>
-      \${buildMyTasksDashWidget(myTasks)}
-      \${laborAlerts.length?buildLaborAlertWidget(laborAlerts):''}
-      \${buildMyWalksDashWidget(myWalks||[],_dashJobMap||{})}
+      <div id="dash-tasks-widget"></div>
+      <div id="dash-labor-widget"></div>
       <div class="card">
-        <div class="card-title">🎓 My Training<span id="dash-training-badge" style="display:none;background:#dc2626;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:8px;font-weight:400"></span></div>
-        \${pendingSafety.length?'<div style="font-size:11px;color:#8a96ab;margin-bottom:8px">'+(pendingSafety.length)+' topic(s) pending — click to read and acknowledge</div>'+(pendingSafety||[]).slice(0,3).map(function(s){return'<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">'+'<div><div style="font-size:12px;font-weight:500">'+(s.safety_topics?s.safety_topics.title:'Topic')+'</div>'+'<div style="font-size:10px;color:#414e63;margin-top:1px">Week of '+fd(s.safety_topics?s.safety_topics.week_of:null)+'</div></div>'+'<button class="btn btn-sm btn-p" style="flex-shrink:0;font-size:10px" onclick="navTo(&quot;my_training&quot;)">Open →</button>'+'</div>'}).join('')+'<button class="btn btn-sm btn-p" style="margin-top:8px;width:100%" onclick="navTo(&quot;my_training&quot;)">View All My Training →</button>':'<div style="font-size:12px;color:#16a34a;padding:8px 0">✓ All training complete!</div><button class="btn btn-sm" style="margin-top:6px;width:100%" onclick="navTo(&quot;my_training&quot;)">View Training History</button>'}
+        <div class="card-title">&#127891; My Training<span id="dash-training-badge" style="display:none;background:#dc2626;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:6px"></span></div>
+        <div id="dash-training-list"></div>
       </div>
     </div>
   </div>\`
   renderReadyWidget()
+  setDueDays(window._dueDays||14)
+  var tw=document.getElementById('dash-tasks-widget');if(tw)tw.innerHTML=buildMyTasksDashWidget(myTasks)
+  var lw=document.getElementById('dash-labor-widget');if(lw&&laborAlerts.length)lw.innerHTML=buildLaborAlertWidget(laborAlerts)
+  var ls=document.getElementById('dash-low-stock-list')
+  if(ls)ls.innerHTML=lowStock.length?lowStock.slice(0,5).map(function(i){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;font-weight:500">'+i.name+'</span><span class="badge bg-amber">'+i.qty_on_hand+' left</span></div>'}).join(''):empty('Stock OK','')
+  var ci=document.getElementById('dash-checkins-list')
+  if(ci)ci.innerHTML=checkins.length?checkins.slice(0,8).map(function(c){return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="width:8px;height:8px;border-radius:50%;background:#16a34a;flex-shrink:0"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">'+(c.worker_name||c.worker_id||'')+'</div><div style="font-size:10px;color:#414e63">'+(c.job_name||'')+'</div></div></div>'}).join(''):empty('No check-ins','')
+  var tr=document.getElementById('dash-training-list')
+  if(tr)tr.innerHTML=(pendingSafety.length?'<div style="font-size:11px;color:#8a96ab;margin-bottom:8px">'+pendingSafety.length+' topic'+(pendingSafety.length!==1?'s':'')+' pending</div>':'')+pendingSafety.slice(0,3).map(function(t){return '<div style="font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)">'+((t.safety_topics&&t.safety_topics.title)||t.title||'')+'</div>'}).join('')+(pendingSafety.length>3?'<div style="font-size:11px;color:#414e63;margin-top:6px">+'+(pendingSafety.length-3)+' more</div>':'')+(!pendingSafety.length?empty('All up to date',''):'')
   setTimeout(function(){
   setDueDays(window._dueDays||14)
     document.querySelectorAll('.dash-due-row').forEach(function(el){
