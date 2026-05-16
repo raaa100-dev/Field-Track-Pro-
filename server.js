@@ -598,7 +598,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
   </div>
 </div>
 <script>
-const sb=window.supabase.createClient('https://htkvgfmbcoozmkiairvt.supabase.co','sb_publishable_1U37N6iZ8Is4mF_aR9kThg_DS7wExWO')
+var sb=window.supabase.createClient('https://htkvgfmbcoozmkiairvt.supabase.co','sb_publishable_1U37N6iZ8Is4mF_aR9kThg_DS7wExWO')
 let ME=null,allJobs=[],allCatalog=[]
 let currentJobId=null,currentJob=null
 // ── BOOT ─────────────────────────────────────────────────────
@@ -5801,8 +5801,6 @@ async function logPmVisitModal(){
 }
 
 </script>
-</body>
-</html>
 <script>
 // ══════════════════════════════════════════
 // NOTIFICATIONS PAGE + BADGE
@@ -9331,6 +9329,8 @@ async function crmEditInspection(btn){
 
 
 </script>
+</body>
+</html>
 `
 const HTML_WORKER = `<!DOCTYPE html>
 <html lang="en">
