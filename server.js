@@ -246,6 +246,7 @@ const HTML_ADMIN  = `<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="FieldAxisHQ">
 <meta name="theme-color" content="#060a10">
@@ -9900,7 +9901,7 @@ async function submitInspection(){
   var naCount=Object.values(results).filter(function(v){return v==='na'}).length
   var deficiencies=[]
   tmpl.sections.forEach(function(sec,si){sec.items.forEach(function(item,ii){var id='item-'+si+'-'+ii;if(results[id]==='fail'){var noteEl=document.getElementById('note-'+id);deficiencies.push({item:item,section:sec.title,note:noteEl?noteEl.value:(notes[id]||''),photo:photos[id]||null})}})})
-  if(!confirm('Inspection summary:\n\u2022 '+passCount+' passed\n\u2022 '+failCount+' failed\n\u2022 '+naCount+' N/A\n\nSave and generate PDF report?'))return
+  if(!confirm('Save inspection? '+passCount+' passed, '+failCount+' failed, '+naCount+' N/A. Generate PDF?'))return
   var reportId=uuid()
   var reportData={id:reportId,inspection_id:inspId,system_type:sysType,inspector_name:inspector,inspection_date:date,conditions:conditions,results:results,deficiency_notes:notes,deficiencies:deficiencies,pass_count:passCount,fail_count:failCount,na_count:naCount,total_items:totalItems,overall_notes:overallNotes,created_at:new Date().toISOString()}
   var ins=await sb.from('inspection_reports').insert(reportData)
@@ -9914,7 +9915,7 @@ async function submitInspection(){
   else nextDue.setMonth(nextDue.getMonth()+1)
   await sb.from('crm_inspections').update({status:'completed',last_completed:date,next_due:nextDue.toISOString().split('T')[0],updated_at:new Date().toISOString()}).eq('id',inspId)
   if(deficiencies.length>0&&confirm('Create '+deficiencies.length+' work order task'+(deficiencies.length!==1?'s':'')+' for deficiencies?')){
-    await Promise.all(deficiencies.map(function(def){return sb.from('tasks').insert({id:uuid(),title:'['+sysType+'] '+def.item.slice(0,80),description:'Section: '+def.section+'\n'+def.item+(def.note?'\n\nNotes: '+def.note:''),status:'open',priority:'high',source:'inspection',created_at:new Date().toISOString()})}))
+    await Promise.all(deficiencies.map(function(def){return sb.from('tasks').insert({id:uuid(),title:'['+sysType+'] '+def.item.slice(0,80),description:'Section: '+def.section+' | '+def.item+(def.note?' | '+def.note:''),status:'open',priority:'high',source:'inspection',created_at:new Date().toISOString()})}))
     toast(deficiencies.length+' work order tasks created','info')
   }
   toast('Inspection saved!','success')
@@ -11041,7 +11042,7 @@ const server = http.createServer(async (req, res) => {
         " style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;" +
         " font-src 'self' https://fonts.gstatic.com;" +
         " img-src 'self' data: blob: https:;" +
-        " connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org;" +
+        " connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;" +
         " media-src 'self' blob:;" +
         " worker-src 'self' blob:;"
     }
