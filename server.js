@@ -206,7 +206,7 @@ const HTML_ADMIN  = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FieldAxisHQ Admin v2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
@@ -2987,44 +2987,40 @@ async function loadScanEvents(){
   el.innerHTML=(events||[]).length?events.map(e=>\`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span class="badge \${e.action==='stage_in'?'bg-amber':e.action==='check_out'?'bg-blue':'bg-green'}" style="flex-shrink:0">\${e.action.replace('_',' ')}</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${e.part_name} ×\${e.qty}</div><div style="font-size:10px;color:#414e63">\${e.scanned_by||'?'} · \${fdt(e.scanned_at)}</div></div></div>\`).join(''):'<div style="font-size:12px;color:#414e63">No recent scans</div>'
 }
 
-// CAMERA SCANNING html5-qrcode iOS optimized
-var _h5scanner=null
+// CAMERA SCANNING
+var _h5scanner=null,_lastScanned='',_lastScanTime=0
 async function toggleCam(){
   if(_camRunning){stopCam();return}
   var wrap=document.getElementById('cam-wrap');if(!wrap)return
   wrap.style.display='block'
   document.getElementById('cam-toggle-btn').textContent='⏹ Stop Camera'
-  document.getElementById('cam-status').textContent='Starting camera...'
-  wrap.innerHTML='<div id="h5qr-region"></div><div id="cam-status-inner" style="font-size:11px;color:#8a96ab;margin-top:4px">Starting...</div>'
+  wrap.innerHTML='<div id="h5qr-region"></div><div id="cam-status-inner" style="font-size:12px;color:#8a96ab;margin-top:6px;text-align:center">Ready</div>'
   try{
     _h5scanner=new Html5Qrcode('h5qr-region')
     var fmts=[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.QR_CODE]
     await _h5scanner.start(
       {facingMode:{exact:'environment'}},
-      {
-        fps:30,
-        qrbox:{width:300,height:120},
-        aspectRatio:1.7778,
-        formatsToSupport:fmts,
-        videoConstraints:{
-          facingMode:{exact:'environment'},
-          width:{min:640,ideal:1280,max:1920},
-          height:{min:480,ideal:720,max:1080},
-          focusMode:'continuous',
-          advanced:[{focusMode:'continuous'},{torch:false}]
-        }
-      },
+      {fps:30,qrbox:{width:300,height:120},aspectRatio:1.7778,formatsToSupport:fmts,videoConstraints:{facingMode:{exact:'environment'},width:{min:640,ideal:1920},height:{min:480,ideal:1080},focusMode:'continuous',advanced:[{focusMode:'continuous'}]}},
       function(code){
-        var si=document.getElementById('cam-status-inner')
-        if(si)si.textContent='✓ Scanned: '+code
-        document.getElementById('sc-bc').value=code
-        liveResolveBC(code)
+        var now=Date.now(),si=document.getElementById('cam-status-inner')
+        if(now-_lastScanTime<2000)return  // 2s cooldown between scans
+        _lastScanTime=now
+        beep()
+        if(window._scanToCatalog){scanToCatalog(code);return}
+        if(code===_lastScanned){
+          var existing=_batch.find(function(b){return b.barcode===code})
+          if(existing){existing.qty++;renderBatch();if(si)si.textContent='✓ x'+existing.qty+' '+existing.name+' — scan again to add more';return}
+        }
+        _lastScanned=code
         var match=allCatalog.find(function(c){return c.barcode===code})
-        if(match){addToBatch(code,match.name);document.getElementById('sc-bc').value='';document.getElementById('sc-resolve').style.display='none';if(si)si.textContent='✓ Added: '+match.name+' — keep scanning'}
-        else{
-          beep()
-          var reg=document.getElementById('h5qr-region')
-          if(reg){reg.style.outline='3px solid #f59e0b';setTimeout(function(){reg.style.outline=''},400)}
+        if(match){
+          addToBatch(code,match.name)
+          document.getElementById('sc-bc').value=''
+          document.getElementById('sc-resolve').style.display='none'
+          if(si)si.textContent='✓ '+match.name+' — scan same again to add more qty'
+        }else{
+          document.getElementById('sc-bc').value=code
+          liveResolveBC(code)
           if(si)si.textContent='⚠ Unknown: '+code+' — resolve below'
         }
       },
@@ -3035,12 +3031,19 @@ async function toggleCam(){
   }catch(e){toast('Camera error: '+e.message,'error');stopCam()}
 }
 function stopCam(){
-  _camRunning=false
+  _camRunning=false;_lastScanned='';_lastScanTime=0
   if(_h5scanner){try{_h5scanner.stop().catch(function(){});_h5scanner=null}catch(e){}}
-  var w=document.getElementById('cam-wrap');if(w){w.style.display='none';w.innerHTML='<video id="cam-viewport" autoplay muted playsinline style="width:100%"></video><div id="cam-status" style="font-size:11px;color:#8a96ab;margin-top:4px">Camera not started</div>'}
+  var w=document.getElementById('cam-wrap');if(w){w.style.display='none';w.innerHTML=''}
   var b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera'
 }
-// ══════════════════════════════════════════
+function scanToCatalog(code){
+  var si=document.getElementById('cam-status-inner')
+  var existing=allCatalog.find(function(c){return c.barcode===code})
+  if(existing){if(si)si.textContent='✓ Already in catalog: '+existing.name;return}
+  stopCam();window._scanToCatalog=false
+  addCatalogModal(code)
+  setTimeout(function(){lookupBarcode()},300)
+}
 // CATALOG PAGE
 // ══════════════════════════════════════════
 async function pgCatalog(){
@@ -3048,6 +3051,7 @@ async function pgCatalog(){
     <label class="btn btn-sm" style="cursor:pointer">⬆ Import<input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importCatalogCSV(this)"></label>
     <button class="btn btn-sm" onclick="exportCatalogCSV()">⬇ Export CSV</button>
     <button class="btn btn-sm btn-ghost" onclick="downloadCatalogTemplate()">📋 Template</button>
+    <button class="btn btn-sm" onclick="startScanToCatalog()">📷 Scan to Add</button>
     <button class="btn btn-p btn-sm" onclick="addCatalogModal()">+ Add Part</button>\`
   const{data:cat}=await sb.from('catalog').select('*').order('name')
   allCatalog=cat||[]
@@ -3063,7 +3067,12 @@ function renderCatalogTable(q){
   </tbody></table>\`:empty('📋','No parts in catalog — add or import CSV')}
   </div>\`
 }
-function addCatalogModal(){
+function addCatalogModal(prefillBarcode){
+  if(prefillBarcode){
+    setTimeout(function(){
+      var el=document.getElementById('ca-bc');if(el)el.value=prefillBarcode
+    },50)
+  }
   modal('Add Part to Catalog',\`
   <div class="fg"><label class="fl">Barcode *</label><input class="fi" id="ca-bc" placeholder="UPC, EAN, or custom barcode"></div>
   <div class="fg"><label class="fl">Barcode *</label>
@@ -3116,6 +3125,54 @@ async function lookupBarcode(){
     }
   }catch(e){}
   if(status)status.innerHTML='<span style="color:#d97706">⚠ Not found — enter details manually</span>'
+}
+function startScanToCatalog(){
+  window._scanToCatalog=true
+  pgScan()
+  setTimeout(function(){
+    toggleCam()
+    setTimeout(function(){
+      var si=document.getElementById('cam-status-inner')
+      if(si)si.textContent='📷 Catalog mode — scan a barcode to add or assign it'
+    },1000)
+  },800)
+}
+function assignUpcModal(catalogId){
+  var item=allCatalog.find(function(c){return c.id===catalogId})
+  if(!item){toast('Item not found','error');return}
+  modal('Assign Barcode — '+item.name,
+    '<div class="fg"><label class="fl">Barcode / UPC</label>'
+    +'<div style="display:flex;gap:6px">'
+    +'<input class="fi" id="assign-upc-val" placeholder="Scan or type barcode" style="flex:1" oninput="clearTimeout(window._bcTimer);window._bcTimer=setTimeout(function(){lookupBarcodeForAssign()},600)">'
+    +'<button class="btn btn-sm" onclick="lookupBarcodeForAssign()">Lookup</button></div></div>'
+    +'<div id="assign-upc-status" style="font-size:11px;color:#8a96ab;margin-top:4px"></div>',
+    async function(){
+      var bc=document.getElementById('assign-upc-val').value.trim()
+      if(!bc){toast('Enter a barcode','error');return}
+      var dup=allCatalog.find(function(c){return c.barcode===bc&&c.id!==catalogId})
+      if(dup){toast('Barcode already used by: '+dup.name,'error');return}
+      var{error}=await sb.from('catalog').update({barcode:bc,updated_at:new Date().toISOString()}).eq('id',catalogId)
+      if(error){toast(error.message,'error');return}
+      closeModal();toast('Barcode assigned to '+item.name);pgCatalog()
+    },'Assign Barcode')
+  // Focus the input so scanner can immediately type into it
+  setTimeout(function(){var el=document.getElementById('assign-upc-val');if(el)el.focus()},200)
+}
+async function lookupBarcodeForAssign(){
+  var bc=(document.getElementById('assign-upc-val')||{}).value||'';bc=bc.trim()
+  if(!bc||bc.length<4)return
+  var status=document.getElementById('assign-upc-status')
+  if(status)status.textContent='Looking up...'
+  try{
+    var r=await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc='+encodeURIComponent(bc))
+    var d=await r.json()
+    if(d.code==='OK'&&d.items&&d.items.length){
+      var item=d.items[0]
+      if(status)status.innerHTML='<span style="color:#16a34a">✓ Found: '+item.title+'</span>'
+      return
+    }
+  }catch(e){}
+  if(status)status.textContent='Not found in database — you can still assign this barcode'
 }
 function editCatalogModal(bc){
   const c=allCatalog.find(x=>x.barcode===bc);if(!c)return
