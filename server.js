@@ -846,7 +846,7 @@ async function pgDash(){
   const soon=[]
   allJobs.forEach(j=>{
     const fields=[['expected_onsite_date','Expected On Site'],['next_visit_date','Next Visit'],['date_closeout','Closeout'],['due_date','Due']]
-    fields.forEach(([f,lbl])=>{if(j[f]){const da=daysAway(j[f]);if(da!=null&&da>=0&&da<=14)soon.push({job:j.name,type:lbl,date:j[f],da,id:j.id})}})
+    fields.forEach(([f,lbl])=>{if(j[f]){const da=daysAway(j[f]);if(da!=null&&da>=0&&da<=(window._dueDays||14))soon.push({job:j.name,type:lbl,date:j[f],da,id:j.id})}})
   })
   soon.sort((a,b)=>a.da-b.da)
   document.getElementById('page-area').innerHTML=\`
@@ -864,9 +864,14 @@ async function pgDash(){
         <div id="dash-job-results" style="margin-top:8px"></div>
       </div>
       <div class="card">
-        <div class="card-title">⚠ Due Within 14 Days</div>
-        \${soon.length?soon.map(s=>\`<div class="sched-item" onclick="openJob('\${s.id}')"><div class="sched-dot" style="background:\${s.da<=3?'#dc2626':s.da<=7?'#d97706':'#16a34a'};margin-top:4px"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${s.job}</div><div style="font-size:10px;color:#414e63">\${s.type} · \${fd(s.date)}</div></div><span class="badge \${s.da<=3?'bg-red':s.da<=7?'bg-amber':'bg-green'}">\${s.da===0?'Today':s.da+'d'}</span></div>\`).join(''):empty('📅','All clear — nothing due in 14 days')}
-      </div>
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>\u26a0 Due Within <span id="due-days-label">\\${window._dueDays||14}</span> Days</span>
+          <span style="display:flex;gap:4px">
+            \\${[14,30,60,90].map(function(d){return '<button class="btn btn-sm due-day-btn" data-days="'+d+'" onclick="setDueDays('+d+')" style="padding:2px 8px;font-size:10px;'+((_dueDays||14)===d?'background:rgba(59,130,246,.25);color:#60a5fa;':'')+'">'+d+'d</button>'}).join('')}
+          </span>
+        </div>
+        <div id="due-widget-list">\\${soon.length?soon.map(function(s){var dc=s.da<=3?'#dc2626':s.da<=7?'#d97706':'#16a34a';var bc=s.da<=3?'bg-red':s.da<=7?'bg-amber':'bg-green';return '<div class="sched-item dash-due-row" data-jid="'+s.id+'" style="cursor:pointer">'+'<div class="sched-dot" style="background:'+dc+';margin-top:4px"></div>'+'<div style="flex:1"><div style="font-size:12px;font-weight:500">'+s.job+'</div>'+'<div style="font-size:10px;color:#414e63">'+s.type+' · '+fd(s.date)+'</div></div>'+'<span class="badge '+bc+'">'+(s.da===0?'Today':s.da+'d')+'</span></div>';}).join(''):empty('All clear','')}</div>\n      </div>
       <div class="card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">Ready for Inspection
           <span style="display:flex;gap:8px">
@@ -897,6 +902,13 @@ async function pgDash(){
     </div>
   </div>\`
   renderReadyWidget()
+  setTimeout(function(){
+    document.querySelectorAll('.dash-due-row').forEach(function(el){
+      el.onclick=function(){openJob(this.dataset.jid)}
+      el.onmouseover=function(){this.style.background='rgba(255,255,255,.04)'}
+      el.onmouseout=function(){this.style.background=''}
+    })
+  },100)
   } catch(e) {
     console.error('Dashboard error:',e)
     document.getElementById('page-area').innerHTML='<div style="padding:20px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px"><div style="color:#dc2626;font-weight:600;margin-bottom:8px">⚠ Dashboard failed to load</div><div style="font-size:12px;color:#f87171;font-family:monospace;background:rgba(0,0,0,.3);padding:10px;border-radius:6px;word-break:break-all">'+e.message+'</div><div style="font-size:11px;color:#8a96ab;margin-top:8px">Check browser console (F12) for full details. This is usually a database connection or missing table issue.</div><button class="btn btn-sm" onclick="pgDash()" style="margin-top:10px">Retry</button></div>'
@@ -1007,6 +1019,40 @@ function buildReadyWidget(){
     +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#8a96ab">'+(j.job_number?'#'+j.job_number+' · ':'')+(j.project_manager||'')+'</div></div>'
     +'<span style="font-size:10px;font-weight:600;color:'+clr+';border:1px solid '+clr+';padding:2px 8px;border-radius:12px;white-space:nowrap">'+lbl+'</span></div>'
   }).join('')
+}
+function setDueDays(d){
+  window._dueDays=d
+  var soon=[]
+  ;(allJobs||[]).forEach(function(j){
+    var fields=[['expected_onsite_date','Expected On Site'],['next_visit_date','Next Visit'],['date_closeout','Closeout'],['due_date','Due']]
+    fields.forEach(function(pair){
+      var f=pair[0],lbl=pair[1]
+      if(j[f]){var da=daysAway(j[f]);if(da!=null&&da>=0&&da<=d)soon.push({job:j.name,type:lbl,date:j[f],da:da,id:j.id})}
+    })
+  })
+  soon.sort(function(a,b){return a.da-b.da})
+  var lbl=document.getElementById('due-days-label');if(lbl)lbl.textContent=d
+  var list=document.getElementById('due-widget-list')
+  if(!list)return
+  list.innerHTML=soon.length?soon.map(function(s){
+    var dc=s.da<=3?'#dc2626':s.da<=7?'#d97706':'#16a34a'
+    var bc=s.da<=3?'bg-red':s.da<=7?'bg-amber':'bg-green'
+    return '<div class="sched-item dash-due-row" data-jid="'+s.id+'" style="cursor:pointer">'
+      +'<div class="sched-dot" style="background:'+dc+';margin-top:4px"></div>'
+      +'<div style="flex:1"><div style="font-size:12px;font-weight:500">'+s.job+'</div>'
+      +'<div style="font-size:10px;color:#414e63">'+s.type+' &middot; '+fd(s.date)+'</div></div>'
+      +'<span class="badge '+bc+'">'+(s.da===0?'Today':s.da+'d')+'</span></div>'
+  }).join(''):'<div style="text-align:center;padding:20px;color:#414e63">All clear — nothing due in '+d+' days</div>'
+  list.querySelectorAll('.dash-due-row').forEach(function(el){
+    el.onclick=function(){openJob(this.dataset.jid)}
+    el.onmouseover=function(){this.style.background='rgba(255,255,255,.04)'}
+    el.onmouseout=function(){this.style.background=''}
+  })
+  document.querySelectorAll('.due-day-btn').forEach(function(b){
+    var active=parseInt(b.dataset.days)===d
+    b.style.background=active?'rgba(59,130,246,.25)':''
+    b.style.color=active?'#60a5fa':''
+  })
 }
 function renderReadyWidget(){
   var el=document.getElementById('dash-ready-list');if(!el)return
