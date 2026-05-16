@@ -1377,8 +1377,7 @@ function renderJobDetail(){
   document.getElementById('page-area').innerHTML=\`
   <div style="margin-bottom:14px">
     <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">\${j.name}\${j.job_number?" <span style='font-size:12px;font-weight:400;color:#8a96ab'>("+j.job_number+")</span>":""}</div>
-    <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${j.job_number?'['+j.job_number+'] ':''}\${j.address||''}</div>\n    <div style="display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap">
-      \${stageBadge(j.phase)}
+    <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${(j.job_number?'['+j.job_number+'] ':'')+(j.address||'')}</div>\n      \${stageBadge(j.phase)}
       <select class="fs" style="width:180px;padding:5px 9px;font-size:12px" onchange="updateJobStage(this.value)">\${STAGES.map(s=>\`<option value="\${s}" \${j.phase===s?'selected':''}>\${STAGE_LABELS[s]}</option>\`).join('')}</select>
       <input type="number" class="fi" style="width:70px;padding:5px 8px;font-size:12px" value="\${j.pct_complete||0}" min="0" max="100" title="% Complete" onchange="updateJobPct(this.value)">%
       \${j.due_date?\`<span style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">Due \${fd(j.due_date)}</span>\`:''}
@@ -4824,6 +4823,7 @@ function filterEmployees(){
     html+=u.is_active
       ?'<button class="btn btn-sm" style="color:#d97706;border-color:rgba(217,119,6,.35)" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="toggleUserActive(this.dataset.id,this.dataset.name,false)">Deactivate</button>'
       :'<button class="btn btn-sm" style="color:#16a34a;border-color:rgba(22,163,74,.35)" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="toggleUserActive(this.dataset.id,this.dataset.name,true)">Activate</button>'
+    html+='<button class="btn btn-sm" style="color:#6366f1;border-color:rgba(99,102,241,.35)" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="resetPasswordModal(this.dataset.id,this.dataset.name)">🔑 Password</button>'
     html+='<button class="btn btn-sm" style="color:#8a96ab" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="forceLogoutUser(this.dataset.id,this.dataset.name)" title="Force logout">⏏ Logout</button>'
     html+='<button class="btn btn-sm" style="color:#dc2626;border-color:rgba(220,38,38,.3)" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="deleteUserConfirm(this.dataset.id,this.dataset.name)">Delete</button>'
     html+='</td>'
@@ -4921,7 +4921,11 @@ function addUserModal(){
     btn.disabled=true;btn.textContent='Adding…'
     try{
       btn.disabled=true;btn.textContent='Adding...'
-      var tempPw=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2).toUpperCase()+'!9'
+      var pw1=(document.getElementById('au-pw')||{}).value||''
+      var pw2=(document.getElementById('au-pw2')||{}).value||''
+      if(pw1&&pw1.length<8){toast('Password must be at least 8 characters','error');return}
+      if(pw1&&pw1!==pw2){toast('Passwords do not match','error');return}
+      var tempPw=pw1||(Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2).toUpperCase()+'!9')
       var{data:signUpData,error:signUpErr}=await sb.auth.signUp({email:em,password:tempPw,options:{data:{full_name:nm,role:v('au-rl')}}})
       var authId=signUpData?.user?.id
       if(signUpErr&&!authId){
@@ -4976,6 +4980,24 @@ async function deleteUserConfirm(id,name){
   }catch(e){}
   toast(name+' has been deleted')
   pgUsers()
+}
+async function resetPasswordModal(id,name){
+  modal('Reset Password — '+name,
+    '<div class="fg"><label class="fl">New Password</label><input class="fi" type="password" id="rp-pw" placeholder="Min 8 characters"></div>'
+    +'<div class="fg"><label class="fl">Confirm</label><input class="fi" type="password" id="rp-pw2"></div>',
+    async function(){
+      var pw=document.getElementById('rp-pw').value
+      var pw2=document.getElementById('rp-pw2').value
+      if(!pw||pw.length<8){toast('Password must be at least 8 characters','error');return}
+      if(pw!==pw2){toast('Passwords do not match','error');return}
+      try{
+        var{data:{session}}=await sb.auth.getSession()
+        var res=await fetch('/api/set-password',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},body:JSON.stringify({user_id:id,password:pw})})
+        var d={};try{d=await res.json()}catch(e){}
+        if(d.error){toast(d.error,'error');return}
+        closeModal();toast('Password reset for '+name)
+      }catch(e){toast(e.message,'error')}
+    },'Set Password')
 }
 function editUserModal(id,role,active,name){
   const coOpts=(window._empCos||[]).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')
@@ -11087,6 +11109,18 @@ const server = http.createServer(async (req, res) => {
   if (invIM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm')) return;
     try { return json(res, 200, (await dbUpdate('invoices', await readBody(req), { id: 'eq.' + invIM[1] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+  }
+
+  if(p==='/api/set-password'&&method==='POST'){
+    const u=await requireAuth(req,res);if(!u)return
+    const body=await readBody(req)
+    const{user_id,password}=body
+    if(!user_id||!password)return json(res,400,{error:'user_id and password required'})
+    if(password.length<8)return json(res,400,{error:'Password must be at least 8 characters'})
+    const serviceKey=SB_SERVICE||SB_ANON
+    const setRes=await sbFetch('PUT','/auth/v1/admin/users/'+user_id,{password},serviceKey)
+    if(setRes.error)return json(res,400,{error:setRes.error.message||'Could not set password'})
+    return json(res,200,{success:true})
   }
 
   if(p==='/api/force-logout'&&method==='POST'){
