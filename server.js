@@ -1376,7 +1376,7 @@ function renderJobDetail(){
   const si=STAGES.indexOf(j.phase)
   document.getElementById('page-area').innerHTML=\`
   <div style="margin-bottom:14px">
-    <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">\${j.name}\${j.job_number?" <span style='font-size:12px;font-weight:400;color:#8a96ab'>("+j.job_number+")</span>":""}</div>
+    <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">\${j.name}</div>
     <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${(j.job_number?'['+j.job_number+'] ':'')+(j.address||'')}</div>\n      \${stageBadge(j.phase)}
       <select class="fs" style="width:180px;padding:5px 9px;font-size:12px" onchange="updateJobStage(this.value)">\${STAGES.map(s=>\`<option value="\${s}" \${j.phase===s?'selected':''}>\${STAGE_LABELS[s]}</option>\`).join('')}</select>
       <input type="number" class="fi" style="width:70px;padding:5px 8px;font-size:12px" value="\${j.pct_complete||0}" min="0" max="100" title="% Complete" onchange="updateJobPct(this.value)">%
