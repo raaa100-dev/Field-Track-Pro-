@@ -199,12 +199,59 @@ if (!window.location.search.includes('signout')) {
 </body>
 </html>
 `
+const PWA_MANIFEST = JSON.stringify({
+  name:'FieldAxisHQ',short_name:'FieldAxis',description:'Field Operations Platform',
+  start_url:'/admin.html',display:'standalone',background_color:'#060a10',theme_color:'#060a10',
+  orientation:'portrait-primary',
+  icons:[{src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="115" fill="%23060a10"/><text x="50%" y="68%" text-anchor="middle" font-size="300" font-family="sans-serif" fill="%2360a5fa">F</text></svg>',sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'}],
+  categories:['business','productivity'],
+  shortcuts:[
+    {name:'Dashboard',url:'/admin.html',description:'Open dashboard'},
+    {name:'All Jobs',url:'/admin.html#jobs',description:'View all jobs'},
+    {name:'Scan Parts',url:'/admin.html#scanner',description:'Scan barcodes'}
+  ]
+})
+
+const SW_JS = `
+const CACHE='fieldaxis-v2'
+const CORE=['/','/admin.html','/worker.html','/fax-shared.js']
+self.addEventListener('install',function(e){
+  e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(CORE)}).then(function(){return self.skipWaiting()}))
+})
+self.addEventListener('activate',function(e){
+  e.waitUntil(caches.keys().then(function(keys){return Promise.all(keys.filter(function(k){return k!==CACHE}).map(function(k){return caches.delete(k)}))}).then(function(){return self.clients.claim()}))
+})
+self.addEventListener('fetch',function(e){
+  if(e.request.method!=='GET')return
+  if(e.request.url.includes('/api/'))return
+  if(e.request.url.includes('supabase.co'))return
+  e.respondWith(
+    fetch(e.request.clone()).then(function(res){
+      if(res&&res.status===200&&res.type!=='opaque'){var cl=res.clone();caches.open(CACHE).then(function(c){c.put(e.request,cl)})}
+      return res
+    }).catch(function(){
+      return caches.match(e.request).then(function(cached){
+        if(cached)return cached
+        var accept=e.request.headers.get('accept')||''
+        if(accept.includes('text/html'))return caches.match('/admin.html')
+      })
+    })
+  )
+})
+`
+
 const HTML_ADMIN  = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FieldAxisHQ Admin v2</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FieldAxisHQ">
+<meta name="theme-color" content="#060a10">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%23060a10'/><text x='90' y='125' text-anchor='middle' font-size='100' font-family='sans-serif' fill='%2360a5fa'>F</text></svg>">
+<title>FieldAxisHQ</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -10637,6 +10684,8 @@ const server = http.createServer(async (req, res) => {
     if (p === '/admin.html')                { res.writeHead(200, h); return res.end(HTML_ADMIN) }
     if (p === '/worker.html')               { res.writeHead(200, h); return res.end(HTML_WORKER) }
     if (p === '/fax-shared.js')             { res.writeHead(200, j); return res.end(HTML_FAXJS) }
+    if (p === '/manifest.json')             { res.writeHead(200, {'Content-Type':'application/manifest+json',...CORS}); return res.end(PWA_MANIFEST) }
+    if (p === '/sw.js')                     { res.writeHead(200, {'Content-Type':'application/javascript','Service-Worker-Allowed':'/',...CORS}); return res.end(SW_JS) }
     if (/^\/award\/[a-f0-9]{64}$/.test(p)) { res.writeHead(200, h); return res.end(HTML_AWARD) }
     // Filesystem fallback for other assets
     const cleanPath = p.replace(/^\//, '')
@@ -11745,6 +11794,42 @@ async function submitAward(){
 function showDeclineModal(){
   const r=prompt('Reason:\n'+FAX_LOSS.map((x,i)=>(i+1)+'. '+x).join('\n'));if(!r)return
   fetch('/api/qf/award/'+token+'/decline',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decline_reason:r})}).then(x=>x.json()).then(d=>{if(d.ok)loadAwardPage(token);else alert(d.error||'Error')})
+}
+// PWA Service Worker registration
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('/sw.js',{scope:'/'})
+      .then(function(r){console.log('SW registered',r.scope)})
+      .catch(function(e){console.log('SW failed',e)})
+  })
+}
+// Offline sync: flush queued actions when online
+window.addEventListener('online',function(){
+  var q=JSON.parse(localStorage.getItem('faxq')||'[]')
+  if(!q.length)return
+  var toast_msg='Syncing '+q.length+' offline action'+(q.length!==1?'s':'')+'...'
+  toast(toast_msg,'info')
+  Promise.all(q.map(function(item){
+    return fetch(item.url,{method:item.method,headers:{'Content-Type':'application/json'},body:item.body})
+      .then(function(r){return r.json()})
+      .catch(function(){return{error:'failed'}})
+  })).then(function(results){
+    var failed=results.filter(function(r){return r&&r.error}).length
+    localStorage.removeItem('faxq')
+    toast(failed?'Synced with '+failed+' error(s)':'All offline actions synced!',failed?'warn':'success')
+    if(typeof allJobs!=='undefined')pgDash&&pgDash()
+  })
+})
+// Show offline banner when network lost
+window.addEventListener('offline',function(){
+  toast('No connection — app works offline, changes will sync when back online','warn')
+})
+// Queue a fetch for offline use
+function queueOffline(url,method,body){
+  var q=JSON.parse(localStorage.getItem('faxq')||'[]')
+  q.push({url:url,method:method||'POST',body:typeof body==='string'?body:JSON.stringify(body),ts:Date.now()})
+  localStorage.setItem('faxq',JSON.stringify(q))
+  toast('Saved offline — will sync when connected','info')
 }
 </script>
 </body>
