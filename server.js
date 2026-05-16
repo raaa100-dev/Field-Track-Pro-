@@ -262,7 +262,7 @@ html,body{height:100%;overflow:hidden}
 body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size:13px;display:flex}
 ::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:#1a2540;border-radius:2px}
 #sidebar{width:215px;min-width:215px;background:#0c1220;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;height:100vh;overflow-y:auto}
-.logo{padding:15px 14px 11px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.logo{padding:max(15px,calc(env(safe-area-inset-top,0px) + 8px)) 14px 11px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
 .logo-mark{font-family:Syne,sans-serif;font-size:15px;font-weight:800;background:linear-gradient(135deg,#e8edf5,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .logo-sub{font-size:9px;color:#414e63;letter-spacing:.12em;text-transform:uppercase;margin-top:1px}
 .nav-section{padding:9px 12px 2px;font-size:9px;font-weight:600;color:#414e63;letter-spacing:.1em;text-transform:uppercase}
@@ -275,7 +275,7 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .user-pill:hover{background:#1a2540}
 .av{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:Syne,sans-serif;flex-shrink:0}
 #main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;min-width:0}
-.topbar{height:48px;padding:0 18px;background:#0c1220;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar{min-height:48px;padding:env(safe-area-inset-top,0px) 18px 0;background:#0c1220;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .topbar-title{font-family:Syne,sans-serif;font-size:14px;font-weight:700}
 .tb-right{display:flex;gap:7px;align-items:center}
 #page-area{flex:1;overflow-y:auto;padding:18px}
