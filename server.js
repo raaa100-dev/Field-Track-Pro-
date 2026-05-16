@@ -421,7 +421,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
 
   /* ── Topbar ── */
   .topbar {
-    padding: 0 10px; gap: 6px; min-height: 52px;
+    padding: env(safe-area-inset-top,0px) 10px 0; gap: 6px; min-height: 52px;
     position: sticky; top: 0; z-index: 400;
   }
   .topbar-title { font-size: 13px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
