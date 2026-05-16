@@ -8171,7 +8171,7 @@ async function filterNtkJobs(q){
   })
   sel.innerHTML=html
 }
-function newTaskModal(){
+async function newTaskModal(){
   if(!window._faxBidUsers){
     var r=await sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','estimator','foreman','stager'])
     window._faxBidUsers=r.data||[]
