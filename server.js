@@ -1371,15 +1371,19 @@ async function openJob(id){
   }
   renderJobDetail()
 }
+function jobSubhead(j){
+  var parts=[]
+  if(j.job_number)parts.push('['+j.job_number+']')
+  if(j.address)parts.push(j.address)
+  return parts.join(' ')
+}
 function renderJobDetail(){
   const j=currentJob
   const si=STAGES.indexOf(j.phase)
   document.getElementById('page-area').innerHTML=\`
   <div style="margin-bottom:14px">
     <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">\${j.name}</div>
-    <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${(j.job_number?'['+j.job_number+'] ':'')+(j.address||'')}</div>\n      \${stageBadge(j.phase)}
-      <select class="fs" style="width:180px;padding:5px 9px;font-size:12px" onchange="updateJobStage(this.value)">\${STAGES.map(s=>\`<option value="\${s}" \${j.phase===s?'selected':''}>\${STAGE_LABELS[s]}</option>\`).join('')}</select>
-      <input type="number" class="fi" style="width:70px;padding:5px 8px;font-size:12px" value="\${j.pct_complete||0}" min="0" max="100" title="% Complete" onchange="updateJobPct(this.value)">%
+    <div style="font-size:12px;color:#8a96ab;margin-top:3px">\\${jobSubhead(j)}</div>\n      <input type="number" class="fi" style="width:70px;padding:5px 8px;font-size:12px" value="\${j.pct_complete||0}" min="0" max="100" title="% Complete" onchange="updateJobPct(this.value)">%
       \${j.due_date?\`<span style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">Due \${fd(j.due_date)}</span>\`:''}
     \${j.is_urgent?'<div style="display:flex;align-items:center;gap:10px;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.25);border-radius:8px;padding:9px 13px;margin-top:8px"><span style="font-size:20px">🔥</span><div style="flex:1"><div style="font-size:13px;font-weight:600;color:#dc2626">URGENT</div><div style="font-size:12px;color:#8a96ab;margin-top:2px">'+( j.urgent_note||'')+'</div><div style="font-size:11px;color:#414e63;margin-top:2px">Assigned: '+(j.urgent_assigned_name||'—')+'</div></div><button class="btn btn-sm btn-g" onclick="resolveUrgent()">✓ Resolve</button><button class="btn btn-sm" style="color:#dc2626" onclick="toggleUrgent()">Remove</button></div>':''}
     </div>
