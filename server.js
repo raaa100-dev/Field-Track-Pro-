@@ -2424,17 +2424,16 @@ async function pgDaily(){
   const today=new Date().toISOString().split('T')[0]
   const thirtyDaysAgo=new Date(Date.now()-30*864e5).toISOString().split('T')[0]
   document.getElementById('page-area').innerHTML=
-    '<div style="background:#0c1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px;margin-bottom:13px">'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:flex-end">'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:flex-end">'+
-    '<div><label class="fl">Search Job</label><input class="fi" id="dr-f-search" placeholder="Job name or job ID..." oninput="filterDailyReports()"></div>'+
-
-
-    '<div><label class="fl">To Date</label><input class="fi" type="date" id="dr-f-to" value="'+today+'" onchange="filterDailyReports()"></div>'+
-    '<div><label class="fl">Employee</label><select class="fs" id="dr-f-emp" onchange="filterDailyReports()"><option value="">All Employees</option>'+
+  document.getElementById('page-area').innerHTML=
+    '<div style="background:#0c1220;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px;margin-bottom:14px">'+
+    '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">'+
+    '<div style="flex:1;min-width:200px"><label class="fl">Search Job / Job ID</label><input class="fi" id="dr-f-search" placeholder="Job name or ID..." oninput="filterDailyReports()" style="width:100%"></div>'+
+    '<div style="flex:0 0 150px"><label class="fl">From Date</label><input class="fi" type="date" id="dr-f-from" value="'+thirtyDaysAgo+'" onchange="filterDailyReports()"></div>'+
+    '<div style="flex:0 0 150px"><label class="fl">To Date</label><input class="fi" type="date" id="dr-f-to" value="'+today+'" onchange="filterDailyReports()"></div>'+
+    '<div style="flex:0 0 160px"><label class="fl">Employee</label><select class="fs" id="dr-f-emp" onchange="filterDailyReports()"><option value="">All Employees</option>'+
     employees.map(e=>'<option value="'+e+'">'+e+'</option>').join('')+
     '</select></div>'+
-    '<button class="btn btn-sm" onclick="clearDrFilters()">Clear</button>'+
+    '<div style="flex:0 0 auto;padding-bottom:1px"><button class="btn btn-sm" style="height:36px;padding:0 16px" onclick="clearDrFilters()">Clear</button></div>'+
     '</div></div>'+
     '<div id="dr-results"></div>'
   filterDailyReports()
