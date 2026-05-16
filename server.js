@@ -3230,52 +3230,74 @@ async function loadScanEvents(){
   el.innerHTML=(events||[]).length?events.map(e=>\`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span class="badge \${e.action==='stage_in'?'bg-amber':e.action==='check_out'?'bg-blue':'bg-green'}" style="flex-shrink:0">\${e.action.replace('_',' ')}</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${e.part_name} ×\${e.qty}</div><div style="font-size:10px;color:#414e63">\${e.scanned_by||'?'} · \${fdt(e.scanned_at)}</div></div></div>\`).join(''):'<div style="font-size:12px;color:#414e63">No recent scans</div>'
 }
 
-// CAMERA SCANNING
-var _h5scanner=null,_lastScanned='',_lastScanTime=0
+// CAMERA SCANNING native BarcodeDetector + html5-qrcode fallback
+var _h5scanner=null,_nativeStream=null,_nativeTimer=null,_lastScanned='',_lastScanTime=0
 async function toggleCam(){
   if(_camRunning){stopCam();return}
-  if(typeof Html5Qrcode==='undefined'){toast('Scanner library not loaded. Refresh the page.','error');return}
   var wrap=document.getElementById('cam-wrap');if(!wrap)return
   wrap.style.display='block'
   document.getElementById('cam-toggle-btn').textContent='⏹ Stop Camera'
+  if(window.BarcodeDetector){
+    try{
+      var detector=new BarcodeDetector({formats:['code_128','ean_13','ean_8','upc_a','upc_e','code_39','qr_code','data_matrix','itf','codabar']})
+      var stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:'environment'},width:{ideal:1920},height:{ideal:1080},advanced:[{focusMode:'continuous'},{exposureMode:'continuous'}]}})
+      _nativeStream=stream
+      wrap.innerHTML='<video id="native-cam" autoplay muted playsinline style="width:100%;border-radius:8px;background:#000"></video>'
+        +'<div style="margin-top:-6px;padding:2px 8px;background:rgba(0,0,0,.4);border-radius:0 0 8px 8px"><div style="height:2px;background:rgba(239,68,68,.8);border-radius:1px;box-shadow:0 0 8px rgba(239,68,68,.8)"></div></div>'
+        +'<div id="cam-status-inner" style="font-size:12px;color:#8a96ab;margin-top:6px;text-align:center">Ready — point at barcode</div>'
+      var vid=document.getElementById('native-cam');vid.srcObject=stream;await vid.play()
+      _camRunning=true
+      var scanning=false
+      _nativeTimer=setInterval(async function(){
+        if(!_camRunning||scanning||!vid.readyState)return
+        scanning=true
+        try{
+          var res=await detector.detect(vid)
+          if(res.length){var code=res[0].rawValue,now=Date.now();if(!(code===_lastScanned&&now-_lastScanTime<2000)){_lastScanTime=now;_lastScanned=code;handleScan(code)}}
+        }catch(e){}
+        scanning=false
+      },80)
+      return
+    }catch(e){if(_nativeStream){_nativeStream.getTracks().forEach(function(t){t.stop()});_nativeStream=null}}
+  }
+  if(typeof Html5Qrcode==='undefined'){toast('Scanner not available. Refresh page.','error');return}
   wrap.innerHTML='<div id="h5qr-region"></div><div id="cam-status-inner" style="font-size:12px;color:#8a96ab;margin-top:6px;text-align:center">Ready</div>'
   try{
     _h5scanner=new Html5Qrcode('h5qr-region')
     var fmts=[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.QR_CODE]
-    await _h5scanner.start(
-      {facingMode:{exact:'environment'}},
-      {fps:30,qrbox:{width:300,height:120},aspectRatio:1.7778,formatsToSupport:fmts,videoConstraints:{facingMode:{exact:'environment'},width:{min:640,ideal:1920},height:{min:480,ideal:1080},focusMode:'continuous',advanced:[{focusMode:'continuous'}]}},
-      function(code){
-        var now=Date.now(),si=document.getElementById('cam-status-inner')
-        if(now-_lastScanTime<2000)return  // 2s cooldown between scans
-        _lastScanTime=now
-        beep()
-        if(window._scanToCatalog){scanToCatalog(code);return}
-        if(code===_lastScanned){
-          var existing=_batch.find(function(b){return b.barcode===code})
-          if(existing){existing.qty++;renderBatch();if(si)si.textContent='✓ x'+existing.qty+' '+existing.name+' — scan again to add more';return}
-        }
-        _lastScanned=code
-        var match=allCatalog.find(function(c){return c.barcode===code})
-        if(match){
-          addToBatch(code,match.name)
-          document.getElementById('sc-bc').value=''
-          document.getElementById('sc-resolve').style.display='none'
-          if(si)si.textContent='✓ '+match.name+' — scan same again to add more qty'
-        }else{
-          document.getElementById('sc-bc').value=code
-          liveResolveBC(code)
-          if(si)si.textContent='⚠ Unknown: '+code+' — resolve below'
-        }
-      },
-      function(err){}
-    )
+    await _h5scanner.start({facingMode:{exact:'environment'}},
+      {fps:30,qrbox:{width:350,height:200},aspectRatio:1.7778,formatsToSupport:fmts,
+       videoConstraints:{facingMode:{exact:'environment'},width:{min:1280,ideal:1920},height:{min:720,ideal:1080},focusMode:'continuous',advanced:[{focusMode:'continuous'}]}},
+      function(code){var now=Date.now();if(code===_lastScanned&&now-_lastScanTime<2000)return;_lastScanTime=now;_lastScanned=code;handleScan(code)},
+      function(err){})
     _camRunning=true
     var si=document.getElementById('cam-status-inner');if(si)si.textContent='Ready — point at barcode'
   }catch(e){toast('Camera error: '+e.message,'error');stopCam()}
 }
+function handleScan(code){
+  beep()
+  var si=document.getElementById('cam-status-inner')
+  if(window._scanToCatalog){scanToCatalog(code);return}
+  if(code===_lastScanned){
+    var existing=_batch.find(function(b){return b.barcode===code})
+    if(existing){existing.qty++;renderBatch();if(si)si.textContent='✓ x'+existing.qty+' '+existing.name;return}
+  }
+  var match=allCatalog.find(function(c){return c.barcode===code})
+  if(match){
+    addToBatch(code,match.name)
+    document.getElementById('sc-bc').value=''
+    document.getElementById('sc-resolve').style.display='none'
+    if(si)si.textContent='✓ '+match.name+' — scan same again for more qty'
+  }else{
+    document.getElementById('sc-bc').value=code
+    liveResolveBC(code)
+    if(si)si.textContent='⚠ Unknown: '+code+' — resolve below'
+  }
+}
 function stopCam(){
   _camRunning=false;_lastScanned='';_lastScanTime=0
+  if(_nativeTimer){clearInterval(_nativeTimer);_nativeTimer=null}
+  if(_nativeStream){_nativeStream.getTracks().forEach(function(t){t.stop()});_nativeStream=null}
   if(_h5scanner){try{_h5scanner.stop().catch(function(){});_h5scanner=null}catch(e){}}
   var w=document.getElementById('cam-wrap');if(w){w.style.display='none';w.innerHTML=''}
   var b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera'
