@@ -9807,7 +9807,8 @@ function launchFullFormInspection(inspId,sysType,tmpl,inspector,prefillNotes){
       h+='<div id="def-'+id+'" style="display:none;padding:6px 0 10px;margin-left:4px">'
       h+='<input class="fi" id="note-'+id+'" placeholder="Describe deficiency..." style="margin-bottom:6px">'
       h+='<div style="display:flex;gap:6px;align-items:center">'
-      h+='<label class="btn btn-sm" style="cursor:pointer">&#128247; Photo<input type="file" accept="image/*" capture="environment" style="display:none" onchange="attachDefPhoto(this,\''+id+'\')"></label>'
+      h+='<label class="btn btn-sm def-photo-label" data-id="'+id+'" style="cursor:pointer">&#128247; Photo'
+        +'<input type="file" accept="image/*" capture="environment" style="display:none" onchange="attachDefPhoto(this)"></label>'
       h+='<span id="photo-'+id+'" style="font-size:11px;color:#16a34a"></span></div></div>'
     })
     h+='</div>'
@@ -9840,16 +9841,20 @@ function renderWizardStep(){
   h+='<div class="card" style="margin-bottom:12px">'
   h+='<div style="font-size:15px;line-height:1.5;margin-bottom:16px">'+item.text+'</div>'
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
-  h+='<button class="btn" onclick="wizSetResult(\''+item.id+'\',\'pass\')" style="padding:14px;font-size:14px;'+(result==='pass'?'background:rgba(22,163,74,.2);color:#16a34a;border-color:#16a34a':'color:#16a34a;border-color:rgba(22,163,74,.3)')+'">&#10003; Pass</button>'
-  h+='<button class="btn" onclick="wizSetResult(\''+item.id+'\',\'fail\')" style="padding:14px;font-size:14px;'+(result==='fail'?'background:rgba(220,38,38,.2);color:#dc2626;border-color:#dc2626':'color:#dc2626;border-color:rgba(220,38,38,.3)')+'">&#10007; Fail</button>'
-  h+='<button class="btn" onclick="wizSetResult(\''+item.id+'\',\'na\')" style="padding:14px;font-size:14px;'+(result==='na'?'background:rgba(255,255,255,.1);color:#e8edf5':'color:#8a96ab;border-color:rgba(255,255,255,.1)')+'">N/A</button>'
-  h+='</div>'
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
+  h+='<button class="btn wiz-result-btn" data-id="'+item.id+'" data-val="pass" onclick="wizResultClick(this)"'
+    +' style="padding:14px;font-size:14px;color:#16a34a;border-color:rgba(22,163,74,.3);background:'+( result==='pass'?'rgba(22,163,74,.2)':'')+'">&#10003; Pass</button>'
+  h+='<button class="btn wiz-result-btn" data-id="'+item.id+'" data-val="fail" onclick="wizResultClick(this)"'
+    +' style="padding:14px;font-size:14px;color:#dc2626;border-color:rgba(220,38,38,.3);background:'+( result==='fail'?'rgba(220,38,38,.2)':'')+'">&#10007; Fail</button>'
+  h+='<button class="btn wiz-result-btn" data-id="'+item.id+'" data-val="na" onclick="wizResultClick(this)"'
+    +' style="padding:14px;font-size:14px;color:#8a96ab;border-color:rgba(255,255,255,.1);background:'+( result==='na'?'rgba(255,255,255,.1)':'')+'">N/A</button>'
   if(result==='fail'){
     h+='<div style="margin-top:12px;border-top:1px solid rgba(255,255,255,.06);padding-top:12px">'
     h+='<div style="font-size:11px;color:#dc2626;font-weight:600;margin-bottom:6px">&#9888; Deficiency Details</div>'
     h+='<textarea class="ft" id="wiz-note" style="min-height:70px" placeholder="Describe the deficiency...">'+(window._wizNotes&&window._wizNotes[item.id]||'')+'</textarea>'
     h+='<div style="display:flex;gap:8px;margin-top:8px;align-items:center">'
-    h+='<label class="btn btn-sm" style="cursor:pointer">&#128247; Add Photo<input type="file" accept="image/*" capture="environment" style="display:none" onchange="wizAttachPhoto(this,\''+item.id+'\')"></label>'
+    h+='<label class="btn btn-sm wiz-photo-label" data-id="'+item.id+'" style="cursor:pointer">&#128247; Add Photo'
+      +'<input type="file" accept="image/*" capture="environment" style="display:none" onchange="wizAttachPhoto(this)"></label>'
     h+='<span id="wiz-photo-label" style="font-size:11px;color:#16a34a">'+(window._inspPhotos&&window._inspPhotos[item.id]?'&#10003; Photo attached':'')+'</span>'
     h+='</div></div>'
   }
@@ -9866,6 +9871,9 @@ function wizSaveCurrentNote(){
   if(!item)return
   if((window._inspResults||{})[item.id]==='fail'){var n=document.getElementById('wiz-note');if(n){window._wizNotes=window._wizNotes||{};window._wizNotes[item.id]=n.value}}
 }
+function wizResultClick(btn){
+  wizSetResult(btn.dataset.id, btn.dataset.val)
+}
 function wizSetResult(id,val){
   wizSaveCurrentNote()
   window._inspResults=window._inspResults||{}
@@ -9874,7 +9882,7 @@ function wizSetResult(id,val){
   else{renderWizardStep()}
 }
 function wizNav(dir){wizSaveCurrentNote();window._wizCurrent=Math.max(0,Math.min(window._wizItems.length-1,window._wizCurrent+dir));renderWizardStep()}
-function wizAttachPhoto(input,id){
+function wizAttachPhoto(input){var id=input.closest('[data-id]')&&input.closest('[data-id]').dataset.id||'';if(!id)return;
   var file=input.files[0];if(!file)return
   var reader=new FileReader()
   reader.onload=function(e){window._inspPhotos=window._inspPhotos||{};window._inspPhotos[id]=e.target.result;var lbl=document.getElementById('wiz-photo-label');if(lbl)lbl.innerHTML='&#10003; Photo attached'}
@@ -9891,7 +9899,7 @@ function setItemResult(btn){
   var tmpl=INSP_TEMPLATES[window._inspType]
   if(tmpl){var tot=0;tmpl.sections.forEach(function(s){tot+=s.items.length});var done=Object.keys(window._inspResults).length;var pct=Math.round(done/tot*100);var bar=document.getElementById('insp-progress-bar');var lbl=document.getElementById('insp-progress-label');if(bar)bar.style.width=pct+'%';if(lbl)lbl.textContent=done+' / '+tot+' items'}
 }
-function attachDefPhoto(input,id){
+function attachDefPhoto(input){var id=input.closest('[data-id]')&&input.closest('[data-id]').dataset.id||'';if(!id)return;
   var file=input.files[0];if(!file)return
   var reader=new FileReader()
   reader.onload=function(e){window._inspPhotos=window._inspPhotos||{};window._inspPhotos[id]=e.target.result;var lbl=document.getElementById('photo-'+id);if(lbl)lbl.innerHTML='&#10003; Photo attached'}
