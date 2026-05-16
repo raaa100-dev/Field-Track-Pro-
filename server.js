@@ -856,7 +856,7 @@ async function pgDash(){
     <div class="stat"><div class="stat-label">Parts Pipeline</div><div class="stat-value" style="color:#a855f7">\${out.length}</div><div style="font-size:10px;color:#414e63;margin-top:2px">\${staged.length} staged · \${out.length} checked out · \${installed.length} installed</div></div>
     <div class="stat"><div class="stat-label">On Site Now</div><div class="stat-value" style="color:#16a34a">\${checkins.length}</div></div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 230px 1fr 260px;gap:13px">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px">
     <div>
       <div class="card">
         <div class="card-title">Job Search</div>
@@ -864,19 +864,13 @@ async function pgDash(){
         <div id="dash-job-results" style="margin-top:8px"></div>
       </div>
       <div class="card">
-        <div class="card-title">Low Stock</div>
-        <div id="dash-low-stock-list"></div>
-      </div>
-    </div>
-    <div>
-      <div class="card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
           <span>&#9888; Due <span id="due-days-label">14</span>d</span>
           <span style="display:flex;gap:3px">
-            <button class="btn btn-sm due-day-btn" data-days="14" onclick="setDueDays(14)" style="padding:1px 5px;font-size:10px;background:rgba(59,130,246,.25);color:#60a5fa">14d</button>
-            <button class="btn btn-sm due-day-btn" data-days="30" onclick="setDueDays(30)" style="padding:1px 5px;font-size:10px">30d</button>
-            <button class="btn btn-sm due-day-btn" data-days="60" onclick="setDueDays(60)" style="padding:1px 5px;font-size:10px">60d</button>
-            <button class="btn btn-sm due-day-btn" data-days="90" onclick="setDueDays(90)" style="padding:1px 5px;font-size:10px">90d</button>
+            <button class="btn btn-sm due-day-btn" data-days="14" onclick="setDueDays(14)" style="padding:1px 6px;font-size:10px;background:rgba(59,130,246,.25);color:#60a5fa">14d</button>
+            <button class="btn btn-sm due-day-btn" data-days="30" onclick="setDueDays(30)" style="padding:1px 6px;font-size:10px">30d</button>
+            <button class="btn btn-sm due-day-btn" data-days="60" onclick="setDueDays(60)" style="padding:1px 6px;font-size:10px">60d</button>
+            <button class="btn btn-sm due-day-btn" data-days="90" onclick="setDueDays(90)" style="padding:1px 6px;font-size:10px">90d</button>
           </span>
         </div>
         <div id="due-widget-list"></div>
@@ -891,6 +885,10 @@ async function pgDash(){
       </div>
     </div>
     <div>
+      <div class="card">
+        <div class="card-title">Low Stock</div>
+        <div id="dash-low-stock-list"></div>
+      </div>
       <div class="card">
         <div class="card-title">Live Check-ins</div>
         <div id="dash-checkins-list"></div>
