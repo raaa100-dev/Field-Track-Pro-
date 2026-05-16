@@ -10676,9 +10676,11 @@ function requireAuth(res, u)  { if (!u) { json(res, 401, { error: 'Not authentic
 function requireRole(res, u, ...roles) { if (!requireAuth(res, u)) return false; if (!roles.includes(u.role)) { json(res, 403, { error: 'Permission denied' }); return false; } return true; }
 
 // ── HTTP ──────────────────────────────────────────────────────────────────────
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://filed-ops.onrender.com'
+const ALLOWED_ORIGIN = (process.env.ALLOWED_ORIGIN || 'https://filed-ops.onrender.com').trim()
+// Validate CORS origin to prevent header injection crash
+const SAFE_ORIGIN = /^https?:\/\/[a-zA-Z0-9._-]+(:[0-9]+)?$/.test(ALLOWED_ORIGIN) ? ALLOWED_ORIGIN : 'https://filed-ops.onrender.com'
 const CORS = {
-  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+  'Access-Control-Allow-Origin': SAFE_ORIGIN,
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
   'Vary': 'Origin'
