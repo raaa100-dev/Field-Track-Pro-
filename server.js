@@ -206,7 +206,7 @@ const HTML_ADMIN  = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FieldAxisHQ Admin v2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
@@ -2981,53 +2981,40 @@ async function loadScanEvents(){
   el.innerHTML=(events||[]).length?events.map(e=>\`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span class="badge \${e.action==='stage_in'?'bg-amber':e.action==='check_out'?'bg-blue':'bg-green'}" style="flex-shrink:0">\${e.action.replace('_',' ')}</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${e.part_name} ×\${e.qty}</div><div style="font-size:10px;color:#414e63">\${e.scanned_by||'?'} · \${fdt(e.scanned_at)}</div></div></div>\`).join(''):'<div style="font-size:12px;color:#414e63">No recent scans</div>'
 }
 
-// CAMERA SCANNING ZXing
-var _zxReader=null
+// CAMERA SCANNING html5-qrcode iOS optimized
+var _h5scanner=null
 async function toggleCam(){
   if(_camRunning){stopCam();return}
   var wrap=document.getElementById('cam-wrap');if(!wrap)return
   wrap.style.display='block'
   document.getElementById('cam-toggle-btn').textContent='⏹ Stop Camera'
   document.getElementById('cam-status').textContent='Starting camera...'
+  wrap.innerHTML='<div id="h5qr-region"></div><div id="cam-status-inner" style="font-size:11px;color:#8a96ab;margin-top:4px">Starting...</div>'
   try{
-    _zxReader=new ZXing.BrowserMultiFormatReader()
-    // List devices then pick back camera
-    var deviceId=null
-    try{
-      var devices=await _zxReader.listVideoInputDevices()
-      var back=devices.filter(function(d){return /back|rear|environment/i.test(d.label)})
-      if(back.length)deviceId=back[back.length-1].deviceId
-      else if(devices.length)deviceId=devices[devices.length-1].deviceId
-    }catch(de){
-      // fallback: use environment facing mode via constraints
-      deviceId=null
-    }
-    document.getElementById('cam-status').textContent='Ready — point at barcode'
-    _camRunning=true
-    var lastCode='',lastTime=0
-    var hints=new Map()
-    hints.set(ZXing.DecodeHintType.TRY_HARDER,true)
-    _zxReader=new ZXing.BrowserMultiFormatReader(hints)
-    _zxReader.decodeFromConstraints(
-      {video:{facingMode:'environment'}},
-      'cam-viewport',
-      function(result,err){
-        if(!result)return
-        var code=result.getText(),now=Date.now()
-        if(code===lastCode&&now-lastTime<2000)return
-        lastCode=code;lastTime=now
+    _h5scanner=new Html5Qrcode('h5qr-region')
+    var fmts=[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.QR_CODE]
+    await _h5scanner.start({facingMode:'environment'},{fps:15,qrbox:{width:250,height:150},formatsToSupport:fmts},
+      function(code){
+        var si=document.getElementById('cam-status-inner')
+        if(si)si.textContent='✓ Scanned: '+code
         document.getElementById('sc-bc').value=code
         liveResolveBC(code)
         var match=allCatalog.find(function(c){return c.barcode===code})
-        if(match){addToBatch(code,match.name);document.getElementById('sc-bc').value='';document.getElementById('sc-resolve').style.display='none'}
-        else{beep();document.getElementById('cam-status').textContent='⚠ Unknown: '+code+' — resolve below'}
-      }
+        if(match){addToBatch(code,match.name);document.getElementById('sc-bc').value='';document.getElementById('sc-resolve').style.display='none';if(si)si.textContent='✓ Added: '+match.name+' — keep scanning'}
+        else{beep();if(si)si.textContent='⚠ Unknown: '+code+' — resolve below'}
+      },
+      function(err){}
     )
+    _camRunning=true
+    var si=document.getElementById('cam-status-inner');if(si)si.textContent='Ready — point at barcode'
   }catch(e){toast('Camera error: '+e.message,'error');stopCam()}
 }
 function stopCam(){
-  _camRunning=false;const w=document.getElementById('cam-wrap');if(w)w.style.display='none';const b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera'}
-
+  _camRunning=false
+  if(_h5scanner){try{_h5scanner.stop().catch(function(){});_h5scanner=null}catch(e){}}
+  var w=document.getElementById('cam-wrap');if(w){w.style.display='none';w.innerHTML='<video id="cam-viewport" autoplay muted playsinline style="width:100%"></video><div id="cam-status" style="font-size:11px;color:#8a96ab;margin-top:4px">Camera not started</div>'}
+  var b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera'
+}
 // ══════════════════════════════════════════
 // CATALOG PAGE
 // ══════════════════════════════════════════
