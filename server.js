@@ -8043,19 +8043,31 @@ async function viewTask(btn){
   modal('Task: '+t.title.substring(0,50), h, null, '', true)
 }
 
-async function newTaskModal(){
+async function filterNtkJobs(q){
+  var sel=document.getElementById('ntk-job');if(!sel)return
+  q=(q||'').toLowerCase().trim()
+  var html='<option value="">— No linked job —</option>'
+  ;(window._ntkJobsAll||[]).filter(function(j){
+    return !q||j.name.toLowerCase().includes(q)||(j.job_number||'').toLowerCase().includes(q)
+  }).forEach(function(j){
+    html+='<option value="'+j.id+'|'+j.name+'">'+(j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>'
+  })
+  sel.innerHTML=html
+}
+function newTaskModal(){
   if(!window._faxBidUsers){
     var r=await sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','estimator','foreman','stager'])
     window._faxBidUsers=r.data||[]
   }
   var userOpts=''
   ;(window._faxBidUsers||[]).forEach(function(u){userOpts+='<option value="'+u.id+'">'+(u.full_name||u.id)+'</option>'})
-  var rJobs=await sb.from('jobs').select('id,name').eq('archived',false).order('name',{ascending:true}).limit(50)
+  var rJobs=await sb.from('jobs').select('id,name,job_number').eq('archived',false).order('name',{ascending:true}).limit(500)
   var jobOpts=''
-  ;(rJobs.data||[]).forEach(function(j){jobOpts+='<option value="'+j.id+'|'+j.name+'">'+j.name+'</option>'})
+  window._ntkJobsAll=rJobs.data||[]
+  ;window._ntkJobsAll.forEach(function(j){jobOpts+='<option value="'+j.id+'|'+j.name+'">'+(j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>'})
   var h='<div class="fg"><label class="fl">Title *</label><input class="fi" id="ntk-title" placeholder="What needs to be done?"></div>'
   h+='<div class="fg"><label class="fl">Description</label><textarea class="ft" id="ntk-desc"></textarea></div>'
-  h+='<div class="two"><div class="fg"><label class="fl">Linked Job</label><select class="fs" id="ntk-job"><option value="">— No linked job —</option>'+jobOpts+'</select></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Linked Job</label><input class="fi" id="ntk-job-search" placeholder="Search name or job ID..." oninput="filterNtkJobs(this.value)" autocomplete="off" style="margin-bottom:4px"><select class="fs" id="ntk-job"><option value="">— No linked job —</option>'+jobOpts+'</select></div>'
   h+='<div class="fg"><label class="fl">Priority</label><select class="fs" id="ntk-pri"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div></div>'
   h+='<div class="fg"><label class="fl">Assign To *</label><select class="fs" id="ntk-assign"><option value="">— Select person —</option>'+userOpts+'</select></div>'
   modal('New Task', h, async function(){
