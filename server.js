@@ -980,11 +980,17 @@ function dashJobSearch(q){
   }).slice(0,8)
   if(!results.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:6px 0">No jobs found</div>';return}
   el.innerHTML=results.map(function(j){
-    return '<div onclick="openJob(\''+j.id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'\'">'
-    +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#8a96ab">'+(j.job_number?'#'+j.job_number+' · ':'')+( j.address||'')+'</div></div>'
-    +(j.due_date?'<span style="font-size:11px;color:'+(isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab')+'">'+fd(j.due_date)+'</span>':'')
-    +'</div>'
+    return '<div class="dash-job-row" data-jid="'+j.id+'" style="display:flex;align-items:center;justify-content:space-between;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer">'
+      +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div>'
+      +'<div style="font-size:10px;color:#8a96ab">'+(j.job_number?'#'+j.job_number+' · ':'')+(j.address||'')+'</div></div>'
+      +(j.due_date?'<span style="font-size:11px;color:'+(isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab')+'">'+fd(j.due_date)+'</span>':'')
+      +'</div>'
   }).join('')
+  el.querySelectorAll('.dash-job-row').forEach(function(d){
+    d.onclick=function(){openJob(this.dataset.jid)}
+    d.onmouseover=function(){this.style.background='rgba(255,255,255,.04)'}
+    d.onmouseout=function(){this.style.background=''}
+  })
 }
 function buildReadyWidget(){
   var pt=document.getElementById('dash-pretest-chk'),fi=document.getElementById('dash-final-chk')
@@ -997,12 +1003,20 @@ function buildReadyWidget(){
     var isFinal=j.phase==='ready_for_final'
     var clr=isFinal?'#16a34a':'#3b82f6'
     var lbl=isFinal?'Ready for Final':'Ready for Pre-Test'
-    return '<div onclick="openJob(\''+j.id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'\'">'
+    return '<div class="ready-job-row" data-jid="'+j.id+'" style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer">'
     +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#8a96ab">'+(j.job_number?'#'+j.job_number+' · ':'')+(j.project_manager||'')+'</div></div>'
-    +'<span style="font-size:10px;font-weight:600;color:'+clr+';background:rgba(0,0,0,.2);border:1px solid '+clr+';padding:2px 8px;border-radius:12px;white-space:nowrap">'+lbl+'</span></div>'
+    +'<span style="font-size:10px;font-weight:600;color:'+clr+';border:1px solid '+clr+';padding:2px 8px;border-radius:12px;white-space:nowrap">'+lbl+'</span></div>'
   }).join('')
 }
-function renderReadyWidget(){var el=document.getElementById('dash-ready-list');if(el)el.innerHTML=buildReadyWidget()}
+function renderReadyWidget(){
+  var el=document.getElementById('dash-ready-list');if(!el)return
+  el.innerHTML=buildReadyWidget()
+  el.querySelectorAll('.ready-job-row').forEach(function(d){
+    d.onclick=function(){openJob(this.dataset.jid)}
+    d.onmouseover=function(){this.style.background='rgba(255,255,255,.04)'}
+    d.onmouseout=function(){this.style.background=''}
+  })
+}
 function sortJobsBy(col){
   var q=document.querySelector('#page-area input[placeholder="Search jobs…"]')
   var qVal=q?q.value:''
