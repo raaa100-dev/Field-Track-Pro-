@@ -2423,10 +2423,10 @@ async function pgDaily(){
   document.getElementById('page-area').innerHTML=
     '<div style="background:#0c1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px;margin-bottom:13px">'+
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:flex-end">'+
-    '<div><label class="fl">Job</label><select class="fs" id="dr-f-job" onchange="filterDailyReports()"><option value="">All Jobs</option>'+
-    (jobs||[]).map(j=>'<option value="'+j.id+'">'+j.name+'</option>').join('')+
-    '</select></div>'+
-    '<div><label class="fl">From Date</label><input class="fi" type="date" id="dr-f-from" value="'+thirtyDaysAgo+'" onchange="filterDailyReports()"></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:flex-end">'+
+    '<div><label class="fl">Search Job</label><input class="fi" id="dr-f-search" placeholder="Job name or job ID..." oninput="filterDailyReports()"></div>'+
+
+
     '<div><label class="fl">To Date</label><input class="fi" type="date" id="dr-f-to" value="'+today+'" onchange="filterDailyReports()"></div>'+
     '<div><label class="fl">Employee</label><select class="fs" id="dr-f-emp" onchange="filterDailyReports()"><option value="">All Employees</option>'+
     employees.map(e=>'<option value="'+e+'">'+e+'</option>').join('')+
@@ -2439,19 +2439,24 @@ async function pgDaily(){
 function clearDrFilters(){
   const today=new Date().toISOString().split('T')[0]
   const ago=new Date(Date.now()-30*864e5).toISOString().split('T')[0]
-  document.getElementById('dr-f-job').value=''
+  if(document.getElementById('dr-f-search'))document.getElementById('dr-f-search').value=''
   document.getElementById('dr-f-from').value=ago
   document.getElementById('dr-f-to').value=today
   document.getElementById('dr-f-emp').value=''
   filterDailyReports()
 }
 function filterDailyReports(){
-  const jobId=document.getElementById('dr-f-job')?.value||''
+  const q=(document.getElementById('dr-f-search')?.value||'').toLowerCase().trim()
   const from=document.getElementById('dr-f-from')?.value||''
   const to=document.getElementById('dr-f-to')?.value||''
   const emp=document.getElementById('dr-f-emp')?.value||''
   const rows=(_drAll||[]).filter(r=>{
-    if(jobId&&r.job_id!==jobId)return false
+    if(q){
+      var jn=((_drJobs||{})[r.job_id]||'').toLowerCase()
+      var jObj=(typeof allJobs!=='undefined'?allJobs:[]).find(function(j){return j.id===r.job_id})
+      var jNum=(jObj&&jObj.job_number?jObj.job_number:'').toLowerCase()
+      if(!jn.includes(q)&&!jNum.includes(q))return false
+    }
     if(from&&r.report_date<from)return false
     if(to&&r.report_date>to)return false
     if(emp&&r.submitted_by!==emp)return false
