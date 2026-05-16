@@ -3231,111 +3231,90 @@ async function loadScanEvents(){
 }
 
 // CAMERA SCANNING
-var _camStream=null,_camTimer=null,_lastScanned='',_lastScanTime=0
+var _h5scanner=null,_lastScanned='',_lastScanTime=0
 async function toggleCam(){
   if(_camRunning){stopCam();return}
+  if(typeof Html5Qrcode==='undefined'){toast('Scanner not loaded. Refresh page.','error');return}
   var wrap=document.getElementById('cam-wrap');if(!wrap)return
   wrap.style.display='block'
   document.getElementById('cam-toggle-btn').textContent='⏹ Stop Camera'
-  wrap.innerHTML=
-    '<div style="position:relative;border-radius:8px;overflow:hidden;background:#000">'
-    +'<video id="scan-video" autoplay muted playsinline webkit-playsinline style="width:100%;display:block;max-height:280px;object-fit:cover"></video>'
-    +'<canvas id="scan-canvas" style="display:none"></canvas>'
-    +'<div style="position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:center">'
-    +'<div style="width:100%;height:2px;background:rgba(239,68,68,.9);box-shadow:0 0 10px 3px rgba(239,68,68,.6)"></div></div>'
-    +'</div>'
-    +'<div id="cam-status-inner" style="font-size:12px;color:#8a96ab;margin-top:6px;text-align:center">Starting camera...</div>'
+  wrap.innerHTML='<div id="h5qr-region" style="width:100%"></div>'
+    +'<div id="cam-status-inner" style="font-size:12px;color:#8a96ab;margin-top:6px;text-align:center">Starting...</div>'
   try{
-    // Try exact back camera, fall back to environment preference
-    var constraints
-    try{
-      constraints={video:{facingMode:{exact:'environment'},width:{ideal:1920},height:{ideal:1080}}}
-      _camStream=await navigator.mediaDevices.getUserMedia(constraints)
-    }catch(e1){
-      constraints={video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}}
-      try{_camStream=await navigator.mediaDevices.getUserMedia(constraints)}catch(e2){
-        _camStream=await navigator.mediaDevices.getUserMedia({video:true})
-      }
+    _h5scanner=new Html5Qrcode('h5qr-region',{verbose:false})
+    var config={
+      fps:30,
+      qrbox:function(w,h){return{width:Math.min(w-20,400),height:Math.min(h-20,300)}},
+      aspectRatio:1.0,
+      formatsToSupport:[
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.CODE_93,
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.DATA_MATRIX,
+        Html5QrcodeSupportedFormats.PDF_417,
+        Html5QrcodeSupportedFormats.ITF,
+        Html5QrcodeSupportedFormats.CODABAR
+      ],
+      videoConstraints:{
+        facingMode:{ideal:'environment'},
+        width:{min:640,ideal:1920,max:3840},
+        height:{min:480,ideal:1080,max:2160}
+      },
+      rememberLastUsedCamera:true,
+      showTorchButtonIfSupported:true
     }
-    var vid=document.getElementById('scan-video');vid.srcObject=_camStream
-    await new Promise(function(res,rej){vid.onloadedmetadata=res;vid.onerror=rej;setTimeout(res,3000)})
-    await vid.play()
-    // Try to enable continuous autofocus via track constraints
-    try{
-      var track=_camStream.getVideoTracks()[0]
-      if(track&&track.applyConstraints)await track.applyConstraints({advanced:[{focusMode:'continuous'}]})
-    }catch(e){}
-    _camRunning=true
-    var si=document.getElementById('cam-status-inner');if(si)si.textContent='Ready — center barcode on red line'
-    // Init native BarcodeDetector if available
-    var bd=null
-    if(window.BarcodeDetector){
-      try{
-        var supported=await BarcodeDetector.getSupportedFormats()
-        bd=new BarcodeDetector({formats:supported})
-      }catch(e){bd=null}
-    }
-    var canvas=document.getElementById('scan-canvas')
-    var ctx=canvas.getContext('2d',{willReadFrequently:true,alpha:false})
-    var processing=false
-    _camTimer=setInterval(async function(){
-      if(!_camRunning||processing||!vid.videoWidth||vid.paused)return
-      processing=true
-      var code=null
-      try{
-        // Native BarcodeDetector: fastest, uses device hardware
-        if(bd){
-          var res=await bd.detect(vid)
-          if(res&&res.length)code=res[0].rawValue
-        }
-        // Fallback: draw to canvas then detect from canvas
-        if(!code&&bd){
-          canvas.width=vid.videoWidth;canvas.height=vid.videoHeight
-          ctx.drawImage(vid,0,0)
-          var res2=await bd.detect(canvas)
-          if(res2&&res2.length)code=res2[0].rawValue
-        }
-      }catch(e){}
-      if(code){
+    await _h5scanner.start(
+      {facingMode:{ideal:'environment'}},
+      config,
+      function(code,result){
         var now=Date.now()
-        if(code===_lastScanned&&now-_lastScanTime<2000){processing=false;return}
-        _lastScanned=code;_lastScanTime=now
-        handleScan(code)
-      }
-      processing=false
-    },50) // 20fps
+        // Same barcode: only count as new after 2s
+        if(code===_lastScanned&&now-_lastScanTime<2000)return
+        _lastScanTime=now
+        beep()
+        var si=document.getElementById('cam-status-inner')
+        if(window._scanToCatalog){
+          _lastScanned=code;scanToCatalog(code);return
+        }
+        // Same barcode rescanned = add qty
+        if(code===_lastScanned){
+          var ex=_batch.find(function(b){return b.barcode===code})
+          if(ex){ex.qty++;renderBatch();if(si)si.textContent='✓ x'+ex.qty+' '+ex.name;return}
+        }
+        _lastScanned=code
+        var match=allCatalog.find(function(c){return c.barcode===code})
+        if(match){
+          addToBatch(code,match.name)
+          document.getElementById('sc-bc').value=''
+          document.getElementById('sc-resolve').style.display='none'
+          if(si)si.textContent='✓ '+match.name
+        }else{
+          document.getElementById('sc-bc').value=code;liveResolveBC(code)
+          if(si)si.textContent='⚠ Unknown: '+code
+        }
+      },
+      function(err){} // ignore per-frame errors
+    )
+    _camRunning=true
+    var si=document.getElementById('cam-status-inner');if(si)si.textContent='Ready — aim at barcode'
   }catch(e){
-    var si=document.getElementById('cam-status-inner')
-    if(si)si.textContent='⚠ '+e.message
-    toast('Camera error: '+e.message,'error')
-    stopCam()
-  }
-}
-function handleScan(code){
-  beep()
-  var si=document.getElementById('cam-status-inner')
-  if(window._scanToCatalog){scanToCatalog(code);return}
-  var existing=_batch.find(function(b){return b.barcode===code})
-  if(existing){
-    existing.qty++;renderBatch()
-    if(si)si.textContent='✓ x'+existing.qty+' '+existing.name
-    return
-  }
-  var match=allCatalog.find(function(c){return c.barcode===code})
-  if(match){
-    addToBatch(code,match.name)
-    document.getElementById('sc-bc').value=''
-    document.getElementById('sc-resolve').style.display='none'
-    if(si)si.textContent='✓ '+match.name+' — scan again to add qty'
-  }else{
-    document.getElementById('sc-bc').value=code;liveResolveBC(code)
-    if(si)si.textContent='⚠ Unknown: '+code+' — resolve below'
+    var msg=e.message||String(e)
+    var si=document.getElementById('cam-status-inner');if(si)si.textContent='⚠ '+msg
+    toast('Camera: '+msg,'error');stopCam()
   }
 }
 function stopCam(){
   _camRunning=false;_lastScanned='';_lastScanTime=0
-  if(_camTimer){clearInterval(_camTimer);_camTimer=null}
-  if(_camStream){_camStream.getTracks().forEach(function(t){t.stop()});_camStream=null}
+  if(_h5scanner){
+    _h5scanner.stop().catch(function(){}).finally(function(){
+      _h5scanner.clear();_h5scanner=null
+    })
+  }
   var w=document.getElementById('cam-wrap');if(w){w.style.display='none';w.innerHTML=''}
   var b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera'
 }
