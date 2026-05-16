@@ -859,12 +859,21 @@ async function pgDash(){
   <div style="display:grid;grid-template-columns:1fr 1fr 280px;gap:13px">
     <div>
       <div class="card">
-        <div class="card-title">Active Jobs <button class="btn btn-sm btn-ghost" onclick="P('jobs',null)">All →</button></div>
-        \${active.length?\`<table class="tbl"><thead><tr><th>Job</th><th>Stage</th><th>Due</th></tr></thead><tbody>\${active.slice(0,8).map(j=>\`<tr onclick="openJob('\${j.id}')"><td><div style="font-weight:500">\${j.name}</div><div style="font-size:10px;color:#414e63">\${j.job_number?'#'+j.job_number+(j.address?' · '+j.address:''):(j.address||'')}</div></td><td>\${stageBadge(j.phase)}</td><td style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">\${fd(j.due_date)}</td></tr>\`).join('')}</tbody></table>\`:empty('📋','No active jobs')}
+        <div class="card-title">Job Search</div>
+        <div style="position:relative"><input class="fi" id="dash-job-search" placeholder="Search by job name or ID..." oninput="dashJobSearch(this.value)" autocomplete="off" style="width:100%;padding-right:36px"><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#414e63">&#128269;</span></div>
+        <div id="dash-job-results" style="margin-top:8px"></div>
       </div>
       <div class="card">
         <div class="card-title">⚠ Due Within 14 Days</div>
         \${soon.length?soon.map(s=>\`<div class="sched-item" onclick="openJob('\${s.id}')"><div class="sched-dot" style="background:\${s.da<=3?'#dc2626':s.da<=7?'#d97706':'#16a34a'};margin-top:4px"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${s.job}</div><div style="font-size:10px;color:#414e63">\${s.type} · \${fd(s.date)}</div></div><span class="badge \${s.da<=3?'bg-red':s.da<=7?'bg-amber':'bg-green'}">\${s.da===0?'Today':s.da+'d'}</span></div>\`).join(''):empty('📅','All clear — nothing due in 14 days')}
+      </div>
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">Ready for Inspection
+          <span style="display:flex;gap:8px">
+            <label style="font-size:11px;font-weight:400;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="dash-pretest-chk" checked onchange="renderReadyWidget()"> Pre-Test</label>
+            <label style="font-size:11px;font-weight:400;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="dash-final-chk" checked onchange="renderReadyWidget()"> Final</label>
+          </span></div>
+        <div id="dash-ready-list">\\${buildReadyWidget()}</div>
       </div>
     </div>
     <div>
@@ -961,6 +970,38 @@ async function loadJobsWithPartsStatus(){
     else j._parts_status='none'
   })
 }
+function dashJobSearch(q){
+  var el=document.getElementById('dash-job-results');if(!el)return
+  q=(q||'').trim().toLowerCase()
+  if(!q){el.innerHTML='';return}
+  var results=(allJobs||[]).filter(function(j){
+    return j.name.toLowerCase().includes(q)||(j.job_number||'').toLowerCase().includes(q)||(j.address||'').toLowerCase().includes(q)
+  }).slice(0,8)
+  if(!results.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:6px 0">No jobs found</div>';return}
+  el.innerHTML=results.map(function(j){
+    return '<div onclick="openJob(\''+j.id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'\'">'
+    +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#8a96ab">'+(j.job_number?'#'+j.job_number+' · ':'')+( j.address||'')+'</div></div>'
+    +(j.due_date?'<span style="font-size:11px;color:'+(isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab')+'">'+fd(j.due_date)+'</span>':'')
+    +'</div>'
+  }).join('')
+}
+function buildReadyWidget(){
+  var pt=document.getElementById('dash-pretest-chk'),fi=document.getElementById('dash-final-chk')
+  var showPT=!pt||pt.checked,showFI=!fi||fi.checked
+  var jobs=(allJobs||[]).filter(function(j){
+    return (showPT&&j.phase==='ready_for_pretest')||(showFI&&j.phase==='ready_for_final')
+  })
+  if(!jobs.length)return '<div style="font-size:12px;color:#414e63;padding:6px 0">No jobs ready for inspection</div>'
+  return jobs.map(function(j){
+    var isFinal=j.phase==='ready_for_final'
+    var clr=isFinal?'#16a34a':'#3b82f6'
+    var lbl=isFinal?'Ready for Final':'Ready for Pre-Test'
+    return '<div onclick="openJob(\''+j.id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'\'">'
+    +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#8a96ab">'+(j.job_number?'#'+j.job_number+' · ':'')+(j.project_manager||'')+'</div></div>'
+    +'<span style="font-size:10px;font-weight:600;color:'+clr+';background:rgba(0,0,0,.2);border:1px solid '+clr+';padding:2px 8px;border-radius:12px;white-space:nowrap">'+lbl+'</span></div>'
+  }).join('')
+}
+function renderReadyWidget(){var el=document.getElementById('dash-ready-list');if(el)el.innerHTML=buildReadyWidget()}
 function sortJobsBy(col){
   var q=document.querySelector('#page-area input[placeholder="Search jobs…"]')
   var qVal=q?q.value:''
