@@ -256,6 +256,7 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .stat-label{font-size:10px;color:#414e63;font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
 .stat-value{font-size:24px;font-weight:300}
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
+#h5qr-region{border-radius:8px;overflow:hidden} #h5qr-region video{border-radius:8px} #h5qr-region__scan_region img{display:none}
 .tbl th{text-align:left;padding:8px 11px;border-bottom:1px solid rgba(255,255,255,.06);color:#414e63;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;position:sticky;top:0;background:#0d1626;z-index:2}
 .tbl td{padding:9px 11px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
 .tbl tbody tr:hover td{background:rgba(255,255,255,.02);cursor:pointer}
@@ -2993,7 +2994,21 @@ async function toggleCam(){
   try{
     _h5scanner=new Html5Qrcode('h5qr-region')
     var fmts=[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.QR_CODE]
-    await _h5scanner.start({facingMode:'environment'},{fps:15,qrbox:{width:250,height:150},formatsToSupport:fmts},
+    await _h5scanner.start(
+      {facingMode:{exact:'environment'}},
+      {
+        fps:30,
+        qrbox:{width:300,height:120},
+        aspectRatio:1.7778,
+        formatsToSupport:fmts,
+        videoConstraints:{
+          facingMode:{exact:'environment'},
+          width:{min:640,ideal:1280,max:1920},
+          height:{min:480,ideal:720,max:1080},
+          focusMode:'continuous',
+          advanced:[{focusMode:'continuous'},{torch:false}]
+        }
+      },
       function(code){
         var si=document.getElementById('cam-status-inner')
         if(si)si.textContent='✓ Scanned: '+code
@@ -3001,7 +3016,12 @@ async function toggleCam(){
         liveResolveBC(code)
         var match=allCatalog.find(function(c){return c.barcode===code})
         if(match){addToBatch(code,match.name);document.getElementById('sc-bc').value='';document.getElementById('sc-resolve').style.display='none';if(si)si.textContent='✓ Added: '+match.name+' — keep scanning'}
-        else{beep();if(si)si.textContent='⚠ Unknown: '+code+' — resolve below'}
+        else{
+          beep()
+          var reg=document.getElementById('h5qr-region')
+          if(reg){reg.style.outline='3px solid #f59e0b';setTimeout(function(){reg.style.outline=''},400)}
+          if(si)si.textContent='⚠ Unknown: '+code+' — resolve below'
+        }
       },
       function(err){}
     )
