@@ -2291,7 +2291,7 @@ async function renderJobFinTab(el){
   +'<div class="two">'
   +'<div class="card"><div class="card-title">Revenue</div>'
   +'<div class="fin-row"><span style="color:#8a96ab">Contract Value</span><span style="font-weight:500">'+fm(j.contract_value)+'</span></div>'
-  +'<div class="fin-row"><span style="color:#8a96ab">Labor Budget</span><span>'+fh(j.labor_budget)+' hrs ('+fm((j.labor_budget||0)*(j.labor_rate||0))+')</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Labor Budget</span><span>'+fh(j.labor_budget)+' hrs</span></div>'
   +'<div class="fin-row"><span style="color:#8a96ab">Material Budget</span><span>'+fm(j.material_budget)+'</span></div>'
   +'<div class="fin-row" style="background:'+lbBg+';border-radius:6px;padding:4px 6px;margin:4px -6px">'
   +'<span style="color:#8a96ab">Hours on Site</span> '
@@ -2309,9 +2309,13 @@ async function renderJobFinTab(el){
   +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0))+'</span></div>'
   +'<button class="btn btn-sm" style="margin-top:8px" onclick="editJobCosts()">+ Edit Costs</button></div>'
   +'</div>'
+  +'</div>'
   +'<div class="card" style="background:'+(profit>=0?'rgba(22,163,74,.08)':'rgba(220,38,38,.08)')+'">'
-  +'<div style="font-size:26px;font-weight:300;color:'+(profit>=0?'#16a34a':'#dc2626')+'">'+fm(profit)+(margin!=null?' ('+margin.toFixed(1)+'% margin)':'')+'</div>'
-  +'<div style="font-size:12px;color:#8a96ab;margin-top:3px">Gross Profit &middot; '+fh(hrs)+' logged</div></div>'
+  +'<div style="font-size:26px;font-weight:300;color:'+(profit>=0?'#16a34a':'#dc2626')+'">'+fm(profit)+(margin!=null?' ('+margin+'%)':'')+' </div>'
+  +'<div style="font-size:12px;color:#8a96ab;margin-top:3px;margin-bottom:'+(lb>0||j.material_budget>0?'14':'0')+'px">Gross Profit &middot; '+fh(hrs)+' logged</div>'
+  +(lb>0?'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="font-weight:500">Labor</span><span style="color:'+(lbOver?'#dc2626':lbWarn?'#d97706':'#8a96ab')+'">'+fh(hrs)+' / '+fh(lb)+' hrs ('+Math.round(Math.min(lbPct,100))+'%)</span></div><div style="height:10px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden"><div style="height:100%;width:'+Math.min(lbPct,100)+'%;background:'+(lbOver?'#dc2626':lbWarn?'#d97706':'#3b82f6')+';border-radius:6px"></div></div></div>':'')
+  +(j.material_budget>0?'<div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="font-weight:500">Parts &amp; Materials</span><span style="color:'+(j.parts_cost>j.material_budget?'#dc2626':'#8a96ab')+'">'+fm(j.parts_cost||0)+' / '+fm(j.material_budget)+' ('+(j.material_budget>0?Math.round(((j.parts_cost||0)/j.material_budget)*100):0)+'%)</span></div><div style="height:10px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden"><div style="height:100%;width:'+Math.min(j.material_budget>0?(j.parts_cost||0)/j.material_budget*100:0,100)+'%;background:'+(j.parts_cost>j.material_budget?'#dc2626':'#8b5cf6')+';border-radius:6px"></div></div></div>':'')
+  +'</div>'
 }
 function editJobCosts(){
   const j=currentJob
@@ -8187,6 +8191,8 @@ async function newTaskModal(){
   h+='<div class="two"><div class="fg"><label class="fl">Linked Job</label><input class="fi" id="ntk-job-search" placeholder="Search name or job ID..." oninput="filterNtkJobs(this.value)" autocomplete="off" style="margin-bottom:4px"><select class="fs" id="ntk-job"><option value="">— No linked job —</option>'+jobOpts+'</select></div>'
   h+='<div class="fg"><label class="fl">Priority</label><select class="fs" id="ntk-pri"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div></div>'
   h+='<div class="fg"><label class="fl">Assign To *</label><select class="fs" id="ntk-assign"><option value="">— Select person —</option>'+userOpts+'</select></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="ntk-due"></div>'
+  h+='<div class="fg"><label class="fl">Est. Hours</label><input class="fi" type="number" id="ntk-hrs" step="0.5" placeholder="Optional"></div></div>'
   modal('New Task', h, async function(){
     var title=(document.getElementById('ntk-title').value||'').trim()
     if(!title){toast('Title required','error');return}
