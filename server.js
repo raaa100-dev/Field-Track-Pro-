@@ -10652,7 +10652,13 @@ function requireAuth(res, u)  { if (!u) { json(res, 401, { error: 'Not authentic
 function requireRole(res, u, ...roles) { if (!requireAuth(res, u)) return false; if (!roles.includes(u.role)) { json(res, 403, { error: 'Permission denied' }); return false; } return true; }
 
 // ── HTTP ──────────────────────────────────────────────────────────────────────
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS' };
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://filed-ops.onrender.com'
+const CORS = {
+  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+  'Vary': 'Origin'
+};
 function json(res, status, data) { res.writeHead(status, { 'Content-Type': 'application/json', ...CORS }); res.end(JSON.stringify(data)); }
 function readBody(req) { return new Promise(r => { let b = ''; req.on('data', c => b += c); req.on('end', () => { try { r(JSON.parse(b)); } catch(e) { r({}); }}); }); }
 function serveFile(res, fp, ct) { try { const d = fs.readFileSync(fp); res.writeHead(200, { 'Content-Type': ct }); res.end(d); } catch(e) { res.writeHead(404); res.end('Not found'); } }
@@ -10674,11 +10680,27 @@ const server = http.createServer(async (req, res) => {
   const p = parsed.pathname;
   const method = req.method;
 
-  if (method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
+  if (method === 'OPTIONS') { res.writeHead(204, {...CORS,'X-Content-Type-Options':'nosniff','X-Frame-Options':'SAMEORIGIN'}); return res.end(); }
 
   // Static files — embedded in server (always current), filesystem fallback
   if (method === 'GET' && !p.startsWith('/api/')) {
-    const h = {'Content-Type': 'text/html', ...CORS}
+    const SEC = {
+      'X-Frame-Options': 'SAMEORIGIN',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'camera=self, microphone=(), geolocation=self',
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+      'Content-Security-Policy':
+        "default-src 'self';" +
+        " script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://unpkg.com;" +
+        " style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;" +
+        " font-src 'self' https://fonts.gstatic.com;" +
+        " img-src 'self' data: blob: https:;" +
+        " connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org;" +
+        " media-src 'self' blob:;" +
+        " worker-src 'self' blob:;"
+    }
+    const h = {'Content-Type': 'text/html', ...CORS, ...SEC}
     const j = {'Content-Type': 'application/javascript', ...CORS}
     if (p === '/' || p === '/index.html')   { res.writeHead(200, h); return res.end(HTML_INDEX) }
     if (p === '/admin.html')                { res.writeHead(200, h); return res.end(HTML_ADMIN) }
@@ -10711,7 +10733,7 @@ const server = http.createServer(async (req, res) => {
       const user = rows[0];
       if (!user || !verifyPwd(password, user.password_hash)) return json(res, 401, { error: 'Invalid username or password' });
       return json(res, 200, { token: makeToken(user.id), user: safeUser(user) });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/me' && method === 'GET') {
     const u = await getUser(req); if (!u) return json(res, 401, { error: 'Not authenticated' });
@@ -10741,7 +10763,7 @@ const server = http.createServer(async (req, res) => {
   // ── USERS ─────────────────────────────────────────────────────────────────
   if (p === '/api/users' && method === 'GET') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin')) return;
-    try { return json(res, 200, (await dbGet('users', { select: '*', order: 'created_at.asc' })).map(safeUser)); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbGet('users', { select: '*', order: 'created_at.asc' })).map(safeUser)); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/users' && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin')) return;
@@ -10760,29 +10782,29 @@ const server = http.createServer(async (req, res) => {
     const b = await readBody(req); const upd = {};
     ['name','role','active','phone','email','is_lead','company_id','avatar_url'].forEach(k => { if (b[k] !== undefined) upd[k] = b[k]; });
     if (b.password && b.password.length >= 6) upd.password_hash = hashPwd(b.password);
-    try { return json(res, 200, safeUser((await dbUpdate('users', upd, { id: 'eq.' + uM[1] }))[0])); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, safeUser((await dbUpdate('users', upd, { id: 'eq.' + uM[1] }))[0])); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (uM && method === 'DELETE') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin')) return;
     if (uM[1] === u.id) return json(res, 400, { error: "Can't delete yourself" });
-    try { await dbDelete('users', { id: 'eq.' + uM[1] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbDelete('users', { id: 'eq.' + uM[1] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── COMPANIES ─────────────────────────────────────────────────────────────
   if (p === '/api/companies' && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('companies', { is_active: 'eq.true', select: '*', order: 'name.asc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('companies', { is_active: 'eq.true', select: '*', order: 'name.asc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/companies' && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm')) return;
     const b = await readBody(req);
     if (!b.name) return json(res, 400, { error: 'name required' });
-    try { return json(res, 201, (await dbInsert('companies', { id: uid(), ...b, is_active: true, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('companies', { id: uid(), ...b, is_active: true, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const coM = p.match(/^\/api\/companies\/([^/]+)$/);
   if (coM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm')) return;
-    try { return json(res, 200, (await dbUpdate('companies', await readBody(req), { id: 'eq.' + coM[1] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('companies', await readBody(req), { id: 'eq.' + coM[1] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── JOBS ─────────────────────────────────────────────────────────────────
@@ -10800,7 +10822,7 @@ const server = http.createServer(async (req, res) => {
         params['id'] = 'in.(' + jobIds.join(',') + ')';
       }
       return json(res, 200, await dbGet('jobs', params));
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/jobs' && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
@@ -10851,7 +10873,7 @@ const server = http.createServer(async (req, res) => {
       const rows = await dbGet('jobs', { id: 'eq.' + jM[1], select: '*' });
       if (!rows[0]) return json(res, 404, { error: 'Not found' });
       return json(res, 200, rows[0]);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (jM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager', 'technician')) return;
@@ -10862,24 +10884,24 @@ const server = http.createServer(async (req, res) => {
     try {
       await auditLog('job_updated', jM[1], null, null, u.name, JSON.stringify(upd).slice(0, 200));
       return json(res, 200, (await dbUpdate('jobs', upd, { id: 'eq.' + jM[1] }))[0]);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── JOB WORKERS (sub assignment) ──────────────────────────────────────────
   const jwM = p.match(/^\/api\/jobs\/([^/]+)\/workers$/);
   if (jwM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_workers', { job_id: 'eq.' + jwM[1], is_active: 'eq.true', select: '*' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_workers', { job_id: 'eq.' + jwM[1], is_active: 'eq.true', select: '*' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (jwM && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
     const { worker_id } = await readBody(req);
-    try { return json(res, 201, (await dbUpsert('job_workers', { id: uid(), job_id: jwM[1], worker_id, is_active: true, added_by: u.name, added_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbUpsert('job_workers', { id: uid(), job_id: jwM[1], worker_id, is_active: true, added_by: u.name, added_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const jwIM = p.match(/^\/api\/jobs\/([^/]+)\/workers\/([^/]+)$/);
   if (jwIM && method === 'DELETE') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
-    try { await dbUpdate('job_workers', { is_active: false }, { job_id: 'eq.' + jwIM[1], worker_id: 'eq.' + jwIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbUpdate('job_workers', { is_active: false }, { job_id: 'eq.' + jwIM[1], worker_id: 'eq.' + jwIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── CHECK-INS (GPS) ───────────────────────────────────────────────────────
@@ -10892,7 +10914,7 @@ const server = http.createServer(async (req, res) => {
       if (parsed.query.job_id) params['job_id'] = 'eq.' + parsed.query.job_id;
       if (['sub_lead','sub_worker'].includes(u.role)) params['worker_id'] = 'eq.' + u.id;
       return json(res, 200, await dbGet('checkins', params));
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/checkins' && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -10928,14 +10950,14 @@ const server = http.createServer(async (req, res) => {
       const rec = await dbInsert('checkins', { id: uid(), job_id, worker_id: u.id, company_id: u.company_id || null, checkin_lat, checkin_lng, checkin_dist_ft: dist, status: 'checked_in', checkin_at: nowISO() });
       await auditLog('checkin', job_id, null, null, u.name, (dist || '?') + 'ft');
       return json(res, 201, rec[0]);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── JOB PARTS (warehouse staging) ─────────────────────────────────────────
   const jpM = p.match(/^\/api\/jobs\/([^/]+)\/parts$/);
   if (jpM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_parts', { job_id: 'eq.' + jpM[1], select: '*', order: 'created_at.asc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_parts', { job_id: 'eq.' + jpM[1], select: '*', order: 'created_at.asc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (jpM && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
@@ -10963,7 +10985,7 @@ const server = http.createServer(async (req, res) => {
       }
       await auditLog(action === 'out' ? 'signed_out' : 'staged', jobId, part_id, part_name, u.name, 'qty:' + (qty || 1));
       return json(res, 201, row);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const jpIM = p.match(/^\/api\/jobs\/([^/]+)\/parts\/([^/]+)$/);
   if (jpIM && method === 'PUT') {
@@ -10973,35 +10995,35 @@ const server = http.createServer(async (req, res) => {
       const upd = { ...b, updated_at: nowISO() };
       if (b.status === 'installed' || b.status === 'partial_install') { upd.installed_by = u.name; upd.installed_at = nowDisplay(); }
       return json(res, 200, (await dbUpdate('job_parts', upd, { id: 'eq.' + jpIM[2] }))[0]);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── JOB MANIFEST ──────────────────────────────────────────────────────────
   const mfM = p.match(/^\/api\/jobs\/([^/]+)\/manifest$/);
   if (mfM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_manifest', { job_id: 'eq.' + mfM[1], select: '*' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_manifest', { job_id: 'eq.' + mfM[1], select: '*' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (mfM && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
     const b = await readBody(req);
-    try { return json(res, 201, (await dbInsert('job_manifest', { id: uid(), job_id: mfM[1], ...b, added_by: u.name, added_at: nowDisplay() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('job_manifest', { id: uid(), job_id: mfM[1], ...b, added_by: u.name, added_at: nowDisplay() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const mfIM = p.match(/^\/api\/jobs\/([^/]+)\/manifest\/([^/]+)$/);
   if (mfIM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
-    try { return json(res, 200, (await dbUpdate('job_manifest', await readBody(req), { id: 'eq.' + mfIM[2] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('job_manifest', await readBody(req), { id: 'eq.' + mfIM[2] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (mfIM && method === 'DELETE') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
-    try { await dbDelete('job_manifest', { id: 'eq.' + mfIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbDelete('job_manifest', { id: 'eq.' + mfIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── ATTENDANCE ─────────────────────────────────────────────────────────────
   const attM = p.match(/^\/api\/jobs\/([^/]+)\/attendance$/);
   if (attM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_attendance', { job_id: 'eq.' + attM[1], select: '*', order: 'sign_in_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_attendance', { job_id: 'eq.' + attM[1], select: '*', order: 'sign_in_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (attM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -11019,11 +11041,11 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, { ok: true, hours: hrs });
       }
       return json(res, 400, { error: 'action must be signin or signout' });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/attendance/status' && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_attendance', { user_id: 'eq.' + u.id, sign_out_at: 'is.null', select: '*' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_attendance', { user_id: 'eq.' + u.id, sign_out_at: 'is.null', select: '*' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/attendance/report' && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -11041,14 +11063,14 @@ const server = http.createServer(async (req, res) => {
         byJob[r.job_id].techs[r.user_name] = (byJob[r.job_id].techs[r.user_name] || 0) + hrs;
       });
       return json(res, 200, { by_tech: Object.values(byTech), by_job: Object.values(byJob), raw: all });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── PHOTOS ─────────────────────────────────────────────────────────────────
   const phM = p.match(/^\/api\/jobs\/([^/]+)\/photos$/);
   if (phM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_photos', { job_id: 'eq.' + phM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_photos', { job_id: 'eq.' + phM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (phM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -11058,64 +11080,64 @@ const server = http.createServer(async (req, res) => {
       const r = (await dbInsert('job_photos', { id: uid(), job_id: phM[1], url: photoUrl, public_id: public_id || '', caption: caption || '', type: type || 'photo', photo_lat: photo_lat || null, photo_lng: photo_lng || null, dist_from_site_ft: dist_from_site_ft || null, uploaded_by: u.name, created_at: nowISO() }))[0];
       await auditLog('photo_uploaded', phM[1], null, null, u.name, caption || '');
       return json(res, 201, r);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const phIM = p.match(/^\/api\/jobs\/([^/]+)\/photos\/([^/]+)$/);
   if (phIM && method === 'DELETE') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { await dbDelete('job_photos', { id: 'eq.' + phIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbDelete('job_photos', { id: 'eq.' + phIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── PLANS ──────────────────────────────────────────────────────────────────
   const plM = p.match(/^\/api\/jobs\/([^/]+)\/plans$/);
   if (plM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_plans', { job_id: 'eq.' + plM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_plans', { job_id: 'eq.' + plM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (plM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const { url: planUrl, public_id, name, thumb_url, plan_type } = await readBody(req);
     if (!planUrl) return json(res, 400, { error: 'url required' });
-    try { return json(res, 201, (await dbInsert('job_plans', { id: uid(), job_id: plM[1], name: name || 'Plan', url: planUrl, public_id: public_id || '', thumb_url: thumb_url || '', plan_type: plan_type || 'plans', notes: '', uploaded_by: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('job_plans', { id: uid(), job_id: plM[1], name: name || 'Plan', url: planUrl, public_id: public_id || '', thumb_url: thumb_url || '', plan_type: plan_type || 'plans', notes: '', uploaded_by: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const plIM = p.match(/^\/api\/jobs\/([^/]+)\/plans\/([^/]+)$/);
   if (plIM && method === 'PUT') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, (await dbUpdate('job_plans', await readBody(req), { id: 'eq.' + plIM[2] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('job_plans', await readBody(req), { id: 'eq.' + plIM[2] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (plIM && method === 'DELETE') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { await dbDelete('job_plans', { id: 'eq.' + plIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbDelete('job_plans', { id: 'eq.' + plIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── CHECKLISTS ─────────────────────────────────────────────────────────────
   const chM = p.match(/^\/api\/jobs\/([^/]+)\/checklist$/);
   if (chM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_checklist_items', { job_id: 'eq.' + chM[1], select: '*', order: 'sort_order.asc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_checklist_items', { job_id: 'eq.' + chM[1], select: '*', order: 'sort_order.asc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (chM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const b = await readBody(req);
-    try { return json(res, 201, (await dbInsert('job_checklist_items', { id: uid(), job_id: chM[1], ...b, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('job_checklist_items', { id: uid(), job_id: chM[1], ...b, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const chIM = p.match(/^\/api\/jobs\/([^/]+)\/checklist\/([^/]+)$/);
   if (chIM && method === 'PUT') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const b = await readBody(req);
     if (b.is_checked !== undefined) { b.checked_by = b.is_checked ? u.name : null; b.checked_at = b.is_checked ? nowISO() : null; }
-    try { return json(res, 200, (await dbUpdate('job_checklist_items', b, { id: 'eq.' + chIM[2] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('job_checklist_items', b, { id: 'eq.' + chIM[2] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (chIM && method === 'DELETE') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { await dbDelete('job_checklist_items', { id: 'eq.' + chIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbDelete('job_checklist_items', { id: 'eq.' + chIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── PM INSPECTIONS ─────────────────────────────────────────────────────────
   const insM = p.match(/^\/api\/jobs\/([^/]+)\/inspections$/);
   if (insM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('pm_inspections', { job_id: 'eq.' + insM[1], select: '*', order: 'visited_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('pm_inspections', { job_id: 'eq.' + insM[1], select: '*', order: 'visited_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (insM && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
@@ -11124,7 +11146,7 @@ const server = http.createServer(async (req, res) => {
       const r = (await dbInsert('pm_inspections', { id: uid(), job_id: insM[1], pm_id: u.id, pm_name: u.name, ...b, visited_at: nowISO(), created_at: nowISO() }))[0];
       await auditLog('pm_inspection_created', insM[1], null, null, u.name, b.visit_type || '');
       return json(res, 201, r);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const insIM = p.match(/^\/api\/jobs\/([^/]+)\/inspections\/([^/]+)\/(approve|reject)$/);
   if (insIM && method === 'POST') {
@@ -11136,47 +11158,47 @@ const server = http.createServer(async (req, res) => {
       if (isApprove) await dbUpdate('jobs', { status: 'complete', completion_date: nowISO().split('T')[0], phase: 'closeout', pct_complete: 100, updated_at: nowISO() }, { id: 'eq.' + insIM[1] });
       await auditLog('pm_signoff', insIM[1], null, null, u.name, insIM[3]);
       return json(res, 200, { ok: true });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── CHANGE ORDERS ─────────────────────────────────────────────────────────
   const coIM = p.match(/^\/api\/jobs\/([^/]+)\/change-orders$/);
   if (coIM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('change_orders', { job_id: 'eq.' + coIM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('change_orders', { job_id: 'eq.' + coIM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (coIM && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
     const b = await readBody(req);
     const { count } = await dbGet('change_orders', { job_id: 'eq.' + coIM[1], select: 'id' }).then(r => ({ count: r.length }));
-    try { return json(res, 201, (await dbInsert('change_orders', { id: uid(), job_id: coIM[1], co_number: 'CO-' + String(count + 1).padStart(3, '0'), ...b, created_by: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('change_orders', { id: uid(), job_id: coIM[1], co_number: 'CO-' + String(count + 1).padStart(3, '0'), ...b, created_by: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const coSignM = p.match(/^\/api\/change-orders\/([^/]+)\/sign$/);
   if (coSignM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const { side } = await readBody(req);
     const upd = side === 'pm' ? { pm_signed_by: u.name, pm_signed_at: nowISO() } : { sub_signed_by: u.name, sub_signed_at: nowISO(), status: 'signed' };
-    try { return json(res, 200, (await dbUpdate('change_orders', upd, { id: 'eq.' + coSignM[1] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('change_orders', upd, { id: 'eq.' + coSignM[1] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── DAILY LOGS ─────────────────────────────────────────────────────────────
   const dlM = p.match(/^\/api\/jobs\/([^/]+)\/logs$/);
   if (dlM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('daily_logs', { job_id: 'eq.' + dlM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('daily_logs', { job_id: 'eq.' + dlM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (dlM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const { content, type } = await readBody(req);
     if (!content) return json(res, 400, { error: 'Content required' });
-    try { return json(res, 201, (await dbInsert('daily_logs', { id: uid(), job_id: dlM[1], type: type || 'note', content, author: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('daily_logs', { id: uid(), job_id: dlM[1], type: type || 'note', content, author: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── GC ALERTS ──────────────────────────────────────────────────────────────
   const gcM = p.match(/^\/api\/jobs\/([^/]+)\/alerts$/);
   if (gcM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('gc_alerts', { job_id: 'eq.' + gcM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('gc_alerts', { job_id: 'eq.' + gcM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (gcM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -11185,19 +11207,19 @@ const server = http.createServer(async (req, res) => {
     try {
       await addNotif('gc_alert', 'GC Alert: ' + title, 'Job ' + gcM[1] + ' by ' + u.name, { job_id: gcM[1] });
       return json(res, 201, (await dbInsert('gc_alerts', { id: uid(), job_id: gcM[1], title, description: description || '', priority: priority || 'normal', status: 'open', created_by: u.name, created_at: nowISO() }))[0]);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const gcIM = p.match(/^\/api\/jobs\/([^/]+)\/alerts\/([^/]+)$/);
   if (gcIM && method === 'PUT') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, (await dbUpdate('gc_alerts', await readBody(req), { id: 'eq.' + gcIM[2] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('gc_alerts', await readBody(req), { id: 'eq.' + gcIM[2] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── PART REQUESTS ──────────────────────────────────────────────────────────
   const prM = p.match(/^\/api\/jobs\/([^/]+)\/requests$/);
   if (prM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('part_requests', { job_id: 'eq.' + prM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('part_requests', { job_id: 'eq.' + prM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (prM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -11205,26 +11227,26 @@ const server = http.createServer(async (req, res) => {
     try {
       await addNotif('part_request', 'Part Request', u.name + ' requested ' + part_name + ' for job ' + prM[1], { job_id: prM[1] });
       return json(res, 201, (await dbInsert('part_requests', { id: uid(), job_id: prM[1], part_id: part_id || '', part_name: part_name || '', qty: qty || 1, reason: reason || '', status: 'pending', created_by: u.name, created_at: nowISO() }))[0]);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const prIM = p.match(/^\/api\/jobs\/([^/]+)\/requests\/([^/]+)$/);
   if (prIM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
     const b = await readBody(req);
     if (b.status === 'approved') { b.approved_by = u.name; b.approved_at = nowDisplay(); }
-    try { return json(res, 200, (await dbUpdate('part_requests', b, { id: 'eq.' + prIM[2] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('part_requests', b, { id: 'eq.' + prIM[2] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── CATALOG ───────────────────────────────────────────────────────────────
   if (p === '/api/catalog' && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('catalog', { select: '*', order: 'name.asc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('catalog', { select: '*', order: 'name.asc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/catalog' && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
     const { barcode, name, part_number, category, description, alt_barcodes, unit_cost } = await readBody(req);
     if (!barcode || !name) return json(res, 400, { error: 'barcode and name required' });
-    try { return json(res, 201, (await dbUpsert('catalog', { barcode, name, part_number: part_number || '', category: category || '', description: description || '', alt_barcodes: alt_barcodes || [], unit_cost: parseFloat(unit_cost) || 0 }))[0] || { barcode, name }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbUpsert('catalog', { barcode, name, part_number: part_number || '', category: category || '', description: description || '', alt_barcodes: alt_barcodes || [], unit_cost: parseFloat(unit_cost) || 0 }))[0] || { barcode, name }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/catalog/lookup' && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -11235,18 +11257,18 @@ const server = http.createServer(async (req, res) => {
       let rows = await dbGet('catalog', { barcode: 'eq.' + bc, select: '*' });
       if (!rows[0]) rows = await dbGet('catalog', { alt_barcodes: 'cs.{' + bc + '}', select: '*' });
       return json(res, 200, rows[0] || null);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const catM = p.match(/^\/api\/catalog\/([^/]+)$/);
   if (catM && method === 'DELETE') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin')) return;
-    try { await dbDelete('catalog', { barcode: 'eq.' + decodeURIComponent(catM[1]) }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbDelete('catalog', { barcode: 'eq.' + decodeURIComponent(catM[1]) }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── INVENTORY ─────────────────────────────────────────────────────────────
   if (p === '/api/inventory' && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('inventory', { select: '*', order: 'name.asc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('inventory', { select: '*', order: 'name.asc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/inventory' && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
@@ -11259,12 +11281,12 @@ const server = http.createServer(async (req, res) => {
       const rows = await dbUpsert('inventory', item);
       if (item.min_qty > 0 && item.qty <= item.min_qty) await addNotif('low_stock', 'Low stock: ' + name, name + ' is at ' + item.qty + ' (min: ' + item.min_qty + ')', { part_id: id });
       return json(res, 200, rows?.[0] || item);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const invM = p.match(/^\/api\/inventory\/([^/]+)$/);
   if (invM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
-    try { return json(res, 200, (await dbUpdate('inventory', { ...await readBody(req), updated_at: nowISO() }, { id: 'eq.' + decodeURIComponent(invM[1]) }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('inventory', { ...await readBody(req), updated_at: nowISO() }, { id: 'eq.' + decodeURIComponent(invM[1]) }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── ORDERS ────────────────────────────────────────────────────────────────
@@ -11274,7 +11296,7 @@ const server = http.createServer(async (req, res) => {
       const params = { select: '*', order: 'created_at.desc' };
       if (u.role === 'requestor') params['created_by'] = 'eq.' + u.name;
       return json(res, 200, await dbGet('orders', params));
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/orders' && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -11284,7 +11306,7 @@ const server = http.createServer(async (req, res) => {
       const order = { id: uid(), job_id, notes: notes || '', items: JSON.stringify(items), status: 'pending', created_by: u.name, created_at: nowISO() };
       await addNotif('new_order', 'New Order', u.name + ' requested ' + items.length + ' part type(s) for job ' + job_id, { job_id });
       return json(res, 201, (await dbInsert('orders', order))[0]);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const ordM = p.match(/^\/api\/orders\/([^/]+)\/(approve|reject|stage)$/);
   if (ordM && method === 'POST') {
@@ -11314,7 +11336,7 @@ const server = http.createServer(async (req, res) => {
         await dbUpdate('orders', { status: 'staged', staged_by: u.name, staged_at: nowISO() }, { id: 'eq.' + ordM[1] });
       }
       return json(res, 200, { ok: true });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── SCHEDULE ──────────────────────────────────────────────────────────────
@@ -11334,17 +11356,17 @@ const server = http.createServer(async (req, res) => {
       });
       upcoming.sort((a, b) => new Date(a.date) - new Date(b.date));
       return json(res, 200, upcoming);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── NOTIFICATIONS ─────────────────────────────────────────────────────────
   if (p === '/api/notifications' && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('notifications', { select: '*', order: 'created_at.desc', limit: '100' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('notifications', { select: '*', order: 'created_at.desc', limit: '100' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/notifications/read-all' && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { await dbUpdate('notifications', { read: true }, { read: 'eq.false' }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbUpdate('notifications', { read: true }, { read: 'eq.false' }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── FINANCIALS ────────────────────────────────────────────────────────────
@@ -11369,14 +11391,14 @@ const server = http.createServer(async (req, res) => {
       const totalCost = Math.round((materialCost + laborCost) * 100) / 100;
       const grossProfit = Math.round((contractValue - totalCost) * 100) / 100;
       return json(res, 200, { contract_value: contractValue, labor_budget: parseFloat(job.labor_budget || 0), material_budget: parseFloat(job.material_budget || 0), labor_rate: laborRate, total_hours: Math.round(totalHours * 100) / 100, labor_cost: laborCost, material_cost: Math.round(materialCost * 100) / 100, total_cost: totalCost, gross_profit: grossProfit, profit_margin: contractValue > 0 ? Math.round(grossProfit / contractValue * 10000) / 100 : null });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (finM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
     const b = await readBody(req);
     const upd = { updated_at: nowISO() };
     ['contract_value','labor_budget','material_budget','labor_rate'].forEach(k => { if (b[k] !== undefined) upd[k] = parseFloat(b[k]) || 0; });
-    try { return json(res, 200, (await dbUpdate('jobs', upd, { id: 'eq.' + finM[1] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('jobs', upd, { id: 'eq.' + finM[1] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/financials/overview' && method === 'GET') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
@@ -11400,7 +11422,7 @@ const server = http.createServer(async (req, res) => {
       });
       const totals = summary.reduce((a, j) => ({ contract: a.contract + j.contract_value, cost: a.cost + j.total_cost, profit: a.profit + j.gross_profit }), { contract: 0, cost: 0, profit: 0 });
       return json(res, 200, { jobs: summary, totals });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── PURCHASE ORDER ────────────────────────────────────────────────────────
@@ -11418,7 +11440,7 @@ const server = http.createServer(async (req, res) => {
         lineItems.push({ part_id: part.part_id, part_number: cat[0]?.part_number || '', description: cat[0]?.description || part.part_name, name: part.part_name, qty: part.assigned_qty || 1, unit_cost: uc, line_total: Math.round(uc * (part.assigned_qty || 1) * 100) / 100, status: part.status });
       }
       return json(res, 200, { po_number: 'PO-' + poM[1].slice(-6) + '-' + Date.now().toString().slice(-5), job_id: job.id, job_name: job.name, address: job.address, gc_company: job.gc_company, generated_by: u.name, generated_at: nowDisplay(), line_items: lineItems, total: Math.round(lineItems.reduce((s, i) => s + i.line_total, 0) * 100) / 100 });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── REPORTS ───────────────────────────────────────────────────────────────
@@ -11436,40 +11458,40 @@ const server = http.createServer(async (req, res) => {
       parts.forEach(pt => { if (pt.over) overages.push(pt); else if (pt.status === 'installed' || pt.status === 'partial_install') installed.push(pt); else if (pt.status === 'signed_out') signedOut.push(pt); else staged.push(pt); });
       const lowStock = (await dbGet('inventory', { select: '*' })).filter(i => i.min_qty > 0 && i.qty <= i.min_qty);
       return json(res, 200, { jobs: jobs.length, staged, signedOut, installed, overages, lowStock });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── AUDIT LOG ─────────────────────────────────────────────────────────────
   if (p === '/api/log' && method === 'GET') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm')) return;
-    try { return json(res, 200, await dbGet('audit_log', { select: '*', order: 'created_at.desc', limit: '500' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('audit_log', { select: '*', order: 'created_at.desc', limit: '500' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── LIEN WAIVERS ──────────────────────────────────────────────────────────
   const lwM = p.match(/^\/api\/jobs\/([^/]+)\/lien-waivers$/);
   if (lwM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('lien_waivers', { job_id: 'eq.' + lwM[1], select: '*' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('lien_waivers', { job_id: 'eq.' + lwM[1], select: '*' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (lwM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const b = await readBody(req);
-    try { return json(res, 201, (await dbInsert('lien_waivers', { id: uid(), job_id: lwM[1], uploaded_by: u.name, created_at: nowISO(), ...b }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('lien_waivers', { id: uid(), job_id: lwM[1], uploaded_by: u.name, created_at: nowISO(), ...b }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── INVOICES ──────────────────────────────────────────────────────────────
   if (p === '/api/invoices' && method === 'GET') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
-    try { return json(res, 200, await dbGet('invoices', { select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('invoices', { select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/invoices' && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
-    try { return json(res, 201, (await dbInsert('invoices', { id: uid(), ...await readBody(req), created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('invoices', { id: uid(), ...await readBody(req), created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const invIM = p.match(/^\/api\/invoices\/([^/]+)$/);
   if (invIM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm')) return;
-    try { return json(res, 200, (await dbUpdate('invoices', await readBody(req), { id: 'eq.' + invIM[1] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('invoices', await readBody(req), { id: 'eq.' + invIM[1] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   if(p==='/api/email-ingest'&&method==='POST'){
@@ -11617,7 +11639,7 @@ const server = http.createServer(async (req, res) => {
       const allRecs = await dbGet('fax_bid_recipients', { quote_id: 'eq.' + rec.quote_id, select: 'id,status' });
       const awardedElsewhere = allRecs.some(r => r.id !== rec.id && r.status === 'awarded');
       return json(res, 200, { quote, recipient: rec, branding: branding || {}, awardedElsewhere });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // POST /api/qf/award/:token — submit award signature (public, no auth)
@@ -11633,7 +11655,7 @@ const server = http.createServer(async (req, res) => {
       if (!b.signature_name || !b.signature_image) return json(res, 400, { error: 'Signature required' });
       await dbUpdate('fax_bid_recipients', { status: 'awarded', awarded_at: new Date().toISOString(), signature_name: b.signature_name, signature_title: b.signature_title || '', signature_email: b.signature_email || '', signature_image: b.signature_image, signature_timestamp: new Date().toISOString() }, { id: 'eq.' + rec.id });
       return json(res, 200, { ok: true });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // POST /api/qf/award/:token/decline — decline from public page
@@ -11646,7 +11668,7 @@ const server = http.createServer(async (req, res) => {
       const b = await readBody(req);
       await dbUpdate('fax_bid_recipients', { status: 'declined', declined_at: new Date().toISOString(), decline_reason: b.decline_reason || '' }, { id: 'eq.' + rec.id });
       return json(res, 200, { ok: true });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // POST /api/qf/recipients/:id/send — send email to recipient
@@ -11691,7 +11713,7 @@ const server = http.createServer(async (req, res) => {
       if (emailRes.statusCode >= 400 || emailRes.error) throw new Error(emailRes.message || emailRes.error || 'Email send failed');
       await dbUpdate('fax_bid_recipients', { status: 'sent', sent_at: new Date().toISOString() }, { id: 'eq.' + recipSendM[1] });
       return json(res, 200, { ok: true, awardUrl });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // GET /api/qf/recipients/:id/link — get award URL
@@ -11703,7 +11725,7 @@ const server = http.createServer(async (req, res) => {
       if (!rec) return json(res, 404, { error: 'Not found' });
       const appUrl = process.env.APP_URL || 'https://' + (process.env.RENDER_EXTERNAL_HOSTNAME || 'localhost:3000');
       return json(res, 200, { url: appUrl + '/award/' + rec.token });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
     json(res, 404, { error: 'Not found: ' + p });
