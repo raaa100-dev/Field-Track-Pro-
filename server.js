@@ -2508,6 +2508,7 @@ async function pgDaily(){
     employees.map(e=>'<option value="'+e+'">'+e+'</option>').join('')+
     '</select></div>'+
     '<div style="flex:0 0 auto;padding-bottom:1px"><button class="btn btn-sm" style="height:36px;padding:0 16px" onclick="clearDrFilters()">Clear</button></div>'+
+    '<div style="flex:0 0 auto;padding-bottom:1px"><button class="btn btn-sm" id="dr-email-btn" onclick="toggleEmailInbox()" style="height:36px;color:#f59e0b;border-color:rgba(245,158,11,.35)">⚠ Unmatched Emails</button></div>'+
     '</div></div>'+
     '<div id="dr-results"></div>'
   filterDailyReports()
@@ -2520,6 +2521,64 @@ function clearDrFilters(){
   document.getElementById('dr-f-to').value=today
   document.getElementById('dr-f-emp').value=''
   filterDailyReports()
+}
+async function toggleEmailInbox(){
+  var el=document.getElementById('dr-results');if(!el)return
+  var btn=document.getElementById('dr-email-btn')
+  if(btn&&btn.dataset.showing==='1'){btn.dataset.showing='';filterDailyReports();return}
+  if(btn)btn.dataset.showing='1'
+  el.innerHTML='<div style="font-size:12px;color:#8a96ab;padding:8px">Loading...</div>'
+  var{data:inbox}=await sb.from('email_inbox').select('*').eq('status','unmatched').order('received_at',{ascending:false}).limit(50)
+  if(!inbox||!inbox.length){el.innerHTML='<div style="padding:20px;text-align:center;color:#414e63">No unmatched emails ✓</div>';return}
+  var h='<div style="margin-bottom:10px;font-size:12px;color:#f59e0b;font-weight:500">'+inbox.length+' unmatched email'+(inbox.length!==1?'s':'')+' need attention</div>'
+  h+='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr><th>Received</th><th>From</th><th>Subject</th><th>Job ID Guess</th><th>Preview</th><th></th></tr></thead><tbody>'
+  inbox.forEach(function(e){
+    var eb=encodeURIComponent((e.body||'').slice(0,2000))
+    var ef=encodeURIComponent(e.from_address||'')
+    h+='<tr>'
+    h+='<td style="font-size:11px;white-space:nowrap">'+fd(e.received_at)+'</td>'
+    h+='<td style="font-size:11px;color:#8a96ab">'+( e.from_address||'')+'</td>'
+    h+='<td style="font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(e.subject||'')+'</td>'
+    h+=(e.job_id_guess?'<td><span class="badge bg-amber">'+e.job_id_guess+'</span></td>':'<td style="color:#414e63">none</td>')
+    h+='<td style="font-size:11px;color:#8a96ab;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(e.body||'').slice(0,60)+'</td>'
+    h+='<td style="display:flex;gap:4px" onclick="event.stopPropagation()">'
+    h+='<button class="btn btn-sm" data-eid="'+e.id+'" data-ef="'+ef+'" data-eb="'+eb+'" onclick="assignEmailModal(this.dataset.eid,decodeURIComponent(this.dataset.ef),decodeURIComponent(this.dataset.eb))">Assign</button>'
+    h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" data-eid="'+e.id+'" onclick="dismissEmail(this.dataset.eid)">Dismiss</button>'
+    h+='</td></tr>'
+  })
+  h+='</tbody></table></div>'
+  el.innerHTML=h
+}
+function assignEmailModal(eid,efrom,ebody){
+  modal('Assign Email to Job',
+    '<div style="font-size:12px;color:#8a96ab;margin-bottom:10px">From: '+efrom+'</div>'
+    +'<div class="fg"><label class="fl">Work Performed</label><textarea class="ft" id="aem-body" style="min-height:80px">'+ebody+'</textarea></div>'
+    +'<div class="fg"><label class="fl">Search Job</label><input class="fi" id="aem-search" placeholder="Job name or ID..." oninput="filterAemJobs(this.value)" style="margin-bottom:4px"><select class="fs" id="aem-job"><option value="">— Select job —</option>'+(allJobs||[]).map(function(j){return '<option value="'+j.id+'">'+( j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>'}).join('')+'</select></div>'
+    +'<div class="fg"><label class="fl">Report Date</label><input class="fi" type="date" id="aem-date" value="'+new Date().toISOString().split('T')[0]+'"></div>',
+    async function(){
+      var jobId=(document.getElementById('aem-job')||{}).value
+      if(!jobId){toast('Select a job','error');return}
+      var bd=(document.getElementById('aem-body')||{}).value||ebody
+      var dt=(document.getElementById('aem-date')||{}).value||new Date().toISOString().split('T')[0]
+      var{error}=await sb.from('daily_reports').insert({id:uuid(),job_id:jobId,report_date:dt,submitted_by:efrom,work_performed:bd,crew_count:0,hours_worked:0,total_man_hours:0,source:'email',created_at:new Date().toISOString()})
+      if(error){toast(error.message,'error');return}
+      await sb.from('email_inbox').update({status:'assigned',job_id:jobId}).eq('id',eid)
+      closeModal();toast('Report created — add hours when ready');toggleEmailInbox()
+    },'Create Report')
+  setTimeout(function(){var el=document.getElementById('aem-search');if(el)el.focus()},200)
+}
+function filterAemJobs(q){
+  var sel=document.getElementById('aem-job');if(!sel)return
+  q=(q||'').toLowerCase().trim()
+  var h='<option value="">— Select job —</option>'
+  ;(allJobs||[]).filter(function(j){return !q||j.name.toLowerCase().includes(q)||(j.job_number||'').toLowerCase().includes(q)})
+  .forEach(function(j){h+='<option value="'+j.id+'">'+( j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>'})
+  sel.innerHTML=h
+}
+async function dismissEmail(eid){
+  if(!confirm('Dismiss this email?'))return
+  await sb.from('email_inbox').update({status:'dismissed'}).eq('id',eid)
+  toast('Dismissed');toggleEmailInbox()
 }
 function filterDailyReports(){
   const q=(document.getElementById('dr-f-search')?.value||'').toLowerCase().trim()
@@ -4552,6 +4611,33 @@ async function pgSettings(){
   h+='<button class="btn btn-ghost" style="color:#dc2626;border:1px solid rgba(220,38,38,.3)" onclick="resetDatabase()">🗑 Reset to Fresh Database</button>'
   h+='</div>'
 
+
+  h+='<div class="card" style="margin-bottom:14px">'
+  h+='<div class="card-title" style="margin-bottom:4px">&#128231; Email Ingest</div>'
+  h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:8px">Auto-create daily reports from incoming emails. Webhook URL: '
+  h+='<code style="background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px;font-size:11px">'+(window.location.origin||'https://filed-ops.onrender.com')+'/api/email-ingest</code></div>'
+  h+='<div class="fg"><label class="fl">Email Provider</label>'
+  h+='<select class="fs" id="ei-provider" onchange="toggleEmailProviderFields(this.value)">'
+  h+='<option value="">— Disabled —</option>'
+  h+='<option value="mailgun"'+(co.email_ingest_provider==='mailgun'?' selected':'')+'>Mailgun</option>'
+  h+='<option value="sendgrid"'+(co.email_ingest_provider==='sendgrid'?' selected':'')+'>SendGrid Inbound Parse</option>'
+  h+='<option value="postmark"'+(co.email_ingest_provider==='postmark'?' selected':'')+'>Postmark (Pro/Platform plan required)</option>'
+  h+='<option value="webhook"'+(co.email_ingest_provider==='webhook'?' selected':'')+'>Generic Webhook</option>'
+  h+='</select></div>'
+  h+='<div id="ei-help" style="font-size:11px;color:#8a96ab;margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:6px;display:none"></div>'
+  h+='<div class="fg" style="margin-top:10px"><label class="fl">Webhook Secret / Signing Key <span style="font-size:10px;color:#414e63">(optional)</span></label>'
+  h+='<input class="fi" id="ei-secret" placeholder="Verify webhook authenticity" value="'+(co.email_ingest_secret||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Allowed Senders <span style="font-size:10px;color:#414e63">(comma-separated emails — blank = accept all)</span></label>'
+  h+='<input class="fi" id="ei-allowlist" placeholder="crew@yourco.com, foreman@yourco.com" value="'+(co.email_ingest_allowlist||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Job ID Regex Pattern <span style="font-size:10px;color:#414e63">(leave blank to auto-detect from subject)</span></label>'
+  h+='<input class="fi" id="ei-pattern" placeholder="Leave blank for auto-detect" value="'+(co.email_ingest_pattern||'')+'"></div>'
+  h+='<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">'
+  h+='<button class="btn btn-p" onclick="saveEmailIngestSettings()">&#128190; Save Email Settings</button>'
+  h+='<button class="btn btn-sm" onclick="testEmailIngest()">&#129514; Test Webhook</button>'
+  h+='</div>'
+  h+='<div id="ei-test-result" style="margin-top:8px;font-size:12px"></div>'
+  h+='</div>'
+
   document.getElementById('page-area').innerHTML=h
 }
 
@@ -4687,6 +4773,37 @@ async function deleteAllDuplicates(){
 }
 
 
+function toggleEmailProviderFields(v){
+  var h=document.getElementById('ei-help');if(!h)return
+  var helps={
+    mailgun:'Mailgun: Go to Sending > Domains > your domain > Edit > Receiving. Set inbound route to forward to the webhook URL above. Free tier: 1,000 emails/month.',
+    sendgrid:'SendGrid: Go to Settings > Inbound Parse. Add the webhook URL above as your POST URL. Free tier: 100 emails/day.',
+    postmark:'Postmark: In your server, go to Settings > Inbound. Set the webhook URL above. Requires Pro or Platform plan ($16.50+/mo).',
+    webhook:'Generic Webhook: Point any email provider inbound webhook POST to the URL above. Expects JSON with fields: subject, text_body (or html_body), from.'
+  }
+  if(v&&helps[v]){h.style.display='block';h.innerHTML=helps[v]}
+  else h.style.display='none'
+}
+async function saveEmailIngestSettings(){
+  var provider=(document.getElementById('ei-provider')||{}).value||''
+  var secret=(document.getElementById('ei-secret')||{}).value||''
+  var allowlist=(document.getElementById('ei-allowlist')||{}).value||''
+  var pattern=(document.getElementById('ei-pattern')||{}).value||''
+  var{error}=await sb.from('company_settings').upsert({email_ingest_provider:provider,email_ingest_secret:secret,email_ingest_allowlist:allowlist,email_ingest_pattern:pattern},{onConflict:'id'})
+  if(error)toast(error.message,'error')
+  else toast('Email ingest settings saved'+(provider?' ('+provider+' active)':' (disabled)'))
+}
+async function testEmailIngest(){
+  var res=document.getElementById('ei-test-result');if(res)res.textContent='Sending test...'
+  try{
+    var{data:{session}}=await sb.auth.getSession()
+    var r=await fetch('/api/email-ingest',{method:'POST',headers:{'Content-Type':'application/json','x-fieldaxis-test':'1','Authorization':'Bearer '+(session?.access_token||'')},body:JSON.stringify({subject:'TEST - No Job ID',from:{address:'test@test.com'},text_body:'This is a test email from FieldAxisHQ settings.',html_body:''})})
+    var d={};try{d=await r.json()}catch(e){}
+    if(res)res.innerHTML='<span style="color:#16a34a">✓ Webhook working! '+JSON.stringify(d)+'</span>'
+  }catch(e){
+    if(res)res.innerHTML='<span style="color:#dc2626">✗ Error: '+e.message+'</span>'
+  }
+}
 async function saveCompanySettings(){
   var data={
     company_name:document.getElementById('co-name').value||null,
@@ -11154,6 +11271,51 @@ const server = http.createServer(async (req, res) => {
   if (invIM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm')) return;
     try { return json(res, 200, (await dbUpdate('invoices', await readBody(req), { id: 'eq.' + invIM[1] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+  }
+
+  if(p==='/api/email-ingest'&&method==='POST'){
+    const body=await readBody(req)
+    const isTest=req.headers['x-fieldaxis-test']==='1'
+    const settingsRes=await sbFetch('GET','/rest/v1/company_settings?limit=1',null,SB_ANON)
+    const co=(settingsRes&&settingsRes[0])||{}
+    if(!co.email_ingest_provider&&!isTest)return json(res,200,{status:'disabled'})
+    const ct=req.headers['content-type']||''
+    let subject='',fromAddr='',textBody=''
+    if(ct.includes('application/json')){
+      subject=body.Subject||body.subject||''
+      fromAddr=String(body.From||body.from?.address||body.from||'')
+      textBody=body.TextBody||body.text_body||body.stripped_text||''
+    }else{
+      subject=body.subject||body.Subject||''
+      fromAddr=body.sender||body.from||body.From||''
+      textBody=body['body-plain']||body.text||body.TextBody||''
+    }
+    const cleanText=(textBody||'').trim()
+    if(co.email_ingest_allowlist&&!isTest){
+      const allowed=co.email_ingest_allowlist.split(',').map(s=>s.trim().toLowerCase())
+      if(!allowed.some(a=>fromAddr.toLowerCase().includes(a)))return json(res,200,{status:'rejected'})
+    }
+    const pat=co.email_ingest_pattern?new RegExp(co.email_ingest_pattern,'i'):/\b(\d{4}[A-Z0-9]*\.[A-Z0-9]+(?:\.[A-Z0-9]+)*)\b/i
+    const match=subject.match(pat)
+    const jobIdGuess=match?match[1]||match[0]:null
+    let jobRow=null
+    if(jobIdGuess){
+      const jRes=await sbFetch('GET',`/rest/v1/jobs?job_number=ilike.${encodeURIComponent(jobIdGuess)}&archived=eq.false&limit=1`,null,SB_ANON)
+      if(jRes&&jRes[0])jobRow=jRes[0]
+    }
+    const today=new Date().toISOString().split('T')[0]
+    const crypto=require('crypto')
+    if(jobRow){
+      if(!isTest)await sbFetch('POST','/rest/v1/daily_reports',{id:crypto.randomUUID(),job_id:jobRow.id,report_date:today,submitted_by:fromAddr,work_performed:cleanText,crew_count:0,hours_worked:0,total_man_hours:0,source:'email',email_subject:subject,email_from:fromAddr,created_at:new Date().toISOString()},SB_ANON)
+      return json(res,200,{status:'created',job:jobRow.name,job_number:jobRow.job_number})
+    }else{
+      const inboxId=crypto.randomUUID()
+      if(!isTest){
+        await sbFetch('POST','/rest/v1/email_inbox',{id:inboxId,received_at:new Date().toISOString(),from_address:fromAddr,subject,body:cleanText,status:'unmatched',job_id_guess:jobIdGuess},SB_ANON)
+        await sbFetch('POST','/rest/v1/notifications',{id:crypto.randomUUID(),type:'email_unmatched',title:'Unmatched email report',message:'Email from '+fromAddr+' — no matching job. Subject: '+subject,link_type:'email_inbox',link_id:inboxId,read:false,created_at:new Date().toISOString()},SB_ANON)
+      }
+      return json(res,200,{status:'unmatched',subject,from:fromAddr,guess:jobIdGuess})
+    }
   }
 
   if(p==='/api/set-password'&&method==='POST'){
