@@ -3278,90 +3278,115 @@ async function loadScanEvents(){
 }
 
 // CAMERA SCANNING
-var _h5scanner=null,_lastScanned='',_lastScanTime=0
+// CAMERA SCANNING native BarcodeDetector (primary) + html5-qrcode (fallback)
+var _h5scanner=null,_nativeStream=null,_nativeTimer=null,_lastScanned='',_lastScanTime=0
 async function toggleCam(){
   if(_camRunning){stopCam();return}
-  if(typeof Html5Qrcode==='undefined'){toast('Scanner not loaded. Refresh page.','error');return}
   var wrap=document.getElementById('cam-wrap');if(!wrap)return
   wrap.style.display='block'
   document.getElementById('cam-toggle-btn').textContent='⏹ Stop Camera'
-  wrap.innerHTML='<div id="h5qr-region" style="width:100%"></div>'
-    +'<div id="cam-status-inner" style="font-size:12px;color:#8a96ab;margin-top:6px;text-align:center">Starting...</div>'
+  wrap.innerHTML=
+    '<div style="position:relative;background:#000;border-radius:10px;overflow:hidden">'
+    +'<video id="scan-vid" autoplay muted playsinline webkit-playsinline style="width:100%;display:block;max-height:300px;object-fit:cover"></video>'
+    +'<canvas id="scan-cvs" style="display:none"></canvas>'
+    +'<div style="position:absolute;inset:0;pointer-events:none"><div id="scan-line" style="position:absolute;left:5%;right:5%;height:2px;top:50%;background:rgba(239,68,68,.9);box-shadow:0 0 8px 2px rgba(239,68,68,.7)"></div></div>'
+    +'<div style="position:absolute;inset:12%;border:1.5px solid rgba(255,255,255,.2);border-radius:4px;pointer-events:none"></div>'
+    +'<div style="position:absolute;bottom:8px;right:8px;display:flex;gap:6px">'
+    +'<button id="torch-btn" onclick="toggleTorch()" style="display:none;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:6px 11px;font-size:16px;cursor:pointer">🔦</button>'
+    +'<button onclick="capturePhoto()" style="background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:6px 11px;font-size:16px;cursor:pointer" title="Tap to force scan still frame">📸</button>'
+    +'</div></div>'
+    +'<div id="cam-status-inner" style="font-size:12px;color:#8a96ab;margin-top:6px;text-align:center">Starting camera...</div>'
+  var hasBD=typeof BarcodeDetector!=='undefined'
+  if(hasBD){
+    try{var sup=await BarcodeDetector.getSupportedFormats().catch(function(){return['code_128','ean_13','ean_8','upc_a','upc_e','code_39','qr_code','data_matrix','itf','codabar','aztec','pdf_417']});window._bd=new BarcodeDetector({formats:sup})}catch(e){hasBD=false}
+  }
   try{
-    _h5scanner=new Html5Qrcode('h5qr-region',{verbose:false})
-    var config={
-      fps:30,
-      qrbox:function(w,h){return{width:Math.min(w-20,400),height:Math.min(h-20,300)}},
-      aspectRatio:1.0,
-      formatsToSupport:[
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.CODE_93,
-        Html5QrcodeSupportedFormats.QR_CODE,
-        Html5QrcodeSupportedFormats.DATA_MATRIX,
-        Html5QrcodeSupportedFormats.PDF_417,
-        Html5QrcodeSupportedFormats.ITF,
-        Html5QrcodeSupportedFormats.CODABAR
-      ],
-      videoConstraints:{
-        facingMode:{ideal:'environment'},
-        width:{min:640,ideal:1920,max:3840},
-        height:{min:480,ideal:1080,max:2160}
-      },
-      rememberLastUsedCamera:true,
-      showTorchButtonIfSupported:true
+    var stream
+    try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:'environment'},width:{ideal:3840},height:{ideal:2160}}})}catch(e1){
+      try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}})}catch(e2){
+        stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+      }
     }
-    await _h5scanner.start(
-      {facingMode:{ideal:'environment'}},
-      config,
-      function(code,result){
-        var now=Date.now()
-        // Same barcode: only count as new after 2s
-        if(code===_lastScanned&&now-_lastScanTime<2000)return
-        _lastScanTime=now
-        beep()
-        var si=document.getElementById('cam-status-inner')
-        if(window._scanToCatalog){
-          _lastScanned=code;scanToCatalog(code);return
-        }
-        // Same barcode rescanned = add qty
-        if(code===_lastScanned){
-          var ex=_batch.find(function(b){return b.barcode===code})
-          if(ex){ex.qty++;renderBatch();if(si)si.textContent='✓ x'+ex.qty+' '+ex.name;return}
-        }
-        _lastScanned=code
-        var match=allCatalog.find(function(c){return c.barcode===code})
-        if(match){
-          addToBatch(code,match.name)
-          document.getElementById('sc-bc').value=''
-          document.getElementById('sc-resolve').style.display='none'
-          if(si)si.textContent='✓ '+match.name
-        }else{
-          document.getElementById('sc-bc').value=code;liveResolveBC(code)
-          if(si)si.textContent='⚠ Unknown: '+code
-        }
-      },
-      function(err){} // ignore per-frame errors
-    )
+    _nativeStream=stream
+    var vid=document.getElementById('scan-vid');if(!vid){stopCam();return}
+    vid.srcObject=stream
+    await new Promise(function(res){vid.onloadedmetadata=res;setTimeout(res,3000)})
+    await vid.play()
+    try{var tr=stream.getVideoTracks()[0];if(tr&&tr.applyConstraints)await tr.applyConstraints({advanced:[{focusMode:'continuous'}]})}catch(e){}
+    try{var tr2=stream.getVideoTracks()[0];var caps=tr2&&tr2.getCapabilities&&tr2.getCapabilities();if(caps&&caps.torch){var tb=document.getElementById('torch-btn');if(tb)tb.style.display='block'}}catch(e){}
     _camRunning=true
-    var si=document.getElementById('cam-status-inner');if(si)si.textContent='Ready — aim at barcode'
+    var si=document.getElementById('cam-status-inner');if(si)si.textContent='Ready — center barcode on line'
+    if(hasBD&&window._bd){
+      var canvas=document.getElementById('scan-cvs')
+      var ctx=canvas.getContext('2d',{willReadFrequently:true,alpha:false})
+      var busy=false
+      _nativeTimer=setInterval(async function(){
+        if(!_camRunning||busy||!vid.videoWidth)return
+        busy=true
+        try{
+          var res=await window._bd.detect(vid)
+          if(!res.length){canvas.width=vid.videoWidth;canvas.height=vid.videoHeight;ctx.drawImage(vid,0,0);res=await window._bd.detect(canvas)}
+          if(res.length){var code=res[0].rawValue,now=Date.now();if(!(code===_lastScanned&&now-_lastScanTime<2000)){_lastScanned=code;_lastScanTime=now;onScan(code)}}
+        }catch(e){}
+        busy=false
+      },67)
+    }else if(typeof Html5Qrcode!=='undefined'){
+      stopCam()
+      wrap.innerHTML='<div id="h5qr-region" style="width:100%"></div><div id="cam-status-inner" style="font-size:12px;color:#8a96ab;margin-top:6px;text-align:center">Starting...</div>'
+      _h5scanner=new Html5Qrcode('h5qr-region',{verbose:false})
+      var fmts=[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.CODE_93,Html5QrcodeSupportedFormats.QR_CODE,Html5QrcodeSupportedFormats.DATA_MATRIX,Html5QrcodeSupportedFormats.PDF_417,Html5QrcodeSupportedFormats.ITF,Html5QrcodeSupportedFormats.CODABAR]
+      _camRunning=true
+      await _h5scanner.start({facingMode:{ideal:'environment'}},{fps:30,qrbox:function(w,h){return{width:Math.min(w-20,380),height:Math.min(Math.floor(h*.65),260)}},formatsToSupport:fmts,videoConstraints:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},showTorchButtonIfSupported:true},
+        function(code){var now=Date.now();if(code===_lastScanned&&now-_lastScanTime<2000)return;_lastScanned=code;_lastScanTime=now;onScan(code)},function(err){})
+      var si2=document.getElementById('cam-status-inner');if(si2)si2.textContent='Ready — aim at barcode'
+    }
   }catch(e){
-    var msg=e.message||String(e)
-    var si=document.getElementById('cam-status-inner');if(si)si.textContent='⚠ '+msg
-    toast('Camera: '+msg,'error');stopCam()
+    var si=document.getElementById('cam-status-inner');if(si)si.textContent='⚠ '+(e.message||'Camera error')
+    toast('Camera: '+(e.message||'error'),'error');stopCam()
+  }
+}
+async function capturePhoto(){
+  var vid=document.getElementById('scan-vid');if(!vid||!vid.videoWidth)return
+  var canvas=document.getElementById('scan-cvs');if(!canvas)return
+  canvas.width=vid.videoWidth;canvas.height=vid.videoHeight
+  var ctx=canvas.getContext('2d');ctx.drawImage(vid,0,0)
+  var si=document.getElementById('cam-status-inner');if(si)si.textContent='Scanning frame...'
+  if(window._bd){try{var res=await window._bd.detect(canvas);if(res.length){onScan(res[0].rawValue);return}}catch(e){}}
+  if(si)si.textContent='No barcode found — try moving closer or better lighting'
+}
+var _torchOn=false
+async function toggleTorch(){
+  if(!_nativeStream)return
+  try{
+    _torchOn=!_torchOn
+    await _nativeStream.getVideoTracks()[0].applyConstraints({advanced:[{torch:_torchOn}]})
+    var btn=document.getElementById('torch-btn');if(btn)btn.style.background=_torchOn?'rgba(255,200,0,.5)':'rgba(0,0,0,.55)'
+  }catch(e){toast('Torch not available','warn')}
+}
+function onScan(code){
+  beep()
+  var line=document.getElementById('scan-line')
+  if(line){line.style.background='rgba(34,197,94,.9)';setTimeout(function(){if(line)line.style.background='rgba(239,68,68,.9)'},500)}
+  var si=document.getElementById('cam-status-inner')
+  if(window._scanToCatalog){scanToCatalog(code);return}
+  var existing=_batch.find(function(b){return b.barcode===code})
+  if(existing&&code===_lastScanned){existing.qty++;renderBatch();if(si)si.textContent='✓ x'+existing.qty+' '+existing.name;return}
+  var match=allCatalog.find(function(c){return c.barcode===code})
+  if(match){
+    addToBatch(code,match.name)
+    document.getElementById('sc-bc').value=''
+    document.getElementById('sc-resolve').style.display='none'
+    if(si)si.textContent='✓ '+match.name+' — scan again for more'
+  }else{
+    document.getElementById('sc-bc').value=code;liveResolveBC(code)
+    if(si)si.textContent='⚠ Unknown: '+code
   }
 }
 function stopCam(){
-  _camRunning=false;_lastScanned='';_lastScanTime=0
-  if(_h5scanner){
-    _h5scanner.stop().catch(function(){}).finally(function(){
-      _h5scanner.clear();_h5scanner=null
-    })
-  }
+  _camRunning=false;_torchOn=false;_lastScanned='';_lastScanTime=0
+  if(_nativeTimer){clearInterval(_nativeTimer);_nativeTimer=null}
+  if(_nativeStream){_nativeStream.getTracks().forEach(function(t){t.stop()});_nativeStream=null}
+  if(_h5scanner){try{_h5scanner.stop().catch(function(){}).finally(function(){try{_h5scanner.clear()}catch(e){};_h5scanner=null})}catch(e){_h5scanner=null}}
   var w=document.getElementById('cam-wrap');if(w){w.style.display='none';w.innerHTML=''}
   var b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera'
 }
@@ -3372,7 +3397,6 @@ function scanToCatalog(code){
   stopCam();window._scanToCatalog=false
   addCatalogModal(code);setTimeout(function(){lookupBarcode()},300)
 }
-// CATALOG PAGE
 // ══════════════════════════════════════════
 async function pgCatalog(){
   document.getElementById('topbar-actions').innerHTML=\`
