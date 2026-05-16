@@ -206,7 +206,7 @@ const HTML_ADMIN  = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FieldAxisHQ Admin v2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
@@ -1319,6 +1319,7 @@ async function openJob(id){
   document.getElementById('topbar-actions').innerHTML=\`<button class="btn btn-sm" onclick="P('jobs',null)">← Jobs</button> <button class="btn btn-sm" id="urgent-btn" style="background:rgba(220,38,38,.15);color:#dc2626;border-color:rgba(220,38,38,.3)" onclick="toggleUrgent()">🔥 Flag Urgent</button>\${['admin'].includes(ME?.role)?\` <button class="btn btn-sm" style="color:#dc2626;border-color:rgba(220,38,38,.3)" onclick="deleteJobConfirm()">🗑 Delete Job</button>\`:''}\`
   const{data:job}=await sb.from('jobs').select('*').eq('id',id).single()
   currentJob=job
+  if(job)document.getElementById('page-title').textContent=(job.job_number?job.job_number+' — ':'')+job.name
   // Update urgent button state
   var ub=document.getElementById('urgent-btn')
   if(ub){
@@ -1332,9 +1333,8 @@ function renderJobDetail(){
   const si=STAGES.indexOf(j.phase)
   document.getElementById('page-area').innerHTML=\`
   <div style="margin-bottom:14px">
-    <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">\${j.name}</div>
-    <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${j.address||''}</div>
-    <div style="display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap">
+    <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">\${j.name}\${j.job_number?" <span style='font-size:12px;font-weight:400;color:#8a96ab'>("+j.job_number+")</span>":""}</div>
+    <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${j.job_number?'['+j.job_number+'] ':''}\${j.address||''}</div>\n    <div style="display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap">
       \${stageBadge(j.phase)}
       <select class="fs" style="width:180px;padding:5px 9px;font-size:12px" onchange="updateJobStage(this.value)">\${STAGES.map(s=>\`<option value="\${s}" \${j.phase===s?'selected':''}>\${STAGE_LABELS[s]}</option>\`).join('')}</select>
       <input type="number" class="fi" style="width:70px;padding:5px 8px;font-size:12px" value="\${j.pct_complete||0}" min="0" max="100" title="% Complete" onchange="updateJobPct(this.value)">%
@@ -2813,11 +2813,13 @@ async function pgScan(){
         <div style="margin-bottom:10px;display:flex;gap:8px">
           <button class="btn btn-sm" onclick="focusScanInput()" style="flex:1">🎯 Focus Scanner Input</button>
           <button class="btn btn-sm" onclick="testBeep()">🔊 Test Beep</button>
+          <button class="btn btn-sm" id="cam-toggle-btn" onclick="toggleCam()">📷 Start Camera</button>
         </div>
         <div class="fg">
           <label class="fl">Barcode / Part # <span style="color:#414e63">— scanner auto-submits, or type + Enter</span></label>
           <input class="fi" id="sc-bc" placeholder="Ready for scanner — click Focus button or click here…" autocomplete="off" autofocus style="font-size:15px;letter-spacing:.5px" oninput="liveResolveBC(this.value)" onkeydown="if(event.key==='Enter'&&this.value.trim()){addToBatch(null,null);this.value='';document.getElementById('sc-resolve').style.display='none';document.getElementById('sc-qty-row').style.display='none';this.focus()}">
         </div>
+        <div id="cam-wrap" style="display:none;margin-bottom:12px"><video id="cam-viewport" style="width:100%;max-height:280px;border-radius:8px;background:#000" autoplay muted playsinline></video><div id="cam-status" style="font-size:11px;color:#8a96ab;margin-top:4px">Camera not started</div></div>
         <div id="sc-resolve" style="display:none;margin-bottom:9px"></div>
         <div id="sc-qty-row" style="display:none;margin-bottom:9px">
           <label class="fl">Quantity</label>
@@ -2974,32 +2976,39 @@ async function loadScanEvents(){
   el.innerHTML=(events||[]).length?events.map(e=>\`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span class="badge \${e.action==='stage_in'?'bg-amber':e.action==='check_out'?'bg-blue':'bg-green'}" style="flex-shrink:0">\${e.action.replace('_',' ')}</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${e.part_name} ×\${e.qty}</div><div style="font-size:10px;color:#414e63">\${e.scanned_by||'?'} · \${fdt(e.scanned_at)}</div></div></div>\`).join(''):'<div style="font-size:12px;color:#414e63">No recent scans</div>'
 }
 
-// CAMERA SCANNING
+// CAMERA SCANNING ZXing
+var _zxReader=null
 async function toggleCam(){
   if(_camRunning){stopCam();return}
-  const wrap=document.getElementById('cam-wrap');if(!wrap)return
+  var wrap=document.getElementById('cam-wrap');if(!wrap)return
   wrap.style.display='block'
   document.getElementById('cam-toggle-btn').textContent='⏹ Stop Camera'
+  document.getElementById('cam-status').textContent='Starting camera...'
   try{
-    await Quagga.init({inputStream:{name:'Live',type:'LiveStream',target:document.getElementById('cam-viewport'),constraints:{facingMode:'environment'}},decoder:{readers:['code_128_reader','ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_39_reader','itf_reader']},locate:true},err=>{if(err){toast('Camera error: '+err,'error');stopCam();return};Quagga.start();_camRunning=true;document.getElementById('cam-status').textContent='Ready — point at barcode'})
-    let lastCode='',lastTime=0
-    Quagga.onDetected(data=>{
-      const code=data.codeResult.code;const now=Date.now()
+    _zxReader=new ZXing.BrowserMultiFormatReader()
+    var devices=await ZXing.BrowserMultiFormatReader.listVideoInputDevices()
+    var deviceId=null
+    var back=devices.filter(function(d){return /back|rear|environment/i.test(d.label)})
+    if(back.length)deviceId=back[back.length-1].deviceId
+    else if(devices.length)deviceId=devices[devices.length-1].deviceId
+    document.getElementById('cam-status').textContent='Ready — point at barcode'
+    _camRunning=true
+    var lastCode='',lastTime=0
+    _zxReader.decodeFromVideoDevice(deviceId,'cam-viewport',function(result,err){
+      if(!result)return
+      var code=result.getText(),now=Date.now()
       if(code===lastCode&&now-lastTime<2000)return
       lastCode=code;lastTime=now
       document.getElementById('sc-bc').value=code
       liveResolveBC(code)
-      const match=allCatalog.find(c=>c.barcode===code)
+      var match=allCatalog.find(function(c){return c.barcode===code})
       if(match){addToBatch(code,match.name);document.getElementById('sc-bc').value='';document.getElementById('sc-resolve').style.display='none'}
-      else{beep();document.getElementById('cam-status').textContent='Found: '+code+' — not in catalog, set qty and add'}
+      else{beep();document.getElementById('cam-status').textContent='⚠ Unknown: '+code+' — resolve below'}
     })
-  }catch(e){toast('Camera failed: '+e.message,'error');stopCam()}
+  }catch(e){toast('Camera error: '+e.message,'error');stopCam()}
 }
-function focusScanInput(){
-  var el=document.getElementById('sc-bc')
-  if(el){el.focus();el.select();toast('Scanner input focused — scan away','info')}
-}
-function stopCam(){if(!_camRunning)return;try{Quagga.stop()}catch{};_camRunning=false;const w=document.getElementById('cam-wrap');if(w)w.style.display='none';const b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera'}
+function stopCam(){
+  _camRunning=false;const w=document.getElementById('cam-wrap');if(w)w.style.display='none';const b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera'}
 
 // ══════════════════════════════════════════
 // CATALOG PAGE
@@ -3027,7 +3036,12 @@ function renderCatalogTable(q){
 function addCatalogModal(){
   modal('Add Part to Catalog',\`
   <div class="fg"><label class="fl">Barcode *</label><input class="fi" id="ca-bc" placeholder="UPC, EAN, or custom barcode"></div>
-  <div class="fg"><label class="fl">Part Name *</label><input class="fi" id="ca-nm"></div>
+  <div class="fg"><label class="fl">Barcode *</label>
+  <div style="display:flex;gap:6px;align-items:center">
+    <input class="fi" id="ca-bc" placeholder="Scan or type UPC/EAN" oninput="clearTimeout(window._bcTimer);window._bcTimer=setTimeout(function(){lookupBarcode()},800)" style="flex:1">
+    <button class="btn btn-sm" onclick="lookupBarcode()" type="button">Lookup</button>
+  </div>
+  <div id="ca-lookup-status" style="font-size:11px;color:#8a96ab;margin-top:4px"></div></div>
   <div class="two"><div class="fg"><label class="fl">Part Number</label><input class="fi" id="ca-pn" placeholder="Manufacturer #"></div><div class="fg"><label class="fl">Category</label><input class="fi" id="ca-cat" value="FA-Parts" placeholder="FA-Parts, Electrical…"></div></div>
   <div class="fg"><label class="fl">Description</label><textarea class="ft" id="ca-desc" style="min-height:55px"></textarea></div>
   <div class="three"><div class="fg"><label class="fl">Unit Cost ($)</label><input class="fi" type="number" id="ca-cost" step="0.01"></div><div class="fg"><label class="fl">Unit of Measure</label><select class="fs" id="ca-uom"><option value="each">Each</option><option value="ft">Foot</option><option value="lf">Linear Ft</option><option value="box">Box</option><option value="roll">Roll</option><option value="lb">Pound</option><option value="gal">Gallon</option></select></div><div class="fg"><label class="fl">Vendor</label><input class="fi" id="ca-vendor"></div></div>\`,
@@ -3037,6 +3051,41 @@ function addCatalogModal(){
     const{error}=await sb.from('catalog').insert({barcode:bc,name:nm,part_number:v('ca-pn'),category:v('ca-cat'),description:v('ca-desc'),unit_cost:parseFloat(v('ca-cost'))||0,unit_of_measure:v('ca-uom')||'each',vendor:v('ca-vendor')})
     if(error)toast(error.message,'error');else{closeModal();toast('Part added');pgCatalog()}
   })
+}
+async function lookupBarcode(){
+  var bc=(document.getElementById('ca-bc')||{}).value||'';bc=bc.trim()
+  if(!bc||bc.length<4)return
+  var status=document.getElementById('ca-lookup-status')
+  if(status)status.textContent='Looking up...'
+  try{
+    var r2=await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc='+encodeURIComponent(bc))
+    var d2=await r2.json()
+    if(d2.code==='OK'&&d2.items&&d2.items.length){
+      var item=d2.items[0]
+      var nm=item.title||'';var desc=item.description||item.brand||'';var pn=item.model||''
+      if(nm){
+        var nmEl=document.getElementById('ca-nm');if(nmEl)nmEl.value=nm
+        var dEl=document.getElementById('ca-desc');if(dEl)dEl.value=desc
+        var pEl=document.getElementById('ca-pn');if(pEl&&pn)pEl.value=pn
+        if(status)status.innerHTML='<span style="color:#16a34a">✓ Found: '+nm+'</span> <span style="font-size:10px;color:#8a96ab">(edit any field below)</span>'
+        return
+      }
+    }
+  }catch(e){}
+  try{
+    var r3=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(bc)+'.json')
+    var d3=await r3.json()
+    if(d3.status===1&&d3.product){
+      var p=d3.product;var nm2=p.product_name||p.product_name_en||''
+      if(nm2){
+        var nmEl2=document.getElementById('ca-nm');if(nmEl2)nmEl2.value=nm2
+        var dEl2=document.getElementById('ca-desc');if(dEl2)dEl2.value=(p.brands?p.brands+' ':'')+nm2
+        if(status)status.innerHTML='<span style="color:#16a34a">✓ Found: '+nm2+'</span> <span style="font-size:10px;color:#8a96ab">(edit any field below)</span>'
+        return
+      }
+    }
+  }catch(e){}
+  if(status)status.innerHTML='<span style="color:#d97706">⚠ Not found — enter details manually</span>'
 }
 function editCatalogModal(bc){
   const c=allCatalog.find(x=>x.barcode===bc);if(!c)return
