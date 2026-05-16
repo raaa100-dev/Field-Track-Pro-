@@ -10774,7 +10774,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const rows = await dbInsert('users', { id: uid(), username, password_hash: hashPwd(password), name, role, company_id: company_id || null, phone: phone || '', email: email || '', is_lead: !!is_lead, avatar_url: avatar_url || null, active: true, created_at: nowISO() });
       return json(res, 201, safeUser(rows[0]));
-    } catch(e) { return json(res, 400, { error: e.message.includes('unique') ? 'Username already taken' : e.message }); }
+    } catch(e) { return json(res, 400, { error: e.message && e.message.includes('unique') ? 'Username already taken' : 'Request failed' }); }
   }
   const uM = p.match(/^\/api\/users\/([^/]+)$/);
   if (uM && method === 'PUT') {
@@ -10849,7 +10849,7 @@ const server = http.createServer(async (req, res) => {
       const rows = await dbInsert('jobs', job);
       await auditLog('job_created', job.id, null, job.name, u.name, '');
       return json(res, 201, rows[0]);
-    } catch(e) { return json(res, 400, { error: e.message }); }
+    } catch(e) { return json(res, 400, { error: 'Request failed' }); }
   }
   // Job CSV import
   if (p === '/api/jobs/import' && method === 'POST') {
