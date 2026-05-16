@@ -1050,17 +1050,17 @@ function setStartingDays(d){
   var lbl=document.getElementById('starting-days-label');if(lbl)lbl.textContent=d
   var list=document.getElementById('starting-widget-list');if(!list)return
   var jobs=(allJobs||[]).filter(function(j){
-    var dateStr=j.start_date||j.projected_start||j.expected_onsite_date
+    var dateStr=j.projected_start||j.expected_onsite_date
     if(!dateStr)return false
     var da=daysAway(dateStr)
     return da!=null&&da>=0&&da<=d
   }).sort(function(a,b){
-    var da=daysAway(a.start_date||a.projected_start||a.expected_onsite_date||'')
-    var db=daysAway(b.start_date||b.projected_start||b.expected_onsite_date||'')
+    var da=daysAway(a.projected_start||a.expected_onsite_date||'')
+    var db=daysAway(b.projected_start||b.expected_onsite_date||'')
     return (da==null?999:da)-(db==null?999:db)
   })
   list.innerHTML=jobs.length?jobs.map(function(j){
-    var dateStr=j.start_date||j.projected_start||j.expected_onsite_date
+    var dateStr=j.projected_start||j.expected_onsite_date
     var da=daysAway(dateStr)
     var clr=da<=3?'#16a34a':da<=7?'#3b82f6':'#8a96ab'
     return '<div class="sched-item dash-starting-row" data-jid="'+j.id+'" style="cursor:pointer">'
@@ -1363,7 +1363,7 @@ async function importJobsExcel(input){
           project_manager:r['Project Manager']||r['project_manager']||null,
           estimator:r['Estimator']||r['estimator']||null,
           phase:stage,
-          date_start:parseDate(r['Start Date']||r['start_date']||r['Start']),
+          projected_start:parseDate(r['Start Date']||r['start_date']||r['Projected Start']||r['projected_start'])||null,
           due_date:dueDate,
           projected_start:parseDate(r['Projected Start']||r['projected_start']),
           projected_closeout:parseDate(r['Projected Closeout']||r['projected_closeout']),
@@ -1601,7 +1601,7 @@ function renderInfoTab(el,j){
   </div>
   <div>
     <div class="sec-hdr">Key Dates</div>
-    <div class="two"><div class="fg"><label class="fl">Start Date</label><input class="fi" type="date" id="ed-start" value="\${j.date_start||''}"></div><div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="ed-due" value="\${j.due_date||''}"></div></div>
+    <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="ed-due" value="\${j.due_date||''}"></div>
     <div class="two"><div class="fg"><label class="fl">Projected Start</label><input class="fi" type="date" id="ed-proj-start" value="\${j.projected_start||''}"></div><div class="fg"><label class="fl">Projected Closeout</label><input class="fi" type="date" id="ed-proj-close" value="\${j.projected_closeout||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Contract Date</label><input class="fi" type="date" id="ed-dc" value="\${j.date_contract||''}"></div><div class="fg"><label class="fl">Expected On Site</label><input class="fi" type="date" id="ed-eos" value="\${j.expected_onsite_date||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Next Visit Date</label><input class="fi" type="date" id="ed-nvd" value="\${j.next_visit_date||''}"></div><div class="fg"><label class="fl">Closeout Date</label><input class="fi" type="date" id="ed-dco" value="\${j.date_closeout||''}"></div></div>
@@ -1684,7 +1684,7 @@ function renderInfoTab(el,j){
   if(ps)ps.value=j.permit_status||'not_required'
 }
 async function saveInfoTab(){
-  const u={name:v('ed-name'),job_number:v('ed-jobnum')||null,trade:v('ed-trade')||null,estimator:v('ed-estimator')||null,address:v('ed-addr'),city:v('ed-city')||null,state:v('ed-state')||null,zip:v('ed-zip')||null,gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),gc_email:v('ed-gce')||null,super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,permit_status:v('ed-permit-status')||'not_required',permit_number:v('ed-permit-number')||null,date_start:v('ed-start')||null,due_date:v('ed-due')||null,projected_start:v('ed-proj-start')||null,projected_closeout:v('ed-proj-close')||null,date_contract:v('ed-dc')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,original_contract_value:fN('ed-ocv'),contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
+  const u={name:v('ed-name'),job_number:v('ed-jobnum')||null,trade:v('ed-trade')||null,estimator:v('ed-estimator')||null,address:v('ed-addr'),city:v('ed-city')||null,state:v('ed-state')||null,zip:v('ed-zip')||null,gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),gc_email:v('ed-gce')||null,super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,permit_status:v('ed-permit-status')||'not_required',permit_number:v('ed-permit-number')||null,date_start:null,due_date:v('ed-due')||null,projected_start:v('ed-proj-start')||null,projected_closeout:v('ed-proj-close')||null,date_contract:v('ed-dc')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,original_contract_value:fN('ed-ocv'),contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
   if(u.phase==='ready_for_final'||u.phase==='complete')u.pct_complete=100
   const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
   if(error){toast(error.message,'error');return}
@@ -2473,7 +2473,6 @@ async function pgNewJob(){
       <div class="fg"><label class="fl">State</label><input class="fi" id="nj-state" placeholder="AZ" style="max-width:80px"></div>
       <div class="fg"><label class="fl">Zip</label><input class="fi" id="nj-zip" placeholder="85001" style="max-width:90px" onblur="autoLookupZip()"></div></div>
       <div class="three"><div class="fg"><label class="fl">Radius</label><select class="fs" id="nj-rad"><option value="100">100ft</option><option value="250" selected>250ft</option><option value="500">500ft</option><option value="750">750ft</option><option value="1000">1000ft</option></select></div>
-      <div class="fg"><label class="fl">Start Date</label><input class="fi" type="date" id="nj-start"></div>
       <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="nj-due"></div></div>
       <div class="three"><div class="fg"><label class="fl">Projected Start Date</label><input class="fi" type="date" id="nj-proj-start"></div>
       <div class="fg"><label class="fl">Projected Closeout Date</label><input class="fi" type="date" id="nj-proj-close"></div>
@@ -2541,7 +2540,7 @@ async function submitNewJob(){
   const btn=document.getElementById('nj-btn');btn.disabled=true;btn.textContent='Creating…'
   let lat=parseFloat(v('nj-lat'))||null,lng=parseFloat(v('nj-lng'))||null
   if(!lat&&v('nj-addr')){try{const r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(v('nj-addr'))+'&format=json&limit=1',{headers:{'User-Agent':'FieldAxisHQ/1.0'}});const j=await r.json();if(j[0]){lat=parseFloat(j[0].lat);lng=parseFloat(j[0].lon)}}catch{}}
-  const job={id:uuid(),name,address:v('nj-addr'),city:v('nj-city')||null,state:v('nj-state')||null,zip:v('nj-zip')||null,gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:v('nj-start')||null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,projected_start:v('nj-proj-start')||null,projected_closeout:v('nj-proj-close')||null,job_number:v('nj-jobid')||null,estimator:v('nj-estimator')||null,original_contract_value:fN('nj-cv'),contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),trade:v('nj-trade')||null,gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),project_manager:v('nj-pm')||null,pm_visit_schedule:v('nj-pmschedule')||'none',next_pm_visit:v('nj-pmvisit')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
+  const job={id:uuid(),name,address:v('nj-addr'),city:v('nj-city')||null,state:v('nj-state')||null,zip:v('nj-zip')||null,gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,projected_start:v('nj-proj-start')||null,projected_closeout:v('nj-proj-close')||null,job_number:v('nj-jobid')||null,estimator:v('nj-estimator')||null,original_contract_value:fN('nj-cv'),contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),trade:v('nj-trade')||null,gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),project_manager:v('nj-pm')||null,pm_visit_schedule:v('nj-pmschedule')||'none',next_pm_visit:v('nj-pmvisit')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
   const{data:created,error}=await sb.from('jobs').insert(job).select().single()
   if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Create Job';return}
   document.querySelectorAll('#nj-workers input[type=checkbox]:checked').forEach(async cb=>await sb.from('job_workers').insert({id:uuid(),job_id:created.id,worker_id:cb.value,is_active:true,added_by:ME?.full_name,added_at:new Date().toISOString()}))
