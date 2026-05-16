@@ -9628,144 +9628,408 @@ async function crmDeleteLead(btn){
 // ── INSPECTIONS ─────────────────────────────────────────────────
 async function pgCrmInspections(){
   document.getElementById('topbar-actions').innerHTML=
-    '<button class="btn btn-p btn-sm" onclick="crmNewInspection()">+ Schedule Inspection</button>'
+    '<button class="btn btn-sm" onclick="pgInspectionReports()">&#128196; Reports</button>'+
+    '<button class="btn btn-p btn-sm" onclick="startNewInspection()">+ Start Inspection</button>'
   var res=await sb.from('crm_inspections').select('*,crm_accounts(name),crm_buildings(name,address)').order('next_due',{ascending:true})
   var insps=res.data||[]
   var now=new Date()
-  var overdue=insps.filter(function(i){return new Date(i.next_due)<now&&i.status!=='completed'})
-  var due30=insps.filter(function(i){var d=new Date(i.next_due);return d>=now&&d<=new Date(now.getTime()+30*86400000)&&i.status!=='completed'})
-  var due90=insps.filter(function(i){var d=new Date(i.next_due);return d>new Date(now.getTime()+30*86400000)&&d<=new Date(now.getTime()+90*86400000)&&i.status!=='completed'})
+  var overdue=insps.filter(function(i){return new Date(i.next_due)<now&&i.status!=='completed'}).length
+  var due30=insps.filter(function(i){var d=new Date(i.next_due);return d>=now&&d<=new Date(now.getTime()+30*86400000)&&i.status!=='completed'}).length
+  var done=insps.filter(function(i){return i.status==='completed'}).length
   var h='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px">'
-  h+='<div class="stat" style="border-left:3px solid #dc2626"><div class="stat-label">Overdue</div><div class="stat-value" style="color:#dc2626">'+overdue.length+'</div></div>'
-  h+='<div class="stat" style="border-left:3px solid #d97706"><div class="stat-label">Due in 30 Days</div><div class="stat-value" style="color:#d97706">'+due30.length+'</div></div>'
-  h+='<div class="stat" style="border-left:3px solid #2563eb"><div class="stat-label">Due in 90 Days</div><div class="stat-value" style="color:#2563eb">'+due90.length+'</div></div>'
-  h+='<div class="stat"><div class="stat-label">Total Tracked</div><div class="stat-value">'+insps.length+'</div></div>'
-  h+='</div>'
-  h+='<div style="display:flex;gap:8px;margin-bottom:14px">'
-  h+='<select class="fs" id="insp-filter" style="width:180px" onchange="filterInspections(this.value)">'
-  h+='<option value="all">All Inspections</option><option value="overdue">Overdue</option><option value="30">Due in 30 days</option><option value="90">Due in 90 days</option><option value="completed">Completed</option></select>'
-  h+='<input class="fi" id="insp-search" placeholder="Search..." style="width:220px" oninput="crmInspSearchFilter(this.value)">'
+  h+='<div class="stat" style="border-left:3px solid #dc2626"><div class="stat-label">Overdue</div><div class="stat-value">'+overdue+'</div></div>'
+  h+='<div class="stat" style="border-left:3px solid #d97706"><div class="stat-label">Due in 30 Days</div><div class="stat-value">'+due30+'</div></div>'
+  h+='<div class="stat" style="border-left:3px solid #16a34a"><div class="stat-label">Completed</div><div class="stat-value">'+done+'</div></div>'
+  h+='<div class="stat"><div class="stat-label">Total Tracked</div><div class="stat-value">'+insps.length+'</div></div></div>'
+  h+='<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">'
+  h+='<button class="btn btn-sm insp-type-tab active" data-type="all" onclick="filterInspections(\'all\',this)">All</button>'
+  h+='<button class="btn btn-sm insp-type-tab" data-type="Fire Alarm" onclick="filterInspections(\'Fire Alarm\',this)">&#128293; Fire Alarm</button>'
+  h+='<button class="btn btn-sm insp-type-tab" data-type="Sprinkler" onclick="filterInspections(\'Sprinkler\',this)">&#128167; Sprinkler</button>'
+  h+='<button class="btn btn-sm insp-type-tab" data-type="ERRC" onclick="filterInspections(\'ERRC\',this)">&#9888; ERRC</button>'
+  h+='<input class="fi" id="insp-search" placeholder="Search..." style="width:200px;margin-left:auto" oninput="filterInspections((document.querySelector(\'.insp-type-tab.active\')||{}).dataset.type||\'all\')">'
   h+='</div>'
   h+='<div id="insp-list">'+buildInspTable(insps)+'</div>'
   document.getElementById('page-area').innerHTML=h
   window._crmInspections=insps
 }
-
 function buildInspTable(insps){
-  if(!insps.length)return empty('🔍','No inspections tracked yet')
+  if(!insps.length)return empty('&#128269;','No inspections yet')
   var now=new Date()
-  var h='<table class="tbl"><thead><tr><th>Building / Site</th><th>Account</th><th>Type</th><th>Last Done</th><th>Next Due</th><th>Status</th><th></th></tr></thead><tbody>'
+  var typeIcon={'Fire Alarm':'&#128293;','Sprinkler':'&#128167;','ERRC':'&#9888;'}
+  var h='<table class="tbl"><thead><tr><th>Building</th><th>Account</th><th>Type</th><th>Frequency</th><th>Last Done</th><th>Next Due</th><th>Status</th><th></th></tr></thead><tbody>'
   insps.forEach(function(i){
-    var nextDue=new Date(i.next_due)
-    var daysUntil=Math.ceil((nextDue-now)/86400000)
+    var nextDue=new Date(i.next_due),daysUntil=Math.ceil((nextDue-now)/86400000)
     var dueColor=daysUntil<0?'#dc2626':daysUntil<=30?'#d97706':daysUntil<=90?'#2563eb':'#8a96ab'
     var dueLabel=daysUntil<0?Math.abs(daysUntil)+'d overdue':daysUntil===0?'Today':daysUntil+'d'
-    var bld=i.crm_buildings
-    var acc=i.crm_accounts
+    var bld=i.crm_buildings,acc=i.crm_accounts
     var stColor={scheduled:'#2563eb',completed:'#16a34a',overdue:'#dc2626',cancelled:'#414e63'}[i.status]||'#8a96ab'
+    var sysType=i.inspection_type||''
+    var icon=typeIcon[Object.keys(typeIcon).find(function(k){return sysType.includes(k)})||'']||''
     h+='<tr>'
-    h+='<td style="font-weight:500">'+(bld?bld.name:i.building_name||'—')+'<div style="font-size:10px;color:#414e63">'+(bld?bld.address||'':'')+'</div></td>'
+    h+='<td style="font-weight:500">'+(bld?bld.name:i.building_name||'—')+'</td>'
     h+='<td style="font-size:12px">'+(acc?acc.name:'—')+'</td>'
-    h+='<td style="font-size:12px">'+(i.inspection_type||'Annual')+'</td>'
+    h+='<td style="font-size:12px">'+(icon?icon+' ':'')+sysType+'</td>'
+    h+='<td style="font-size:12px">'+(i.frequency||'Annual')+'</td>'
     h+='<td style="font-size:12px;color:#8a96ab">'+(i.last_completed?fd(i.last_completed):'Never')+'</td>'
     h+='<td><div style="font-weight:500;color:'+dueColor+'">'+fd(i.next_due)+'</div><div style="font-size:10px;color:'+dueColor+'">'+dueLabel+'</div></td>'
     h+='<td><span style="font-size:11px;font-weight:600;color:'+stColor+'">'+i.status+'</span></td>'
     h+='<td style="display:flex;gap:4px">'
-    if(i.status!=='completed')h+='<button class="btn btn-sm btn-g" data-iid="'+i.id+'" onclick="crmCompleteInspection(this)">Complete</button>'
+    if(i.status!=='completed')h+='<button class="btn btn-sm btn-p" data-iid="'+i.id+'" onclick="conductInspection(this.dataset.iid)">Inspect</button>'
+    h+='<button class="btn btn-sm" data-iid="'+i.id+'" onclick="viewInspectionReportsFor(this.dataset.iid)">Reports</button>'
     h+='<button class="btn btn-sm btn-ghost" data-iid="'+i.id+'" onclick="crmEditInspection(this)">Edit</button>'
     h+='</td></tr>'
   })
   return h+'</tbody></table>'
 }
-
-function filterInspections(filter){
+function filterInspections(typeFilter,btn){
+  if(btn){document.querySelectorAll('.insp-type-tab').forEach(function(b){b.classList.remove('active')});btn.classList.add('active')}
   var q=(document.getElementById('insp-search')||{}).value||''
-  var now=new Date()
   var insps=(window._crmInspections||[]).filter(function(i){
-    var matchQ=!q||(((i.crm_buildings||{}).name||i.building_name||'')+((i.crm_accounts||{}).name||'')+( i.inspection_type||'')).toLowerCase().includes(q.toLowerCase())
+    var matchQ=!q||((i.crm_buildings&&i.crm_buildings.name||i.building_name||'')+(i.crm_accounts&&i.crm_accounts.name||'')+(i.inspection_type||'')).toLowerCase().includes(q.toLowerCase())
     if(!matchQ)return false
-    if(filter==='all')return true
-    var d=new Date(i.next_due)
-    if(filter==='overdue')return d<now&&i.status!=='completed'
-    if(filter==='30')return d>=now&&d<=new Date(now.getTime()+30*86400000)&&i.status!=='completed'
-    if(filter==='90')return d>=now&&d<=new Date(now.getTime()+90*86400000)&&i.status!=='completed'
-    if(filter==='completed')return i.status==='completed'
-    return true
+    if(!typeFilter||typeFilter==='all')return true
+    return (i.inspection_type||'').includes(typeFilter)
   })
   var el=document.getElementById('insp-list')
   if(el)el.innerHTML=buildInspTable(insps)
 }
-
-async function crmNewInspection(){
+var INSP_TEMPLATES={
+  'Fire Alarm':{label:'Fire Alarm Inspection',icon:'&#128293;',nfpa:'NFPA 72',sections:[
+    {title:'Control Panel',items:['Panel display shows normal — no trouble or alarm signals','Panel free of corrosion, damage, or unauthorized modifications','Primary (AC) power indicator lit','Battery backup present and in good condition','All zone indicators functional','Event log reviewed for recent alarms or troubles']},
+    {title:'Smoke Detectors',items:['Detectors free of dust, paint, or physical damage','Detector spacing complies with NFPA 72','Each smoke detector tested — responds within acceptable range','No detectors missing or covered','Detector sensitivity within listed limits']},
+    {title:'Heat Detectors',items:['Heat detectors visually inspected — no physical damage','Location appropriate for area classification','Each heat detector tested (functional test)','Fixed-temperature and rate-of-rise elements operational']},
+    {title:'Manual Pull Stations',items:['All pull stations visible and unobstructed','Pull stations mounted at correct height (42"–48" AFF)','No damage or paint on pull stations','Each pull station tested — activates panel alarm','Pull station guards in place where required']},
+    {title:'Notification Appliances',items:['All horns, strobes, chimes operational','Strobes flash at correct candela rating','Appliances free of physical damage or paint','Audible devices meet minimum dB at 5 ft','Speaker/voice systems clear and intelligible (if applicable)']},
+    {title:'Flow & Tamper Switches',items:['Water flow switch activates panel within 90 seconds','Tamper switches functional on all OS&Y and PIV valves','Pre-action / deluge switches operational (if applicable)']},
+    {title:'Power & Wiring',items:['All wiring connections tight — no loose terminals','Battery voltage and impedance within spec','Battery load test performed','No splices outside approved junction boxes','Ground fault isolation operational']},
+    {title:'Suppression Interface',items:['CO2/clean agent release contacts tested (if applicable)','Door holders and magnetic releases operational','HVAC shutdown contacts functional','Elevator recall interface tested (if applicable)']}
+  ]},
+  'Sprinkler':{label:'Sprinkler System Inspection',icon:'&#128167;',nfpa:'NFPA 25',sections:[
+    {title:'Water Supply & Main Drain',items:['Main control valve (OS&Y or PIV) fully open and supervised','Main drain test performed — flow and pressure recorded','Static pressure: _____ psi  |  Residual: _____ psi','Backflow preventer tested and certified current','Water supply source adequate per hydraulic design']},
+    {title:'Sprinkler Heads',items:['All heads free of corrosion, paint, or physical damage','No loading or foreign material on heads','Clearance of 18" maintained below all heads','Correct temperature rating for area classification','No missing escutcheon plates','Spare sprinklers in cabinet','Spare head wrench present']},
+    {title:'Pipes & Hangers',items:['Visible piping free of damage, corrosion, or leaks','Hangers and supports properly secured','No unauthorized modifications to system','Pipe sleeves through walls sealed (fire stop)','System not used to support other objects']},
+    {title:'Control Valves',items:['All control valves in correct open position','All valves accessible and properly identified','Tamper switches on all supervised valves functional','Locked or sealed valves — seals intact','Post indicator valve (PIV) open and locked']},
+    {title:'Alarm Devices',items:['Water motor gong or electric bell operational','Water flow alarm activates within 90 seconds','Alarm check valve functional','Retard chamber functional (if applicable)']},
+    {title:'Wet Pipe Systems',items:['System fully charged with water','No sections drained or isolated','Gauge reads correct pressure','Inspector test connection present and operational','Drain valve and inspector test valve accessible']},
+    {title:'Dry / Pre-Action Systems',items:['Air pressure within acceptable range','Priming water level correct','Low air alarm tested and functional','Accelerator / exhauster functional (if applicable)','Trip test performed per NFPA 25 schedule']},
+    {title:'Documentation',items:['Previous inspection report on site and reviewed','Hydraulic design placard present at riser','Impairment procedures posted','Deficiency tags from prior inspection addressed']}
+  ]},
+  'ERRC':{label:'ERRC Inspection',icon:'&#9888;',nfpa:'ERRC',sections:[
+    {title:'Emergency Exits & Egress',items:['All exit doors operable and unobstructed','Exit signs illuminated (primary and battery backup)','Emergency lighting operational — 90-minute battery test','Exit paths clear and marked per NFPA 101','Panic hardware functional on all required doors','No padlocks or chains on required exit doors']},
+    {title:'Portable Fire Extinguishers',items:['All extinguishers visible, accessible, and mounted','Seals and pins intact','Pressure gauge in green zone','Inspection tags current','No extinguisher more than 12 months past annual service','Correct type and rating for hazard class','Within required travel distance (75 ft for Class A)']},
+    {title:'Suppression Systems — Visual',items:['Kitchen hood suppression service tag current','Fusible links in range hood in good condition','CO2/clean agent systems — no visible damage','Suppression manual pull accessible and labeled']},
+    {title:'Housekeeping & Storage',items:['No combustibles within 18" of sprinkler heads','Electrical panels accessible — 36" clearance maintained','No storage in mechanical, electrical, or boiler rooms','Rubbish and waste properly contained','Flammable/combustible liquids in approved containers','Storage height within approved rack limits']},
+    {title:'Hazardous Materials',items:['SDS sheets available for all hazardous materials on site','Hazmat storage areas properly labeled','Incompatible materials separated','Spill containment adequate','Quantities within code-permitted limits']},
+    {title:'Life Safety Systems',items:['CO detectors present and functional (if required)','Emergency communication system operational','AED present, charged, and accessible (if required)','First aid supplies stocked and accessible','Emergency contact numbers posted','Fire department connection (FDC) accessible and capped']},
+    {title:'Building Systems',items:['HVAC operational and filters current','Electrical — no exposed wiring, tripped breakers','Generator tested and fuel adequate (if applicable)','Elevator inspection certificate current (if applicable)','Roof access hatches operational and locked']},
+    {title:'Documentation & Training',items:['Occupancy load posted at assembly areas','Emergency action plan (EAP) current and posted','Fire drill conducted within required frequency','Employee training records current','Previous inspection deficiencies corrected']}
+  ]}
+}
+async function startNewInspection(){
   if(!window._crmAccounts){var r=await sb.from('crm_accounts').select('id,name').order('name');window._crmAccounts=r.data||[]}
-  var accOpts='<option value="">— No account —</option>'+(window._crmAccounts||[]).map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>'}).join('')
-  var h='<div class="fg"><label class="fl">Account</label><select class="fs" id="ni-acc" onchange="loadBuildingsForInspection(this.value)">'+accOpts+'</select></div>'
+  var accOpts='<option value="">— Select account —</option>'+(window._crmAccounts||[]).map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>'}).join('')
+  var sysTypes=Object.keys(INSP_TEMPLATES).map(function(k){return'<option value="'+k+'">'+INSP_TEMPLATES[k].icon+' '+INSP_TEMPLATES[k].label+'</option>'}).join('')
+  var h='<div class="fg"><label class="fl">Inspection Type *</label><select class="fs" id="ni-sys">'+sysTypes+'</select></div>'
+  h+='<div class="fg"><label class="fl">Account</label><select class="fs" id="ni-acc" onchange="loadBuildingsForInspection(this.value)">'+accOpts+'</select></div>'
   h+='<div class="fg"><label class="fl">Building / Site</label><select class="fs" id="ni-bld"><option value="">— Select account first —</option></select></div>'
-  h+='<div class="fg"><label class="fl">Or enter building name manually</label><input class="fi" id="ni-bname" placeholder="Leave blank if selected above"></div>'
-  h+='<div class="two"><div class="fg"><label class="fl">Inspection Type</label><select class="fs" id="ni-type"><option value="Annual">Annual</option><option value="Semi-Annual">Semi-Annual</option><option value="Quarterly">Quarterly</option><option value="Monthly">Monthly</option><option value="Pre-Test">Pre-Test</option><option value="Final">Final</option><option value="Other">Other</option></select></div>'
-  h+='<div class="fg"><label class="fl">Next Due Date *</label><input class="fi" type="date" id="ni-due"></div></div>'
-  h+='<div class="fg"><label class="fl">Last Completed Date</label><input class="fi" type="date" id="ni-last"></div>'
+  h+='<div class="fg"><label class="fl">Or enter building name manually</label><input class="fi" id="ni-bname" placeholder="e.g. 123 Main St"></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Frequency</label><select class="fs" id="ni-freq"><option value="Annual">Annual</option><option value="Semi-Annual">Semi-Annual</option><option value="Quarterly">Quarterly</option><option value="Monthly">Monthly</option></select></div>'
+  h+='<div class="fg"><label class="fl">Inspector</label><input class="fi" id="ni-inspector" value="'+(window.ME&&window.ME.full_name||'')+'"></div></div>'
   h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ni-notes" style="min-height:50px"></textarea></div>'
-  modal('Schedule Inspection', h, async function(){
-    var due=document.getElementById('ni-due').value
-    if(!due){toast('Due date required','error');return}
+  modal('Start New Inspection',h,async function(){
+    var sysType=document.getElementById('ni-sys').value
     var accId=document.getElementById('ni-acc').value||null
     var bldId=document.getElementById('ni-bld').value||null
     var bname=document.getElementById('ni-bname').value||null
-    var res=await sb.from('crm_inspections').insert({id:uuid(),account_id:accId,building_id:bldId||null,building_name:bname,inspection_type:document.getElementById('ni-type').value,next_due:due,last_completed:document.getElementById('ni-last').value||null,status:'scheduled',notes:document.getElementById('ni-notes').value||null,created_at:new Date().toISOString()})
-    if(res.error){toast(res.error.message,'error');return}
-    closeModal();pgCrmInspections();toast('Inspection scheduled')
-  },'Schedule')
+    var freq=document.getElementById('ni-freq').value
+    var inspector=document.getElementById('ni-inspector').value
+    var notes=document.getElementById('ni-notes').value
+    var today=new Date().toISOString().split('T')[0]
+    var inspId=uuid()
+    var ins=await sb.from('crm_inspections').insert({id:inspId,account_id:accId,building_id:bldId||null,building_name:bname,inspection_type:sysType,frequency:freq,status:'scheduled',next_due:today,notes:notes,created_at:new Date().toISOString()})
+    if(ins.error){toast(ins.error.message,'error');return}
+    closeModal()
+    conductInspectionFlow(inspId,sysType,inspector,notes)
+  },'Start Inspection')
 }
-
+async function conductInspection(inspId){
+  var insp=(window._crmInspections||[]).find(function(i){return i.id===inspId})
+  if(!insp)return
+  conductInspectionFlow(inspId,insp.inspection_type,window.ME&&window.ME.full_name||'','')
+}
+function conductInspectionFlow(inspId,sysType,inspector,prefillNotes){
+  var tmpl=INSP_TEMPLATES[sysType]
+  if(!tmpl){toast('Unknown inspection type','error');return}
+  window._inspResults={};window._inspPhotos={};window._wizNotes={}
+  window._inspId=inspId;window._inspType=sysType
+  if(window.innerWidth<768){launchWizardInspection(inspId,sysType,tmpl,inspector,prefillNotes)}
+  else{launchFullFormInspection(inspId,sysType,tmpl,inspector,prefillNotes)}
+}
+function launchFullFormInspection(inspId,sysType,tmpl,inspector,prefillNotes){
+  var pa=document.getElementById('page-area')
+  var totalItems=0;tmpl.sections.forEach(function(s){totalItems+=s.items.length})
+  var h='<div style="max-width:900px">'
+  h+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">'
+  h+='<div><div style="font-size:20px;font-weight:600">'+tmpl.icon+' '+tmpl.label+'</div>'
+  h+='<div style="font-size:12px;color:#8a96ab">'+tmpl.nfpa+'</div></div>'
+  h+='<div style="margin-left:auto;display:flex;gap:8px">'
+  h+='<button class="btn btn-sm" onclick="pgCrmInspections()">Cancel</button>'
+  h+='<button class="btn btn-p" onclick="submitInspection()">&#10003; Complete &amp; Save</button></div></div>'
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">'
+  h+='<div class="fg"><label class="fl">Inspector</label><input class="fi" id="insp-inspector" value="'+inspector+'"></div>'
+  h+='<div class="fg"><label class="fl">Date</label><input class="fi" type="date" id="insp-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'
+  h+='<div class="fg"><label class="fl">Conditions</label><input class="fi" id="insp-conditions" placeholder="e.g. Clear, 72F"></div></div>'
+  h+='<div style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;font-size:11px;color:#8a96ab;margin-bottom:4px"><span>Progress</span><span id="insp-progress-label">0 / '+totalItems+' items</span></div>'
+  h+='<div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px"><div id="insp-progress-bar" style="height:100%;width:0%;background:#2563eb;border-radius:3px;transition:width .3s"></div></div></div>'
+  tmpl.sections.forEach(function(sec,si){
+    h+='<div class="card" style="margin-bottom:12px"><div class="card-title" style="margin-bottom:12px">'+sec.title+'</div>'
+    sec.items.forEach(function(item,ii){
+      var id='item-'+si+'-'+ii
+      h+='<div class="insp-row" id="row-'+id+'" style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+      h+='<div style="flex:1;font-size:13px;padding-top:6px">'+item+'</div>'
+      h+='<div style="display:flex;gap:5px;flex-shrink:0">'
+      h+='<button class="btn btn-sm insp-btn" data-id="'+id+'" data-val="pass" onclick="setItemResult(this)" style="color:#16a34a;border-color:rgba(22,163,74,.3)">Pass</button>'
+      h+='<button class="btn btn-sm insp-btn" data-id="'+id+'" data-val="fail" onclick="setItemResult(this)" style="color:#dc2626;border-color:rgba(220,38,38,.3)">Fail</button>'
+      h+='<button class="btn btn-sm insp-btn" data-id="'+id+'" data-val="na" onclick="setItemResult(this)" style="color:#8a96ab;border-color:rgba(255,255,255,.1)">N/A</button>'
+      h+='</div></div>'
+      h+='<div id="def-'+id+'" style="display:none;padding:6px 0 10px;margin-left:4px">'
+      h+='<input class="fi" id="note-'+id+'" placeholder="Describe deficiency..." style="margin-bottom:6px">'
+      h+='<div style="display:flex;gap:6px;align-items:center">'
+      h+='<label class="btn btn-sm" style="cursor:pointer">&#128247; Photo<input type="file" accept="image/*" capture="environment" style="display:none" onchange="attachDefPhoto(this,\''+id+'\')"></label>'
+      h+='<span id="photo-'+id+'" style="font-size:11px;color:#16a34a"></span></div></div>'
+    })
+    h+='</div>'
+  })
+  h+='<div class="fg"><label class="fl">Overall Notes</label><textarea class="ft" id="insp-notes" style="min-height:80px">'+prefillNotes+'</textarea></div>'
+  h+='<button class="btn btn-p btn-full" onclick="submitInspection()">&#10003; Complete Inspection &amp; Generate Report</button>'
+  h+='</div>'
+  pa.innerHTML=h
+}
+function launchWizardInspection(inspId,sysType,tmpl,inspector,prefillNotes){
+  window._wizItems=[]
+  tmpl.sections.forEach(function(sec,si){sec.items.forEach(function(item,ii){window._wizItems.push({id:'item-'+si+'-'+ii,text:item,section:sec.title})})})
+  window._wizCurrent=0;window._wizInspector=inspector;window._wizPrefillNotes=prefillNotes;window._wizTmpl=tmpl
+  renderWizardStep()
+}
+function renderWizardStep(){
+  var items=window._wizItems,idx=window._wizCurrent,item=items[idx],total=items.length,tmpl=window._wizTmpl
+  var done=Object.keys(window._inspResults||{}).length,pct=Math.round(done/total*100)
+  var result=(window._inspResults||{})[item.id]
+  var pa=document.getElementById('page-area')
+  var h='<div style="max-width:600px;margin:0 auto">'
+  h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'
+  h+='<button class="btn btn-sm btn-ghost" onclick="pgCrmInspections()">&#8592; Exit</button>'
+  h+='<div style="flex:1"><div style="font-size:14px;font-weight:600">'+tmpl.icon+' '+tmpl.label+'</div>'
+  h+='<div style="font-size:11px;color:#8a96ab">Item '+(idx+1)+' of '+total+'</div></div>'
+  h+='<button class="btn btn-sm btn-p" onclick="submitInspection()">Done</button></div>'
+  h+='<div style="margin-bottom:16px"><div style="height:8px;background:rgba(255,255,255,.06);border-radius:4px"><div style="height:100%;width:'+pct+'%;background:#2563eb;border-radius:4px;transition:width .3s"></div></div>'
+  h+='<div style="display:flex;justify-content:space-between;font-size:10px;color:#414e63;margin-top:3px"><span>'+done+' answered</span><span>'+pct+'%</span></div></div>'
+  h+='<div style="font-size:11px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">'+item.section+'</div>'
+  h+='<div class="card" style="margin-bottom:12px">'
+  h+='<div style="font-size:15px;line-height:1.5;margin-bottom:16px">'+item.text+'</div>'
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
+  h+='<button class="btn" onclick="wizSetResult(\''+item.id+'\',\'pass\')" style="padding:14px;font-size:14px;'+(result==='pass'?'background:rgba(22,163,74,.2);color:#16a34a;border-color:#16a34a':'color:#16a34a;border-color:rgba(22,163,74,.3)')+'">&#10003; Pass</button>'
+  h+='<button class="btn" onclick="wizSetResult(\''+item.id+'\',\'fail\')" style="padding:14px;font-size:14px;'+(result==='fail'?'background:rgba(220,38,38,.2);color:#dc2626;border-color:#dc2626':'color:#dc2626;border-color:rgba(220,38,38,.3)')+'">&#10007; Fail</button>'
+  h+='<button class="btn" onclick="wizSetResult(\''+item.id+'\',\'na\')" style="padding:14px;font-size:14px;'+(result==='na'?'background:rgba(255,255,255,.1);color:#e8edf5':'color:#8a96ab;border-color:rgba(255,255,255,.1)')+'">N/A</button>'
+  h+='</div>'
+  if(result==='fail'){
+    h+='<div style="margin-top:12px;border-top:1px solid rgba(255,255,255,.06);padding-top:12px">'
+    h+='<div style="font-size:11px;color:#dc2626;font-weight:600;margin-bottom:6px">&#9888; Deficiency Details</div>'
+    h+='<textarea class="ft" id="wiz-note" style="min-height:70px" placeholder="Describe the deficiency...">'+(window._wizNotes&&window._wizNotes[item.id]||'')+'</textarea>'
+    h+='<div style="display:flex;gap:8px;margin-top:8px;align-items:center">'
+    h+='<label class="btn btn-sm" style="cursor:pointer">&#128247; Add Photo<input type="file" accept="image/*" capture="environment" style="display:none" onchange="wizAttachPhoto(this,\''+item.id+'\')"></label>'
+    h+='<span id="wiz-photo-label" style="font-size:11px;color:#16a34a">'+(window._inspPhotos&&window._inspPhotos[item.id]?'&#10003; Photo attached':'')+'</span>'
+    h+='</div></div>'
+  }
+  h+='</div>'
+  h+='<div style="display:flex;gap:8px">'
+  if(idx>0)h+='<button class="btn btn-full" onclick="wizNav(-1)">&#8592; Previous</button>'
+  if(idx<total-1)h+='<button class="btn btn-p btn-full" onclick="wizNav(1)">'+(result?'Next &#8594;':'Skip &#8594;')+'</button>'
+  else h+='<button class="btn btn-p btn-full" onclick="submitInspection()">&#10003; Complete</button>'
+  h+='</div></div>'
+  pa.innerHTML=h
+}
+function wizSaveCurrentNote(){
+  var item=window._wizItems&&window._wizItems[window._wizCurrent]
+  if(!item)return
+  if((window._inspResults||{})[item.id]==='fail'){var n=document.getElementById('wiz-note');if(n){window._wizNotes=window._wizNotes||{};window._wizNotes[item.id]=n.value}}
+}
+function wizSetResult(id,val){
+  wizSaveCurrentNote()
+  window._inspResults=window._inspResults||{}
+  window._inspResults[id]=val
+  if(val!=='fail'){setTimeout(function(){if(window._wizCurrent<window._wizItems.length-1){window._wizCurrent++;renderWizardStep()}else renderWizardStep()},300)}
+  else{renderWizardStep()}
+}
+function wizNav(dir){wizSaveCurrentNote();window._wizCurrent=Math.max(0,Math.min(window._wizItems.length-1,window._wizCurrent+dir));renderWizardStep()}
+function wizAttachPhoto(input,id){
+  var file=input.files[0];if(!file)return
+  var reader=new FileReader()
+  reader.onload=function(e){window._inspPhotos=window._inspPhotos||{};window._inspPhotos[id]=e.target.result;var lbl=document.getElementById('wiz-photo-label');if(lbl)lbl.innerHTML='&#10003; Photo attached'}
+  reader.readAsDataURL(file)
+}
+function setItemResult(btn){
+  var id=btn.dataset.id,val=btn.dataset.val
+  window._inspResults=window._inspResults||{}
+  window._inspResults[id]=val
+  document.querySelectorAll('.insp-btn[data-id="'+id+'"]').forEach(function(b){
+    b.style.background=b.dataset.val===val?(val==='pass'?'rgba(22,163,74,.2)':val==='fail'?'rgba(220,38,38,.2)':'rgba(255,255,255,.1)'):''
+  })
+  var defDiv=document.getElementById('def-'+id);if(defDiv)defDiv.style.display=val==='fail'?'block':'none'
+  var tmpl=INSP_TEMPLATES[window._inspType]
+  if(tmpl){var tot=0;tmpl.sections.forEach(function(s){tot+=s.items.length});var done=Object.keys(window._inspResults).length;var pct=Math.round(done/tot*100);var bar=document.getElementById('insp-progress-bar');var lbl=document.getElementById('insp-progress-label');if(bar)bar.style.width=pct+'%';if(lbl)lbl.textContent=done+' / '+tot+' items'}
+}
+function attachDefPhoto(input,id){
+  var file=input.files[0];if(!file)return
+  var reader=new FileReader()
+  reader.onload=function(e){window._inspPhotos=window._inspPhotos||{};window._inspPhotos[id]=e.target.result;var lbl=document.getElementById('photo-'+id);if(lbl)lbl.innerHTML='&#10003; Photo attached'}
+  reader.readAsDataURL(file)
+}
+async function submitInspection(){
+  var inspId=window._inspId,sysType=window._inspType
+  var tmpl=INSP_TEMPLATES[sysType];if(!tmpl){toast('Unknown type','error');return}
+  wizSaveCurrentNote()
+  var results=window._inspResults||{},notes=window._wizNotes||{},photos=window._inspPhotos||{}
+  var inspector=(document.getElementById('insp-inspector')||{}).value||(window._wizInspector||'')
+  var date=(document.getElementById('insp-date')||{}).value||new Date().toISOString().split('T')[0]
+  var conditions=(document.getElementById('insp-conditions')||{}).value||''
+  var overallNotes=(document.getElementById('insp-notes')||{}).value||(window._wizPrefillNotes||'')
+  var totalItems=0;tmpl.sections.forEach(function(s){totalItems+=s.items.length})
+  var passCount=Object.values(results).filter(function(v){return v==='pass'}).length
+  var failCount=Object.values(results).filter(function(v){return v==='fail'}).length
+  var naCount=Object.values(results).filter(function(v){return v==='na'}).length
+  var deficiencies=[]
+  tmpl.sections.forEach(function(sec,si){sec.items.forEach(function(item,ii){var id='item-'+si+'-'+ii;if(results[id]==='fail'){var noteEl=document.getElementById('note-'+id);deficiencies.push({item:item,section:sec.title,note:noteEl?noteEl.value:(notes[id]||''),photo:photos[id]||null})}})})
+  if(!confirm('Inspection summary:\n\u2022 '+passCount+' passed\n\u2022 '+failCount+' failed\n\u2022 '+naCount+' N/A\n\nSave and generate PDF report?'))return
+  var reportId=uuid()
+  var reportData={id:reportId,inspection_id:inspId,system_type:sysType,inspector_name:inspector,inspection_date:date,conditions:conditions,results:results,deficiency_notes:notes,deficiencies:deficiencies,pass_count:passCount,fail_count:failCount,na_count:naCount,total_items:totalItems,overall_notes:overallNotes,created_at:new Date().toISOString()}
+  var ins=await sb.from('inspection_reports').insert(reportData)
+  if(ins.error){toast('Error saving: '+ins.error.message,'error');return}
+  var today=new Date(),nextDue=new Date(today)
+  var insp=(window._crmInspections||[]).find(function(i){return i.id===inspId})
+  var freq=(insp||{}).frequency||'Annual'
+  if(freq==='Annual')nextDue.setFullYear(nextDue.getFullYear()+1)
+  else if(freq==='Semi-Annual')nextDue.setMonth(nextDue.getMonth()+6)
+  else if(freq==='Quarterly')nextDue.setMonth(nextDue.getMonth()+3)
+  else nextDue.setMonth(nextDue.getMonth()+1)
+  await sb.from('crm_inspections').update({status:'completed',last_completed:date,next_due:nextDue.toISOString().split('T')[0],updated_at:new Date().toISOString()}).eq('id',inspId)
+  if(deficiencies.length>0&&confirm('Create '+deficiencies.length+' work order task'+(deficiencies.length!==1?'s':'')+' for deficiencies?')){
+    await Promise.all(deficiencies.map(function(def){return sb.from('tasks').insert({id:uuid(),title:'['+sysType+'] '+def.item.slice(0,80),description:'Section: '+def.section+'\n'+def.item+(def.note?'\n\nNotes: '+def.note:''),status:'open',priority:'high',source:'inspection',created_at:new Date().toISOString()})}))
+    toast(deficiencies.length+' work order tasks created','info')
+  }
+  toast('Inspection saved!','success')
+  setTimeout(function(){generateInspectionPDF(reportData,tmpl,insp)},400)
+}
+function generateInspectionPDF(report,tmpl,insp){
+  var bld=insp&&insp.crm_buildings?insp.crm_buildings.name:(insp&&insp.building_name)||'—'
+  var acc=insp&&insp.crm_accounts?insp.crm_accounts.name:'—'
+  var defList=report.deficiencies||[]
+  var passRate=report.total_items>0?Math.round(((report.pass_count+report.na_count)/report.total_items)*100):0
+  var statusColor=defList.length===0?'#16a34a':defList.length<=3?'#d97706':'#dc2626'
+  var statusText=defList.length===0?'PASS':defList.length<=3?'PASS WITH DEFICIENCIES':'FAIL'
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+tmpl.label+' Report</title><style>'
+  html+='body{font-family:Arial,sans-serif;font-size:12px;color:#1a1a1a;margin:0;padding:20px}'
+  html+='.header{border-bottom:2px solid #1a1a1a;padding-bottom:12px;margin-bottom:16px}h1{font-size:20px;margin:0 0 4px}h2{font-size:13px;border-bottom:1px solid #ccc;padding-bottom:4px;margin:18px 0 8px}'
+  html+='.meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}.meta-item{background:#f5f5f5;padding:8px;border-radius:4px}.meta-label{font-size:9px;text-transform:uppercase;color:#666;margin-bottom:2px}.meta-value{font-weight:600}'
+  html+='.status{text-align:center;padding:12px;border-radius:6px;margin-bottom:16px;font-size:16px;font-weight:700;color:white;background:'+statusColor+'}'
+  html+='.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}.sum-box{text-align:center;padding:10px;border-radius:4px;border:1px solid #ddd}.sum-num{font-size:22px;font-weight:300}.sum-lbl{font-size:9px;color:#666;text-transform:uppercase}'
+  html+='.sec{background:#f0f0f0;padding:6px 10px;font-weight:600;margin:8px 0 4px;font-size:11px}'
+  html+='.item-row{display:flex;align-items:flex-start;padding:4px 8px;border-bottom:1px solid #f0f0f0}.item-text{flex:1}'
+  html+='.result{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px;white-space:nowrap}.pass{background:#dcfce7;color:#166534}.fail{background:#fee2e2;color:#991b1b}.na{background:#f3f4f6;color:#6b7280}'
+  html+='.def{background:#fff3cd;border-left:3px solid #d97706;padding:8px;margin:4px 8px 8px;font-size:11px}'
+  html+='@media print{button{display:none}}'
+  html+='</style></head><body>'
+  html+='<div class="header"><h1>'+tmpl.label+'</h1><div style="font-size:11px;color:#666">'+tmpl.nfpa+' Compliance Inspection</div></div>'
+  html+='<div class="meta">'
+  html+='<div class="meta-item"><div class="meta-label">Building</div><div class="meta-value">'+bld+'</div></div>'
+  html+='<div class="meta-item"><div class="meta-label">Account</div><div class="meta-value">'+acc+'</div></div>'
+  html+='<div class="meta-item"><div class="meta-label">Date</div><div class="meta-value">'+(report.inspection_date||'')+'</div></div>'
+  html+='<div class="meta-item"><div class="meta-label">Inspector</div><div class="meta-value">'+(report.inspector_name||'—')+'</div></div>'
+  html+='<div class="meta-item"><div class="meta-label">Conditions</div><div class="meta-value">'+(report.conditions||'—')+'</div></div>'
+  html+='<div class="meta-item"><div class="meta-label">Pass Rate</div><div class="meta-value">'+passRate+'%</div></div>'
+  html+='</div>'
+  html+='<div class="status">'+statusText+'</div>'
+  html+='<div class="summary">'
+  html+='<div class="sum-box"><div class="sum-num" style="color:#16a34a">'+(report.pass_count||0)+'</div><div class="sum-lbl">Passed</div></div>'
+  html+='<div class="sum-box"><div class="sum-num" style="color:#dc2626">'+(report.fail_count||0)+'</div><div class="sum-lbl">Failed</div></div>'
+  html+='<div class="sum-box"><div class="sum-num" style="color:#6b7280">'+(report.na_count||0)+'</div><div class="sum-lbl">N/A</div></div>'
+  html+='<div class="sum-box"><div class="sum-num" style="color:#d97706">'+((report.total_items||0)-(report.pass_count||0)-(report.fail_count||0)-(report.na_count||0))+'</div><div class="sum-lbl">Not Checked</div></div>'
+  html+='</div>'
+  html+='<h2>Inspection Checklist</h2>'
+  tmpl.sections.forEach(function(sec,si){
+    html+='<div class="sec">'+sec.title+'</div>'
+    sec.items.forEach(function(item,ii){
+      var id='item-'+si+'-'+ii
+      var res=(report.results||{})[id]||'—'
+      html+='<div class="item-row"><span class="item-text">'+item+'</span><span class="result '+(res==='pass'?'pass':res==='fail'?'fail':res==='na'?'na':'')+'">'+res.toUpperCase()+'</span></div>'
+      if(res==='fail'){var n=(report.deficiency_notes||{})[id]||'';html+='<div class="def"><strong>&#9888; Deficiency</strong>'+(n?'<br>'+n:'')+'</div>'}
+    })
+  })
+  if(defList.length>0){html+='<h2 style="color:#dc2626">&#9888; Deficiencies ('+defList.length+')</h2>';defList.forEach(function(def,i){html+='<div class="def" style="margin:6px 0"><strong>'+(i+1)+'. ['+def.section+'] '+def.item+'</strong>'+(def.note?'<br>'+def.note:'')+'</div>'})}
+  if(report.overall_notes)html+='<h2>Notes</h2><p>'+report.overall_notes+'</p>'
+  html+='<div style="margin-top:40px;border-top:1px solid #ccc;padding-top:12px;font-size:10px;color:#999">Generated by FieldAxisHQ &middot; '+new Date().toLocaleString()+'</div>'
+  html+='<div style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px">'
+  html+='<div style="border-top:1px solid #666;padding-top:6px;font-size:11px">Inspector Signature<br><br>'+( report.inspector_name||'')+'</div>'
+  html+='<div style="border-top:1px solid #666;padding-top:6px;font-size:11px">Date: '+(report.inspection_date||'')+'</div>'
+  html+='</div></body></html>'
+  var win=window.open('','_blank')
+  if(win){win.document.write(html);win.document.close();setTimeout(function(){win.print()},800)}
+  pgCrmInspections()
+}
+async function pgInspectionReports(){
+  var res=await sb.from('inspection_reports').select('*').order('inspection_date',{ascending:false}).limit(100)
+  var reports=res.data||[]
+  var h='<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><h2 style="margin:0;font-size:16px">&#128196; Inspection Reports</h2><button class="btn btn-sm btn-ghost" onclick="pgCrmInspections()" style="margin-left:auto">&#8592; Back</button></div>'
+  if(!reports.length){h+=empty('&#128196;','No reports yet');document.getElementById('page-area').innerHTML=h;return}
+  h+='<table class="tbl"><thead><tr><th>Date</th><th>Type</th><th>Inspector</th><th>Pass</th><th>Fail</th><th>Result</th><th></th></tr></thead><tbody>'
+  reports.forEach(function(r){
+    var defCount=(r.deficiencies||[]).length
+    var stColor=defCount===0?'#16a34a':defCount<=3?'#d97706':'#dc2626'
+    var stText=defCount===0?'Pass':defCount<=3?'Pass w/ Deficiencies':'Fail'
+    h+='<tr><td>'+fd(r.inspection_date)+'</td><td>'+(INSP_TEMPLATES[r.system_type]?INSP_TEMPLATES[r.system_type].icon+' ':'')+( r.system_type||'')+'</td><td style="font-size:12px">'+(r.inspector_name||'—')+'</td><td style="color:#16a34a;font-weight:600">'+(r.pass_count||0)+'</td><td style="color:#dc2626;font-weight:600">'+(r.fail_count||0)+'</td><td><span style="font-size:11px;font-weight:600;color:'+stColor+'">'+stText+'</span></td>'
+    h+='<td><button class="btn btn-sm" data-rid="'+r.id+'" onclick="reprintReport(this.dataset.rid)">&#128196; PDF</button></td></tr>'
+  })
+  h+='</tbody></table>'
+  document.getElementById('page-area').innerHTML=h
+  window._allReports=reports
+}
+async function viewInspectionReportsFor(inspId){
+  var res=await sb.from('inspection_reports').select('*').eq('inspection_id',inspId).order('inspection_date',{ascending:false}).limit(1)
+  if(!res.data||!res.data.length){toast('No reports yet','info');return}
+  var r=res.data[0],insp=(window._crmInspections||[]).find(function(i){return i.id===inspId})
+  var tmpl=INSP_TEMPLATES[r.system_type];if(tmpl)generateInspectionPDF(r,tmpl,insp)
+}
+async function reprintReport(reportId){
+  var r=(window._allReports||[]).find(function(x){return x.id===reportId});if(!r)return
+  var tmpl=INSP_TEMPLATES[r.system_type];if(!tmpl){toast('Template not found','error');return}
+  generateInspectionPDF(r,tmpl,null)
+}
+async function crmNewInspection(){startNewInspection()}
 async function loadBuildingsForInspection(accountId){
-  var sel=document.getElementById('ni-bld')
-  if(!sel)return
+  var sel=document.getElementById('ni-bld');if(!sel)return
   if(!accountId){sel.innerHTML='<option value="">— Select account first —</option>';return}
   var r=await sb.from('crm_buildings').select('id,name').eq('account_id',accountId).order('name')
-  sel.innerHTML='<option value="">— Select building —</option>'+( r.data||[]).map(function(b){return'<option value="'+b.id+'">'+b.name+'</option>'}).join('')
+  sel.innerHTML='<option value="">— Select building —</option>'+(r.data||[]).map(function(b){return'<option value="'+b.id+'">'+b.name+'</option>'}).join('')
 }
-
-async function crmCompleteInspection(btn){
-  var id=btn.getAttribute('data-iid')
-  var today=new Date().toISOString().split('T')[0]
-  var insp=(window._crmInspections||[]).find(function(x){return x.id===id})
-  // Calculate next due based on type
-  var nextDue=new Date()
-  var type=(insp||{}).inspection_type||'Annual'
-  if(type==='Annual')nextDue.setFullYear(nextDue.getFullYear()+1)
-  else if(type==='Semi-Annual')nextDue.setMonth(nextDue.getMonth()+6)
-  else if(type==='Quarterly')nextDue.setMonth(nextDue.getMonth()+3)
-  else if(type==='Monthly')nextDue.setMonth(nextDue.getMonth()+1)
-  else nextDue.setFullYear(nextDue.getFullYear()+1)
-  var nextDueStr=nextDue.toISOString().split('T')[0]
-  var notes=prompt('Completion notes (optional):')||null
-  // Mark current as completed
-  await sb.from('crm_inspections').update({status:'completed',last_completed:today,completion_notes:notes,updated_at:new Date().toISOString()}).eq('id',id)
-  // Schedule next inspection
-  await sb.from('crm_inspections').insert({id:uuid(),account_id:(insp||{}).account_id,building_id:(insp||{}).building_id,building_name:(insp||{}).building_name,inspection_type:type,next_due:nextDueStr,status:'scheduled',created_at:new Date().toISOString()})
-  pgCrmInspections();toast('Inspection completed — next '+type+' scheduled for '+fd(nextDueStr))
-}
-
 async function crmEditInspection(btn){
   var id=btn.getAttribute('data-iid')
   var r=await sb.from('crm_inspections').select('*').eq('id',id).single()
   var i=r.data;if(!i)return
-  var typeOpts=['Annual','Semi-Annual','Quarterly','Monthly','Pre-Test','Final','Other'].map(function(t){return'<option'+(i.inspection_type===t?' selected':'')+'>'+t+'</option>'}).join('')
+  var sysTypes=Object.keys(INSP_TEMPLATES).map(function(k){return'<option value="'+k+'"'+(i.inspection_type===k?' selected':'')+'>'+INSP_TEMPLATES[k].icon+' '+INSP_TEMPLATES[k].label+'</option>'}).join('')
+  var freqOpts=['Annual','Semi-Annual','Quarterly','Monthly'].map(function(f){return'<option value="'+f+'"'+(i.frequency===f?' selected':'')+'>'+f+'</option>'}).join('')
   var statOpts=['scheduled','completed','overdue','cancelled'].map(function(s){return'<option value="'+s+'"'+(i.status===s?' selected':'')+'>'+s+'</option>'}).join('')
-  var h='<div class="two"><div class="fg"><label class="fl">Type</label><select class="fs" id="ei-type">'+typeOpts+'</select></div>'
-  h+='<div class="fg"><label class="fl">Status</label><select class="fs" id="ei-stat">'+statOpts+'</select></div></div>'
+  var h='<div class="two"><div class="fg"><label class="fl">Type</label><select class="fs" id="ei-sys">'+sysTypes+'</select></div>'
+  h+='<div class="fg"><label class="fl">Frequency</label><select class="fs" id="ei-freq">'+freqOpts+'</select></div></div>'
+  h+='<div class="fg"><label class="fl">Status</label><select class="fs" id="ei-stat">'+statOpts+'</select></div>'
   h+='<div class="two"><div class="fg"><label class="fl">Next Due</label><input class="fi" type="date" id="ei-due" value="'+(i.next_due||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Last Completed</label><input class="fi" type="date" id="ei-last" value="'+(i.last_completed||'')+'"></div></div>'
   h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ei-notes">'+(i.notes||'')+'</textarea></div>'
-  modal('Edit Inspection', h, async function(){
-    var res=await sb.from('crm_inspections').update({inspection_type:document.getElementById('ei-type').value,status:document.getElementById('ei-stat').value,next_due:document.getElementById('ei-due').value,last_completed:document.getElementById('ei-last').value||null,notes:document.getElementById('ei-notes').value||null,updated_at:new Date().toISOString()}).eq('id',id)
+  modal('Edit Inspection',h,async function(){
+    var res=await sb.from('crm_inspections').update({inspection_type:document.getElementById('ei-sys').value,frequency:document.getElementById('ei-freq').value,status:document.getElementById('ei-stat').value,next_due:document.getElementById('ei-due').value,last_completed:document.getElementById('ei-last').value||null,notes:document.getElementById('ei-notes').value,updated_at:new Date().toISOString()}).eq('id',id)
     if(res.error){toast(res.error.message,'error');return}
     closeModal();pgCrmInspections();toast('Inspection updated')
   },'Save')
 }
-
-
 </script>
 </body>
 </html>
