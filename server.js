@@ -2413,10 +2413,12 @@ async function pgDaily(){
   // Fetch reports with job names
   const[{data:reports},{data:jobs}]=await Promise.all([
     sb.from('daily_reports').select('*').order('report_date',{ascending:false}).limit(500),
-    sb.from('jobs').select('id,name').order('name')
+    sb.from('jobs').select('id,name,job_number').order('name')
   ])
   _drAll=reports||[]
+  _drAll=reports||[]
   _drJobs={}; (jobs||[]).forEach(j=>_drJobs[j.id]=j.name)
+  allJobs=jobs||[]
   // Build employee list for filter
   const employees=[...new Set(_drAll.map(r=>r.submitted_by).filter(Boolean))].sort()
   const today=new Date().toISOString().split('T')[0]
@@ -2468,14 +2470,17 @@ function filterDailyReports(){
   if(!rows.length){el.innerHTML=empty('📋','No reports match your filters');return}
   let html='<div style="font-size:11px;color:#414e63;margin-bottom:8px">'+rows.length+' report'+(rows.length!==1?'s':'')+' found</div>'
   html+='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr>'
-  html+='<th>Date</th><th>Job</th><th>Submitted By</th><th>Crew</th><th>Hours</th><th>Weather</th><th>Issues</th><th></th>'
+  html+='<th>Date</th><th>Job</th><th>Job ID</th><th>Submitted By</th><th>Crew</th><th>Hours</th><th>Weather</th><th>Issues</th><th></th>'
   html+='</tr></thead><tbody>'
   for(const r of rows){
     const jobName=(_drJobs||{})[r.job_id]||r.job_id||'—'
+    const jobObj=(typeof allJobs!=='undefined'?allJobs:[]).find(function(j){return j.id===r.job_id})
+    const jobNum=jobObj&&jobObj.job_number?jobObj.job_number:'—'
     const hasIssues=r.issues&&r.issues.trim()
     html+='<tr data-rid="'+r.id+'" onclick="viewDailyReport(this.dataset.rid)" style="cursor:pointer">'
     html+='<td style="font-weight:500;white-space:nowrap">'+fd(r.report_date)+'</td>'
     html+='<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+jobName+'</td>'
+    html+='<td style="font-size:11px;color:#8a96ab;white-space:nowrap">'+jobNum+'</td>'
     html+='<td style="font-size:12px">'+(r.submitted_by||'—')+'</td>'
     html+='<td>'+r.crew_count+'</td>'
     html+='<td>'+fh(r.hours_worked)+'</td>'
