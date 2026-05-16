@@ -856,8 +856,8 @@ async function pgDash(){
     <div class="stat"><div class="stat-label">Parts Pipeline</div><div class="stat-value" style="color:#a855f7">\${out.length}</div><div style="font-size:10px;color:#414e63;margin-top:2px">\${staged.length} staged · \${out.length} checked out · \${installed.length} installed</div></div>
     <div class="stat"><div class="stat-label">On Site Now</div><div class="stat-value" style="color:#16a34a">\${checkins.length}</div></div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px">
-    <div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;width:100%">
+    <div style="min-width:0;overflow:hidden">
       <div class="card">
         <div class="card-title">Job Search</div>
         <div style="position:relative"><input class="fi" id="dash-job-search" placeholder="Search by job name or ID..." oninput="dashJobSearch(this.value)" autocomplete="off" style="width:100%;padding-right:36px"><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#414e63">&#128269;</span></div>
@@ -884,7 +884,7 @@ async function pgDash(){
         <div id="dash-ready-list"></div>
       </div>
     </div>
-    <div>
+    <div style="min-width:0;overflow:hidden">
       <div class="card">
         <div class="card-title">Low Stock</div>
         <div id="dash-low-stock-list"></div>
@@ -894,7 +894,7 @@ async function pgDash(){
         <div id="dash-checkins-list"></div>
       </div>
     </div>
-    <div>
+    <div style="min-width:0;overflow:hidden">
       <div id="dash-tasks-widget"></div>
       <div id="dash-labor-widget"></div>
       <div class="card">
