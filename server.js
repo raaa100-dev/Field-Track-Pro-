@@ -866,12 +866,12 @@ async function pgDash(){
       <div class="card">
       <div class="card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-          <span>\u26a0 Due Within <span id="due-days-label">\\${window._dueDays||14}</span> Days</span>
+          <span>\u26a0 Due Within <span id="due-days-label">14</span> Days</span>
           <span style="display:flex;gap:4px">
-            \\${[14,30,60,90].map(function(d){return '<button class="btn btn-sm due-day-btn" data-days="'+d+'" onclick="setDueDays('+d+')" style="padding:2px 8px;font-size:10px;'+((_dueDays||14)===d?'background:rgba(59,130,246,.25);color:#60a5fa;':'')+'">'+d+'d</button>'}).join('')}
+            \\${[14,30,60,90].map(function(d){return '<button class="btn btn-sm due-day-btn" data-days="'+d+'" onclick="setDueDays('+d+')" style="padding:2px 8px;font-size:10px;'+(d===14?'background:rgba(59,130,246,.25);color:#60a5fa;':'')+'">'+d+'d</button>'}).join('')}
           </span>
         </div>
-        <div id="due-widget-list">\\${soon.length?soon.map(function(s){var dc=s.da<=3?'#dc2626':s.da<=7?'#d97706':'#16a34a';var bc=s.da<=3?'bg-red':s.da<=7?'bg-amber':'bg-green';return '<div class="sched-item dash-due-row" data-jid="'+s.id+'" style="cursor:pointer">'+'<div class="sched-dot" style="background:'+dc+';margin-top:4px"></div>'+'<div style="flex:1"><div style="font-size:12px;font-weight:500">'+s.job+'</div>'+'<div style="font-size:10px;color:#414e63">'+s.type+' · '+fd(s.date)+'</div></div>'+'<span class="badge '+bc+'">'+(s.da===0?'Today':s.da+'d')+'</span></div>';}).join(''):empty('All clear','')}</div>\n      </div>
+        <div id="due-widget-list"></div>
       <div class="card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">Ready for Inspection
           <span style="display:flex;gap:8px">
@@ -903,6 +903,7 @@ async function pgDash(){
   </div>\`
   renderReadyWidget()
   setTimeout(function(){
+  setDueDays(window._dueDays||14)
     document.querySelectorAll('.dash-due-row').forEach(function(el){
       el.onclick=function(){openJob(this.dataset.jid)}
       el.onmouseover=function(){this.style.background='rgba(255,255,255,.04)'}
