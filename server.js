@@ -1091,6 +1091,20 @@ function renderJobsTable(q){
       if(si&&document.activeElement!==si){si.focus();var l=si.value.length;try{si.setSelectionRange(l,l)}catch(e){}}
     },0)
   }
+  if(window._stageMenuOpen){
+    window._stageMenuOpen=false
+    var menu=document.getElementById('stage-filter-menu')
+    if(menu){
+      menu.style.display='block'
+      menu.querySelectorAll('input[type=checkbox]').forEach(function(b){
+        b.checked=!window._stageFilter||window._stageFilter.includes(b.value)
+      })
+      var lbl=document.getElementById('stage-filter-label')
+      if(lbl)lbl.textContent=window._stageFilter?window._stageFilter.length+' Stages':'All Stages'
+      var closeH=function(e){if(!document.getElementById('stage-filter-wrap').contains(e.target)){menu.style.display='none';document.removeEventListener('click',closeH)}}
+      setTimeout(function(){document.addEventListener('click',closeH)},50)
+    }
+  }
 }
 
 function toggleStageFilter(btn){
@@ -1108,6 +1122,7 @@ function stageCheckChange(){
   var lbl=document.getElementById('stage-filter-label')
   if(lbl)lbl.textContent=window._stageFilter?checked.length+' Stages':'All Stages'
   var q=document.querySelector('#page-area input[placeholder]')
+  window._stageMenuOpen=true
   renderJobsTable(q?q.value:'')
 }
 function setAllStages(v){
