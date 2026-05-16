@@ -4818,7 +4818,15 @@ function filterEmployees(){
     html+='<td style="font-size:11px">'+(u.companies?.name||'Internal')+'</td>'
     html+='<td style="font-size:10px;color:#8a96ab">'+(u.emergency_contact||'—')+'<br>'+(u.emergency_phone?'<span style="color:#414e63">'+u.emergency_phone+'</span>':'')+'</td>'
     html+='<td><span class="badge '+(u.is_active?'bg-green':'bg-gray')+'">'+(u.is_active?'Active':'Inactive')+'</span></td>'
-    html+='<td style="display:flex;gap:4px"><button class="btn btn-sm" data-id="'+u.id+'" onclick="viewEmployeeModal(this.dataset.id)">View</button><button class="btn btn-sm" data-id="'+u.id+'" data-role="'+u.role+'" data-active="'+u.is_active+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="editUserModal(this.dataset.id,this.dataset.role,this.dataset.active,this.dataset.name)">Edit</button><button class="btn btn-sm" style="color:#dc2626;border-color:rgba(220,38,38,.3)" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="deleteUserConfirm(this.dataset.id,this.dataset.name)">Delete</button></td>'
+    html+='<td style="display:flex;gap:4px;flex-wrap:wrap">'
+    html+='<button class="btn btn-sm" data-id="'+u.id+'" onclick="viewEmployeeModal(this.dataset.id)">View</button>'
+    html+='<button class="btn btn-sm" data-id="'+u.id+'" data-role="'+u.role+'" data-active="'+u.is_active+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="editUserModal(this.dataset.id,this.dataset.role,this.dataset.active,this.dataset.name)">Edit</button>'
+    html+=u.is_active
+      ?'<button class="btn btn-sm" style="color:#d97706;border-color:rgba(217,119,6,.35)" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="toggleUserActive(this.dataset.id,this.dataset.name,false)">Deactivate</button>'
+      :'<button class="btn btn-sm" style="color:#16a34a;border-color:rgba(22,163,74,.35)" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="toggleUserActive(this.dataset.id,this.dataset.name,true)">Activate</button>'
+    html+='<button class="btn btn-sm" style="color:#8a96ab" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="forceLogoutUser(this.dataset.id,this.dataset.name)" title="Force logout">⏏ Logout</button>'
+    html+='<button class="btn btn-sm" style="color:#dc2626;border-color:rgba(220,38,38,.3)" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="deleteUserConfirm(this.dataset.id,this.dataset.name)">Delete</button>'
+    html+='</td>'
     html+='</tr>'
   }
   html+='</tbody></table></div>'
@@ -4936,6 +4944,26 @@ function addUserModal(){
   },'Save')
 }
 
+async function toggleUserActive(id,name,activate){
+  if(!confirm((activate?'Activate':'Deactivate')+' '+name+'?'))return
+  var{error}=await sb.from('profiles').update({is_active:activate,updated_at:new Date().toISOString()}).eq('id',id)
+  if(error){toast(error.message,'error');return}
+  if(!activate){
+    try{var{data:{session}}=await sb.auth.getSession();await fetch('/api/force-logout',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},body:JSON.stringify({user_id:id})})}catch(e){}
+  }
+  toast(name+(activate?' activated':' deactivated'))
+  pgUsers()
+}
+async function forceLogoutUser(id,name){
+  if(!confirm('Force log out '+name+'? Their session ends immediately.'))return
+  try{
+    var{data:{session}}=await sb.auth.getSession()
+    var res=await fetch('/api/force-logout',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},body:JSON.stringify({user_id:id})})
+    var d={};try{d=await res.json()}catch(e){}
+    if(d.error)toast('Could not force logout: '+d.error,'error')
+    else toast(name+' has been logged out')
+  }catch(e){toast(e.message,'error')}
+}
 async function deleteUserConfirm(id,name){
   if(!confirm('Delete '+name+'? This cannot be undone.'))return
   var{error}=await sb.from('profiles').delete().eq('id',id)
@@ -11059,6 +11087,17 @@ const server = http.createServer(async (req, res) => {
   if (invIM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm')) return;
     try { return json(res, 200, (await dbUpdate('invoices', await readBody(req), { id: 'eq.' + invIM[1] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+  }
+
+  if(p==='/api/force-logout'&&method==='POST'){
+    const u=await requireAuth(req,res);if(!u)return
+    const body=await readBody(req)
+    const{user_id}=body
+    if(!user_id)return json(res,400,{error:'user_id required'})
+    const serviceKey=SB_SERVICE||SB_ANON
+    const logoutRes=await sbFetch('POST','/auth/v1/admin/users/'+user_id+'/logout',{scope:'global'},serviceKey)
+    if(logoutRes.error)return json(res,400,{error:logoutRes.error.message||'Could not force logout'})
+    return json(res,200,{success:true})
   }
 
   if(p==='/api/delete-user'&&method==='POST'){
