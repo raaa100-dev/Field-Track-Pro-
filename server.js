@@ -1261,12 +1261,16 @@ function renderJobsTable(q){
     }
   }
 }
-  var _jtw2=document.getElementById('jobs-table-wrap')
-  if(_jtw2){
-    // Track scroll position live so it's always current when user clicks a job
-    _jtw2.onscroll=function(){window._jobsScrollTop=this.scrollTop;document.getElementById('page-title').textContent='Jobs ['+this.scrollTop+']'}
-    // Restore position if returning from job detail
-    if(window._jobsScrollTop){_jtw2.scrollTop=window._jobsScrollTop}
+  // Attach capture-phase scroll listener to catch ANY element scrolling
+  window._jobsScrollHandler=function(e){
+    var t=e.target
+    document.getElementById('page-title').textContent='scroll:'+( t?t.id||t.className||t.tagName:'?')+':'+( t?t.scrollTop:0)
+    window._jobsScrollTop=t?t.scrollTop:window.scrollY||0
+    window._jobsScrollEl=t
+  }
+  document.addEventListener('scroll',window._jobsScrollHandler,true)
+  if(window._jobsScrollTop&&window._jobsScrollEl){
+    window._jobsScrollEl.scrollTop=window._jobsScrollTop
   }
 
 function toggleStageFilter(btn){
