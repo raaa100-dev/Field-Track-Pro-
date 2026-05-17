@@ -5975,7 +5975,6 @@ async function loadMarkupData(planId,planUrl){
       canvas.onclick=handleMarkupClick
     }
   }else{
-  }else{
     // Image plan - load directly onto canvas
     const img=new Image();img.crossOrigin='anonymous'
     img.onload=()=>{
