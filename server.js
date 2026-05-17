@@ -1265,10 +1265,11 @@ function renderJobsTable(q){
     var _st=window._jobsScrollTop,_att=0
     var _poll=setInterval(function(){
       var el=document.getElementById('jobs-table-wrap')
-      if(!el||_att++>20){clearInterval(_poll);window._jobsScrollTop=0;return}
+      if(!el||_att++>20){clearInterval(_poll);toast('scroll: no element after '+_att+' tries','warn');window._jobsScrollTop=0;return}
       el.scrollTop=_st
+      toast('try '+_att+': set '+_st+' got '+el.scrollTop+' sh='+el.scrollHeight,'info')
       if(el.scrollTop>=_st-5){clearInterval(_poll);window._jobsScrollTop=0}
-    },30)
+    },200)
   }
 
 function toggleStageFilter(btn){
