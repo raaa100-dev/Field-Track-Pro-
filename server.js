@@ -6203,7 +6203,7 @@ async function renderAsbuiltsTab(el){
     <div style="font-size:22px">\${p.file_name?.match(/\\.pdf$/i)?'📄':'🖼'}</div>
     <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${p.file_name}</div>
     <div style="font-size:10px;color:#414e63;margin-top:1px">\${fd(p.created_at)} · \${(p.markup_json?.dots||[]).length} dots · \${(p.markup_json?.textboxes||[]).length} text boxes</div></div>
-    <button class="btn btn-sm btn-p" onclick="openPlanMarkup('\${p.id}','\${p.url}','\${p.file_name}',function(){renderJobDetail();setTimeout(function(){loadJT('jt-asbuilts')},200)}">✏ Markup</button>
+    <button class="btn btn-sm btn-p" onclick="openPlanMarkup('\${p.id}','\${p.url}','\${p.file_name}',function(){renderJobDetail();setTimeout(function(){loadJT('jt-asbuilts')},200)})">✏ Markup</button>
     <a href="\${p.url}" target="_blank" class="btn btn-sm">View</a>
     <button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="deleteJobPlan('\${p.id}','\${p.storage_path||''}')">Del</button>
   </div>\`).join(''):empty('📐','No plans uploaded yet — upload PDF or image files to begin markup')}\` 
