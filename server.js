@@ -1267,7 +1267,7 @@ function renderJobsTable(q){
   }
 }
 
-  var menu=document.getElementById('stage-filter-menu')
+function toggleStageFilter(btn){
   if(!menu)return
   var isOpen=menu.style.display!=='none'
   menu.style.display=isOpen?'none':'block'
