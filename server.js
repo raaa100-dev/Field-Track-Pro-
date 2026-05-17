@@ -1007,16 +1007,6 @@ async function pgJobs(){
     if(error) throw error
     allJobs=jobs||[]
     renderJobsTable('')
-  if(window._jobsScrollTop){
-    var _restoreJobs=function(){
-      var target=document.querySelector('#page-area .card[style*="overflow-y"]')||document.getElementById('page-area')
-      if(target){target.scrollTop=window._jobsScrollTop;window._jobsScrollTop=0}
-    }
-    // Try at 100ms, 300ms, 600ms — table needs time to render
-    setTimeout(_restoreJobs,100)
-    setTimeout(_restoreJobs,300)
-    setTimeout(_restoreJobs,600)
-  }
   } catch(e) {
     const errMsg=e.message||String(e)
     document.getElementById('page-area').innerHTML='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:18px;margin:0"><div style="font-weight:600;color:#dc2626;margin-bottom:6px">Failed to load jobs</div><div style="font-size:12px;color:#f87171;font-family:monospace;word-break:break-all;margin-bottom:8px">'+errMsg+'</div><div style="font-size:11px;color:#8a96ab">To fix: go to Supabase Dashboard → SQL Editor → run <strong>supabase-fix.sql</strong> from the zip, then refresh this page.</div></div>'
@@ -1271,6 +1261,13 @@ function renderJobsTable(q){
     }
   }
 }
+  if(window._jobsScrollTop){
+    var _st=window._jobsScrollTop
+    requestAnimationFrame(function(){
+      var el=document.querySelector('#page-area .card[style*="overflow-y"]')||document.getElementById('page-area')
+      if(el){el.scrollTop=_st;window._jobsScrollTop=0}
+    })
+  }
 
 function toggleStageFilter(btn){
   var menu=document.getElementById('stage-filter-menu')
