@@ -5890,7 +5890,9 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
   loadMarkupData(planId,planUrl)
 }
 
-let _mMode='dot',_mColor='#dc2626',_mCanvas=null,_mCtx=null,_mImg=null,_mData={dots:[],textboxes:[],lines:[],legend:[]},_mLineStart=null
+let _mMode='dot',_mColor='#dc2626',_mCanvas=null,_mCtx=null,_mImg=null,_mData={legend:[],pages:{}},_mLineStart=null
+function _pg(){return window._pdfCurrentPage||1}
+function _mpd(){if(!_mData.pages[_pg()])_mData.pages[_pg()]={dots:[],textboxes:[],lines:[]};return _mData.pages[_pg()]}
 
 function renderPdfPage(pageNum){
   if(!window._pdfDoc)return
@@ -5931,7 +5933,12 @@ function setMarkupColor(c,el){
 
 async function loadMarkupData(planId,planUrl){
   const{data:plan}=await sb.from('job_walk_plans').select('markup_json').eq('id',planId).single()
-  _mData=plan?.markup_json||{dots:[],textboxes:[],lines:[],legend:[]};if(!_mData.lines)_mData.lines=[]
+  var loaded=plan&&plan.markup_json||{legend:[],pages:{}}
+  if(loaded.dots||loaded.textboxes||loaded.lines){
+    _mData={legend:loaded.legend||[],pages:{1:{dots:loaded.dots||[],textboxes:loaded.textboxes||[],lines:loaded.lines||[]}}}
+  }else{
+    _mData={legend:loaded.legend||[],pages:loaded.pages||{}}
+  }
   const canvas=document.getElementById('markup-canvas')
   const ctx=canvas.getContext('2d')
   _mCanvas=canvas;_mCtx=ctx
@@ -6006,11 +6013,11 @@ function handleMarkupClick(e){
   const cx=(e.clientX-rect.left)*sx,cy=(e.clientY-rect.top)*sy
   if(_mMode==='dot'){
     const sz=parseInt(document.getElementById('dot-size')?.value||13)
-    _mData.dots.push({id:uuid(),x:cx,y:cy,color:_mColor,size:sz,label:''})
+    _mpd().dots.push({id:uuid(),x:cx,y:cy,color:_mColor,size:sz,label:''})
     redrawMarkup();updateDotCount();beep()
   } else if(_mMode==='text'){
     const txt=prompt('Enter text to place on plan:');if(!txt)return
-    _mData.textboxes.push({id:uuid(),x:cx,y:cy,text:txt,color:_mColor,fontSize:14})
+    _mpd().textboxes.push({id:uuid(),x:cx,y:cy,text:txt,color:_mColor,fontSize:14})
     redrawMarkup();renderTextboxEntries()
   } else if(_mMode==='line'){
     if(!_mLineStart){
@@ -6020,25 +6027,25 @@ function handleMarkupClick(e){
     } else {
       const lw=parseInt(document.getElementById('line-width')?.value||2)
       _mData.lines=_mData.lines||[]
-      _mData.lines.push({id:uuid(),x1:_mLineStart.x,y1:_mLineStart.y,x2:cx,y2:cy,color:_mColor,width:lw})
+      _mpd().lines.push({id:uuid(),x1:_mLineStart.x,y1:_mLineStart.y,x2:cx,y2:cy,color:_mColor,width:lw})
       _mLineStart=null
       redrawMarkup();renderLineEntries()
     }
   } else if(_mMode==='delete'){
     const hit=findMarkupHit(cx,cy)
     if(hit){
-      if(hit.type==='dot')_mData.dots=_mData.dots.filter(d=>d.id!==hit.id)
-      else if(hit.type==='line')_mData.lines=(_mData.lines||[]).filter(l=>l.id!==hit.id)
-      else _mData.textboxes=_mData.textboxes.filter(t=>t.id!==hit.id)
+      if(hit.type==='dot')_mpd().dots=_mpd().dots.filter(d=>d.id!==hit.id)
+      else if(hit.type==='line')_mData.lines=(_mpd().lines||[]).filter(l=>l.id!==hit.id)
+      else _mpd().textboxes=_mpd().textboxes.filter(t=>t.id!==hit.id)
       redrawMarkup();renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount()
       toast('Removed','info')
     }
   }
 }
 function findMarkupHit(cx,cy){
-  for(const d of _mData.dots){if(Math.sqrt((cx-d.x)**2+(cy-d.y)**2)<=d.size+5)return{...d,type:'dot'}}
-  for(const t of _mData.textboxes){if(cx>=t.x-5&&cx<=t.x+200&&cy>=t.y-t.fontSize-2&&cy<=t.y+5)return{...t,type:'text'}}
-  for(const l of (_mData.lines||[])){
+  for(const d of _mpd().dots){if(Math.sqrt((cx-d.x)**2+(cy-d.y)**2)<=d.size+5)return{...d,type:'dot'}}
+  for(const t of _mpd().textboxes){if(cx>=t.x-5&&cx<=t.x+200&&cy>=t.y-t.fontSize-2&&cy<=t.y+5)return{...t,type:'text'}}
+  for(const l of (_mpd().lines||[])){
     const dx=l.x2-l.x1,dy=l.y2-l.y1,len2=dx*dx+dy*dy
     const t=len2>0?Math.max(0,Math.min(1,((cx-l.x1)*dx+(cy-l.y1)*dy)/len2)):0
     const px=l.x1+t*dx,py=l.y1+t*dy
@@ -6053,38 +6060,38 @@ function redrawMarkup(){
   else if(_mImg)_mCtx.drawImage(_mImg,0,0)
   else{_mCtx.fillStyle='#1a2540';_mCtx.fillRect(0,0,_mCanvas.width,_mCanvas.height)}
   // Draw lines first (behind dots/text)
-  for(const l of (_mData.lines||[])){
+  for(const l of (_mpd().lines||[])){
     _mCtx.beginPath();_mCtx.moveTo(l.x1,l.y1);_mCtx.lineTo(l.x2,l.y2)
     _mCtx.strokeStyle=l.color;_mCtx.lineWidth=l.width||2;_mCtx.lineCap='round';_mCtx.stroke()
     _mCtx.beginPath();_mCtx.arc(l.x1,l.y1,3,0,Math.PI*2);_mCtx.fillStyle=l.color;_mCtx.fill()
     _mCtx.beginPath();_mCtx.arc(l.x2,l.y2,3,0,Math.PI*2);_mCtx.fillStyle=l.color;_mCtx.fill()
   }
   // Draw dots
-  for(const d of _mData.dots){
+  for(const d of _mpd().dots){
     _mCtx.beginPath();_mCtx.arc(d.x,d.y,d.size/2,0,Math.PI*2)
     _mCtx.fillStyle=d.color;_mCtx.fill()
     _mCtx.strokeStyle='rgba(255,255,255,.75)';_mCtx.lineWidth=1.5;_mCtx.stroke()
     if(d.label){_mCtx.fillStyle=d.color;_mCtx.font='bold 11px DM Sans,sans-serif';_mCtx.fillText(d.label,d.x+d.size/2+4,d.y+4)}
   }
   // Draw textboxes
-  for(const t of _mData.textboxes){
+  for(const t of _mpd().textboxes){
     _mCtx.font=\`\${t.fontSize}px DM Sans,sans-serif\`
     const w=_mCtx.measureText(t.text).width
     _mCtx.fillStyle='rgba(0,0,0,.65)';_mCtx.fillRect(t.x-3,t.y-t.fontSize,w+6,t.fontSize+6)
     _mCtx.fillStyle=t.color;_mCtx.fillText(t.text,t.x,t.y)
   }
 }
-function updateDotCount(){const el=document.getElementById('dot-count-display');if(el)el.textContent=(_mData.dots||[]).length+' dots placed'}
+function updateDotCount(){const el=document.getElementById('dot-count-display');if(el)el.textContent=(_mpd().dots||[]).length+' dots placed'}
 function renderLegendEntries(){
   const el=document.getElementById('legend-entries');if(!el)return
   const colorCounts={}
-  ;(_mData.dots||[]).forEach(d=>{colorCounts[d.color]=(colorCounts[d.color]||0)+1})
+  ;(_mpd().dots||[]).forEach(d=>{colorCounts[d.color]=(colorCounts[d.color]||0)+1})
   el.innerHTML=(_mData.legend||[]).map((l,i)=>\`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><div style="width:14px;height:14px;border-radius:50%;background:\${l.color};flex-shrink:0;border:1.5px solid rgba(255,255,255,.3)"></div><div style="font-size:10px;color:#414e63;flex-shrink:0">\${colorCounts[l.color]||0}×</div><input style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:5px;color:#e8edf5;font-size:11px;padding:3px 7px;font-family:inherit" value="\${l.label||''}" placeholder="What this color means…" oninput="_mData.legend[\${i}].label=this.value"><button onclick="_mData.legend.splice(\${i},1);renderLegendEntries()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:16px;flex-shrink:0">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No legend entries — click + to add</div>'
 }
 function addLegendEntry(){_mData.legend.push({id:uuid(),color:_mColor,label:''});renderLegendEntries()}
 function renderTextboxEntries(){
   const el=document.getElementById('textbox-entries');if(!el)return
-  el.innerHTML=(_mData.textboxes||[]).map((t,i)=>\`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="width:8px;height:8px;border-radius:50%;background:\${t.color};flex-shrink:0"></div><div style="font-size:11px;flex:1;color:#8a96ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${t.text}</div><button onclick="_mData.textboxes.splice(\${i},1);renderTextboxEntries();redrawMarkup()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No text boxes</div>'
+  el.innerHTML=(_mpd().textboxes||[]).map((t,i)=>\`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="width:8px;height:8px;border-radius:50%;background:\${t.color};flex-shrink:0"></div><div style="font-size:11px;flex:1;color:#8a96ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${t.text}</div><button onclick="_mpd().textboxes.splice(\${i},1);renderTextboxEntries();redrawMarkup()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No text boxes</div>'
 }
 function renderLineEntries(){
   var el=document.getElementById('line-entries');if(!el)return
@@ -6099,7 +6106,7 @@ function renderLineEntries(){
   })
   el.innerHTML=h
 }
-function clearAllMarkup(){if(!confirm('Clear all dots, lines and text boxes?'))return;_mData.dots=[];_mData.textboxes=[];_mData.lines=[];_mLineStart=null;redrawMarkup();renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount();toast('Cleared','warn')}
+function clearAllMarkup(){if(!confirm('Clear all dots, lines and text boxes?'))return;_mpd().dots=[];_mpd().textboxes=[];_mpd().lines=[];_mLineStart=null;redrawMarkup();renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount();toast('Cleared','warn')}
 async function saveMarkupData(){
   if(!_markupPlanId)return
   const{error}=await sb.from('job_walk_plans').update({markup_json:_mData}).eq('id',_markupPlanId)
