@@ -255,6 +255,7 @@ const HTML_ADMIN  = `<!DOCTYPE html>
 <title>FieldAxisHQ</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
@@ -5832,7 +5833,7 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
   _markupPlanId=planId;_markupReturnFn=returnFn
   document.getElementById('page-title').textContent='Plan Markup — '+fileName
   document.getElementById('topbar-actions').innerHTML=\`
-    <button class="btn btn-sm" onclick="if(_markupReturnFn)_markupReturnFn()">← Back</button>
+    <button class="btn btn-sm" onclick="window._pdfBgCanvas=null;window._pdfDoc=null;window._pdfCurrentPage=1;if(_markupReturnFn)_markupReturnFn()">← Back</button>
     <button class="btn btn-sm btn-p" onclick="saveMarkupData()">💾 Save</button>
     <button class="btn btn-sm btn-g" onclick="downloadMarkupPNG()">⬇ Download PNG</button>\`
 
@@ -5891,6 +5892,30 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
 
 let _mMode='dot',_mColor='#dc2626',_mCanvas=null,_mCtx=null,_mImg=null,_mData={dots:[],textboxes:[],lines:[],legend:[]},_mLineStart=null
 
+function renderPdfPage(pageNum){
+  if(!window._pdfDoc)return
+  window._pdfCurrentPage=pageNum
+  window._pdfDoc.getPage(pageNum).then(function(page){
+    var canvas=document.getElementById('markup-canvas');if(!canvas)return
+    var container=canvas.parentElement
+    var scale=Math.max(1.5,(container?container.clientWidth-20:1200)/page.getViewport({scale:1}).width)
+    var vp=page.getViewport({scale:scale})
+    canvas.width=vp.width;canvas.height=vp.height
+    var ctx=canvas.getContext('2d');_mCanvas=canvas;_mCtx=ctx
+    page.render({canvasContext:ctx,viewport:vp}).promise.then(function(){
+      var bgC=document.createElement('canvas');bgC.width=canvas.width;bgC.height=canvas.height
+      bgC.getContext('2d').drawImage(canvas,0,0)
+      window._pdfBgCanvas=bgC;_mImg=null
+      redrawMarkup()
+      renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount()
+      canvas.onclick=handleMarkupClick
+      document.getElementById('canvas-loading').style.display='none'
+      var lbl=document.getElementById('pdf-page-label');if(lbl)lbl.textContent='Page '+pageNum+' of '+window._pdfTotalPages
+    })
+  })
+}
+function pdfPrevPage(){if(!window._pdfDoc||window._pdfCurrentPage<=1)return;renderPdfPage(window._pdfCurrentPage-1)}
+function pdfNextPage(){if(!window._pdfDoc||window._pdfCurrentPage>=window._pdfTotalPages)return;renderPdfPage(window._pdfCurrentPage+1)}
 function setMarkupMode(m,btn){
   _mMode=m
   document.querySelectorAll('.mt-btn').forEach(b=>b.classList.remove('active'))
@@ -5911,31 +5936,45 @@ async function loadMarkupData(planId,planUrl){
   const ctx=canvas.getContext('2d')
   _mCanvas=canvas;_mCtx=ctx
 
-  var isPdf=planUrl.toLowerCase().includes('.pdf')||planUrl.toLowerCase().includes('%2Fpdf')||planUrl.includes('application/pdf')
+  var isPdf=planUrl.toLowerCase().includes('.pdf')||planUrl.toLowerCase().includes('%2Fpdf')
   if(isPdf){
-    // For PDFs: add viewer panel above canvas, canvas used for annotation overlay
-    var canvasWrap=canvas.closest('[style*="overflow:auto"]')||canvas.parentElement
-    var pageArea=document.getElementById('page-area')
-    if(pageArea&&!document.getElementById('pdf-view-panel')){
-      var panel=document.createElement('div')
-      panel.id='pdf-view-panel'
-      panel.style='background:#1e3a5f;border:1px solid #2563eb;border-radius:8px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px'
-      panel.innerHTML='<span style="font-size:32px">📄</span>'        +'<div style="flex:1">'        +'<div style="font-size:13px;font-weight:600;color:#e8edf5;margin-bottom:4px">'+planUrl.split('/').pop().replace(/%20/g,' ').replace(/_/g,' ')+'</div>'        +'<div style="font-size:11px;color:#8a96ab">Use the canvas below to draw your markup annotations. Click Save when done.</div>'        +'</div>'        +'<a href="'+planUrl+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#2563eb;color:#fff;padding:9px 16px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:500;white-space:nowrap">📄 View PDF</a>'
-      canvasWrap.insertBefore(panel,canvasWrap.firstChild)
+    if(typeof pdfjsLib!=='undefined'){
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+      window._pdfPlanUrl=planUrl;window._pdfCurrentPage=1;window._pdfTotalPages=1;window._pdfDoc=null
+      var canvasWrap=canvas.closest('[style*="overflow:auto"]')||canvas.parentElement
+      if(canvasWrap&&!document.getElementById('pdf-nav-bar')){
+        var nav=document.createElement('div')
+        nav.id='pdf-nav-bar'
+        nav.style='display:flex;align-items:center;gap:8px;padding:8px 12px;background:#0c1220;border-radius:8px;margin-bottom:8px'
+        nav.innerHTML='<button class="btn btn-sm" onclick="pdfPrevPage()">&#9664; Prev</button>'
+          +'<span id="pdf-page-label" style="font-size:12px;color:#8a96ab">Page 1 of 1</span>'
+          +'<button class="btn btn-sm" onclick="pdfNextPage()">Next &#9654;</button>'
+          +'<span style="font-size:11px;color:#414e63;margin-left:8px">Markup overlays the current page</span>'
+        canvasWrap.insertBefore(nav,canvasWrap.firstChild)
+      }
+      pdfjsLib.getDocument(planUrl).promise.then(function(pdfDoc){
+        window._pdfDoc=pdfDoc;window._pdfTotalPages=pdfDoc.numPages
+        var lbl=document.getElementById('pdf-page-label');if(lbl)lbl.textContent='Page 1 of '+pdfDoc.numPages
+        renderPdfPage(1)
+      }).catch(function(err){
+        canvas.width=1400;canvas.height=900
+        ctx.fillStyle='#0c1835';ctx.fillRect(0,0,1400,900)
+        ctx.fillStyle='#dc2626';ctx.font='bold 16px sans-serif';ctx.textAlign='center'
+        ctx.fillText('Could not load PDF: '+err.message,700,430)
+        ctx.fillStyle='#8a96ab';ctx.font='13px sans-serif'
+        ctx.fillText('PDF may be on a different domain. Try re-uploading the file.',700,460)
+        document.getElementById('canvas-loading').style.display='none'
+        redrawMarkup();canvas.onclick=handleMarkupClick
+      })
+    }else{
+      canvas.width=1400;canvas.height=900
+      ctx.fillStyle='#0c1835';ctx.fillRect(0,0,1400,900)
+      ctx.fillStyle='#d97706';ctx.font='bold 16px sans-serif';ctx.textAlign='center'
+      ctx.fillText('PDF viewer loading... please refresh the page.',700,450)
+      document.getElementById('canvas-loading').style.display='none'
+      canvas.onclick=handleMarkupClick
     }
-    canvas.width=1400;canvas.height=900
-    canvas.style.width='100%'
-    ctx.fillStyle='#0c1835';ctx.fillRect(0,0,canvas.width,canvas.height)
-    ctx.fillStyle='#2d4a7a';ctx.fillRect(40,40,canvas.width-80,canvas.height-80)
-    ctx.fillStyle='#60a5fa';ctx.font='bold 18px DM Sans,sans-serif';ctx.textAlign='center'
-    ctx.fillText('Annotation Canvas — Click "View PDF" to open the plans in a new tab',canvas.width/2,canvas.height/2-30)
-    ctx.fillStyle='#8a96ab';ctx.font='14px DM Sans,sans-serif'
-    ctx.fillText('Then come back here and click to place dots, text, and lines on this canvas',canvas.width/2,canvas.height/2+10)
-    ctx.fillStyle='#414e63';ctx.font='12px DM Sans,sans-serif'
-    ctx.fillText('Your annotations will be saved and overlaid on the PDF when downloaded',canvas.width/2,canvas.height/2+40)
-    _mImg=null
-    document.getElementById('canvas-loading').style.display='none'
-    redrawMarkup();canvas.onclick=handleMarkupClick
+  }else{
   }else{
     // Image plan - load directly onto canvas
     const img=new Image();img.crossOrigin='anonymous'
@@ -6011,7 +6050,8 @@ function findMarkupHit(cx,cy){
 function redrawMarkup(){
   if(!_mCtx||!_mCanvas)return
   _mCtx.clearRect(0,0,_mCanvas.width,_mCanvas.height)
-  if(_mImg)_mCtx.drawImage(_mImg,0,0)
+  if(window._pdfBgCanvas){_mCtx.drawImage(window._pdfBgCanvas,0,0)}
+  else if(_mImg)_mCtx.drawImage(_mImg,0,0)
   else{_mCtx.fillStyle='#1a2540';_mCtx.fillRect(0,0,_mCanvas.width,_mCanvas.height)}
   // Draw lines first (behind dots/text)
   for(const l of (_mData.lines||[])){
