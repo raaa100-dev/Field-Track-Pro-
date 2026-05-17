@@ -1007,9 +1007,16 @@ async function pgJobs(){
     if(error) throw error
     allJobs=jobs||[]
     renderJobsTable('')
-  if(window._jobsScrollTop){setTimeout(function(){
-    var pa=document.getElementById('page-area');if(pa){pa.scrollTop=window._jobsScrollTop;window._jobsScrollTop=0}
-  },150)}
+  if(window._jobsScrollTop){
+    var _restoreJobs=function(){
+      var target=document.querySelector('#page-area .card[style*="overflow-y"]')||document.getElementById('page-area')
+      if(target){target.scrollTop=window._jobsScrollTop;window._jobsScrollTop=0}
+    }
+    // Try at 100ms, 300ms, 600ms — table needs time to render
+    setTimeout(_restoreJobs,100)
+    setTimeout(_restoreJobs,300)
+    setTimeout(_restoreJobs,600)
+  }
   } catch(e) {
     const errMsg=e.message||String(e)
     document.getElementById('page-area').innerHTML='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:18px;margin:0"><div style="font-weight:600;color:#dc2626;margin-bottom:6px">Failed to load jobs</div><div style="font-size:12px;color:#f87171;font-family:monospace;word-break:break-all;margin-bottom:8px">'+errMsg+'</div><div style="font-size:11px;color:#8a96ab">To fix: go to Supabase Dashboard → SQL Editor → run <strong>supabase-fix.sql</strong> from the zip, then refresh this page.</div></div>'
@@ -1537,7 +1544,9 @@ async function exportJobsExcel(){
 // JOB DETAIL
 // ══════════════════════════════════════════
 async function openJob(id){
-  var pa=document.getElementById('page-area');if(pa)window._jobsScrollTop=pa.scrollTop
+  // Save scroll — try the jobs table card first, fall back to page-area
+  var jtCard=document.querySelector('#page-area .card[style*="overflow-y"]')
+  window._jobsScrollTop=(jtCard?jtCard.scrollTop:0)||(document.getElementById('page-area')||{}).scrollTop||0
 
   sb.from('daily_reports').select('total_man_hours,hours_worked').eq('job_id',id).then(function(res){
     var hrs=(res.data||[]).reduce(function(s,r){return s+(r.total_man_hours||(r.hours_worked||0))},0)
