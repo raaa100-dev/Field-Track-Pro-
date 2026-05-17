@@ -1261,15 +1261,12 @@ function renderJobsTable(q){
     }
   }
 }
-  if(window._jobsScrollTop){
-    var _st=window._jobsScrollTop,_att=0
-    var _poll=setInterval(function(){
-      var el=document.getElementById('jobs-table-wrap')
-      if(!el||_att++>20){clearInterval(_poll);toast('scroll: no element after '+_att+' tries','warn');window._jobsScrollTop=0;return}
-      el.scrollTop=_st
-      toast('try '+_att+': set '+_st+' got '+el.scrollTop+' sh='+el.scrollHeight,'info')
-      if(el.scrollTop>=_st-5){clearInterval(_poll);window._jobsScrollTop=0}
-    },200)
+  var _jtw2=document.getElementById('jobs-table-wrap')
+  if(_jtw2){
+    // Track scroll position live so it's always current when user clicks a job
+    _jtw2.onscroll=function(){window._jobsScrollTop=this.scrollTop}
+    // Restore position if returning from job detail
+    if(window._jobsScrollTop){_jtw2.scrollTop=window._jobsScrollTop}
   }
 
 function toggleStageFilter(btn){
@@ -1544,7 +1541,6 @@ async function exportJobsExcel(){
 // JOB DETAIL
 // ══════════════════════════════════════════
 async function openJob(id){
-  var _jtw=document.getElementById('jobs-table-wrap');window._jobsScrollTop=_jtw?_jtw.scrollTop:0
 
   sb.from('daily_reports').select('total_man_hours,hours_worked').eq('job_id',id).then(function(res){
     var hrs=(res.data||[]).reduce(function(s,r){return s+(r.total_man_hours||(r.hours_worked||0))},0)
