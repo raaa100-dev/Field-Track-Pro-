@@ -1572,6 +1572,10 @@ function renderJobDetail(){
       <select class="fs" style="width:190px;padding:5px 9px;font-size:12px" onchange="updateJobStage(this.value)">\${STAGES.map(s=>\`<option value="\${s}" \${j.phase===s?'selected':''}>\${STAGE_LABELS[s]}</option>\`).join('')}</select>
       <button class="btn btn-p btn-sm" onclick="saveInfoTab()" style="padding:5px 14px">Save Changes</button>
       <button class="btn btn-a btn-sm" onclick="archiveJob()" style="padding:5px 14px">Archive Job</button>
+      <span style="margin-left:auto;display:flex;gap:4px">
+        <button class="btn btn-sm" onclick="navJob(-1)" title="Previous job" style="padding:5px 10px;font-size:13px">&#8592;</button>
+        <button class="btn btn-sm" onclick="navJob(1)" title="Next job" style="padding:5px 10px;font-size:13px">&#8594;</button>
+      </span>
     </div>
       \${j.due_date?\`<span style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">Due \${fd(j.due_date)}</span>\`:''}
     \${j.is_urgent?'<div style="display:flex;align-items:center;gap:10px;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.25);border-radius:8px;padding:9px 13px;margin-top:8px"><span style="font-size:20px">🔥</span><div style="flex:1"><div style="font-size:13px;font-weight:600;color:#dc2626">URGENT</div><div style="font-size:12px;color:#8a96ab;margin-top:2px">'+( j.urgent_note||'')+'</div><div style="font-size:11px;color:#414e63;margin-top:2px">Assigned: '+(j.urgent_assigned_name||'—')+'</div></div><button class="btn btn-sm btn-g" onclick="resolveUrgent()">✓ Resolve</button><button class="btn btn-sm" style="color:#dc2626" onclick="toggleUrgent()">Remove</button></div>':''}
@@ -1738,6 +1742,15 @@ async function saveInfoTab(){
   const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
   if(error){toast(error.message,'error');return}
   currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved')
+}
+function navJob(dir){
+  var list=allJobs||[]
+  if(!list.length||!currentJobId)return
+  var idx=list.findIndex(function(j){return j.id===currentJobId})
+  if(idx===-1)return
+  var next=list[idx+dir]
+  if(!next){toast(dir>0?'Already on last job':'Already on first job','info');return}
+  openJob(next.id)
 }
 async function archiveJob(){if(!confirm('Archive this job?'))return;await sb.from('jobs').update({archived:true}).eq('id',currentJobId);toast('Archived');P('jobs',null)}
 function renderScopeTab(el,j){
@@ -2047,7 +2060,7 @@ function openWalkPlanMarkup(btn){
   var url=btn.getAttribute('data-url')
   var name=btn.getAttribute('data-name')||btn.getAttribute('data-pname')
   var walkId=window._openWalkId
-  openPlanMarkup(pid,url,name,function(){openJobWalk(walkId)})
+  openPlanMarkup(pid,url,name,function(){if(currentJobId){renderJobDetail();setTimeout(function(){loadJT('jt-walks')},150)}else pgJobWalks()})
 }
 function triggerWalkPlanUpload(){
   var f=document.getElementById('walk-plan-file')
@@ -6111,6 +6124,7 @@ async function saveMarkupAndReturn(){
   await saveMarkupData()
   window._pdfBgCanvas=null;window._pdfDoc=null;window._pdfCurrentPage=1
   if(_markupReturnFn)_markupReturnFn()
+  else if(currentJobId)renderJobDetail()
 }
 async function saveMarkupData(){
   if(!_markupPlanId)return
@@ -6151,7 +6165,7 @@ async function renderDrawingsTab(el){
   }
   el.innerHTML=h
 }
-function openDrawingMarkup(btn){openPlanMarkup(btn.getAttribute('data-pid'),btn.getAttribute('data-purl'),btn.getAttribute('data-pname'),function(){loadJT('jt-drawings')})}
+function openDrawingMarkup(btn){openPlanMarkup(btn.getAttribute('data-pid'),btn.getAttribute('data-purl'),btn.getAttribute('data-pname'),function(){renderJobDetail();setTimeout(function(){JT(document.querySelector('.tab[onclick*="jt-drawings"]'),'jt-drawings')},100)})}
 function delDrawing(btn){deleteJobPlan(btn.getAttribute('data-pid'),btn.getAttribute('data-ppath'))}
 async function uploadJobDrawing(files){
   for(const f of files){
