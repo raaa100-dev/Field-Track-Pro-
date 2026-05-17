@@ -1264,7 +1264,7 @@ function renderJobsTable(q){
   var _jtw2=document.getElementById('jobs-table-wrap')
   if(_jtw2){
     // Track scroll position live so it's always current when user clicks a job
-    _jtw2.onscroll=function(){window._jobsScrollTop=this.scrollTop}
+    _jtw2.onscroll=function(){window._jobsScrollTop=this.scrollTop;document.getElementById('page-title').textContent='Jobs ['+this.scrollTop+']'}
     // Restore position if returning from job detail
     if(window._jobsScrollTop){_jtw2.scrollTop=window._jobsScrollTop}
   }
