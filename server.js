@@ -5834,7 +5834,7 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
   document.getElementById('page-title').textContent='Plan Markup — '+fileName
   document.getElementById('topbar-actions').innerHTML=\`
     <button class="btn btn-sm" onclick="window._pdfBgCanvas=null;window._pdfDoc=null;window._pdfCurrentPage=1;if(_markupReturnFn)_markupReturnFn()">← Back</button>
-    <button class="btn btn-sm btn-p" onclick="saveMarkupData()">💾 Save</button>
+    <button class="btn btn-sm btn-p" onclick="saveMarkupAndReturn()">&#128190; Save &amp; Back</button>
     <button class="btn btn-sm btn-g" onclick="downloadMarkupPNG()">⬇ Download PNG</button>\`
 
   document.getElementById('page-area').innerHTML=\`
@@ -6107,6 +6107,11 @@ function renderLineEntries(){
   el.innerHTML=h
 }
 function clearAllMarkup(){if(!confirm('Clear all dots, lines and text boxes?'))return;_mpd().dots=[];_mpd().textboxes=[];_mpd().lines=[];_mLineStart=null;redrawMarkup();renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount();toast('Cleared','warn')}
+async function saveMarkupAndReturn(){
+  await saveMarkupData()
+  window._pdfBgCanvas=null;window._pdfDoc=null;window._pdfCurrentPage=1
+  if(_markupReturnFn)_markupReturnFn()
+}
 async function saveMarkupData(){
   if(!_markupPlanId)return
   const{error}=await sb.from('job_walk_plans').update({markup_json:_mData}).eq('id',_markupPlanId)
