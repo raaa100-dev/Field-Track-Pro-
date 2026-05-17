@@ -1007,6 +1007,9 @@ async function pgJobs(){
     if(error) throw error
     allJobs=jobs||[]
     renderJobsTable('')
+  if(window._jobsScrollTop){setTimeout(function(){
+    var pa=document.getElementById('page-area');if(pa){pa.scrollTop=window._jobsScrollTop;window._jobsScrollTop=0}
+  },150)}
   } catch(e) {
     const errMsg=e.message||String(e)
     document.getElementById('page-area').innerHTML='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:18px;margin:0"><div style="font-weight:600;color:#dc2626;margin-bottom:6px">Failed to load jobs</div><div style="font-size:12px;color:#f87171;font-family:monospace;word-break:break-all;margin-bottom:8px">'+errMsg+'</div><div style="font-size:11px;color:#8a96ab">To fix: go to Supabase Dashboard → SQL Editor → run <strong>supabase-fix.sql</strong> from the zip, then refresh this page.</div></div>'
@@ -1534,6 +1537,8 @@ async function exportJobsExcel(){
 // JOB DETAIL
 // ══════════════════════════════════════════
 async function openJob(id){
+  var pa=document.getElementById('page-area');if(pa)window._jobsScrollTop=pa.scrollTop
+
   sb.from('daily_reports').select('total_man_hours,hours_worked').eq('job_id',id).then(function(res){
     var hrs=(res.data||[]).reduce(function(s,r){return s+(r.total_man_hours||(r.hours_worked||0))},0)
     if(currentJob)currentJob._cachedHrs=hrs
@@ -1566,6 +1571,7 @@ function renderJobDetail(){
   const si=STAGES.indexOf(j.phase)
   document.getElementById('page-area').innerHTML=\`
   <div style="margin-bottom:14px">
+    <button class="btn btn-sm btn-ghost" onclick="pgJobs()" style="margin-bottom:10px;font-size:11px;color:#414e63">&#8592; All Jobs</button>
     <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">\${j.name}</div>
     <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${jobSubhead(j)}</div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">
@@ -2483,8 +2489,24 @@ async function renderJobFinTab(el){
   +'<div class="card" style="background:'+(profit>=0?'rgba(22,163,74,.08)':'rgba(220,38,38,.08)')+'">'
   +'<div style="font-size:26px;font-weight:300;color:'+(profit>=0?'#16a34a':'#dc2626')+'">'+fm(profit)+(margin!=null?' ('+margin+'%)':'')+' </div>'
   +'<div style="font-size:12px;color:#8a96ab;margin-top:3px;margin-bottom:'+(lb>0||j.material_budget>0?'14':'0')+'px">Gross Profit &middot; '+fh(hrs)+' logged</div>'
-  +(lb>0?'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="font-weight:500">Labor</span><span style="color:'+(lbOver?'#dc2626':lbWarn?'#d97706':'#8a96ab')+'">'+fh(hrs)+' / '+fh(lb)+' hrs ('+Math.round(Math.min(lbPct,100))+'%)</span></div><div style="height:10px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden"><div style="height:100%;width:'+Math.min(lbPct,100)+'%;background:'+(lbOver?'#dc2626':lbWarn?'#d97706':'#3b82f6')+';border-radius:6px"></div></div></div>':'')
-  +(j.material_budget>0?'<div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="font-weight:500">Parts &amp; Materials</span><span style="color:'+(j.parts_cost>j.material_budget?'#dc2626':'#8a96ab')+'">'+fm(j.parts_cost||0)+' / '+fm(j.material_budget)+' ('+(j.material_budget>0?Math.round(((j.parts_cost||0)/j.material_budget)*100):0)+'%)</span></div><div style="height:10px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden"><div style="height:100%;width:'+Math.min(j.material_budget>0?(j.parts_cost||0)/j.material_budget*100:0,100)+'%;background:'+(j.parts_cost>j.material_budget?'#dc2626':'#8b5cf6')+';border-radius:6px"></div></div></div>':'')
+  +(lb>0?'<div style="margin-bottom:12px">'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;color:#8a96ab;margin-bottom:5px">'
+    +'<span style="font-weight:500;color:#e8edf5">Labor</span>'
+    +'<span style="color:'+(lbOver?'#dc2626':lbWarn?'#d97706':'#8a96ab')+'">'+fh(hrs)+' / '+fh(lb)+' hrs ('+Math.round(Math.min(lbPct,100))+'%)</span>'
+    +'</div>'
+    +'<div style="height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden">'
+    +'<div style="height:100%;width:'+Math.min(lbPct,100)+'%;background:'+(lbOver?'#dc2626':lbWarn?'#d97706':'#3b82f6')+';border-radius:4px;transition:width .4s ease"></div>'
+    +'</div></div>'
+  :'')
+  +(j.material_budget>0?'<div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;color:#8a96ab;margin-bottom:5px">'
+    +'<span style="font-weight:500;color:#e8edf5">Parts &amp; Materials</span>'
+    +'<span style="color:'+(j.parts_cost>j.material_budget?'#dc2626':'#8a96ab')+'">'+fm(j.parts_cost||0)+' / '+fm(j.material_budget)+'</span>'
+    +'</div>'
+    +'<div style="height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden">'
+    +'<div style="height:100%;width:'+Math.min(j.material_budget>0?(j.parts_cost||0)/j.material_budget*100:0,100)+'%;background:'+(j.parts_cost>j.material_budget?'#dc2626':'#8b5cf6')+';border-radius:4px;transition:width .4s ease"></div>'
+    +'</div></div>'
+  :'')
   +'</div>'
 }
 function editJobCosts(){
