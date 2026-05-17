@@ -1220,7 +1220,7 @@ function renderJobsTable(q){
       </div>
     </div>
   </div>
-  <div class="card" style="padding:0;overflow:hidden;max-height:calc(100vh - 160px);overflow-y:auto">
+  <div id="jobs-table-wrap" class="card" style="padding:0;overflow:hidden;max-height:calc(100vh - 160px);overflow-y:auto">
   \${rows.length?\`<table class="tbl"><thead><tr><th onclick="sortJobsBy('name')" style="cursor:pointer">Job</th><th>Job ID</th><th onclick="sortJobsBy('status')" style="cursor:pointer">Stage</th><th onclick="sortJobsBy('parts')" style="cursor:pointer">Parts</th><th onclick="sortJobsBy('permit')" style="cursor:pointer">Permit Status</th><th onclick="sortJobsBy('pm')" style="cursor:pointer">PM</th><th onclick="sortJobsBy('due')" style="cursor:pointer">Due Date</th><th>Progress</th><th></th></tr></thead><tbody>\n  \${rows.map(j=>{
     const ps=jobPartsStatus(j)
     const permit=j.permit_status||'not_required'
@@ -1262,11 +1262,13 @@ function renderJobsTable(q){
   }
 }
   if(window._jobsScrollTop){
-    var _st=window._jobsScrollTop
-    requestAnimationFrame(function(){
-      var el=document.querySelector('#page-area .card[style*="overflow-y"]')||document.getElementById('page-area')
-      if(el){el.scrollTop=_st;window._jobsScrollTop=0}
-    })
+    var _st=window._jobsScrollTop,_att=0
+    var _poll=setInterval(function(){
+      var el=document.getElementById('jobs-table-wrap')
+      if(!el||_att++>20){clearInterval(_poll);window._jobsScrollTop=0;return}
+      el.scrollTop=_st
+      if(el.scrollTop>=_st-5){clearInterval(_poll);window._jobsScrollTop=0}
+    },30)
   }
 
 function toggleStageFilter(btn){
@@ -1541,9 +1543,7 @@ async function exportJobsExcel(){
 // JOB DETAIL
 // ══════════════════════════════════════════
 async function openJob(id){
-  // Save scroll — try the jobs table card first, fall back to page-area
-  var jtCard=document.querySelector('#page-area .card[style*="overflow-y"]')
-  window._jobsScrollTop=(jtCard?jtCard.scrollTop:0)||(document.getElementById('page-area')||{}).scrollTop||0
+  var _jtw=document.getElementById('jobs-table-wrap');window._jobsScrollTop=_jtw?_jtw.scrollTop:0
 
   sb.from('daily_reports').select('total_man_hours,hours_worked').eq('job_id',id).then(function(res){
     var hrs=(res.data||[]).reduce(function(s,r){return s+(r.total_man_hours||(r.hours_worked||0))},0)
