@@ -1,89 +1,90 @@
 
-async function geocodeAndAddPins(jobs, map){
-  // Batch geocode: 3 parallel requests at a time with 1s between batches
-  // Nominatim allows ~1 req/sec total, so batches of 3 with 3s delay = 1/sec avg
-  var batchSize = 5
-  for(var b = 0; b < jobs.length; b += batchSize){
-    var batch = jobs.slice(b, b + batchSize)
-    await Promise.all(batch.map(function(j){ return geocodeJob(j, map) }))
-    if(b + batchSize < jobs.length) await new Promise(function(r){ setTimeout(r, 1200) })
-  }
+// ── GEOCODING ─────────────────────────────────────────────────
+// Consolidated single source of truth. Both geocodeJob and geocodeJobAddress
+// delegate here. Respects Nominatim's ~1 req/sec global rate limit via a
+// shared throttle (window._geoThrottle).
+window._geoLastCall=window._geoLastCall||0
+async function _geoThrottle(){
+  var MIN_GAP=1100  // ms between requests, conservative for Nominatim
+  var since=Date.now()-window._geoLastCall
+  if(since<MIN_GAP)await new Promise(function(r){setTimeout(r,MIN_GAP-since)})
+  window._geoLastCall=Date.now()
 }
-
-// Geocode a job by address and save GPS to DB immediately
-async function geocodeJobAddress(jobId, address, city, state, zip){
-  // Build progressively simpler queries to try in order
+function _buildGeoQueries(address,city,state,zip){
   var addr=address||''
-  // Strip suite/unit/floor from address - multiple patterns
+  // Strip suite/unit/floor/etc. — these confuse Nominatim
   var cleanAddr=addr
     .replace(/,?\s*(suite|ste|unit|apt|apartment|floor|fl|bldg|building|#)\s*[\w\d-]*/gi,'')
-    .replace(/,?\s*\d+[a-z]?\s*$/i,'')  // trailing unit number
+    .replace(/,?\s*\d+[a-z]?\s*$/i,'')
     .replace(/,\s*,/g,',')
     .trim()
   var queries=[]
-  // Try 1: clean address + city + state + zip
   if(cleanAddr&&city&&state)queries.push(cleanAddr+', '+city+', '+state+(zip?' '+zip:''))
-  // Try 2: clean address + city + state (no zip)
   if(cleanAddr&&city&&state)queries.push(cleanAddr+', '+city+', '+state)
-  // Try 3: clean address + city
   if(cleanAddr&&city)queries.push(cleanAddr+', '+city)
-  // Try 4: city + state + zip
   if(city&&state)queries.push(city+', '+state+(zip?' '+zip:''))
-  // Try 5: zip only
   if(zip)queries.push(zip+', USA')
-
-  for(var qi=0;qi<queries.length;qi++){
-    var q=queries[qi]
+  return queries
+}
+async function _geocodeOnce(query){
+  await _geoThrottle()
+  var r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(query)+'&format=json&limit=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
+  var res=await r.json()
+  if(res&&res[0])return{lat:parseFloat(res[0].lat),lng:parseFloat(res[0].lon)}
+  return null
+}
+// Core: try queries in order, return {lat,lng} or null. Persists to DB if jobId given.
+async function geocodeAddress(opts){
+  // opts: {jobId, address, city, state, zip, persist (default true)}
+  var queries=_buildGeoQueries(opts.address,opts.city,opts.state,opts.zip)
+  for(var i=0;i<queries.length;i++){
     try{
-      var r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
-      var res=await r.json()
-      if(res[0]){
-        var lat=parseFloat(res[0].lat),lng=parseFloat(res[0].lon)
-        await sb.from('jobs').update({gps_lat:lat,gps_lng:lng,updated_at:new Date().toISOString()}).eq('id',jobId)
-        return {lat,lng}
+      var hit=await _geocodeOnce(queries[i])
+      if(hit){
+        if(opts.jobId&&opts.persist!==false){
+          try{await sb.from('jobs').update({gps_lat:hit.lat,gps_lng:hit.lng,updated_at:new Date().toISOString()}).eq('id',opts.jobId)}catch(e){}
+        }
+        return hit
       }
-    }catch(e){console.warn('Geocode attempt failed',q,e)}
-    // Small delay between attempts to respect rate limit
-    if(qi<queries.length-1)await new Promise(function(r){setTimeout(r,300)})
+    }catch(e){/* try next query */}
   }
   return null
 }
-async function geocodeJob(j, map){
-  var query = ''
-  if(j.address && j.city && j.state) query = j.address + ', ' + j.city + ', ' + j.state + (j.zip ? ' ' + j.zip : '')
-  else if(j.address && j.city) query = j.address + ', ' + j.city
-  else if(j.address) query = j.address
-  else if(j.city && j.state) query = j.city + ', ' + j.state
-  if(!query) return
-  try{
-    var r = await fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query) + '&format=json&limit=1&countrycodes=us', {headers:{'User-Agent':'FieldAxisHQ/1.0'}})
-    var res = await r.json()
-    if(res[0]){
-      var lat = parseFloat(res[0].lat), lng = parseFloat(res[0].lon)
-      j.gps_lat = lat; j.gps_lng = lng
-      // Save to DB in background
-      sb.from('jobs').update({gps_lat: lat, gps_lng: lng, updated_at: new Date().toISOString()}).eq('id', j.id)
-      // Add pin immediately
-      var color = MAP_COLORS[j.phase] || '#8a96ab'
-      var iconHtml = j.is_urgent
-        ? '<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));animation:urgentPulse 1.2s ease-in-out infinite">🔥</div>'
-        : '<div style="width:14px;height:14px;border-radius:50%;background:' + color + ';border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>'
-      var sz = j.is_urgent ? [28,28] : [14,14]
-      var anc = j.is_urgent ? [14,14] : [7,7]
-      var icon = window.L.divIcon({html: iconHtml, className: '', iconSize: sz, iconAnchor: anc})
-      var marker = window.L.marker([lat, lng], {icon}).addTo(map)
-      marker.bindPopup(buildGeocodePopup(j))
-      ;(window._mapMarkers = window._mapMarkers || []).push(marker)
-      // Update legend count
-      var leg = document.getElementById('map-legend')
-      if(leg){
-        var total = (window._mapJobs || []).length
-        var withGPS = (window._mapMarkers || []).length
-        var countEl = leg.querySelector('.gps-count')
-        if(countEl) countEl.textContent = withGPS + ' of ' + total + ' jobs have GPS'
-      }
-    }
-  }catch(e){}
+// Legacy wrapper: same signature as the original geocodeJobAddress
+async function geocodeJobAddress(jobId,address,city,state,zip){
+  return geocodeAddress({jobId:jobId,address:address,city:city,state:state,zip:zip,persist:true})
+}
+// Legacy wrapper: same signature as the original geocodeJob — geocodes a job
+// object and adds a pin to the supplied Leaflet map.
+async function geocodeJob(j,map){
+  var hit=await geocodeAddress({jobId:j.id,address:j.address,city:j.city,state:j.state,zip:j.zip,persist:true})
+  if(!hit||!map)return hit
+  j.gps_lat=hit.lat;j.gps_lng=hit.lng
+  var color=(typeof MAP_COLORS!=='undefined'&&MAP_COLORS[j.phase])||'#8a96ab'
+  var iconHtml=j.is_urgent
+    ?'<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));animation:urgentPulse 1.2s ease-in-out infinite">🔥</div>'
+    :'<div style="width:14px;height:14px;border-radius:50%;background:'+color+';border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>'
+  var sz=j.is_urgent?[28,28]:[14,14]
+  var anc=j.is_urgent?[14,14]:[7,7]
+  var icon=window.L.divIcon({html:iconHtml,className:'',iconSize:sz,iconAnchor:anc})
+  var marker=window.L.marker([hit.lat,hit.lng],{icon:icon}).addTo(map)
+  marker.bindPopup(buildGeocodePopup(j))
+  ;(window._mapMarkers=window._mapMarkers||[]).push(marker)
+  var leg=document.getElementById('map-legend')
+  if(leg){
+    var total=(window._mapJobs||[]).length
+    var withGPS=(window._mapMarkers||[]).length
+    var countEl=leg.querySelector('.gps-count')
+    if(countEl)countEl.textContent=withGPS+' of '+total+' jobs have GPS'
+  }
+  return hit
+}
+async function geocodeAndAddPins(jobs,map){
+  // Process serially through the throttle (the throttle handles rate limiting),
+  // which is simpler and safer than parallel batches.
+  for(var i=0;i<jobs.length;i++){
+    try{await geocodeJob(jobs[i],map)}catch(e){console.warn('Geocode failed for job',jobs[i]&&jobs[i].id,e)}
+  }
 }
 
 /**
@@ -715,6 +716,7 @@ function closeSidebar(){
 async function deleteJobConfirm(){
   if(!currentJob){toast('No job open','error');return}
   var jobName=currentJob.name||'this job'
+  var jobId=currentJob.id
   // First confirmation
   if(!confirm('PERMANENTLY DELETE "'+jobName+'"? All parts, reports, walks and tasks will be deleted. This CANNOT be undone.'))return
   // Second confirmation
@@ -724,23 +726,46 @@ async function deleteJobConfirm(){
     return
   }
   toast('Deleting job...','warn')
+  // List of child tables. We attempt all of them; if any fails we abort BEFORE
+  // touching the parent 'jobs' row so the data is never half-deleted (no orphans).
+  // Each entry: [table, column]. The column defaults to 'job_id'.
+  var childTables=[
+    ['job_parts','job_id'],
+    ['job_tasks','job_id'],
+    ['daily_reports','job_id'],
+    ['job_walks','job_id'],
+    ['job_walk_plans','job_id'],
+    ['checkins','job_id'],
+    ['scan_events','job_id'],
+    ['job_documents','job_id'],
+    ['job_photos','job_id'],
+    ['job_workers','job_id'],
+    ['job_checklist_items','job_id'],
+    ['punch_list','job_id'],
+    ['pm_inspections','job_id'],
+    ['change_orders','job_id'],
+    ['daily_logs','job_id']
+  ]
   try{
-    // Delete all related records first
-    await sb.from('job_parts').delete().eq('job_id',currentJob.id)
-    await sb.from('job_tasks').delete().eq('job_id',currentJob.id)
-    await sb.from('daily_reports').delete().eq('job_id',currentJob.id)
-    await sb.from('job_walks').delete().eq('job_id',currentJob.id)
-    await sb.from('job_walk_plans').delete().eq('job_id',currentJob.id)
-    await sb.from('checkins').delete().eq('job_id',currentJob.id)
-    await sb.from('scan_events').delete().eq('job_id',currentJob.id)
-    await sb.from('job_documents').delete().eq('job_id',currentJob.id)
-    // Delete the job itself
-    var res=await sb.from('jobs').delete().eq('id',currentJob.id)
+    // Run all child deletes in parallel — they don't depend on each other.
+    // Promise.all aborts on first rejection, so we discover failure fast.
+    var results=await Promise.all(childTables.map(function(t){
+      return sb.from(t[0]).delete().eq(t[1],jobId).then(function(r){return{table:t[0],error:r.error}})
+    }))
+    // Surface any per-row errors (Supabase returns error on the resolved object, not as a rejection)
+    var failures=results.filter(function(r){return r.error})
+    if(failures.length){
+      var msg=failures.map(function(f){return f.table+': '+(f.error.message||f.error)}).join('; ')
+      throw new Error('Child cleanup failed — '+msg+'. Job NOT deleted, no orphans created.')
+    }
+    // All children gone. Now delete the parent.
+    var res=await sb.from('jobs').delete().eq('id',jobId)
     if(res.error)throw new Error(res.error.message)
     currentJob=null
     currentJobId=null
+    _clearDirty()
     toast('Job "'+jobName+'" permanently deleted','warn')
-    P('jobs',document.querySelector('.nav-item[onclick*=jobs]'))
+    _proceedToPage('jobs',document.querySelector('.nav-item[onclick*=jobs]'))
   }catch(e){
     toast('Delete failed: '+e.message,'error')
   }
@@ -750,6 +775,17 @@ function doSignOut(){sb.auth.signOut().then(function(){location.href='index.html
 // ── NAVIGATION ────────────────────────────────────────────────
 const PAGE_TITLES={tasks:'Tasks',settings:'Settings',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
 function P(page,navEl){
+  // Guard against losing unsaved changes
+  if(_isDirty()){
+    _confirmIfDirty().then(function(result){
+      if(result==='cancel')return
+      _proceedToPage(page,navEl)
+    })
+    return
+  }
+  _proceedToPage(page,navEl)
+}
+function _proceedToPage(page,navEl){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
   if(navEl)navEl.classList.add('active')
   document.getElementById('page-title').textContent=PAGE_TITLES[page]||page
@@ -778,6 +814,66 @@ function closeModal(){
   var mf=document.getElementById('modal-footer')
   if(mf)mf.innerHTML='<button class="btn" onclick="closeModal()">Close</button><button class="btn btn-p" id="modal-ok">Save</button>'
 }
+function _closeWalkSafely(){
+  if(_isDirty('walk')){
+    _confirmIfDirty().then(function(r){if(r!=='cancel')closeModal()})
+  }else closeModal()
+}
+
+// ── UNSAVED-CHANGES TRACKING ──────────────────────────────────
+// Track when fields on a "form" have been edited but not saved. Forms register
+// a scope name (e.g. 'info','scope','walk'); each scope has its own dirty flag
+// plus a saveFn the prompt can invoke to "Save & Continue".
+window._dirtyScopes=window._dirtyScopes||{}
+function _dirtyAttach(ids,scope,saveFn){
+  if(!window._dirtyScopes[scope])window._dirtyScopes[scope]={dirty:false,save:null}
+  // Reset dirty when (re)attaching — we're rendering fresh fields
+  window._dirtyScopes[scope].dirty=false
+  if(typeof saveFn==='function')window._dirtyScopes[scope].save=saveFn
+  ;(ids||[]).forEach(function(id){
+    var el=document.getElementById(id);if(!el)return
+    var mark=function(){window._dirtyScopes[scope].dirty=true}
+    el.addEventListener('input',mark)
+    el.addEventListener('change',mark)
+  })
+}
+function _isDirty(scope){return scope?!!(window._dirtyScopes[scope]&&window._dirtyScopes[scope].dirty):Object.keys(window._dirtyScopes).some(function(k){return window._dirtyScopes[k].dirty})}
+function _clearDirty(scope){
+  if(scope){if(window._dirtyScopes[scope])window._dirtyScopes[scope].dirty=false}
+  else Object.keys(window._dirtyScopes).forEach(function(k){window._dirtyScopes[k].dirty=false})
+}
+// Returns Promise<'save'|'discard'|'cancel'>. If nothing is dirty, resolves to 'discard' (i.e. proceed).
+function _confirmIfDirty(){
+  return new Promise(function(resolve){
+    if(!_isDirty())return resolve('discard')
+    // Find the first dirty scope so we know which save() to call
+    var dirtyScope=Object.keys(window._dirtyScopes).find(function(k){return window._dirtyScopes[k].dirty})
+    var ov=document.createElement('div')
+    ov.id='unsaved-prompt'
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px'
+    ov.innerHTML='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:22px;width:100%;max-width:420px;color:#e8edf5;font-family:DM Sans,sans-serif">'
+      +'<div style="font-size:17px;font-weight:700;margin-bottom:8px">Unsaved changes</div>'
+      +'<div style="font-size:13px;color:#8a96ab;margin-bottom:18px;line-height:1.5">You have unsaved changes on this page. Do you want to save and keep your changes, or cancel them?</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      +'<button id="ud-save" class="btn btn-p" style="flex:2;min-width:140px;padding:11px;background:#2563eb;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">Save & Continue</button>'
+      +'<button id="ud-discard" class="btn" style="flex:1;min-width:120px;padding:11px;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#e8edf5;font-size:14px;cursor:pointer">Cancel Changes</button>'
+      +'<button id="ud-stay" class="btn" style="flex:1;min-width:90px;padding:11px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#8a96ab;font-size:14px;cursor:pointer">Stay Here</button>'
+      +'</div></div>'
+    document.body.appendChild(ov)
+    document.getElementById('ud-save').onclick=async function(){
+      var saveFn=dirtyScope&&window._dirtyScopes[dirtyScope]&&window._dirtyScopes[dirtyScope].save
+      try{if(typeof saveFn==='function')await saveFn()}catch(e){toast('Save failed: '+(e&&e.message||e),'error');ov.remove();return resolve('cancel')}
+      _clearDirty()
+      ov.remove();resolve('save')
+    }
+    document.getElementById('ud-discard').onclick=function(){_clearDirty();ov.remove();resolve('discard')}
+    document.getElementById('ud-stay').onclick=function(){ov.remove();resolve('cancel')}
+  })
+}
+// Also warn on browser tab close / reload when any scope is dirty
+window.addEventListener('beforeunload',function(e){
+  if(_isDirty()){e.preventDefault();e.returnValue='';return''}
+})
 // ── HELPERS ───────────────────────────────────────────────────
 function toast(msg,type='success'){const c={success:'#16a34a',error:'#dc2626',warn:'#d97706',info:'#2563eb'};const i={success:'✓',error:'✗',warn:'⚠',info:'ℹ'};const t=document.createElement('div');t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#0c1220;border-radius:99px;padding:10px 20px;border-left:3px solid '+c[type]+';box-shadow:0 6px 24px rgba(0,0,0,.9);display:flex;align-items:center;gap:8px;font-size:13px;color:#e8edf5;white-space:nowrap;pointer-events:none';t.innerHTML='<span style="color:'+c[type]+'">'+i[type]+'</span>'+msg;document.body.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='.3s'},2800);setTimeout(()=>t.remove(),3100)}
 function beep(){try{const a=new AudioContext();const o=a.createOscillator();const g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=1200;g.gain.setValueAtTime(.4,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.15);o.start();o.stop(a.currentTime+.15)}catch{}}
@@ -796,7 +892,7 @@ function isOD(due,phase){return due&&phase!=='complete'&&new Date(due)<new Date(
 function daysAway(d){if(!d)return null;return Math.round((new Date(d)-new Date())/86400000)}
 
 const STAGES=['not_started','make_safe','prewire','roughed_in','trimmed','ready_for_pretest','ready_for_final','complete']
-const STAGE_LABELS={not_started:'Not Started',make_safe:'Make Safe',prewire:'Pre-Wire',roughed_in:'Roughed In',trimmed:'Trimmed Out',ready_for_pretest:'Ready for Pre-test',ready_for_final:'Ready for Final',complete:'Complete'}
+const STAGE_LABELS={not_started:'Not Started',make_safe:'Make Safe / Demo',prewire:'Pre-Wire',roughed_in:'Roughed In',trimmed:'Trimmed Out',ready_for_pretest:'Ready for Pre-test',ready_for_final:'Ready for Final',complete:'Complete'}
 const STAGE_COLORS={not_started:'bg-gray',make_safe:'bg-red',prewire:'bg-orange',roughed_in:'bg-blue',trimmed:'bg-teal',ready_for_pretest:'bg-amber',ready_for_final:'bg-purple',complete:'bg-green'}
 // Parts statuses displayed on job cards
 const PARTS_STATUS_LABELS={ordered:'Ordered',staged:'Staged',delivered:'Delivered to Site',partial:'Partial',none:'None'}
@@ -1099,6 +1195,10 @@ function setStartingDays(d){
   var lbl=document.getElementById('starting-days-label');if(lbl)lbl.textContent=d
   var list=document.getElementById('starting-widget-list');if(!list)return
   var jobs=(allJobs||[]).filter(function(j){
+    // Only include jobs whose phase is still 'not_started' (or missing — treat as not started)
+    // Once a job moves past not_started, it disappears from the Starting widget.
+    var ph=j.phase||'not_started'
+    if(ph!=='not_started')return false
     var dateStr=j.projected_start||j.expected_onsite_date
     if(!dateStr)return false
     var da=daysAway(dateStr)
@@ -1132,11 +1232,31 @@ function setStartingDays(d){
 function setDueDays(d){
   window._dueDays=d
   var soon=[]
+  // Phases at which a passed Due Date is considered "handled" and can come off the widget.
+  var DUE_CLEARS=['ready_for_pretest','ready_for_final','complete']
   ;(allJobs||[]).forEach(function(j){
     var fields=[['expected_onsite_date','Expected On Site'],['next_visit_date','Next Visit'],['date_closeout','Closeout'],['due_date','Due']]
     fields.forEach(function(pair){
       var f=pair[0],lbl=pair[1]
-      if(j[f]){var da=daysAway(j[f]);if(da!=null&&da>=0&&da<=d)soon.push({job:j.name,type:lbl,date:j[f],da:da,id:j.id})}
+      if(!j[f])return
+      var da=daysAway(j[f])
+      if(da==null)return
+      if(f==='due_date'){
+        // Special rule: Due Date stays on the widget until phase reaches pre-test / ready-for-final / complete.
+        // Upcoming (within window) shows as before; overdue shows for any phase prior to those three.
+        var ph=j.phase||'not_started'
+        var handled=DUE_CLEARS.indexOf(ph)>=0
+        if(handled){
+          // Only show if still upcoming within the window (don't show overdue once handled)
+          if(da>=0&&da<=d)soon.push({job:j.name,type:lbl,date:j[f],da:da,id:j.id})
+        }else{
+          // Show overdue OR upcoming-within-window
+          if(da<0||(da>=0&&da<=d))soon.push({job:j.name,type:lbl,date:j[f],da:da,id:j.id})
+        }
+      }else{
+        // Original behavior: only upcoming within window
+        if(da>=0&&da<=d)soon.push({job:j.name,type:lbl,date:j[f],da:da,id:j.id})
+      }
     })
   })
   soon.sort(function(a,b){return a.da-b.da})
@@ -1144,13 +1264,15 @@ function setDueDays(d){
   var list=document.getElementById('due-widget-list')
   if(!list)return
   list.innerHTML=soon.length?soon.map(function(s){
-    var dc=s.da<=3?'#dc2626':s.da<=7?'#d97706':'#16a34a'
-    var bc=s.da<=3?'bg-red':s.da<=7?'bg-amber':'bg-green'
+    var isOver=s.da<0
+    var dc=isOver?'#b91c1c':s.da<=3?'#dc2626':s.da<=7?'#d97706':'#16a34a'
+    var bc=isOver?'bg-red':s.da<=3?'bg-red':s.da<=7?'bg-amber':'bg-green'
+    var badgeTxt=isOver?Math.abs(s.da)+'d late':(s.da===0?'Today':s.da+'d')
     return '<div class="sched-item dash-due-row" data-jid="'+s.id+'" style="cursor:pointer">'
       +'<div class="sched-dot" style="background:'+dc+';margin-top:4px"></div>'
       +'<div style="flex:1"><div style="font-size:12px;font-weight:500">'+s.job+'</div>'
       +'<div style="font-size:10px;color:#414e63">'+s.type+' &middot; '+fd(s.date)+'</div></div>'
-      +'<span class="badge '+bc+'">'+(s.da===0?'Today':s.da+'d')+'</span></div>'
+      +'<span class="badge '+bc+'">'+badgeTxt+'</span></div>'
   }).join(''):'<div style="text-align:center;padding:20px;color:#414e63">All clear — nothing due in '+d+' days</div>'
   list.querySelectorAll('.dash-due-row').forEach(function(el){
     el.onclick=function(){openJob(this.dataset.jid)}
@@ -1260,14 +1382,21 @@ function renderJobsTable(q){
       setTimeout(function(){document.addEventListener('click',closeH)},50)
     }
   }
-  var _jtw=document.getElementById('jobs-table-wrap')
-  if(_jtw){
-    _jtw.onscroll=function(){window._jobsScrollTop=this.scrollTop}
-    if(window._jobsScrollTop){_jtw.scrollTop=window._jobsScrollTop}
-  }
 }
+  // Attach capture-phase scroll listener to catch ANY element scrolling
+  window._jobsScrollHandler=function(e){
+    var t=e.target
+    document.getElementById('page-title').textContent='scroll:'+( t?t.id||t.className||t.tagName:'?')+':'+( t?t.scrollTop:0)
+    window._jobsScrollTop=t?t.scrollTop:window.scrollY||0
+    window._jobsScrollEl=t
+  }
+  document.addEventListener('scroll',window._jobsScrollHandler,true)
+  if(window._jobsScrollTop&&window._jobsScrollEl){
+    window._jobsScrollEl.scrollTop=window._jobsScrollTop
+  }
 
 function toggleStageFilter(btn){
+  var menu=document.getElementById('stage-filter-menu')
   if(!menu)return
   var isOpen=menu.style.display!=='none'
   menu.style.display=isOpen?'none':'block'
@@ -1538,6 +1667,11 @@ async function exportJobsExcel(){
 // JOB DETAIL
 // ══════════════════════════════════════════
 async function openJob(id){
+  // Guard against losing unsaved changes when switching jobs
+  if(_isDirty()){
+    var r=await _confirmIfDirty()
+    if(r==='cancel')return
+  }
 
   sb.from('daily_reports').select('total_man_hours,hours_worked').eq('job_id',id).then(function(res){
     var hrs=(res.data||[]).reduce(function(s,r){return s+(r.total_man_hours||(r.hours_worked||0))},0)
@@ -1546,6 +1680,7 @@ async function openJob(id){
     if(el){el.textContent=hrs>0?hrs.toFixed(1)+' hrs on site':'No hours logged';el.style.color=hrs>0?'#e8edf5':'#414e63'}
   })
   currentJobId=id
+  _clearDirty()
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
   document.getElementById('page-title').textContent='Job Detail'
   document.getElementById('topbar-actions').innerHTML=\`<button class="btn btn-sm" onclick="P('jobs',null)">← Jobs</button> <button class="btn btn-sm" id="urgent-btn" style="background:rgba(220,38,38,.15);color:#dc2626;border-color:rgba(220,38,38,.3)" onclick="toggleUrgent()">🔥 Flag Urgent</button>\${['admin'].includes(ME?.role)?\` <button class="btn btn-sm" style="color:#dc2626;border-color:rgba(220,38,38,.3)" onclick="deleteJobConfirm()">🗑 Delete Job</button>\`:''}\`
@@ -1612,8 +1747,18 @@ function renderJobDetail(){
 }
 let _curTab=null
 function JT(el,id){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active')
-  _curTab=id;loadJT(id)
+  function _go(){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active')
+    _curTab=id;loadJT(id)
+  }
+  if(_isDirty()){
+    _confirmIfDirty().then(function(result){
+      if(result==='cancel')return
+      _go()
+    })
+    return
+  }
+  _go()
 }
 async function loadJT(id){
   const el=document.getElementById('jt-content');if(!el)return
@@ -1692,7 +1837,7 @@ function renderInfoTab(el,j){
       </select>
     </div>
     <div class="fg"><label class="fl">Permit Number</label>
-      <input class="fi" id="ed-permit-number" placeholder="e.g. E-2024-001" value="\\\${j.permit_number||''}">
+      <input class="fi" id="ed-permit-number" placeholder="e.g. E-2024-001" value="\${j.permit_number||''}">
     </div>
   </div>
   \`
@@ -1741,13 +1886,18 @@ function renderInfoTab(el,j){
   },50)
   var ps=document.getElementById('ed-permit-status')
   if(ps)ps.value=j.permit_status||'not_required'
+  // Register info-tab fields for unsaved-changes tracking
+  setTimeout(function(){
+    var ids=['ed-name','ed-jobnum','ed-trade','ed-estimator','ed-addr','ed-city','ed-state','ed-zip','ed-lat','ed-lng','ed-rad','ed-gc','ed-gcc','ed-gcp','ed-gce','ed-sup','ed-supp','ed-pm','ed-pmschedule','ed-pmvisit','ed-due','ed-proj-start','ed-proj-close','ed-dc','ed-eos','ed-nvd','ed-dco','ed-dr','ed-dt','ed-di','ed-comp','ed-ocv','ed-cv','ed-lr','ed-lb','ed-mb','ed-permit-status','ed-permit-number']
+    _dirtyAttach(ids,'info',saveInfoTab)
+  },100)
 }
 async function saveInfoTab(){
   const u={name:v('ed-name'),job_number:v('ed-jobnum')||null,trade:v('ed-trade')||null,estimator:v('ed-estimator')||null,address:v('ed-addr'),city:v('ed-city')||null,state:v('ed-state')||null,zip:v('ed-zip')||null,gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),gc_email:v('ed-gce')||null,super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,permit_status:v('ed-permit-status')||'not_required',permit_number:v('ed-permit-number')||null,date_start:null,due_date:v('ed-due')||null,projected_start:v('ed-proj-start')||null,projected_closeout:v('ed-proj-close')||null,date_contract:v('ed-dc')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,original_contract_value:fN('ed-ocv'),contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
   if(u.phase==='ready_for_final'||u.phase==='complete')u.pct_complete=100
   const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
   if(error){toast(error.message,'error');return}
-  currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved')
+  currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;_clearDirty('info');toast('Saved')
 }
 function navJob(dir){
   var list=allJobs||[]
@@ -1766,8 +1916,9 @@ function renderScopeTab(el,j){
   <div class="fg"><label class="fl">Job Walk Notes</label><textarea class="ft" id="sc-jwn">\${j.job_walk_notes||''}</textarea></div>
   <div class="two"><div class="fg"><label class="fl">Job Walk By</label><input class="fi" id="sc-jwb" value="\${j.job_walk_by||''}"></div><div class="fg"><label class="fl">Job Walk Date</label><input class="fi" type="date" id="sc-jwd" value="\${j.job_walk_date||''}"></div></div>
   <button class="btn btn-p" onclick="saveScope()">Save</button>\`
+  setTimeout(function(){_dirtyAttach(['sc-scope','sc-notes','sc-jwn','sc-jwb','sc-jwd'],'scope',saveScope)},50)
 }
-async function saveScope(){const{error}=await sb.from('jobs').update({scope:v('sc-scope'),install_notes:v('sc-notes'),job_walk_notes:v('sc-jwn'),job_walk_by:v('sc-jwb'),job_walk_date:v('sc-jwd')||null,updated_at:new Date().toISOString()}).eq('id',currentJobId);if(error)toast(error.message,'error');else toast('Saved')}
+async function saveScope(){const{error}=await sb.from('jobs').update({scope:v('sc-scope'),install_notes:v('sc-notes'),job_walk_notes:v('sc-jwn'),job_walk_by:v('sc-jwb'),job_walk_date:v('sc-jwd')||null,updated_at:new Date().toISOString()}).eq('id',currentJobId);if(error)toast(error.message,'error');else{_clearDirty('scope');toast('Saved')}}
 
 // ADDRESS AUTOCOMPLETE
 let _addrDeb=null
@@ -2044,16 +2195,28 @@ async function openJobWalk(walkId){
     }
     var res=await sb.from('job_walks').update(update).eq('id',walkId)
     if(res.error){toast(res.error.message,'error');return}
+    _clearDirty('walk')
     closeModal();toast('Walk saved ✓')
     if(document.getElementById('jt-walks'))loadJT('jt-walks')
     else pgJobWalks()
   },'Save Walk')
 
   window._curWalkId=walkId
-  var footBtns='<button class="btn" onclick="closeModal()">Close</button>'
+  // Rebuild footer but PRESERVE the modal-ok Save button that modal() wired up.
+  // Previously this innerHTML replacement destroyed the Save button, so typed
+  // field values (scope notes, measurements, issues, action items, etc.) never
+  // persisted. We re-render the button here and re-attach the same handler.
+  var saveHandler=document.getElementById('modal-ok')?document.getElementById('modal-ok').onclick:null
+  var footBtns='<button class="btn" onclick="_closeWalkSafely()">Close</button>'
+  if(canEdit&&!isComplete)footBtns+='<button class="btn btn-p" id="modal-ok">Save Walk</button>'
   if(canEdit&&!isComplete)footBtns+='<button class="btn btn-p" onclick="walkComplete()" style="background:#16a34a">✓ Mark Complete</button>'
   if(ME&&ME.role==='admin')footBtns+='<button class="btn btn-ghost" style="color:#dc2626" onclick="deleteJobWalk(window._curWalkId)">Delete Walk</button>'
   document.getElementById('modal-footer').innerHTML=footBtns
+  // Re-bind the Save handler now that we've rebuilt the button
+  var okBtn=document.getElementById('modal-ok')
+  if(okBtn&&saveHandler)okBtn.onclick=saveHandler
+  // Mark walk fields as dirty-trackable
+  setTimeout(function(){_dirtyAttach(['ow-panel','ow-mfg','ow-model','ow-clip','ow-booster','ow-booster-count','ow-att','ow-scope','ow-meas','ow-iss','ow-act','ow-fup','ow-date'],'walk')},50)
 }
 
 // MARKUP PAGE
