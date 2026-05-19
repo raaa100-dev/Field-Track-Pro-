@@ -588,6 +588,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
     <div class="nav-section">Field</div>
     <div class="nav-item" onclick="P('gps',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2C5.8 2 4 3.8 4 6c0 3.5 4 8 4 8s4-4.5 4-8c0-2.2-1.8-4-4-4z"/><circle cx="8" cy="6" r="1.5"/></svg>GPS Tracking</div>
     <div class="nav-item" onclick="P('hours',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>Hours</div>
+    <div class="nav-item" onclick="P('forecast',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13l3-5 3 3 3-7 3 5"/><circle cx="5" cy="8" r="1.3" fill="currentColor" stroke="none"/><circle cx="8" cy="11" r="1.3" fill="currentColor" stroke="none"/><circle cx="11" cy="4" r="1.3" fill="currentColor" stroke="none"/></svg>Labor Forecast</div>
     <div class="nav-item" onclick="P('companies',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="7" width="14" height="8" rx="1"/><path d="M4 7V5a4 4 0 018 0v2"/></svg>Sub Companies</div>
     <div class="nav-section">Safety</div>
     <div class="nav-item" onclick="P('safety',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2l6 3v5c0 3-6 6-6 6S2 13 2 10V5z"/><path d="M5.5 8l2 2 3-3"/></svg>Safety Topics<span class="nb" id="nb-safety" style="display:none">!</span></div>
@@ -773,7 +774,7 @@ async function deleteJobConfirm(){
 function doSignOut(){sb.auth.signOut().then(function(){location.href='index.html?signout=1'})}
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const PAGE_TITLES={tasks:'Tasks',settings:'Settings',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
+const PAGE_TITLES={tasks:'Tasks',settings:'Settings',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',forecast:'Labor Forecast',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
 function P(page,navEl){
   // Guard against losing unsaved changes
   if(_isDirty()){
@@ -792,7 +793,7 @@ function _proceedToPage(page,navEl){
   document.getElementById('topbar-actions').innerHTML=''
   const a=document.getElementById('page-area')
   a.innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
-  const map={dashboard:pgDash,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications,settings:pgSettings}
+  const map={dashboard:pgDash,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,forecast:pgForecast,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications,settings:pgSettings}
   if(map[page])map[page]()
   else a.innerHTML='<div class="empty">Coming soon</div>'
 }
@@ -4292,6 +4293,465 @@ async function exportHoursExcel(){
   XLSX.writeFile(wb,'FieldAxisHQ-Hours-'+new Date().toISOString().split('T')[0]+'.xlsx')
   toast('Hours exported')
 }
+
+// ══════════════════════════════════════════
+// LABOR FORECAST PAGE
+// ══════════════════════════════════════════
+// Approach: for each job with enough info, compute man-hours per workday across
+// its remaining timespan, distributed by phase weight. Then sum across jobs to
+// get total workers needed per day. Aggregate up to weeks/months for display.
+
+// Phase weights — how much of a job's total labor is consumed in each phase.
+// User-tunable later via Settings; defaults sum to 1.0
+var FORECAST_PHASE_WEIGHTS={
+  not_started:0.00,
+  make_safe:0.05,
+  prewire:0.15,
+  roughed_in:0.40,
+  trimmed:0.25,
+  ready_for_pretest:0.10,
+  ready_for_final:0.05,
+  complete:0.00
+}
+var FORECAST_PHASE_ORDER=['not_started','make_safe','prewire','roughed_in','trimmed','ready_for_pretest','ready_for_final','complete']
+
+function _forecastSettings(){
+  // Stored in localStorage — easy upgrade to a Supabase 'app_settings' row later
+  try{
+    var raw=localStorage.getItem('fax_forecast_settings')
+    if(raw)return JSON.parse(raw)
+  }catch(e){}
+  return{crewSize:10,hoursPerDay:8,workDays:[1,2,3,4,5]}  // Mon-Fri default
+}
+function _saveForecastSettings(s){
+  try{localStorage.setItem('fax_forecast_settings',JSON.stringify(s))}catch(e){}
+}
+
+// Date helpers
+function _isWorkday(d,workDays){return workDays.indexOf(d.getDay())>=0}
+function _workdaysBetween(start,end,workDays){
+  // Inclusive count of workdays from start to end
+  if(start>end)return 0
+  var n=0,c=new Date(start.getFullYear(),start.getMonth(),start.getDate())
+  while(c<=end){if(_isWorkday(c,workDays))n++;c.setDate(c.getDate()+1)}
+  return n
+}
+function _addDays(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x}
+function _ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function _parseYmd(s){if(!s)return null;var p=s.split('T')[0].split('-');return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]))}
+
+// Given a job + total remaining hours, distribute across remaining phases by weight.
+// Returns { phase: hoursForThatPhase, ... }
+function _phaseDistribution(currentPhase,remainingHours){
+  var startIdx=FORECAST_PHASE_ORDER.indexOf(currentPhase||'not_started')
+  if(startIdx<0)startIdx=0
+  // Remaining phases = current + everything before 'complete'
+  var remaining=FORECAST_PHASE_ORDER.slice(startIdx,FORECAST_PHASE_ORDER.length-1)
+  var weightSum=remaining.reduce(function(s,p){return s+(FORECAST_PHASE_WEIGHTS[p]||0)},0)
+  var dist={}
+  if(weightSum<=0){
+    // Fallback: spread evenly across remaining phases
+    remaining.forEach(function(p){dist[p]=remainingHours/remaining.length})
+  }else{
+    remaining.forEach(function(p){dist[p]=remainingHours*((FORECAST_PHASE_WEIGHTS[p]||0)/weightSum)})
+  }
+  return dist
+}
+
+// Build per-workday man-hour map for a single job.
+// Returns { 'YYYY-MM-DD': hoursThatDay } across the job's date range.
+function _jobDailyHours(job,hoursBurned,settings){
+  // Determine date span
+  var startStr=job.projected_start||null
+  var endStr=job.projected_closeout||null
+  var estimated=false
+  if(!startStr||!endStr){
+    // Use due_date as the end; estimate a span from labor_budget
+    var due=job.due_date||job.projected_closeout||job.expected_onsite_date
+    if(!due)return{daily:{},estimated:true,reason:'no dates'}
+    endStr=due
+    // Span estimate: assume crew of 3, 8 hrs/day, 5 days/week → days = labor_budget / (3*8) ; min 5 days, max 90
+    var lb=Number(job.labor_budget||0)
+    var days=lb>0?Math.max(5,Math.min(90,Math.ceil(lb/(3*8)))):20
+    var endD=_parseYmd(endStr)
+    if(!endD)return{daily:{},estimated:true,reason:'bad date'}
+    var startD=_addDays(endD,-days)
+    startStr=_ymd(startD)
+    estimated=true
+  }
+  var start=_parseYmd(startStr),end=_parseYmd(endStr)
+  if(!start||!end||end<start)return{daily:{},estimated:estimated,reason:'invalid date range'}
+
+  // Clamp start to today if it's already in the past
+  var today=new Date();today.setHours(0,0,0,0)
+  if(start<today)start=today
+  if(end<today)return{daily:{},estimated:estimated,reason:'already past end'}
+
+  var totalHours=Number(job.labor_budget||0)
+  if(totalHours<=0)return{daily:{},estimated:estimated,reason:'no labor_budget'}
+  var remaining=Math.max(0,totalHours-Number(hoursBurned||0))
+  if(remaining<=0)return{daily:{},estimated:estimated,reason:'budget burned'}
+
+  // Distribute remaining hours across remaining phases by weight
+  var phaseHrs=_phaseDistribution(job.phase,remaining)
+  var remainingPhases=Object.keys(phaseHrs)
+  if(!remainingPhases.length)return{daily:{},estimated:estimated,reason:'no phases left'}
+
+  // Split the date range into equal slices, one per remaining phase
+  var totalWorkdays=_workdaysBetween(start,end,settings.workDays)
+  if(totalWorkdays<=0)return{daily:{},estimated:estimated,reason:'no workdays in range'}
+  var workdaysPerPhase=Math.max(1,Math.floor(totalWorkdays/remainingPhases.length))
+
+  // Walk day by day, assigning hours from the current phase bucket
+  var daily={}
+  var c=new Date(start.getFullYear(),start.getMonth(),start.getDate())
+  var phaseIdx=0,workdayCount=0
+  while(c<=end&&phaseIdx<remainingPhases.length){
+    if(_isWorkday(c,settings.workDays)){
+      var ph=remainingPhases[phaseIdx]
+      var phHrs=phaseHrs[ph]
+      // Spread this phase's hours across its share of workdays
+      var perDay=phHrs/workdaysPerPhase
+      daily[_ymd(c)]=(daily[_ymd(c)]||0)+perDay
+      workdayCount++
+      if(workdayCount>=workdaysPerPhase&&phaseIdx<remainingPhases.length-1){
+        phaseIdx++
+        workdayCount=0
+      }
+    }
+    c.setDate(c.getDate()+1)
+  }
+  return{daily:daily,estimated:estimated,start:_ymd(start),end:_ymd(end),remaining:remaining}
+}
+
+// Build the forecast across all jobs.
+async function _buildForecast(){
+  var settings=_forecastSettings()
+  var{data:jobs}=await sb.from('jobs').select('id,name,job_number,phase,projected_start,projected_closeout,due_date,expected_onsite_date,labor_budget,archived').eq('archived',false)
+  // Hours burned per job (from daily_reports)
+  var{data:drs}=await sb.from('daily_reports').select('job_id,total_man_hours,hours_worked')
+  var burned={};(drs||[]).forEach(function(r){burned[r.job_id]=(burned[r.job_id]||0)+(r.total_man_hours||r.hours_worked||0)})
+
+  var included=[],missing=[]
+  var allDaily={}  // 'YYYY-MM-DD' -> total hours
+  var perJobDaily={}  // jobId -> daily map (for stacking later)
+
+  ;(jobs||[]).forEach(function(j){
+    // Skip complete jobs
+    if(j.phase==='complete')return
+    // Skip jobs without a labor_budget — can't forecast labor without it
+    if(!j.labor_budget||Number(j.labor_budget)<=0){
+      missing.push({id:j.id,name:j.name,job_number:j.job_number,reason:'No labor budget set'})
+      return
+    }
+    // Need at least one date anchor
+    var hasFullDates=j.projected_start&&j.projected_closeout
+    var hasAnyDate=j.due_date||j.expected_onsite_date||j.projected_closeout
+    if(!hasFullDates&&!hasAnyDate){
+      missing.push({id:j.id,name:j.name,job_number:j.job_number,reason:'No dates set'})
+      return
+    }
+    var res=_jobDailyHours(j,burned[j.id]||0,settings)
+    if(!Object.keys(res.daily).length){
+      missing.push({id:j.id,name:j.name,job_number:j.job_number,reason:res.reason||'Could not forecast'})
+      return
+    }
+    included.push({job:j,estimated:res.estimated,start:res.start,end:res.end,remaining:res.remaining,daily:res.daily})
+    perJobDaily[j.id]=res.daily
+    Object.keys(res.daily).forEach(function(k){allDaily[k]=(allDaily[k]||0)+res.daily[k]})
+  })
+
+  return{settings:settings,included:included,missing:missing,allDaily:allDaily,perJobDaily:perJobDaily}
+}
+
+// Aggregate a daily map into N buckets (week/month) covering a window.
+// Returns array of { label, start, end, workers, hours, peakDay }
+function _aggregate(daily,windowDays,bucketType,settings){
+  var today=new Date();today.setHours(0,0,0,0)
+  var horizon=_addDays(today,windowDays)
+  var buckets=[]
+  if(bucketType==='day'){
+    // One bucket per workday in the window
+    var c=new Date(today)
+    while(c<=horizon){
+      if(_isWorkday(c,settings.workDays)){
+        var k=_ymd(c)
+        var h=daily[k]||0
+        buckets.push({label:c.toLocaleDateString('en-US',{month:'short',day:'numeric'}),start:k,end:k,hours:h,workers:h/settings.hoursPerDay,peakDay:k,peakHours:h})
+      }
+      c=_addDays(c,1)
+    }
+  }else if(bucketType==='week'){
+    var c=new Date(today)
+    while(c<=horizon){
+      var weekStart=new Date(c),weekEnd=_addDays(c,6)
+      if(weekEnd>horizon)weekEnd=horizon
+      var totalH=0,peak=0,peakK=null
+      var d=new Date(weekStart)
+      while(d<=weekEnd){
+        if(_isWorkday(d,settings.workDays)){
+          var k=_ymd(d),h=daily[k]||0
+          totalH+=h
+          if(h>peak){peak=h;peakK=k}
+        }
+        d=_addDays(d,1)
+      }
+      var workdaysInBucket=_workdaysBetween(weekStart,weekEnd,settings.workDays)
+      var avgWorkers=workdaysInBucket>0?totalH/workdaysInBucket/settings.hoursPerDay:0
+      buckets.push({label:'Wk '+(weekStart.getMonth()+1)+'/'+weekStart.getDate(),start:_ymd(weekStart),end:_ymd(weekEnd),hours:totalH,workers:avgWorkers,peakDay:peakK,peakHours:peak,peakWorkers:peak/settings.hoursPerDay})
+      c=_addDays(c,7)
+    }
+  }else{  // month
+    var c=new Date(today.getFullYear(),today.getMonth(),1)
+    while(c<=horizon){
+      var monthStart=new Date(c)
+      var monthEnd=new Date(c.getFullYear(),c.getMonth()+1,0)
+      if(monthEnd>horizon)monthEnd=horizon
+      var realStart=monthStart<today?today:monthStart
+      var totalH=0,peak=0,peakK=null
+      var d=new Date(realStart)
+      while(d<=monthEnd){
+        if(_isWorkday(d,settings.workDays)){
+          var k=_ymd(d),h=daily[k]||0
+          totalH+=h
+          if(h>peak){peak=h;peakK=k}
+        }
+        d=_addDays(d,1)
+      }
+      var workdaysInBucket=_workdaysBetween(realStart,monthEnd,settings.workDays)
+      var avgWorkers=workdaysInBucket>0?totalH/workdaysInBucket/settings.hoursPerDay:0
+      buckets.push({label:c.toLocaleDateString('en-US',{month:'short',year:'2-digit'}),start:_ymd(realStart),end:_ymd(monthEnd),hours:totalH,workers:avgWorkers,peakDay:peakK,peakHours:peak,peakWorkers:peak/settings.hoursPerDay})
+      c=new Date(c.getFullYear(),c.getMonth()+1,1)
+    }
+  }
+  return buckets
+}
+
+// Peak workers across a given horizon (in days)
+function _peakWorkers(daily,windowDays,settings){
+  var today=new Date();today.setHours(0,0,0,0)
+  var horizon=_addDays(today,windowDays)
+  var peak=0,avgSum=0,avgCount=0
+  var c=new Date(today)
+  while(c<=horizon){
+    if(_isWorkday(c,settings.workDays)){
+      var h=daily[_ymd(c)]||0
+      var w=h/settings.hoursPerDay
+      if(w>peak)peak=w
+      avgSum+=w;avgCount++
+    }
+    c=_addDays(c,1)
+  }
+  return{peak:peak,avg:avgCount>0?avgSum/avgCount:0}
+}
+
+// Render a stacked-bar SVG chart from buckets
+function _renderForecastChart(buckets,settings){
+  var W=900,H=300,pad={t:20,r:20,b:50,l:50}
+  var iw=W-pad.l-pad.r,ih=H-pad.t-pad.b
+  // Max workers across buckets (use peak if available, else avg)
+  var maxW=Math.max(settings.crewSize,...buckets.map(function(b){return Math.max(b.peakWorkers||b.workers,b.workers)}))
+  maxW=Math.ceil(maxW*1.15)  // 15% headroom
+  if(maxW<=0)maxW=10
+  var bw=iw/Math.max(1,buckets.length)*0.78
+  var bgap=iw/Math.max(1,buckets.length)*0.22
+  // Y axis ticks
+  var ticks=5,tickStep=Math.ceil(maxW/ticks)
+  var s='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;font-family:DM Sans,sans-serif">'
+  // Grid
+  for(var i=0;i<=ticks;i++){
+    var v=i*tickStep
+    var y=pad.t+ih-(v/maxW)*ih
+    s+='<line x1="'+pad.l+'" y1="'+y+'" x2="'+(W-pad.r)+'" y2="'+y+'" stroke="rgba(255,255,255,.06)" stroke-width="1"/>'
+    s+='<text x="'+(pad.l-8)+'" y="'+(y+4)+'" text-anchor="end" fill="#8a96ab" font-size="11">'+v+'</text>'
+  }
+  // Capacity line
+  var capY=pad.t+ih-(settings.crewSize/maxW)*ih
+  s+='<line x1="'+pad.l+'" y1="'+capY+'" x2="'+(W-pad.r)+'" y2="'+capY+'" stroke="#fbbf24" stroke-width="2" stroke-dasharray="6,4"/>'
+  s+='<text x="'+(W-pad.r-4)+'" y="'+(capY-6)+'" text-anchor="end" fill="#fbbf24" font-size="11" font-weight="600">Capacity ('+settings.crewSize+')</text>'
+  // Bars
+  buckets.forEach(function(b,i){
+    var x=pad.l+bgap/2+i*(bw+bgap)
+    var avgW=b.workers||0
+    var peakW=b.peakWorkers||avgW
+    var avgH=(avgW/maxW)*ih
+    var peakH=(peakW/maxW)*ih
+    var avgY=pad.t+ih-avgH
+    var peakY=pad.t+ih-peakH
+    var over=avgW>settings.crewSize
+    var color=over?'#dc2626':avgW>settings.crewSize*0.85?'#d97706':'#2563eb'
+    // Peak bar (lighter) behind
+    if(peakW>avgW){
+      s+='<rect x="'+x+'" y="'+peakY+'" width="'+bw+'" height="'+peakH+'" fill="'+color+'" opacity="0.25" rx="3"/>'
+    }
+    // Avg bar
+    s+='<rect x="'+x+'" y="'+avgY+'" width="'+bw+'" height="'+avgH+'" fill="'+color+'" rx="3"><title>'+b.label+': avg '+avgW.toFixed(1)+' workers, peak '+peakW.toFixed(1)+'</title></rect>'
+    // Label
+    s+='<text x="'+(x+bw/2)+'" y="'+(H-pad.b+18)+'" text-anchor="middle" fill="#8a96ab" font-size="10">'+b.label+'</text>'
+    // Value on top of bar (only if bar is tall enough)
+    if(avgH>22){
+      s+='<text x="'+(x+bw/2)+'" y="'+(avgY+13)+'" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">'+avgW.toFixed(1)+'</text>'
+    }
+  })
+  // Axes
+  s+='<line x1="'+pad.l+'" y1="'+pad.t+'" x2="'+pad.l+'" y2="'+(pad.t+ih)+'" stroke="rgba(255,255,255,.15)"/>'
+  s+='<line x1="'+pad.l+'" y1="'+(pad.t+ih)+'" x2="'+(W-pad.r)+'" y2="'+(pad.t+ih)+'" stroke="rgba(255,255,255,.15)"/>'
+  s+='<text x="'+(pad.l-30)+'" y="'+(pad.t+ih/2)+'" transform="rotate(-90,'+(pad.l-30)+','+(pad.t+ih/2)+')" text-anchor="middle" fill="#8a96ab" font-size="11">Workers</text>'
+  s+='</svg>'
+  return s
+}
+
+// Window definitions
+var FORECAST_WINDOWS=[
+  {key:'1w',label:'1 Week',days:7,bucket:'day'},
+  {key:'1m',label:'1 Month',days:30,bucket:'week'},
+  {key:'3m',label:'3 Months',days:90,bucket:'week'},
+  {key:'9m',label:'9 Months',days:270,bucket:'month'},
+  {key:'1y',label:'1 Year',days:365,bucket:'month'}
+]
+
+window._forecastState={window:'1m',data:null}
+
+async function pgForecast(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="forecastSettingsModal()">⚙ Settings</button> <button class="btn btn-sm" onclick="pgForecast()">↻ Refresh</button>'
+  var area=document.getElementById('page-area')
+  area.innerHTML='<div class="loading"><div class="spin"></div> Building forecast…</div>'
+  var fc=await _buildForecast()
+  window._forecastState.data=fc
+  _renderForecastPage(fc)
+}
+
+function _renderForecastPage(fc){
+  var settings=fc.settings,daily=fc.allDaily
+  var area=document.getElementById('page-area')
+  // KPI tiles — one per window
+  var tiles=FORECAST_WINDOWS.map(function(w){
+    var stats=_peakWorkers(daily,w.days,settings)
+    var over=stats.peak>settings.crewSize
+    var warn=!over&&stats.peak>settings.crewSize*0.85
+    var clr=over?'#dc2626':warn?'#d97706':'#16a34a'
+    var gap=stats.peak-settings.crewSize
+    return '<div class="forecast-tile" data-window="'+w.key+'" style="cursor:pointer;flex:1;min-width:150px;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:14px 16px;border-top:3px solid '+clr+'">'
+      +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a96ab;margin-bottom:6px">'+w.label+'</div>'
+      +'<div style="display:flex;align-items:baseline;gap:6px"><div style="font-size:28px;font-weight:300;color:'+clr+'">'+stats.peak.toFixed(1)+'</div><div style="font-size:11px;color:#8a96ab">peak</div></div>'
+      +'<div style="font-size:11px;color:#414e63;margin-top:2px">Avg: '+stats.avg.toFixed(1)+' workers</div>'
+      +(over?'<div style="font-size:11px;color:#dc2626;font-weight:600;margin-top:4px">⚠ Short '+gap.toFixed(1)+' workers</div>':warn?'<div style="font-size:11px;color:#d97706;margin-top:4px">Near capacity</div>':'<div style="font-size:11px;color:#16a34a;margin-top:4px">✓ Within capacity</div>')
+      +'</div>'
+  }).join('')
+
+  // Window selector + chart
+  var winBtns=FORECAST_WINDOWS.map(function(w){
+    var active=window._forecastState.window===w.key
+    return '<button class="btn btn-sm" data-window="'+w.key+'" onclick="setForecastWindow(\''+w.key+'\')" style="background:'+(active?'#2563eb':'#131c2e')+';color:'+(active?'#fff':'#8a96ab')+';border:1px solid '+(active?'#2563eb':'rgba(255,255,255,.08)')+'">'+w.label+'</button>'
+  }).join(' ')
+
+  var curWin=FORECAST_WINDOWS.find(function(w){return w.key===window._forecastState.window})||FORECAST_WINDOWS[1]
+  var buckets=_aggregate(daily,curWin.days,curWin.bucket,settings)
+  var chartSvg=_renderForecastChart(buckets,settings)
+
+  // Coverage gap table — buckets where peak exceeds capacity
+  var gapBuckets=buckets.filter(function(b){return(b.peakWorkers||b.workers)>settings.crewSize})
+
+  // Jobs included table
+  var incRows=fc.included.map(function(inc){
+    var j=inc.job
+    var startD=_parseYmd(inc.start),endD=_parseYmd(inc.end)
+    return '<tr style="cursor:pointer" onclick="openJob(\''+j.id+'\')">'
+      +'<td><div style="font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#414e63">'+(j.job_number||'')+'</div></td>'
+      +'<td>'+stageBadge(j.phase)+'</td>'
+      +'<td style="font-size:11px">'+fd(inc.start)+' → '+fd(inc.end)+(inc.estimated?' <span class="badge bg-amber" style="font-size:9px">est</span>':'')+'</td>'
+      +'<td style="font-family:DM Mono,monospace;font-size:12px">'+fh(j.labor_budget||0)+'</td>'
+      +'<td style="font-family:DM Mono,monospace;font-size:12px">'+fh(inc.remaining)+'</td>'
+      +'</tr>'
+  }).join('')
+
+  // Missing data — jobs we couldn't include
+  var missRows=fc.missing.map(function(m){
+    return '<tr style="cursor:pointer" onclick="openJob(\''+m.id+'\')">'
+      +'<td><div style="font-weight:500">'+m.name+'</div><div style="font-size:10px;color:#414e63">'+(m.job_number||'')+'</div></td>'
+      +'<td style="font-size:11px;color:#d97706">'+m.reason+'</td>'
+      +'</tr>'
+  }).join('')
+
+  area.innerHTML=
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'+tiles+'</div>'
+    +'<div class="card">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">'
+    +'<div><div class="card-title" style="margin-bottom:2px">Workforce Forecast</div><div style="font-size:11px;color:#8a96ab">Capacity: '+settings.crewSize+' workers · '+settings.hoursPerDay+'hr days · '+(settings.workDays.length===5?'M-F':settings.workDays.length===6?'M-Sat':'custom')+'</div></div>'
+    +'<div style="display:flex;gap:4px;flex-wrap:wrap">'+winBtns+'</div>'
+    +'</div>'
+    +'<div style="background:#060a10;border-radius:10px;padding:10px;overflow-x:auto">'+chartSvg+'</div>'
+    +'<div style="display:flex;gap:14px;font-size:11px;color:#8a96ab;margin-top:8px;flex-wrap:wrap">'
+    +'<div><span style="display:inline-block;width:10px;height:10px;background:#2563eb;border-radius:2px;margin-right:5px"></span>Avg workers needed</div>'
+    +'<div><span style="display:inline-block;width:10px;height:10px;background:#2563eb;opacity:.25;border-radius:2px;margin-right:5px"></span>Peak day</div>'
+    +'<div><span style="display:inline-block;width:14px;height:2px;background:#fbbf24;margin-right:5px;vertical-align:middle"></span>Your capacity line</div>'
+    +'</div>'
+    +'</div>'
+    +(gapBuckets.length?'<div class="card" style="border-left:3px solid #dc2626">'
+      +'<div class="card-title" style="color:#dc2626">⚠ Coverage Gaps — '+curWin.label+'</div>'
+      +'<table class="tbl"><thead><tr><th>Period</th><th>Avg Workers</th><th>Peak</th><th>Short</th></tr></thead><tbody>'
+      +gapBuckets.map(function(b){return '<tr><td>'+b.label+'</td><td>'+(b.workers||0).toFixed(1)+'</td><td style="color:#dc2626;font-weight:600">'+(b.peakWorkers||b.workers).toFixed(1)+'</td><td style="color:#dc2626">'+((b.peakWorkers||b.workers)-settings.crewSize).toFixed(1)+'</td></tr>'}).join('')
+      +'</tbody></table></div>':'')
+    +'<div class="two">'
+    +'<div class="card"><div class="card-title">Jobs Included ('+fc.included.length+')</div>'
+    +(fc.included.length?'<table class="tbl"><thead><tr><th>Job</th><th>Phase</th><th>Span</th><th>Budget</th><th>Remaining</th></tr></thead><tbody>'+incRows+'</tbody></table>':empty('📊','No active jobs to forecast'))
+    +'</div>'
+    +'<div class="card" style="'+(fc.missing.length?'border-left:3px solid #d97706':'')+'">'
+    +'<div class="card-title">Missing Data ('+fc.missing.length+')</div>'
+    +(fc.missing.length?'<div style="font-size:11px;color:#8a96ab;margin-bottom:8px">These jobs can\'t be forecasted yet — click to fill in.</div><table class="tbl"><thead><tr><th>Job</th><th>What\'s Missing</th></tr></thead><tbody>'+missRows+'</tbody></table>':empty('✓','All active jobs have forecast data'))
+    +'</div>'
+    +'</div>'
+
+  // Wire up tile clicks to switch window
+  area.querySelectorAll('.forecast-tile').forEach(function(t){
+    t.onclick=function(){setForecastWindow(this.dataset.window)}
+  })
+}
+
+function setForecastWindow(key){
+  window._forecastState.window=key
+  if(window._forecastState.data)_renderForecastPage(window._forecastState.data)
+}
+
+function forecastSettingsModal(){
+  var s=_forecastSettings()
+  var html='<div class="fg"><label class="fl">Crew Size (current capacity)</label><input class="fi" type="number" id="fs-crew" value="'+s.crewSize+'" min="1" max="500"></div>'
+    +'<div class="fg"><label class="fl">Hours per workday</label><input class="fi" type="number" id="fs-hpd" value="'+s.hoursPerDay+'" min="1" max="24" step="0.5"></div>'
+    +'<div class="fg"><label class="fl">Work Days</label>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+    +['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(function(d,i){
+      var checked=s.workDays.indexOf(i)>=0
+      return '<label style="display:flex;align-items:center;gap:5px;padding:5px 10px;background:'+(checked?'rgba(37,99,235,.15)':'#131c2e')+';border-radius:6px;font-size:12px;cursor:pointer"><input type="checkbox" class="fs-wd" data-day="'+i+'" '+(checked?'checked':'')+'>'+d+'</label>'
+    }).join('')
+    +'</div></div>'
+    +'<div style="background:#060a10;border-radius:8px;padding:11px;margin-top:10px"><div style="font-size:11px;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Phase Weights (% of labor by phase)</div>'
+    +'<div style="font-size:10px;color:#414e63;margin-bottom:8px">How total job hours are distributed across phases. Should roughly sum to 100%.</div>'
+    +Object.keys(FORECAST_PHASE_WEIGHTS).filter(function(p){return p!=='not_started'&&p!=='complete'}).map(function(p){
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><label style="flex:1;font-size:12px">'+(STAGE_LABELS[p]||p)+'</label><input class="fi" type="number" id="fs-w-'+p+'" value="'+Math.round(FORECAST_PHASE_WEIGHTS[p]*100)+'" min="0" max="100" style="width:80px;text-align:right"><span style="font-size:11px;color:#8a96ab">%</span></div>'
+    }).join('')
+    +'</div>'
+  modal('Forecast Settings',html,async function(){
+    var newS={crewSize:parseInt(v('fs-crew'))||10,hoursPerDay:parseFloat(v('fs-hpd'))||8,workDays:[]}
+    document.querySelectorAll('.fs-wd:checked').forEach(function(c){newS.workDays.push(parseInt(c.dataset.day))})
+    if(!newS.workDays.length){toast('Pick at least one work day','error');return}
+    _saveForecastSettings(newS)
+    // Phase weights
+    Object.keys(FORECAST_PHASE_WEIGHTS).filter(function(p){return p!=='not_started'&&p!=='complete'}).forEach(function(p){
+      var el=document.getElementById('fs-w-'+p);if(!el)return
+      FORECAST_PHASE_WEIGHTS[p]=(parseFloat(el.value)||0)/100
+    })
+    try{localStorage.setItem('fax_forecast_weights',JSON.stringify(FORECAST_PHASE_WEIGHTS))}catch(e){}
+    closeModal();toast('Settings saved');pgForecast()
+  },'Save Settings')
+}
+
+// Restore saved phase weights on load
+;(function(){
+  try{
+    var w=localStorage.getItem('fax_forecast_weights')
+    if(w){var parsed=JSON.parse(w);Object.keys(parsed).forEach(function(k){if(FORECAST_PHASE_WEIGHTS[k]!==undefined)FORECAST_PHASE_WEIGHTS[k]=parsed[k]})}
+  }catch(e){}
+})()
 
 // ══════════════════════════════════════════
 // SUB COMPANIES PAGE
