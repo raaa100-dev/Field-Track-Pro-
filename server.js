@@ -489,6 +489,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
     <div class="nav-item" onclick="P('tasks',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 8l2 2 4-4"/></svg>Tasks<span id="tasks-badge" style="display:none;margin-left:auto;background:#dc2626;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;line-height:1.4"></span></div>
     <div class="nav-item" onclick="if(typeof P==='function')P('my_training',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3z"/><path d="M5 3V1.5M11 3V1.5M2 6h12"/></svg>My Training<span id="training-badge" style="display:none;background:#dc2626;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:auto"></span></div>
     <div class="nav-item" onclick="P('daily',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v10H3z"/><path d="M3 7h10M7 3v10"/></svg>Daily Reports</div>
+    <div class="nav-item" onclick="P('email_review',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 5l6 4 6-4"/></svg>Email Review<span id="email-review-badge" style="display:none;margin-left:auto;background:#d97706;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;line-height:1.4"></span></div>
     <div class="nav-item" onclick="P('jobwalks',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13L8 3l6 10H2z"/><path d="M8 8v3M8 12.5v.5"/></svg>Job Walks</div>
     <div class="nav-item" onclick="P('punch',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M3 4h10M3 12h7"/></svg>Punch List</div>
     <div class="nav-section">Warehouse</div>
@@ -686,7 +687,7 @@ async function deleteJobConfirm(){
 function doSignOut(){sb.auth.signOut().then(function(){location.href='index.html?signout=1'})}
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const PAGE_TITLES={tasks:'Tasks',settings:'Settings',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',forecast:'Labor Forecast',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail'}
+const PAGE_TITLES={tasks:'Tasks',settings:'Settings',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',forecast:'Labor Forecast',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail',email_review:'Email Review'}
 function P(page,navEl){
   // Guard against losing unsaved changes
   if(_isDirty()){
@@ -705,7 +706,7 @@ function _proceedToPage(page,navEl){
   document.getElementById('topbar-actions').innerHTML=''
   const a=document.getElementById('page-area')
   a.innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
-  const map={dashboard:pgDash,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,forecast:pgForecast,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications,settings:pgSettings}
+  const map={dashboard:pgDash,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,forecast:pgForecast,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications,settings:pgSettings,email_review:pgEmailReview}
   if(map[page])map[page]()
   else a.innerHTML='<div class="empty">Coming soon</div>'
 }
@@ -2485,7 +2486,20 @@ function buildPartsTable(parts){
 async function renderJobDailyTab(el){
   const{data:reports}=await sb.from('daily_reports').select('*').eq('job_id',currentJobId).order('report_date',{ascending:false})
   const rows=reports||[]
-  let html='<div style="margin-bottom:12px"><button class="btn btn-p btn-sm" data-jid="'+currentJobId+'" onclick="newDailyModal(this.dataset.jid)">+ New Daily Report</button></div>'
+  // Check for pending email updates for this job
+  var pendingBanner=''
+  try{
+    var{data:pendList}=await sb.from('email_pending_updates').select('id,subject,from_address,from_name,received_at').eq('job_id',currentJobId).eq('status','pending').order('received_at',{ascending:false}).limit(10)
+    if(pendList&&pendList.length){
+      pendingBanner='<div style="background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+        +'<span style="font-size:18px">📧</span>'
+        +'<div style="flex:1;min-width:200px"><div style="font-size:13px;font-weight:600;color:#d97706">'+pendList.length+' email update'+(pendList.length===1?'':'s')+' pending review</div>'
+        +'<div style="font-size:11px;color:#8a96ab;margin-top:2px">Most recent: '+(pendList[0].from_name||pendList[0].from_address||'?')+' — '+(pendList[0].subject||'(no subject)')+'</div></div>'
+        +'<button class="btn btn-sm btn-p" onclick="P(\\'email_review\\',null)">Review →</button>'
+        +'</div>'
+    }
+  }catch(e){/* table missing — fall through */}
+  let html=pendingBanner+'<div style="margin-bottom:12px"><button class="btn btn-p btn-sm" data-jid="'+currentJobId+'" onclick="newDailyModal(this.dataset.jid)">+ New Daily Report</button></div>'
   if(!rows.length){el.innerHTML=html+empty('📋','No daily reports for this job');return}
   html+='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr>'
   html+='<th>Date</th><th>Submitted By</th><th>Crew</th><th>Hours</th><th>Weather</th><th>Issues</th><th></th>'
@@ -3501,6 +3515,202 @@ async function viewDailyReport(id){
   document.getElementById('modal-footer').innerHTML='<button class="btn" onclick="closeModal()">Close</button><button class="btn btn-sm" onclick="dlDailyReportById(\\''+id+'\\')">⬇ Download</button>'+(ME&&['admin','pm'].includes(ME.role)?'<button class="btn btn-sm btn-p" data-rid="'+id+'" onclick="closeModal();editDailyReport(this.dataset.rid)">Edit Report</button>':'')
 }
 async function dlDailyReportById(id){const{data:r}=await sb.from('daily_reports').select('*').eq('id',id).single();dlDailyReport({...r,jobs:r.jobs})}
+
+// ══════════════════════════════════════════
+// EMAIL REVIEW PAGE
+// ══════════════════════════════════════════
+// Shows pending email job-updates that need approval. Auto-approved ones (job
+// matched + hours block present) appear in a separate 'recent' tab so you can
+// audit them. Rejected ones are hidden by default.
+async function pgEmailReview(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="pgEmailReview()">↻ Refresh</button>'
+  var area=document.getElementById('page-area')
+  area.innerHTML=ld()
+  var view=window._erView||'pending'
+  var endpoint='/rest/v1/email_pending_updates?order=received_at.desc&limit=200'
+  // We fetch all and filter client-side so the tab counts are accurate
+  try{
+    var{data:rows}=await sb.from('email_pending_updates').select('*').order('received_at',{ascending:false}).limit(200)
+  }catch(e){
+    area.innerHTML='<div class="card"><div style="color:#dc2626;font-weight:600">Email review tables not found</div><div style="font-size:12px;color:#8a96ab;margin-top:8px">Run migration-003-email-review-queue.sql in your Supabase SQL editor to create the email_pending_updates, email_ingest_log, and email_ingest_rules tables.</div></div>'
+    return
+  }
+  rows=rows||[]
+  // Resolve job IDs to names
+  var jobIds=[...new Set(rows.map(function(r){return r.job_id}).filter(Boolean))]
+  var jobMap={}
+  if(jobIds.length){
+    var{data:jrows}=await sb.from('jobs').select('id,name,job_number').in('id',jobIds)
+    ;(jrows||[]).forEach(function(j){jobMap[j.id]={name:j.name,job_number:j.job_number}})
+  }
+  var pending=rows.filter(function(r){return r.status==='pending'})
+  var autoApproved=rows.filter(function(r){return r.status==='auto_approved'})
+  var done=rows.filter(function(r){return r.status==='approved'||r.status==='rejected'})
+
+  // Update sidebar badge
+  var badge=document.getElementById('email-review-badge')
+  if(badge){if(pending.length){badge.textContent=pending.length;badge.style.display='inline-block'}else{badge.style.display='none'}}
+
+  var tabBtn=function(key,label,count){
+    var active=view===key
+    return '<button class="btn btn-sm" onclick="setEmailReviewView(\\''+key+'\\')" style="background:'+(active?'#2563eb':'#131c2e')+';color:'+(active?'#fff':'#8a96ab')+';border:1px solid '+(active?'#2563eb':'rgba(255,255,255,.08)')+'">'+label+' <span style="opacity:.7">'+count+'</span></button>'
+  }
+
+  var displayRows=view==='pending'?pending:(view==='auto'?autoApproved:done)
+
+  var html='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
+    +tabBtn('pending','⏳ Pending',pending.length)
+    +tabBtn('auto','✅ Auto-Approved',autoApproved.length)
+    +tabBtn('history','📜 History',done.length)
+    +'</div>'
+
+  if(!displayRows.length){
+    html+=empty('📧',view==='pending'?'No emails awaiting review':view==='auto'?'No auto-approved emails':'No history yet')
+  }else{
+    html+='<div style="display:flex;flex-direction:column;gap:10px">'
+    displayRows.forEach(function(r){
+      var job=r.job_id?jobMap[r.job_id]:null
+      var hb=r.hours_block||{}
+      var atts=r.attachments||[]
+      var statusBadge=r.status==='pending'?'<span class="badge bg-amber">⏳ Pending</span>':r.status==='auto_approved'?'<span class="badge bg-green">✅ Auto-Approved</span>':r.status==='approved'?'<span class="badge bg-green">✓ Approved</span>':'<span class="badge bg-red">✗ Rejected</span>'
+
+      html+='<div class="card" style="padding:14px 16px" id="er-card-'+r.id+'">'
+      // Header
+      html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;flex-wrap:wrap">'
+      html+='<div style="flex:1;min-width:200px">'
+      html+='<div style="font-size:14px;font-weight:600;color:#e8edf5">'+(r.subject||'(no subject)')+'</div>'
+      html+='<div style="font-size:11px;color:#8a96ab;margin-top:2px">From: <strong>'+(r.from_name||r.from_address||'?')+'</strong>'+(r.from_name&&r.from_address?' &lt;'+r.from_address+'&gt;':'')+' · '+fdt(r.received_at)+'</div>'
+      html+='</div>'
+      html+='<div style="display:flex;gap:6px;align-items:center;flex-shrink:0">'+statusBadge+'</div>'
+      html+='</div>'
+
+      // Job match
+      if(job){
+        html+='<div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:7px;padding:8px 11px;margin-bottom:10px;font-size:12px"><span style="color:#60a5fa;font-weight:600">📌 Matched to:</span> <a onclick="openJob(\\''+r.job_id+'\\')" style="color:#e8edf5;cursor:pointer;text-decoration:underline">'+(job.job_number?'#'+job.job_number+' · ':'')+job.name+'</a> <span style="color:#414e63;font-size:10px">(via '+(r.matched_by||'?')+')</span></div>'
+      }else{
+        html+='<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:8px 11px;margin-bottom:10px;font-size:12px;color:#f87171">⚠ No job matched — pick one before approving</div>'
+      }
+
+      // Hours block
+      if(hb.total_hours||hb.punch_in||hb.punch_out){
+        html+='<div style="display:flex;gap:14px;flex-wrap:wrap;background:#060a10;border-radius:7px;padding:9px 12px;margin-bottom:10px;font-size:12px">'
+        if(hb.total_hours)html+='<div><span style="color:#414e63">Total:</span> <strong>'+hb.total_hours+' hrs</strong></div>'
+        if(hb.punch_in)html+='<div><span style="color:#414e63">In:</span> '+hb.punch_in+'</div>'
+        if(hb.punch_out)html+='<div><span style="color:#414e63">Out:</span> '+hb.punch_out+'</div>'
+        html+='</div>'
+      }
+
+      // Body preview
+      var body=(r.work_performed||r.raw_body||'').slice(0,500)
+      if(body){
+        html+='<div style="font-size:12px;color:#8a96ab;line-height:1.5;white-space:pre-wrap;background:#060a10;border-radius:7px;padding:9px 12px;margin-bottom:10px;max-height:160px;overflow-y:auto">'+_escapeHTML(body)+(body.length>=500?' …':'')+'</div>'
+      }
+
+      // Attachments
+      if(atts.length){
+        html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
+        atts.forEach(function(a){
+          html+='<a href="'+a.url+'" target="_blank" style="display:block;width:72px;height:72px;border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,.1)"><img src="'+a.url+'" style="width:100%;height:100%;object-fit:cover" alt=""/></a>'
+        })
+        html+='</div>'
+      }
+
+      // Action buttons (only for pending)
+      if(r.status==='pending'){
+        html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'
+        if(job)html+='<button class="btn btn-sm btn-p" style="background:#16a34a" onclick="approveEmailPending(\\''+r.id+'\\')">✓ Approve</button>'
+        html+='<button class="btn btn-sm" onclick="editAndApproveEmailPending(\\''+r.id+'\\')">✏ Edit &amp; Approve</button>'
+        if(!job)html+='<button class="btn btn-sm btn-p" onclick="assignJobToPending(\\''+r.id+'\\')">📌 Assign Job</button>'
+        html+='<button class="btn btn-sm btn-ghost" style="color:#dc2626;margin-left:auto" onclick="rejectEmailPending(\\''+r.id+'\\')">✗ Reject</button>'
+        html+='</div>'
+      }else if(r.status==='approved'&&r.daily_report_id){
+        html+='<div style="font-size:11px;color:#414e63;margin-top:6px">Approved '+fdt(r.reviewed_at)+' → <a onclick="viewDailyReport(\\''+r.daily_report_id+'\\')" style="cursor:pointer;text-decoration:underline;color:#60a5fa">view daily report</a></div>'
+      }else if(r.status==='rejected'){
+        html+='<div style="font-size:11px;color:#414e63;margin-top:6px">Rejected '+fdt(r.reviewed_at)+(r.rejection_reason?' — '+r.rejection_reason:'')+'</div>'
+      }else if(r.status==='auto_approved'&&r.daily_report_id){
+        html+='<div style="font-size:11px;color:#414e63;margin-top:6px">Auto-approved · <a onclick="viewDailyReport(\\''+r.daily_report_id+'\\')" style="cursor:pointer;text-decoration:underline;color:#60a5fa">view daily report</a></div>'
+      }
+      html+='</div>'
+    })
+    html+='</div>'
+  }
+  area.innerHTML=html
+}
+function setEmailReviewView(v){window._erView=v;pgEmailReview()}
+function _escapeHTML(s){return String(s||'').replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+async function approveEmailPending(id){
+  if(!confirm('Approve this email update? A daily report will be created.'))return
+  var session=sb.auth.session?sb.auth.session():(await sb.auth.getSession()).data.session
+  var token=session?.access_token||''
+  var r=await fetch('/api/email-pending/approve',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({pending_id:id})})
+  var d=await r.json()
+  if(d.error){toast(d.error,'error');return}
+  toast('Approved — daily report created');pgEmailReview()
+}
+async function rejectEmailPending(id){
+  var reason=prompt('Reason for rejection (optional):')
+  if(reason===null)return  // cancelled
+  var session=sb.auth.session?sb.auth.session():(await sb.auth.getSession()).data.session
+  var token=session?.access_token||''
+  var r=await fetch('/api/email-pending/reject',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({pending_id:id,reason:reason})})
+  var d=await r.json()
+  if(d.error){toast(d.error,'error');return}
+  toast('Rejected','warn');pgEmailReview()
+}
+async function editAndApproveEmailPending(id){
+  var{data:p}=await sb.from('email_pending_updates').select('*').eq('id',id).single()
+  if(!p){toast('Not found','error');return}
+  var hb=p.hours_block||{}
+  modal('Review & Approve',
+    '<div class="fg"><label class="fl">Total Hours</label><input class="fi" type="number" step="0.25" id="ep-total" value="'+(hb.total_hours||'')+'"></div>'
+    +'<div class="two"><div class="fg"><label class="fl">Crew Count</label><input class="fi" type="number" id="ep-crew" value="1"></div>'
+    +'<div class="fg"><label class="fl">Report Date</label><input class="fi" type="date" id="ep-date" value="'+new Date().toISOString().split('T')[0]+'"></div></div>'
+    +'<div class="fg"><label class="fl">Work Performed</label><textarea class="ft" id="ep-work" style="min-height:140px">'+_escapeHTML(p.work_performed||p.raw_body||'')+'</textarea></div>',
+    async function(){
+      var total=parseFloat(v('ep-total'))||0
+      var crew=parseInt(v('ep-crew'))||1
+      var session=sb.auth.session?sb.auth.session():(await sb.auth.getSession()).data.session
+      var token=session?.access_token||''
+      var r=await fetch('/api/email-pending/approve',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({pending_id:id,overrides:{hours_block:{total_hours:total,punch_in:hb.punch_in,punch_out:hb.punch_out},crew_count:crew,work_performed:v('ep-work'),report_date:v('ep-date')}})})
+      var d=await r.json()
+      if(d.error){toast(d.error,'error');return}
+      closeModal();toast('Approved');pgEmailReview()
+    },'Approve & Create Report')
+}
+async function assignJobToPending(id){
+  var search=prompt('Job number or name to match:')
+  if(!search)return
+  var{data:matches}=await sb.from('jobs').select('id,name,job_number').or('job_number.ilike.%'+search+'%,name.ilike.%'+search+'%').eq('archived',false).limit(20)
+  if(!matches||!matches.length){toast('No jobs matched','error');return}
+  if(matches.length===1){
+    await sb.from('email_pending_updates').update({job_id:matches[0].id,matched_by:'manual'}).eq('id',id)
+    toast('Assigned to '+matches[0].name);pgEmailReview()
+    return
+  }
+  modal('Pick Job ('+matches.length+' matches)',
+    matches.map(function(j){return '<button class="btn" style="width:100%;text-align:left;margin-bottom:6px" onclick="_doAssignJob(\\''+id+'\\',\\''+j.id+'\\',\\''+(j.name||'').replace(/\\'/g,"\\\\\\\\'")+'\\')">'+(j.job_number?'#'+j.job_number+' · ':'')+j.name+'</button>'}).join(''),
+    function(){},'Cancel')
+}
+async function _doAssignJob(pendingId,jobId,jobName){
+  await sb.from('email_pending_updates').update({job_id:jobId,matched_by:'manual'}).eq('id',pendingId)
+  closeModal();toast('Assigned to '+jobName);pgEmailReview()
+}
+// Badge updater — call periodically from the dashboard / nav refresh
+async function updateEmailReviewBadge(){
+  try{
+    var{count}=await sb.from('email_pending_updates').select('*',{count:'exact',head:true}).eq('status','pending')
+    var badge=document.getElementById('email-review-badge')
+    if(!badge)return
+    if(count&&count>0){badge.textContent=count;badge.style.display='inline-block'}
+    else badge.style.display='none'
+  }catch(e){}
+}
+// Run badge update on load and every 90 seconds
+if(typeof window!=='undefined'){
+  setTimeout(updateEmailReviewBadge,2000)
+  setInterval(updateEmailReviewBadge,90000)
+}
+
 function calcDrManHours(){
   var crew=parseFloat((document.getElementById('dr-crew')||{}).value)||0
   var hrs=parseFloat((document.getElementById('dr-hrs')||{}).value)||0
@@ -3549,8 +3759,18 @@ function newDailyModal(jobIdOverride){
       const installed=parseInt(row.querySelector('.dr-part-qty')?.value)||0
       if(installed>0) installedParts.push({part_id:partId,part_name:partName,installed_qty:installed,available_qty:available})
     })
-    const{error}=await sb.from('daily_reports').insert({id:uuid(),job_id:jobId,report_date:v('dr-date'),crew_count:parseInt(v('dr-crew'))||0,hours_worked:parseFloat(v('dr-hrs'))||0,total_man_hours:parseFloat(v('dr-manhrs'))||0,weather:v('dr-wx'),temp_high:fN('dr-th'),temp_low:fN('dr-tl'),work_performed:work,equipment_used:v('dr-eq'),issues:v('dr-iss'),visitors:v('dr-vis'),installed_parts:installedParts,submitted_by:v('dr-by')||( ME&&ME.full_name)||'',submitted_at:new Date().toISOString(),created_at:new Date().toISOString()})
-    if(error){toast(error.message,'error');return}
+    const{error}=await sb.from('daily_reports').insert({id:uuid(),job_id:jobId,report_date:v('dr-date'),crew_count:Math.min(9999,parseInt(v('dr-crew'))||0),hours_worked:Math.min(999.99,parseFloat(v('dr-hrs'))||0),total_man_hours:Math.min(999999.99,parseFloat(v('dr-manhrs'))||0),weather:v('dr-wx'),temp_high:fN('dr-th'),temp_low:fN('dr-tl'),work_performed:work,equipment_used:v('dr-eq'),issues:v('dr-iss'),visitors:v('dr-vis'),installed_parts:installedParts,submitted_by:v('dr-by')||( ME&&ME.full_name)||'',submitted_at:new Date().toISOString(),created_at:new Date().toISOString()})
+    if(error){
+      // Friendlier message for the common Postgres "numeric field overflow"
+      // when a Supabase column has too-tight precision/scale for the value.
+      var msg=error.message||String(error)
+      if(/numeric field overflow|out of range/i.test(msg)){
+        toast('Save failed: one of the numbers (crew, hours, temp, or man-hours) is too large for the database column. An admin needs to run migration-002 in Supabase to widen these columns. Showing raw error so you can copy: '+msg,'error')
+      }else{
+        toast(msg,'error')
+      }
+      return
+    }
     // Update job_parts installed_qty and subtract from available
     for(const ip of installedParts){
       const{data:part}=await sb.from('job_parts').select('id,installed_qty,assigned_qty').eq('job_id',jobId).eq('part_id',ip.part_id).single()
@@ -13213,48 +13433,370 @@ const server = http.createServer(async (req, res) => {
   }
 
   if(p==='/api/email-ingest'&&method==='POST'){
+    try{
     const body=await readBody(req)
     const isTest=req.headers['x-fieldaxis-test']==='1'
+    if(!SB_URL){return json(res,503,{error:'Server not configured (SUPABASE_URL missing)'})}
     const settingsRes=await sbFetch('GET','/rest/v1/company_settings?limit=1',null,SB_ANON)
     const co=(settingsRes&&settingsRes[0])||{}
-    if(!co.email_ingest_provider&&!isTest)return json(res,200,{status:'disabled'})
+    const crypto=require('crypto')
+    const writeKey=SB_SERVICE||SB_ANON
+
+    // helper: write a log row, swallowing errors so logging never breaks ingest
+    const logIngest=async function(o){try{await sbFetch('POST','/rest/v1/email_ingest_log',Object.assign({id:crypto.randomUUID(),received_at:new Date().toISOString()},o),writeKey)}catch(e){}}
+
+    if(!co.email_ingest_provider&&!isTest){
+      await logIngest({outcome:'ignored',notes:'Provider not configured'})
+      return json(res,200,{status:'disabled'})
+    }
+
+    // ── PARSE WEBHOOK BODY ─────────────────────────────────────
+    // Different providers (Mailgun, SendGrid, Postmark, generic) shape the
+    // payload differently. Normalize into {subject, fromAddr, fromName, text, attachments}.
     const ct=req.headers['content-type']||''
-    let subject='',fromAddr='',textBody=''
+    let subject='',fromAddr='',fromName='',textBody='',htmlBody=''
+    let rawAttachments=[]
     if(ct.includes('application/json')){
       subject=body.Subject||body.subject||''
-      fromAddr=String(body.From||body.from?.address||body.from||'')
-      textBody=body.TextBody||body.text_body||body.stripped_text||''
+      // From may be 'Name <addr@x.com>' or {address, name} or just an address
+      const fromRaw=body.From||body.from||body.sender||''
+      if(typeof fromRaw==='object'&&fromRaw){fromAddr=fromRaw.address||fromRaw.email||'';fromName=fromRaw.name||''}
+      else{
+        const m=String(fromRaw).match(/^\s*"?([^"<]+?)"?\s*<([^>]+)>\s*$/)
+        if(m){fromName=m[1].trim();fromAddr=m[2].trim()}
+        else fromAddr=String(fromRaw).trim()
+      }
+      textBody=body.TextBody||body.text_body||body.stripped_text||body.text||''
+      htmlBody=body.HtmlBody||body.html_body||body.html||body['stripped-html']||''
+      rawAttachments=body.Attachments||body.attachments||[]
     }else{
       subject=body.subject||body.Subject||''
-      fromAddr=body.sender||body.from||body.From||''
+      const fromRaw=String(body.sender||body.from||body.From||'')
+      const m=fromRaw.match(/^\s*"?([^"<]+?)"?\s*<([^>]+)>\s*$/)
+      if(m){fromName=m[1].trim();fromAddr=m[2].trim()}
+      else fromAddr=fromRaw.trim()
       textBody=body['body-plain']||body.text||body.TextBody||''
+      htmlBody=body['body-html']||body.html||body.HtmlBody||''
+      // Mailgun form-encoded attachments come as attachment-1, attachment-2, etc.
+      Object.keys(body||{}).forEach(function(k){if(/^attachment-\d+$/.test(k))rawAttachments.push(body[k])})
     }
-    const cleanText=(textBody||'').trim()
+    const cleanText=String(textBody||'').trim()
+
+    // ── ALLOWLIST CHECK ────────────────────────────────────────
     if(co.email_ingest_allowlist&&!isTest){
-      const allowed=co.email_ingest_allowlist.split(',').map(s=>s.trim().toLowerCase())
-      if(!allowed.some(a=>fromAddr.toLowerCase().includes(a)))return json(res,200,{status:'rejected'})
-    }
-    const pat=co.email_ingest_pattern?new RegExp(co.email_ingest_pattern,'i'):/\b(\d{4}[A-Z0-9]*\.[A-Z0-9]+(?:\.[A-Z0-9]+)*)\b/i
-    const match=subject.match(pat)
-    const jobIdGuess=match?match[1]||match[0]:null
-    let jobRow=null
-    if(jobIdGuess){
-      const jRes=await sbFetch('GET',`/rest/v1/jobs?job_number=ilike.${encodeURIComponent(jobIdGuess)}&archived=eq.false&limit=1`,null,SB_ANON)
-      if(jRes&&jRes[0])jobRow=jRes[0]
-    }
-    const today=new Date().toISOString().split('T')[0]
-    const crypto=require('crypto')
-    if(jobRow){
-      if(!isTest)await sbFetch('POST','/rest/v1/daily_reports',{id:crypto.randomUUID(),job_id:jobRow.id,report_date:today,submitted_by:fromAddr,work_performed:cleanText,crew_count:0,hours_worked:0,total_man_hours:0,source:'email',email_subject:subject,email_from:fromAddr,created_at:new Date().toISOString()},SB_ANON)
-      return json(res,200,{status:'created',job:jobRow.name,job_number:jobRow.job_number})
-    }else{
-      const inboxId=crypto.randomUUID()
-      if(!isTest){
-        await sbFetch('POST','/rest/v1/email_inbox',{id:inboxId,received_at:new Date().toISOString(),from_address:fromAddr,subject,body:cleanText,status:'unmatched',job_id_guess:jobIdGuess},SB_ANON)
-        await sbFetch('POST','/rest/v1/notifications',{id:crypto.randomUUID(),type:'email_unmatched',title:'Unmatched email report',message:'Email from '+fromAddr+' — no matching job. Subject: '+subject,link_type:'email_inbox',link_id:inboxId,read:false,created_at:new Date().toISOString()},SB_ANON)
+      const allowed=co.email_ingest_allowlist.split(',').map(function(s){return s.trim().toLowerCase()}).filter(Boolean)
+      if(!allowed.some(function(a){return fromAddr.toLowerCase().includes(a)})){
+        await logIngest({from_address:fromAddr,subject:subject,outcome:'rejected_allowlist'})
+        return json(res,200,{status:'rejected_allowlist'})
       }
-      return json(res,200,{status:'unmatched',subject,from:fromAddr,guess:jobIdGuess})
     }
+
+    // ── MATCH JOB: SUBJECT FIRST, BODY FALLBACK ────────────────
+    // Subject patterns we look for (in priority order):
+    //   1. 'ST00641267 • Desert Canyon' → token before bullet/dash/dot/space
+    //   2. '2512.DOLLARTREELITCHFIELD.A' → full subject as job number
+    //   3. Custom pattern from company_settings.email_ingest_pattern
+    //   4. Generic alphanumeric tokens 5+ chars (last resort)
+    let matchedBy=null,jobRow=null,jobNumberFound=null
+    const extractCandidates=function(text){
+      const cand=[]
+      if(!text)return cand
+      // Bullet/em-dash separator: take leading token
+      const bullet=text.match(/^([A-Z0-9][A-Z0-9._-]{2,})\s*[•·\-–—]/i)
+      if(bullet)cand.push(bullet[1])
+      // Whole-line dot-separated (like 2512.DOLLARTREELITCHFIELD.A)
+      const dotted=text.match(/\b(\d{2,}\.[A-Z0-9._]{3,})\b/i)
+      if(dotted)cand.push(dotted[1])
+      // Custom pattern if configured
+      if(co.email_ingest_pattern){
+        try{const re=new RegExp(co.email_ingest_pattern,'i');const m=text.match(re);if(m)cand.push(m[1]||m[0])}catch(e){}
+      }
+      // Alphanumeric job-number-ish tokens (ST00641267 style)
+      const generic=text.match(/\b([A-Z]{1,4}\d{4,}[A-Z0-9]*)\b/i)
+      if(generic)cand.push(generic[1])
+      // Numeric only (4+ digits at start of subject)
+      const num=text.match(/^\s*(\d{4,})\b/)
+      if(num)cand.push(num[1])
+      return cand
+    }
+    const trySubjectCandidates=extractCandidates(subject)
+    for(const cand of trySubjectCandidates){
+      const jRes=await sbFetch('GET','/rest/v1/jobs?job_number=ilike.'+encodeURIComponent(cand)+'&archived=eq.false&limit=1',null,SB_ANON)
+      if(jRes&&jRes[0]){jobRow=jRes[0];jobNumberFound=cand;matchedBy='subject';break}
+    }
+    // BODY FALLBACK — scan body against every active job's job_number
+    if(!jobRow&&cleanText){
+      try{
+        const allJobsRes=await sbFetch('GET','/rest/v1/jobs?select=id,name,job_number&archived=eq.false&job_number=not.is.null&limit=5000',null,SB_ANON)
+        const upperBody=cleanText.toUpperCase()
+        for(const j of (allJobsRes||[])){
+          if(!j.job_number)continue
+          const jn=String(j.job_number).toUpperCase()
+          if(jn.length<3)continue  // skip too-short numbers to avoid false positives
+          // Word-boundary-ish match: surrounded by non-alphanumeric or string edges
+          const idx=upperBody.indexOf(jn)
+          if(idx<0)continue
+          const before=idx===0?'':upperBody[idx-1]
+          const after=idx+jn.length>=upperBody.length?'':upperBody[idx+jn.length]
+          const isWordBoundary=function(ch){return !ch||!/[A-Z0-9]/.test(ch)}
+          if(isWordBoundary(before)&&isWordBoundary(after)){
+            jobRow=j;jobNumberFound=j.job_number;matchedBy='body';break
+          }
+        }
+      }catch(e){}
+    }
+
+    // ── PARSE HOURS BLOCK ──────────────────────────────────────
+    // Looks for Total Time / Punch-In / Punch-Out in any order.
+    let hoursBlock=null
+    if(cleanText){
+      const totalM=cleanText.match(/Total\s*Time\s*:?\s*([\d.]+)\s*(?:hrs?|hours?)?/i)
+      const inM=cleanText.match(/Punch[\s-]*In\s*:?\s*([\d:apm. ]+)/i)
+      const outM=cleanText.match(/Punch[\s-]*Out\s*:?\s*([\d:apm. ]+)/i)
+      if(totalM||inM||outM){
+        hoursBlock={
+          total_hours:totalM?parseFloat(totalM[1])||null:null,
+          punch_in:inM?inM[1].trim():null,
+          punch_out:outM?outM[1].trim():null
+        }
+      }
+    }
+
+    // ── PROCESS ATTACHMENTS → CLOUDINARY ───────────────────────
+    // Each attachment may be: (a) base64 content + content_type, or (b) a URL
+    // we have to download first. We re-upload via Cloudinary unsigned upload
+    // (already configured for the app), with eager transform for ~2400px /q=85.
+    const processedAttachments=[]
+    if(CL_CLOUD&&CL_KEY&&CL_SECRET&&rawAttachments&&rawAttachments.length&&!isTest){
+      for(const att of rawAttachments){
+        try{
+          let buf=null,filename='attachment',mime='application/octet-stream'
+          if(typeof att==='string'){continue}  // unknown format, skip
+          if(att.Content||att.content){
+            // Postmark / SendGrid base64 form
+            const b64=att.Content||att.content
+            buf=Buffer.from(b64,'base64')
+            filename=att.Name||att.filename||filename
+            mime=att.ContentType||att.content_type||att.type||mime
+          }else if(att.url){
+            // Mailgun gives URLs — download then re-upload
+            const r=await fetch(att.url)
+            const ab=await r.arrayBuffer()
+            buf=Buffer.from(ab)
+            filename=att.name||att.filename||filename
+            mime=att['content-type']||att.contentType||mime
+          }else if(att.path){
+            // Some providers send local paths after a multipart save — skip in this codepath
+            continue
+          }
+          if(!buf||!buf.length)continue
+          if(!/^image\//.test(mime))continue  // only process images (photos)
+
+          // Upload to Cloudinary with eager transform: max 2400px wide, q=85, .jpg
+          const ts=Math.floor(Date.now()/1000)
+          const folder='fieldaxishq/email-attachments'
+          const eager='c_limit,w_2400,q_85/f_jpg'
+          const sigParams={eager:eager,folder:folder,timestamp:ts}
+          if(CL_PRESET)sigParams.upload_preset=CL_PRESET
+          const sig=crypto.createHash('sha1').update(Object.keys(sigParams).sort().map(function(k){return k+'='+sigParams[k]}).join('&')+CL_SECRET).digest('hex')
+
+          // Build multipart form data manually (no extra deps)
+          const boundary='----FAXBoundary'+Math.random().toString(16).slice(2)
+          const parts=[]
+          const addText=function(name,value){parts.push('--'+boundary+'\r\nContent-Disposition: form-data; name="'+name+'"\r\n\r\n'+value+'\r\n')}
+          addText('api_key',CL_KEY)
+          addText('timestamp',String(ts))
+          addText('signature',sig)
+          addText('folder',folder)
+          addText('eager',eager)
+          if(CL_PRESET)addText('upload_preset',CL_PRESET)
+          // file part
+          const head='--'+boundary+'\r\nContent-Disposition: form-data; name="file"; filename="'+filename.replace(/"/g,'')+'"\r\nContent-Type: '+mime+'\r\n\r\n'
+          const tail='\r\n--'+boundary+'--\r\n'
+          const formBuf=Buffer.concat([Buffer.from(parts.join(''),'utf8'),Buffer.from(head,'utf8'),buf,Buffer.from(tail,'utf8')])
+          const upRes=await fetch('https://api.cloudinary.com/v1_1/'+CL_CLOUD+'/image/upload',{
+            method:'POST',
+            headers:{'Content-Type':'multipart/form-data; boundary='+boundary,'Content-Length':String(formBuf.length)},
+            body:formBuf
+          })
+          const upJson=await upRes.json()
+          if(upJson.error){console.warn('Cloudinary upload error:',upJson.error.message);continue}
+          // Use the eager-transformed URL if available, else secure_url
+          const finalUrl=(upJson.eager&&upJson.eager[0]&&upJson.eager[0].secure_url)||upJson.secure_url
+          processedAttachments.push({
+            url:finalUrl,
+            public_id:upJson.public_id,
+            original_name:filename,
+            bytes:upJson.bytes||0,
+            width:upJson.width||0,
+            height:upJson.height||0
+          })
+        }catch(e){console.warn('Attachment processing failed:',e.message||e)}
+      }
+    }
+
+    // ── DECIDE ACTION ──────────────────────────────────────────
+    // Auto-approve only when: job matched AND hours block present.
+    // Else queue for review.
+    if(isTest){
+      return json(res,200,{
+        status:'test',
+        matched_job:jobRow?{id:jobRow.id,name:jobRow.name,job_number:jobRow.job_number}:null,
+        matched_by:matchedBy,
+        from_address:fromAddr,from_name:fromName,
+        subject:subject,
+        hours_block:hoursBlock,
+        attachments_processed:processedAttachments.length,
+        would_auto_approve:!!(jobRow&&hoursBlock)
+      })
+    }
+
+    const pendingId=crypto.randomUUID()
+    const canAutoApprove=!!(jobRow&&hoursBlock)
+    const pendingRow={
+      id:pendingId,
+      received_at:new Date().toISOString(),
+      job_id:jobRow?jobRow.id:null,
+      matched_by:matchedBy,
+      from_address:fromAddr,
+      from_name:fromName||null,
+      subject:subject,
+      raw_body:cleanText,
+      work_performed:cleanText,
+      hours_block:hoursBlock,
+      attachments:processedAttachments,
+      status:canAutoApprove?'auto_approved':(jobRow?'pending':'pending'),
+      created_at:new Date().toISOString(),
+      updated_at:new Date().toISOString()
+    }
+
+    // If auto-approving, also create the daily report immediately
+    let createdDailyReportId=null
+    if(canAutoApprove){
+      createdDailyReportId=crypto.randomUUID()
+      const today=new Date().toISOString().split('T')[0]
+      const totalH=hoursBlock&&hoursBlock.total_hours||0
+      const drRow={
+        id:createdDailyReportId,
+        job_id:jobRow.id,
+        report_date:today,
+        submitted_by:fromName||fromAddr,
+        work_performed:cleanText,
+        crew_count:1,
+        hours_worked:Math.min(999.99,totalH),
+        total_man_hours:Math.min(999999.99,totalH),
+        source:'email_auto',
+        email_subject:subject,
+        email_from:fromAddr,
+        installed_parts:[],
+        created_at:new Date().toISOString()
+      }
+      // Attach photos to the daily report via a JSONB column. We use existing
+      // 'installed_parts' style — store photo list in a new column 'photos'
+      // (added below in tolerant way; if column doesn't exist Postgres returns
+      // a clear error and we degrade by skipping).
+      if(processedAttachments.length){
+        drRow.photos=processedAttachments.map(function(a){return{url:a.url,name:a.original_name,size:a.bytes}})
+      }
+      try{await sbFetch('POST','/rest/v1/daily_reports',drRow,writeKey)}
+      catch(e){console.warn('Daily report insert failed during auto-approve:',e.message||e);createdDailyReportId=null}
+      if(createdDailyReportId)pendingRow.daily_report_id=createdDailyReportId
+    }
+
+    try{await sbFetch('POST','/rest/v1/email_pending_updates',pendingRow,writeKey)}
+    catch(e){
+      await logIngest({from_address:fromAddr,subject:subject,outcome:'error',notes:'pending insert failed: '+(e.message||e)})
+      return json(res,500,{error:'Failed to save pending update: '+(e.message||e)})
+    }
+    await logIngest({
+      from_address:fromAddr,
+      subject:subject,
+      outcome:canAutoApprove?'auto_approved':(jobRow?'queued':'unmatched'),
+      pending_id:pendingId,
+      job_id:jobRow?jobRow.id:null
+    })
+
+    return json(res,200,{
+      status:canAutoApprove?'auto_approved':(jobRow?'queued':'unmatched'),
+      pending_id:pendingId,
+      matched_job:jobRow?{id:jobRow.id,name:jobRow.name,job_number:jobRow.job_number,matched_by:matchedBy}:null,
+      attachments:processedAttachments.length,
+      hours_block:hoursBlock,
+      daily_report_id:createdDailyReportId
+    })
+    }catch(emailErr){
+      console.error('email-ingest error:',emailErr&&emailErr.stack||emailErr)
+      return json(res,500,{error:'Email ingest failed: '+(emailErr&&emailErr.message||String(emailErr))})
+    }
+  }
+
+  // ── EMAIL REVIEW: APPROVE PENDING UPDATE ───────────────────────────
+  if(p==='/api/email-pending/approve'&&method==='POST'){
+    const u=await requireAuth(req,res);if(!u)return
+    const body=await readBody(req)
+    const{pending_id,overrides}=body
+    if(!pending_id)return json(res,400,{error:'pending_id required'})
+    const crypto=require('crypto')
+    const writeKey=SB_SERVICE||SB_ANON
+    const pRes=await sbFetch('GET','/rest/v1/email_pending_updates?id=eq.'+encodeURIComponent(pending_id)+'&limit=1',null,SB_ANON)
+    const p2=(pRes&&pRes[0])||null
+    if(!p2)return json(res,404,{error:'Pending update not found'})
+    if(p2.status!=='pending')return json(res,400,{error:'Already '+p2.status})
+    const jobId=(overrides&&overrides.job_id)||p2.job_id
+    if(!jobId)return json(res,400,{error:'No job assigned — pick one before approving'})
+    const work=(overrides&&overrides.work_performed)||p2.work_performed||p2.raw_body||''
+    const hb=(overrides&&overrides.hours_block)||p2.hours_block||{}
+    const totalH=Number(hb.total_hours||0)
+    const drId=crypto.randomUUID()
+    const today=new Date().toISOString().split('T')[0]
+    const drRow={
+      id:drId,
+      job_id:jobId,
+      report_date:(overrides&&overrides.report_date)||today,
+      submitted_by:p2.from_name||p2.from_address||'(email)',
+      work_performed:work,
+      crew_count:Math.min(9999,Number((overrides&&overrides.crew_count))||1),
+      hours_worked:Math.min(999.99,totalH),
+      total_man_hours:Math.min(999999.99,totalH),
+      source:'email_reviewed',
+      email_subject:p2.subject,
+      email_from:p2.from_address,
+      installed_parts:[],
+      photos:p2.attachments||[],
+      created_at:new Date().toISOString()
+    }
+    try{await sbFetch('POST','/rest/v1/daily_reports',drRow,writeKey)}
+    catch(e){return json(res,500,{error:'Daily report insert failed: '+(e.message||e)})}
+    try{
+      await sbFetch('PATCH','/rest/v1/email_pending_updates?id=eq.'+encodeURIComponent(pending_id),{
+        status:'approved',
+        job_id:jobId,
+        reviewed_by:u.id,
+        reviewed_at:new Date().toISOString(),
+        daily_report_id:drId,
+        updated_at:new Date().toISOString()
+      },writeKey)
+    }catch(e){}
+    return json(res,200,{status:'approved',daily_report_id:drId})
+  }
+
+  // ── EMAIL REVIEW: REJECT PENDING UPDATE ────────────────────────────
+  if(p==='/api/email-pending/reject'&&method==='POST'){
+    const u=await requireAuth(req,res);if(!u)return
+    const body=await readBody(req)
+    const{pending_id,reason}=body
+    if(!pending_id)return json(res,400,{error:'pending_id required'})
+    const writeKey=SB_SERVICE||SB_ANON
+    try{
+      await sbFetch('PATCH','/rest/v1/email_pending_updates?id=eq.'+encodeURIComponent(pending_id),{
+        status:'rejected',
+        reviewed_by:u.id,
+        reviewed_at:new Date().toISOString(),
+        rejection_reason:reason||null,
+        updated_at:new Date().toISOString()
+      },writeKey)
+    }catch(e){return json(res,500,{error:e.message||String(e)})}
+    return json(res,200,{status:'rejected'})
   }
 
   if(p==='/api/set-password'&&method==='POST'){
