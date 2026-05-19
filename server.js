@@ -6337,7 +6337,68 @@ async function pgSettings(){
   h+='<div id="ei-test-result" style="margin-top:8px;font-size:12px"></div>'
   h+='</div>'
 
+  // ── Admin Maintenance ──────────────────────────────────────
+  h+='<div class="card" style="margin-bottom:14px;border:1px solid rgba(217,119,6,.2)">'
+  h+='<div class="card-title" style="margin-bottom:4px">🛠 Admin Maintenance</div>'
+  h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">Cleanup tools for keeping the database tidy. Use these when user creation fails with "duplicate key" errors or when the Users page shows stale entries.</div>'
+  // Orphan profile cleanup
+  h+='<div style="background:#060a10;border-radius:7px;padding:11px 13px;margin-bottom:10px">'
+  h+='<div style="font-size:13px;font-weight:600;margin-bottom:4px">Orphan Profile Cleanup</div>'
+  h+='<div style="font-size:11px;color:#8a96ab;margin-bottom:9px">Finds profile rows whose login (auth) account no longer exists. These can block recreating a user with the same email. Safe to delete \u2014 the auth side is already gone.</div>'
+  h+='<div id="orphan-results" style="font-size:12px;margin-bottom:8px;color:#414e63">Click <strong>Scan</strong> to look for orphans.</div>'
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap">'
+  h+='<button class="btn btn-sm" onclick="scanOrphanProfiles()">🔍 Scan for Orphans</button>'
+  h+='<button class="btn btn-sm" id="orphan-delete-btn" onclick="deleteOrphanProfiles()" style="display:none;background:#dc2626;color:#fff">🗑 Delete All Orphans</button>'
+  h+='</div>'
+  h+='</div>'
+  h+='</div>'
+
   document.getElementById('page-area').innerHTML=h
+}
+
+// ── Orphan cleanup helpers ───────────────────────────────────
+async function scanOrphanProfiles(){
+  var el=document.getElementById('orphan-results')
+  if(el)el.innerHTML='<span style="color:#60a5fa">Scanning…</span>'
+  try{
+    var session=(await sb.auth.getSession()).data.session
+    var token=session?.access_token||''
+    var r=await fetch('/api/orphan-profiles/scan',{method:'GET',headers:{'Authorization':'Bearer '+token}})
+    var d={};try{d=await r.json()}catch(e){}
+    if(!r.ok||d.error){if(el)el.innerHTML='<span style="color:#dc2626">'+(d.error||'Scan failed')+'</span>';return}
+    var rows=d.orphans||[]
+    window._orphanIds=rows.map(function(o){return o.id})
+    if(!rows.length){
+      if(el)el.innerHTML='<span style="color:#16a34a">✓ No orphan profiles found — everything is tidy.</span>'
+      var btn=document.getElementById('orphan-delete-btn');if(btn)btn.style.display='none'
+      return
+    }
+    var list=rows.slice(0,30).map(function(o){return '<li><strong>'+(o.full_name||'(no name)')+'</strong> &lt;'+(o.email||'no email')+'&gt; <span style="color:#414e63">'+(o.is_active?'active':'inactive')+'</span></li>'}).join('')
+    if(el)el.innerHTML='<div style="color:#d97706;font-weight:600;margin-bottom:6px">Found '+rows.length+' orphan profile'+(rows.length===1?'':'s')+':</div><ul style="font-size:11px;color:#8a96ab;margin:0;padding-left:20px;max-height:140px;overflow-y:auto">'+list+(rows.length>30?'<li><em>… and '+(rows.length-30)+' more</em></li>':'')+'</ul>'
+    var btn=document.getElementById('orphan-delete-btn');if(btn)btn.style.display='inline-block'
+  }catch(e){
+    if(el)el.innerHTML='<span style="color:#dc2626">Error: '+(e.message||e)+'</span>'
+  }
+}
+async function deleteOrphanProfiles(){
+  var ids=window._orphanIds||[]
+  if(!ids.length){toast('Run Scan first','error');return}
+  if(!confirm('Delete '+ids.length+' orphan profile row'+(ids.length===1?'':'s')+'?\\n\\nThis only removes leftover profile entries whose auth account no longer exists. Real users are not affected.'))return
+  var el=document.getElementById('orphan-results')
+  if(el)el.innerHTML='<span style="color:#60a5fa">Deleting…</span>'
+  try{
+    var session=(await sb.auth.getSession()).data.session
+    var token=session?.access_token||''
+    var r=await fetch('/api/orphan-profiles/delete',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({ids:ids})})
+    var d={};try{d=await r.json()}catch(e){}
+    if(!r.ok||d.error){if(el)el.innerHTML='<span style="color:#dc2626">'+(d.error||'Delete failed')+'</span>';return}
+    if(el)el.innerHTML='<span style="color:#16a34a">✓ Deleted '+(d.deleted||0)+' orphan profile'+(d.deleted===1?'':'s')+'.</span>'
+    var btn=document.getElementById('orphan-delete-btn');if(btn)btn.style.display='none'
+    window._orphanIds=[]
+    toast('Cleaned up '+(d.deleted||0)+' orphan profile'+(d.deleted===1?'':'s'))
+  }catch(e){
+    if(el)el.innerHTML='<span style="color:#dc2626">Error: '+(e.message||e)+'</span>'
+  }
 }
 
 
@@ -6884,16 +6945,37 @@ async function forceLogoutUser(id,name){
   }catch(e){toast(e.message,'error')}
 }
 async function deleteUserConfirm(id,name){
-  if(!confirm('Delete '+name+'? This cannot be undone.'))return
-  var{error}=await sb.from('profiles').delete().eq('id',id)
-  if(error){toast(error.message,'error');return}
+  if(!confirm('Delete '+name+'? This cannot be undone.\\n\\nThis removes both their login (auth) AND their profile.'))return
+  // STEP 1: Delete the auth user first via the server endpoint. If this fails,
+  // we stop here so the admin sees the error and the profile stays intact
+  // (otherwise we'd leave orphaned auth users that block re-using the email).
   try{
     var{data:{session}}=await sb.auth.getSession()
-    await fetch('/api/delete-user',{method:'POST',
+    var r=await fetch('/api/delete-user',{method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
       body:JSON.stringify({user_id:id})})
-  }catch(e){}
-  toast(name+' has been deleted')
+    var d={};try{d=await r.json()}catch(e){}
+    if(!r.ok||d.error){
+      // Special case: auth user doesn't exist (404) — fine, fall through
+      // and clean up the profile anyway since there's nothing in auth to
+      // worry about.
+      var msg=String(d.error||'')
+      if(r.status!==404 && !/not.*found|no rows/i.test(msg)){
+        toast('Could not delete login: '+(d.error||'unknown error')+'. The profile was NOT deleted — try again, or clean up manually in Supabase Authentication → Users.','error')
+        return
+      }
+    }
+  }catch(e){
+    toast('Network error deleting login: '+(e.message||e)+'. The profile was NOT deleted — try again.','error')
+    return
+  }
+  // STEP 2: Now delete the profile row. Auth is gone so this is safe.
+  var{error}=await sb.from('profiles').delete().eq('id',id)
+  if(error){
+    toast('Auth deleted, but profile delete failed: '+error.message+'. You may need to delete the profile row manually in Supabase Table Editor.','error')
+    return
+  }
+  toast(name+' has been deleted (auth + profile)')
   pgUsers()
 }
 async function resetPasswordModal(id,name){
@@ -13920,6 +14002,77 @@ const server = http.createServer(async (req, res) => {
     return json(res,200,{status:'rejected'})
   }
 
+  // ── ORPHAN PROFILE CLEANUP ────────────────────────────────────────
+  // Find/delete profile rows whose `id` doesn't match any auth.users row.
+  // These accumulate when user-creation flows fail partway through. They
+  // block re-creating a user with the same email (unique constraint).
+  if(p==='/api/orphan-profiles/scan'&&method==='GET'){
+    try{
+      const u=await getUser(req);if(!requireAuth(res,u))return
+      const meRole=String(u.role||'').toLowerCase()
+      if(meRole!=='admin')return json(res,403,{error:'Admin role required'})
+      if(!SB_SERVICE)return json(res,500,{error:'SUPABASE_SERVICE_KEY not configured'})
+
+      // Get all profile rows
+      const profiles=await sbFetch('GET','/rest/v1/profiles?select=id,email,full_name,is_active&limit=10000',null,SB_SERVICE)
+      if(!Array.isArray(profiles))return json(res,500,{error:'Profiles fetch failed: '+JSON.stringify(profiles).slice(0,200)})
+
+      // Get all auth user IDs (via admin API; paginated)
+      const authIds=new Set()
+      let page=1
+      while(page<=20){  // hard cap at 20k auth users to prevent runaway
+        const ur=await sbFetch('GET','/auth/v1/admin/users?page='+page+'&per_page=1000',null,SB_SERVICE)
+        const list=(ur&&ur.users)||[]
+        list.forEach(function(usr){if(usr&&usr.id)authIds.add(usr.id)})
+        if(list.length<1000)break
+        page++
+      }
+
+      // Profile rows whose id is NOT in authIds are orphans
+      const orphans=profiles.filter(function(p2){return !authIds.has(p2.id)})
+      return json(res,200,{orphans:orphans,total_profiles:profiles.length,total_auth_users:authIds.size})
+    }catch(err){
+      console.error('[orphan-scan] uncaught:',err&&err.stack||err)
+      return json(res,500,{error:'Server error: '+(err&&err.message||String(err))})
+    }
+  }
+
+  if(p==='/api/orphan-profiles/delete'&&method==='POST'){
+    try{
+      const u=await getUser(req);if(!requireAuth(res,u))return
+      const meRole=String(u.role||'').toLowerCase()
+      if(meRole!=='admin')return json(res,403,{error:'Admin role required'})
+      if(!SB_SERVICE)return json(res,500,{error:'SUPABASE_SERVICE_KEY not configured'})
+
+      const body=await readBody(req)
+      const{ids}=body
+      if(!Array.isArray(ids)||!ids.length)return json(res,400,{error:'ids array required'})
+
+      // Safety check: re-verify each id is actually an orphan before deleting.
+      // This prevents a misuse of the endpoint (e.g. someone passing real user
+      // ids) — we only delete rows whose auth user truly does not exist.
+      const authIds=new Set()
+      let page=1
+      while(page<=20){
+        const ur=await sbFetch('GET','/auth/v1/admin/users?page='+page+'&per_page=1000',null,SB_SERVICE)
+        const list=(ur&&ur.users)||[]
+        list.forEach(function(usr){if(usr&&usr.id)authIds.add(usr.id)})
+        if(list.length<1000)break
+        page++
+      }
+      const safeIds=ids.filter(function(id){return !authIds.has(id)})
+      if(!safeIds.length)return json(res,400,{error:'None of the supplied ids are actually orphans. Refusing to delete.'})
+
+      // Delete in batches via the PostgREST `in.()` filter
+      const idList=safeIds.map(function(id){return '"'+id+'"'}).join(',')
+      await sbFetch('DELETE','/rest/v1/profiles?id=in.('+encodeURIComponent(idList)+')',null,SB_SERVICE)
+      return json(res,200,{deleted:safeIds.length,skipped:ids.length-safeIds.length})
+    }catch(err){
+      console.error('[orphan-delete] uncaught:',err&&err.stack||err)
+      return json(res,500,{error:'Server error: '+(err&&err.message||String(err))})
+    }
+  }
+
   // ── UPDATE USER'S LOGIN EMAIL ─────────────────────────────────────
   // Admin-only. Changes the auth-user's email AND profile.email atomically.
   // Sets email_confirm:true so the new email is immediately the login identity
@@ -13986,6 +14139,19 @@ const server = http.createServer(async (req, res) => {
         return json(res,500,{error:'SUPABASE_SERVICE_KEY env var is not set on Render. An admin needs to add it in Render → Environment → Add Environment Variable.'})
       }
 
+      // ── Pre-flight: check for existing profile with this email ────
+      // If a profile already exists (probably from an earlier failed attempt
+      // that left orphan data), tell the admin so they can clean it up
+      // before we try to create anything new. This avoids the create-auth-
+      // then-rollback dance.
+      try{
+        const existing=await sbFetch('GET','/rest/v1/profiles?email=eq.'+encodeURIComponent(email)+'&select=id,full_name,is_active&limit=1',null,SB_SERVICE)
+        if(Array.isArray(existing)&&existing.length){
+          const e=existing[0]
+          return json(res,400,{error:'A profile with that email already exists (name: '+(e.full_name||'?')+(e.is_active?', active':', inactive')+'). Delete it from Supabase → Table Editor → profiles first, then try again. Or use the Edit button on their row if you want to reuse the account.'})
+        }
+      }catch(e){/* non-fatal — continue and let the auth/insert path catch any duplicates */}
+
       // Create auth user with email_confirm:true (skips verification) and the
       // chosen password. No email is sent by Supabase in this path.
       const createRes=await sbFetch('POST','/auth/v1/admin/users',{
@@ -14009,7 +14175,7 @@ const server = http.createServer(async (req, res) => {
         }
         const lower=String(msg).toLowerCase()
         if(/already.*registered|already.*exists|email.*registered|email_exists/.test(lower)){
-          return json(res,400,{error:'That email is already used by another account. Try a different email — or look in the Users page (active and inactive both) for the existing one.'})
+          return json(res,400,{error:'That email is already used by another Supabase Auth user. Go to Supabase → Authentication → Users, find them, and delete the auth entry. Then try again.'})
         }
         if(/weak.*password|password.*short|password.*strength|password.*characters/.test(lower)){
           return json(res,400,{error:'Password rejected by Supabase: '+msg})
@@ -14024,8 +14190,12 @@ const server = http.createServer(async (req, res) => {
       }
       const authUserId=createRes.id
 
-      // Create the profile row
-      const profileRes=await sbFetch('POST','/rest/v1/profiles',{
+      // Create the profile row. Use UPSERT semantics — if a profile with this
+      // exact UUID already exists (rare but happens when an auth user is
+      // recreated with the same id), update it instead of failing on
+      // duplicate-key. The pre-flight check above already screens for
+      // duplicates by email; this protects against duplicates by id.
+      const profileRes=await dbUpsert('profiles',{
         id:authUserId,
         full_name,
         email,
@@ -14037,13 +14207,16 @@ const server = http.createServer(async (req, res) => {
         emergency_phone:emergency_phone||'',
         is_active:true,
         created_at:new Date().toISOString()
-      },SB_SERVICE)
-      // PostgREST returns the inserted row(s) as an array on success.
+      })
       const profileOk=Array.isArray(profileRes)||(profileRes&&profileRes.id)
       if(!profileOk&&profileRes&&(profileRes.error||profileRes.code||profileRes.message||profileRes.msg)){
         const msg=profileRes.message||profileRes.msg||(profileRes.error&&(profileRes.error.message||profileRes.error))||JSON.stringify(profileRes).slice(0,250)
-        console.warn('[create-user-direct] profile insert failed, rolling back auth user:',msg)
+        console.warn('[create-user-direct] profile upsert failed, rolling back auth user:',msg)
         try{await sbFetch('DELETE','/auth/v1/admin/users/'+authUserId,null,SB_SERVICE)}catch(e){}
+        // Friendlier message for duplicate-key
+        if(/duplicate key|profiles_pkey|already exists/i.test(msg)){
+          return json(res,400,{error:'A profile with this UUID already exists in the database but does not match the email. Clean up via Supabase → Table Editor → profiles, search for stale rows, delete them, then retry. Raw: '+msg})
+        }
         return json(res,400,{error:'Profile creation failed (auth user rolled back): '+msg})
       }
       return json(res,200,{success:true,user_id:authUserId})
