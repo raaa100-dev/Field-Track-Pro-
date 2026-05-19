@@ -6661,22 +6661,32 @@ async function pgJobMap(){
 function initMap(jobs){
   const container=document.getElementById('map-container')
   if(!container||!window.L)return
+
+  // ── MOBILE: do all DOM/style adjustments BEFORE creating the map so the
+  // container has its final size when Leaflet measures it. Previously the
+  // map was created first and the container resized after, which caused
+  // Leaflet to load tiles for the wrong viewport — the "missing squares"
+  // bug on mobile.
+  var isMobile=window.innerWidth<=768
+  if(isMobile){
+    closeSidebar()
+    var outer=document.getElementById('map-outer')
+    if(outer){outer.style.gridTemplateColumns='1fr';outer.style.height='calc(100vh - 56px)';outer.style.gap='0'}
+    var jlw=document.getElementById('map-job-list-wrap')
+    if(jlw)jlw.style.display='none'
+    if(container){container.style.borderRadius='0';container.style.border='none'}
+  }
+
   container.innerHTML='<div id="leaflet-map" style="width:100%;height:100%"></div>'
   const map=window.L.map('leaflet-map').setView([33.4484,-112.0740],10)
   window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(map)
   window._leafletMap=map
   window._mapMarkers=[]
   addMapPins(jobs,map)
-  // Mobile setup after map init
-  if(window.innerWidth<=768){
-    closeSidebar()
-    var outer=document.getElementById('map-outer')
-    if(outer){outer.style.gridTemplateColumns='1fr';outer.style.height='calc(100vh - 56px)';outer.style.gap='0'}
-    var jlw=document.getElementById('map-job-list-wrap')
-    if(jlw)jlw.style.display='none'
-    var mapEl=document.getElementById('map-container')
-    if(mapEl){mapEl.style.borderRadius='0';mapEl.style.border='none'}
-    // Move filter bar into map overlay
+
+  // ── MOBILE: inject filter overlay AFTER map exists (its parent needs to be
+  // positioned relative). This doesn't change the map's own size.
+  if(isMobile){
     var filterBar=document.getElementById('mobile-map-filters')
     if(!filterBar){
       filterBar=document.createElement('div')
@@ -6695,8 +6705,34 @@ function initMap(jobs){
       var pms=[...new Set((window._mapJobs||[]).map(function(j){return j.project_manager}).filter(Boolean))]
       document.getElementById('mob-f-pm').innerHTML='<option value="">All PMs</option>'+pms.map(function(p){return'<option value="'+p+'">'+p+'</option>'}).join('')
     }
-    setTimeout(function(){map.invalidateSize()},100)
   }
+
+  // ── Belt-and-suspenders invalidateSize: call multiple times at increasing
+  // delays. Catches: initial reflow, web-font loading, mobile URL-bar collapse,
+  // and any async layout shifts. Cheap to over-call — invalidateSize is a no-op
+  // when the size hasn't changed.
+  var safeInvalidate=function(){
+    if(window._leafletMap===map){try{map.invalidateSize()}catch(e){}}
+  }
+  requestAnimationFrame(safeInvalidate)
+  setTimeout(safeInvalidate,300)
+  setTimeout(safeInvalidate,800)
+
+  // Re-fit on orientation/resize so the tiles fill the new viewport.
+  // Use a small debounce so we don't fire on every resize tick.
+  if(!window._mapResizeWired){
+    window._mapResizeWired=true
+    var resizeDeb=null
+    var onResize=function(){
+      clearTimeout(resizeDeb)
+      resizeDeb=setTimeout(function(){
+        if(window._leafletMap)try{window._leafletMap.invalidateSize()}catch(e){}
+      },250)
+    }
+    window.addEventListener('resize',onResize)
+    window.addEventListener('orientationchange',onResize)
+  }
+
   renderMapJobList(jobs)
 }
 
