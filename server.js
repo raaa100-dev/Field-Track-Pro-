@@ -570,6 +570,9 @@ window.addEventListener('DOMContentLoaded',async()=>{
   if(!session){location.href='index.html';return}
   const{data:p}=await sb.from('profiles').select('*').eq('id',session.user.id).single()
   ME=p||{id:session.user.id,full_name:session.user.email,role:'admin'}
+  // Normalize role to lowercase so 'Admin' vs 'admin' vs 'ADMIN' all behave
+  // the same. Every role comparison in the app uses lowercase literals.
+  if(ME&&ME.role)ME.role=String(ME.role).toLowerCase()
   const nm=ME.full_name||session.user.email
   document.getElementById('user-name').textContent=nm
   const av=document.getElementById('user-av')
@@ -6963,7 +6966,9 @@ function editUserModal(id,role,active,name){
           emEl.addEventListener('input',showWarn)
         }
         document.getElementById('eu-ph').value=p.phone||''
-        document.getElementById('eu-rl').value=p.role||'sub_worker'
+        // Lowercase role on read so any legacy 'Admin'/'PM' values in the DB
+        // still match the lowercase option values and the select shows correctly.
+        document.getElementById('eu-rl').value=(p.role||'sub_worker').toLowerCase()
         document.getElementById('eu-co').value=p.company_id||''
         document.getElementById('eu-hire').value=p.hire_date||''
         document.getElementById('eu-act').value=String(p.is_active)
@@ -13922,8 +13927,8 @@ const server = http.createServer(async (req, res) => {
     try{
       const u=await requireAuth(req,res);if(!u)return
       const meRes=await sbFetch('GET','/rest/v1/profiles?id=eq.'+encodeURIComponent(u.id)+'&select=role&limit=1',null,SB_ANON)
-      const meRole=(meRes&&meRes[0]&&meRes[0].role)||''
-      if(meRole!=='admin')return json(res,403,{error:'Admin role required'})
+      const meRole=String((meRes&&meRes[0]&&meRes[0].role)||'').toLowerCase()
+      if(meRole!=='admin')return json(res,403,{error:'Admin role required (your role appears to be: '+(meRole||'unknown')+')'})
 
       const body=await readBody(req)
       const{user_id,email}=body
@@ -13967,7 +13972,7 @@ const server = http.createServer(async (req, res) => {
       const u=await requireAuth(req,res);if(!u)return
       // Only admins can create users this way
       const meRes=await sbFetch('GET','/rest/v1/profiles?id=eq.'+encodeURIComponent(u.id)+'&select=role&limit=1',null,SB_ANON)
-      const meRole=(meRes&&meRes[0]&&meRes[0].role)||''
+      const meRole=String((meRes&&meRes[0]&&meRes[0].role)||'').toLowerCase()
       if(meRole!=='admin')return json(res,403,{error:'Admin role required (your role appears to be: '+(meRole||'unknown')+')'})
 
       const body=await readBody(req)
