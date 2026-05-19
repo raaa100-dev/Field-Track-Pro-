@@ -2553,6 +2553,7 @@ async function openJobWalk(walkId){
   var footBtns='<button class="btn" onclick="_closeWalkSafely()">Close</button>'
   if(canEdit&&!isComplete)footBtns+='<button class="btn btn-p" id="modal-ok">Save Walk</button>'
   if(canEdit&&!isComplete)footBtns+='<button class="btn btn-p" onclick="walkComplete()" style="background:#16a34a">✓ Mark Complete</button>'
+  if(canEdit&&isComplete)footBtns+='<button class="btn" onclick="reopenWalk()" style="background:rgba(217,119,6,.15);color:#d97706;border:1px solid rgba(217,119,6,.3)">↺ Reopen to Edit</button>'
   if(ME&&ME.role==='admin')footBtns+='<button class="btn btn-ghost" style="color:#dc2626" onclick="deleteJobWalk(window._curWalkId)">Delete Walk</button>'
   document.getElementById('modal-footer').innerHTML=footBtns
   // Re-bind the Save handler now that we've rebuilt the button
@@ -2597,6 +2598,18 @@ async function markWalkComplete(walkId){
   closeModal();toast('Job walk marked complete ✓')
   notifyAdminsWalkComplete(res.data)
   pgJobWalks()
+}
+async function reopenWalk(){
+  var walkId=window._curWalkId
+  if(!walkId){toast('No walk loaded','error');return}
+  if(!confirm('Reopen this job walk for editing? Its status will change from Complete back to In Progress.'))return
+  var res=await sb.from('job_walks').update({status:'in_progress',completed_at:null,updated_at:new Date().toISOString()}).eq('id',walkId)
+  if(res.error){toast(res.error.message,'error');return}
+  toast('Walk reopened — fields are now editable')
+  // Refresh the modal in place: close and re-open the same walk so the form
+  // re-renders with the new (non-readonly) state.
+  closeModal()
+  setTimeout(function(){openJobWalk(walkId)},100)
 }
 async function notifyAdminsWalkComplete(walk){
   // Create a task notification for all admins/PMs
