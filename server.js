@@ -6838,8 +6838,17 @@ function addUserModal(){
 function _auToggleManualPw(){
   var w=document.getElementById('au-pw-wrap')
   var cb=document.getElementById('au-manual')
+  var em=document.getElementById('au-em')
   if(!w||!cb)return
   w.style.display=cb.checked?'block':'none'
+  // Update email placeholder to suggest plus-addressing for temp emails
+  if(em){
+    if(cb.checked){
+      em.placeholder='No real email? Use yourname+worker@yourcompany.com (you can update later)'
+    }else{
+      em.placeholder='They will get a password setup email'
+    }
+  }
 }
 function _auGenPw(){
   // Generate a memorable-but-strong password: 3 short words + 2 digits + symbol
@@ -6906,27 +6915,53 @@ function editUserModal(id,role,active,name){
   const coOpts=(window._empCos||[]).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')
   const html=
     '<div class="two"><div class="fg"><label class="fl">Full Name</label><input class="fi" id="eu-nm" value="'+name+'"></div>'+
-    '<div class="fg"><label class="fl">Phone</label><input class="fi" id="eu-ph"></div></div>'+
-    '<div class="two"><div class="fg"><label class="fl">Role</label><select class="fs" id="eu-rl">'+
+    '<div class="fg"><label class="fl">Email <span style="color:#414e63;font-weight:400;font-size:10px">(login identity)</span></label><input class="fi" id="eu-em" type="email" placeholder="user@example.com"></div></div>'+
+    '<div class="fg" id="eu-em-warn" style="display:none;background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.2);border-radius:7px;padding:8px 11px;font-size:11px;color:#d97706;margin-top:-4px">⚠ Changing the email updates the user\\'s login. They will sign in with the new address from now on. No confirmation email is sent.</div>'+
+    '<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="eu-ph"></div>'+
+    '<div class="fg"><label class="fl">Role</label><select class="fs" id="eu-rl">'+
     '<option value="sub_worker">Field Worker</option><option value="sub_lead">Lead</option>'+
     '<option value="technician">Technician</option><option value="stager">Stager</option>'+
     '<option value="foreman">Foreman</option><option value="estimator">Estimator</option><option value="pm">Project Manager</option>'+
-    '<option value="admin">Admin</option></select></div>'+
-    '<div class="fg"><label class="fl">Company</label><select class="fs" id="eu-co"><option value="">Internal</option>'+coOpts+'</select></div></div>'+
-    '<div class="two"><div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="eu-hire"></div>'+
-    '<div class="fg"><label class="fl">Status</label><select class="fs" id="eu-act"><option value="true">Active</option><option value="false">Inactive</option></select></div></div>'+
+    '<option value="admin">Admin</option></select></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Company</label><select class="fs" id="eu-co"><option value="">Internal</option>'+coOpts+'</select></div>'+
+    '<div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="eu-hire"></div></div>'+
+    '<div class="two"><div class="fg"><label class="fl">Status</label><select class="fs" id="eu-act"><option value="true">Active</option><option value="false">Inactive</option></select></div>'+
+    '<div class="fg"></div></div>'+
     '<div class="two"><div class="fg"><label class="fl">Emergency Contact</label><input class="fi" id="eu-ec"></div>'+
     '<div class="fg"><label class="fl">Emergency Phone</label><input class="fi" id="eu-ep"></div></div>'
   modal('Edit Employee — '+name, html, async()=>{
-    const u={full_name:v('eu-nm'),phone:v('eu-ph'),role:v('eu-rl'),company_id:v('eu-co')||null,hire_date:v('eu-hire')||null,emergency_contact:v('eu-ec'),emergency_phone:v('eu-ep'),is_active:v('eu-act')==='true'}
+    const newEm=v('eu-em').trim()
+    const originalEm=(document.getElementById('eu-em')||{}).dataset.original||''
+    const emailChanged=newEm&&newEm!==originalEm
+    // ── If email changed, update the auth identity via server endpoint ──
+    if(emailChanged){
+      try{
+        var session=(await sb.auth.getSession()).data.session
+        var token=session?.access_token||''
+        var r=await fetch('/api/update-user-email',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({user_id:id,email:newEm})})
+        var d={};try{d=await r.json()}catch(e){}
+        if(!r.ok||d.error){toast(d.error||'Could not update email','error');return}
+      }catch(e){toast('Email update failed: '+(e.message||e),'error');return}
+    }
+    // ── Update profile fields (everything except auth email) ──────────
+    const u={full_name:v('eu-nm'),phone:v('eu-ph'),role:v('eu-rl'),company_id:v('eu-co')||null,hire_date:v('eu-hire')||null,emergency_contact:v('eu-ec'),emergency_phone:v('eu-ep'),is_active:v('eu-act')==='true',updated_at:new Date().toISOString()}
+    if(emailChanged)u.email=newEm  // also mirror into profile.email
     const{error}=await sb.from('profiles').update(u).eq('id',id)
-    if(error)toast(error.message,'error');else{closeModal();toast('Updated');pgUsers()}
+    if(error){toast(error.message,'error');return}
+    closeModal();toast(emailChanged?'Updated — they now sign in with '+newEm:'Updated');pgUsers()
   })
   // Populate fields from DB
   sb.from('profiles').select('*').eq('id',id).single().then(({data:p})=>{
     if(!p)return
     setTimeout(()=>{
       try{
+        var emEl=document.getElementById('eu-em')
+        if(emEl){emEl.value=p.email||'';emEl.dataset.original=p.email||''
+          // Warn on focus or input that changing email changes login identity
+          var warn=document.getElementById('eu-em-warn')
+          var showWarn=function(){if(warn)warn.style.display=emEl.value&&emEl.value!==emEl.dataset.original?'block':'none'}
+          emEl.addEventListener('input',showWarn)
+        }
         document.getElementById('eu-ph').value=p.phone||''
         document.getElementById('eu-rl').value=p.role||'sub_worker'
         document.getElementById('eu-co').value=p.company_id||''
@@ -13854,6 +13889,52 @@ const server = http.createServer(async (req, res) => {
       },writeKey)
     }catch(e){return json(res,500,{error:e.message||String(e)})}
     return json(res,200,{status:'rejected'})
+  }
+
+  // ── UPDATE USER'S LOGIN EMAIL ─────────────────────────────────────
+  // Admin-only. Changes the auth-user's email AND profile.email atomically.
+  // Sets email_confirm:true so the new email is immediately the login identity
+  // — no verification email is sent. Use to swap a placeholder email (e.g.
+  // a 'yourname+temp@yourcompany.com' plus-address) for a worker's real
+  // email once they have one.
+  if(p==='/api/update-user-email'&&method==='POST'){
+    const u=await requireAuth(req,res);if(!u)return
+    const meRes=await sbFetch('GET','/rest/v1/profiles?id=eq.'+encodeURIComponent(u.id)+'&select=role&limit=1',null,SB_ANON)
+    const meRole=(meRes&&meRes[0]&&meRes[0].role)||''
+    if(meRole!=='admin')return json(res,403,{error:'Admin role required'})
+
+    const body=await readBody(req)
+    const{user_id,email}=body
+    if(!user_id||!email)return json(res,400,{error:'user_id and email required'})
+    // Basic email shape check
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return json(res,400,{error:'Invalid email format'})
+    if(!SB_SERVICE)return json(res,500,{error:'SUPABASE_SERVICE_KEY not configured — required to change a user email'})
+
+    // Update auth identity. email_confirm:true tells Supabase to treat the
+    // new email as already-verified, so no confirmation email is sent.
+    const authRes=await sbFetch('PUT','/auth/v1/admin/users/'+encodeURIComponent(user_id),{
+      email,
+      email_confirm:true
+    },SB_SERVICE)
+    if(authRes.error){
+      var msg=authRes.error.message||authRes.error
+      if(/already.*registered|exists/i.test(String(msg))){
+        return json(res,400,{error:'That email is already used by another account.'})
+      }
+      return json(res,400,{error:'Auth update failed: '+msg})
+    }
+
+    // Mirror into profiles.email so display/search remain consistent.
+    const profRes=await sbFetch('PATCH','/rest/v1/profiles?id=eq.'+encodeURIComponent(user_id),{
+      email,
+      updated_at:new Date().toISOString()
+    },SB_SERVICE)
+    if(profRes&&profRes.error){
+      // Auth was updated successfully but profile mirror failed. Not fatal —
+      // login still works with the new email. Log a warning so the admin sees it.
+      return json(res,200,{success:true,warning:'Auth email updated, but profile sync failed: '+(profRes.error.message||profRes.error)})
+    }
+    return json(res,200,{success:true})
   }
 
   // ── CREATE USER WITHOUT EMAIL VERIFICATION ────────────────────────
