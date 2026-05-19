@@ -2000,7 +2000,7 @@ async function renderSubProjectsTab(el){
     '<table class="tbl"><thead><tr><th>Sub-Project</th><th>Phase</th><th>Contract</th><th>Labor (hrs)</th><th>Burned</th><th>%</th><th>Span</th><th></th></tr></thead><tbody>'
     +direct.map(function(c){
       var startEnd=(c.projected_start?fd(c.projected_start):'?')+' → '+(c.projected_closeout?fd(c.projected_closeout):c.due_date?fd(c.due_date):'?')
-      return '<tr style="cursor:pointer" onclick="openJob(\''+c.id+'\')">'
+      return '<tr style="cursor:pointer" onclick="openJob(\\''+c.id+'\\')">'
         +'<td><div style="font-weight:500">'+c.name+'</div>'+(c.job_number?'<div style="font-size:10px;color:#414e63">#'+c.job_number+'</div>':'')+'</td>'
         +'<td>'+stageBadge(c.phase)+'</td>'
         +'<td style="font-family:DM Mono,monospace;font-size:12px">'+(c.contract_value?fm(c.contract_value):'—')+'</td>'
@@ -2008,7 +2008,7 @@ async function renderSubProjectsTab(el){
         +'<td style="font-family:DM Mono,monospace;font-size:12px">—</td>'
         +'<td><div style="display:flex;align-items:center;gap:5px"><div class="pbar" style="width:50px"><div class="pb" style="width:'+(c.pct_complete||0)+'%"></div></div><span style="font-size:10px">'+(c.pct_complete||0)+'%</span></div></td>'
         +'<td style="font-size:11px;color:#8a96ab">'+startEnd+'</td>'
-        +'<td><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="event.stopPropagation();detachSubProject(\''+c.id+'\')">Detach</button></td>'
+        +'<td><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="event.stopPropagation();detachSubProject(\\''+c.id+'\\')">Detach</button></td>'
         +'</tr>'
     }).join('')
     +'</tbody></table>':'<div class="empty"><div style="font-size:32px;margin-bottom:8px">📂</div><div style="color:#414e63;font-size:13px">No sub-projects yet</div><div style="color:#414e63;font-size:11px;margin-top:4px">Break a big project into pieces — totals roll up here.</div></div>'
@@ -2025,7 +2025,7 @@ async function renderSubProjectsTab(el){
         var banner='<div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:8px;padding:10px 13px;margin-bottom:12px;display:flex;align-items:center;gap:10px">'
           +'<div style="font-size:18px">↗</div>'
           +'<div style="flex:1"><div style="font-size:11px;color:#60a5fa;font-weight:600;text-transform:uppercase">Parent Project</div><div style="font-size:13px;font-weight:500">'+pr.data.name+(pr.data.job_number?' (#'+pr.data.job_number+')':'')+'</div></div>'
-          +'<button class="btn btn-sm" onclick="openJob(\''+pr.data.id+'\')">Open Parent →</button>'
+          +'<button class="btn btn-sm" onclick="openJob(\\''+pr.data.id+'\\')">Open Parent →</button>'
           +'</div>'
         el.innerHTML=banner+el.innerHTML
       }
@@ -2037,8 +2037,8 @@ async function addSubProjectModal(){
   // Two paths: create new sub-project, OR link an existing job as a sub-project
   modal('Add Sub-Project',
     '<div style="display:flex;gap:8px;margin-bottom:14px">'
-    +'<button class="btn btn-p" id="sp-tab-new" onclick="_spTab(\'new\')" style="flex:1">Create New</button>'
-    +'<button class="btn" id="sp-tab-link" onclick="_spTab(\'link\')" style="flex:1">Link Existing</button>'
+    +'<button class="btn btn-p" id="sp-tab-new" onclick="_spTab(\\'new\\')" style="flex:1">Create New</button>'
+    +'<button class="btn" id="sp-tab-link" onclick="_spTab(\\'link\\')" style="flex:1">Link Existing</button>'
     +'</div>'
     +'<div id="sp-pane-new">'
     +'<div class="fg"><label class="fl">Sub-Project Name *</label><input class="fi" id="sp-name" placeholder="e.g. Floor 1 — Rough-in"></div>'
@@ -2129,7 +2129,7 @@ function _spSearch(q){
     box.innerHTML=pool.length?pool.map(function(j){
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border-bottom:1px solid rgba(255,255,255,.04)">'
         +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#414e63">'+(j.job_number?'#'+j.job_number+' · ':'')+(stageBadge(j.phase)||'')+'</div></div>'
-        +'<button class="btn btn-sm btn-p" onclick="_spLink(\''+j.id+'\')">Link</button>'
+        +'<button class="btn btn-sm btn-p" onclick="_spLink(\\''+j.id+'\\')">Link</button>'
         +'</div>'
     }).join(''):'<div style="padding:20px;text-align:center;color:#414e63;font-size:12px">No jobs found</div>'
   },200)
@@ -2196,7 +2196,7 @@ async function renderLaborMixTab(el){
       +'<td style="font-family:DM Mono,monospace;font-size:12px">'+(a.hourly_rate?fm(a.hourly_rate):'—')+'</td>'
       +'<td style="font-family:DM Mono,monospace;font-size:12px">'+(a.hourly_rate?fm(Number(a.hours||0)*Number(a.hourly_rate)):'—')+'</td>'
       +'<td style="font-size:11px;color:#8a96ab">'+(a.notes||'—')+'</td>'
-      +'<td><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="deleteLaborAlloc(\''+a.id+'\')">Remove</button></td>'
+      +'<td><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="deleteLaborAlloc(\\''+a.id+'\\')">Remove</button></td>'
       +'</tr>'
   }).join(''):''
 
@@ -5055,7 +5055,7 @@ function _renderForecastPage(fc){
   // Window selector
   var winBtns=FORECAST_WINDOWS.map(function(w){
     var active=window._forecastState.window===w.key
-    return '<button class="btn btn-sm" data-window="'+w.key+'" onclick="setForecastWindow(\''+w.key+'\')" style="background:'+(active?'#2563eb':'#131c2e')+';color:'+(active?'#fff':'#8a96ab')+';border:1px solid '+(active?'#2563eb':'rgba(255,255,255,.08)')+'">'+w.label+'</button>'
+    return '<button class="btn btn-sm" data-window="'+w.key+'" onclick="setForecastWindow(\\''+w.key+'\\')" style="background:'+(active?'#2563eb':'#131c2e')+';color:'+(active?'#fff':'#8a96ab')+';border:1px solid '+(active?'#2563eb':'rgba(255,255,255,.08)')+'">'+w.label+'</button>'
   }).join(' ')
 
   // View mode toggle (only visible if subs exist)
@@ -5064,7 +5064,7 @@ function _renderForecastPage(fc){
     +['total','internal','sub'].map(function(m){
       var active=viewMode===m
       var label=m==='total'?'All':m==='internal'?'👷 Internal':'🤝 Sub'
-      return '<button class="btn btn-sm" onclick="setForecastView(\''+m+'\')" style="background:'+(active?'#2563eb':'transparent')+';color:'+(active?'#fff':'#8a96ab')+';border:none;border-radius:0">'+label+'</button>'
+      return '<button class="btn btn-sm" onclick="setForecastView(\\''+m+'\\')" style="background:'+(active?'#2563eb':'transparent')+';color:'+(active?'#fff':'#8a96ab')+';border:none;border-radius:0">'+label+'</button>'
     }).join('')
     +'</div>':''
 
@@ -5088,7 +5088,7 @@ function _renderForecastPage(fc){
     var mix=inc.hasAllocations
       ?'<span style="font-size:10px;color:#60a5fa">'+Math.round(inc.internalRatio*100)+'% int</span> · <span style="font-size:10px;color:#fbbf24">'+Math.round(inc.subRatio*100)+'% sub</span>'
       :'<span style="font-size:10px;color:#414e63">all internal</span>'
-    return '<tr style="cursor:pointer" onclick="openJob(\''+j.id+'\')">'
+    return '<tr style="cursor:pointer" onclick="openJob(\\''+j.id+'\\')">'
       +'<td><div style="font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#414e63">'+(j.job_number||'')+'</div></td>'
       +'<td>'+stageBadge(j.phase)+'</td>'
       +'<td style="font-size:11px">'+fd(inc.start)+' → '+fd(inc.end)+(inc.estimated?' <span class="badge bg-amber" style="font-size:9px">est</span>':'')+'</td>'
@@ -5099,7 +5099,7 @@ function _renderForecastPage(fc){
   }).join('')
 
   var missRows=fc.missing.map(function(m){
-    return '<tr style="cursor:pointer" onclick="openJob(\''+m.id+'\')">'
+    return '<tr style="cursor:pointer" onclick="openJob(\\''+m.id+'\\')">'
       +'<td><div style="font-weight:500">'+m.name+'</div><div style="font-size:10px;color:#414e63">'+(m.job_number||'')+'</div></td>'
       +'<td style="font-size:11px;color:#d97706">'+m.reason+'</td>'
       +'</tr>'
@@ -5142,7 +5142,7 @@ function _renderForecastPage(fc){
     +'</div>'
     +'<div class="card" style="'+(fc.missing.length?'border-left:3px solid #d97706':'')+'">'
     +'<div class="card-title">Missing Data ('+fc.missing.length+')</div>'
-    +(fc.missing.length?'<div style="font-size:11px;color:#8a96ab;margin-bottom:8px">These jobs can\'t be forecasted yet — click to fill in.</div><table class="tbl"><thead><tr><th>Job</th><th>What\'s Missing</th></tr></thead><tbody>'+missRows+'</tbody></table>':empty('✓','All active jobs have forecast data'))
+    +(fc.missing.length?'<div style="font-size:11px;color:#8a96ab;margin-bottom:8px">These jobs can\\'t be forecasted yet — click to fill in.</div><table class="tbl"><thead><tr><th>Job</th><th>What\\'s Missing</th></tr></thead><tbody>'+missRows+'</tbody></table>':empty('✓','All active jobs have forecast data'))
     +'</div>'
     +'</div>'
 
