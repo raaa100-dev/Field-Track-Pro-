@@ -12692,9 +12692,12 @@ async function getUser(req) {
     const userId = payload.sub;
     if (!userId) return null;
     if (payload.exp && payload.exp * 1000 < Date.now()) return null; // expired
-    // Load profile from DB
-    const rows = await dbGet('profiles', { id: 'eq.' + userId, select: '*' });
-    const profile = rows[0];
+    // Load profile from DB using service key — RLS-bypassed because we have
+    // already verified the JWT belongs to the requesting user, and the rest
+    // of this code path relies on having the profile data (role, etc.) to
+    // make authorization decisions.
+    const rows = await sbReq('GET', 'profiles', null, { id: 'eq.' + userId, select: '*' }, true).catch(() => []);
+    const profile = Array.isArray(rows) ? rows[0] : null;
     if (!profile) return null;
     const user = { id: userId, name: profile.full_name || payload.email || '', email: payload.email || profile.email || '', role: profile.role || 'sub_worker', company_id: profile.company_id || null, is_active: profile.is_active !== false };
     _tokenCache.set(t, { user, exp: Date.now() + 5 * 60 * 1000 });
@@ -13850,7 +13853,7 @@ const server = http.createServer(async (req, res) => {
 
   // ── EMAIL REVIEW: APPROVE PENDING UPDATE ───────────────────────────
   if(p==='/api/email-pending/approve'&&method==='POST'){
-    const u=await requireAuth(req,res);if(!u)return
+    const u=await getUser(req);if(!requireAuth(res,u))return
     const body=await readBody(req)
     const{pending_id,overrides}=body
     if(!pending_id)return json(res,400,{error:'pending_id required'})
@@ -13900,7 +13903,7 @@ const server = http.createServer(async (req, res) => {
 
   // ── EMAIL REVIEW: REJECT PENDING UPDATE ────────────────────────────
   if(p==='/api/email-pending/reject'&&method==='POST'){
-    const u=await requireAuth(req,res);if(!u)return
+    const u=await getUser(req);if(!requireAuth(res,u))return
     const body=await readBody(req)
     const{pending_id,reason}=body
     if(!pending_id)return json(res,400,{error:'pending_id required'})
@@ -13925,9 +13928,9 @@ const server = http.createServer(async (req, res) => {
   // email once they have one.
   if(p==='/api/update-user-email'&&method==='POST'){
     try{
-      const u=await requireAuth(req,res);if(!u)return
-      const meRes=await sbFetch('GET','/rest/v1/profiles?id=eq.'+encodeURIComponent(u.id)+'&select=role&limit=1',null,SB_SERVICE||SB_ANON)
-      const meRole=String((meRes&&meRes[0]&&meRes[0].role)||'').toLowerCase()
+      const u=await getUser(req);if(!requireAuth(res,u))return
+      // u.role is already loaded by getUser from the profile row.
+      const meRole=String(u.role||'').toLowerCase()
       if(meRole!=='admin')return json(res,403,{error:'Admin role required (your role appears to be: '+(meRole||'unknown')+')'})
 
       const body=await readBody(req)
@@ -13969,10 +13972,9 @@ const server = http.createServer(async (req, res) => {
   // for the few field workers who don't have reliable email access.
   if(p==='/api/create-user-direct'&&method==='POST'){
     try{
-      const u=await requireAuth(req,res);if(!u)return
-      // Only admins can create users this way
-      const meRes=await sbFetch('GET','/rest/v1/profiles?id=eq.'+encodeURIComponent(u.id)+'&select=role&limit=1',null,SB_SERVICE||SB_ANON)
-      const meRole=String((meRes&&meRes[0]&&meRes[0].role)||'').toLowerCase()
+      const u=await getUser(req);if(!requireAuth(res,u))return
+      // u.role is already loaded by getUser. No need for a second profile lookup.
+      const meRole=String(u.role||'').toLowerCase()
       if(meRole!=='admin')return json(res,403,{error:'Admin role required (your role appears to be: '+(meRole||'unknown')+')'})
 
       const body=await readBody(req)
@@ -14052,7 +14054,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if(p==='/api/set-password'&&method==='POST'){
-    const u=await requireAuth(req,res);if(!u)return
+    const u=await getUser(req);if(!requireAuth(res,u))return
     const body=await readBody(req)
     const{user_id,password}=body
     if(!user_id||!password)return json(res,400,{error:'user_id and password required'})
@@ -14064,7 +14066,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if(p==='/api/force-logout'&&method==='POST'){
-    const u=await requireAuth(req,res);if(!u)return
+    const u=await getUser(req);if(!requireAuth(res,u))return
     const body=await readBody(req)
     const{user_id}=body
     if(!user_id)return json(res,400,{error:'user_id required'})
@@ -14076,7 +14078,7 @@ const server = http.createServer(async (req, res) => {
 
   if(p==='/api/delete-user'&&method==='POST'){
     try{
-      const u=await requireAuth(req,res);if(!u)return
+      const u=await getUser(req);if(!requireAuth(res,u))return
       const body=await readBody(req)
       const{user_id}=body
       if(!user_id)return json(res,400,{error:'user_id required'})
