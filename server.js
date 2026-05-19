@@ -13926,7 +13926,7 @@ const server = http.createServer(async (req, res) => {
   if(p==='/api/update-user-email'&&method==='POST'){
     try{
       const u=await requireAuth(req,res);if(!u)return
-      const meRes=await sbFetch('GET','/rest/v1/profiles?id=eq.'+encodeURIComponent(u.id)+'&select=role&limit=1',null,SB_ANON)
+      const meRes=await sbFetch('GET','/rest/v1/profiles?id=eq.'+encodeURIComponent(u.id)+'&select=role&limit=1',null,SB_SERVICE||SB_ANON)
       const meRole=String((meRes&&meRes[0]&&meRes[0].role)||'').toLowerCase()
       if(meRole!=='admin')return json(res,403,{error:'Admin role required (your role appears to be: '+(meRole||'unknown')+')'})
 
@@ -13971,7 +13971,7 @@ const server = http.createServer(async (req, res) => {
     try{
       const u=await requireAuth(req,res);if(!u)return
       // Only admins can create users this way
-      const meRes=await sbFetch('GET','/rest/v1/profiles?id=eq.'+encodeURIComponent(u.id)+'&select=role&limit=1',null,SB_ANON)
+      const meRes=await sbFetch('GET','/rest/v1/profiles?id=eq.'+encodeURIComponent(u.id)+'&select=role&limit=1',null,SB_SERVICE||SB_ANON)
       const meRole=String((meRes&&meRes[0]&&meRes[0].role)||'').toLowerCase()
       if(meRole!=='admin')return json(res,403,{error:'Admin role required (your role appears to be: '+(meRole||'unknown')+')'})
 
