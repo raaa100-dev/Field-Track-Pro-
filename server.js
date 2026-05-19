@@ -745,7 +745,8 @@ async function deleteJobConfirm(){
     ['punch_list','job_id'],
     ['pm_inspections','job_id'],
     ['change_orders','job_id'],
-    ['daily_logs','job_id']
+    ['daily_logs','job_id'],
+    ['job_labor_allocations','job_id']
   ]
   try{
     // Run all child deletes in parallel — they don't depend on each other.
@@ -891,6 +892,123 @@ function fh(h){if(!h)return'0h';const hr=Math.floor(h),m=Math.round((h-hr)*60);r
 function fm(n,d=0){if(n==null)return'—';return'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function isOD(due,phase){return due&&phase!=='complete'&&new Date(due)<new Date()}
 function daysAway(d){if(!d)return null;return Math.round((new Date(d)-new Date())/86400000)}
+
+// ── SUB-PROJECTS & LABOR ALLOCATIONS ──────────────────────────
+// These helpers assume the migration in
+// migration-001-subprojects-and-labor-allocations.sql has been run. They
+// degrade gracefully if it hasn't — fetch errors are caught and treated as
+// "no data," so the app keeps working until you run the migration.
+
+// Get all direct children of a job (one level deep). Returns array or [].
+async function getSubProjects(jobId){
+  if(!jobId)return[]
+  try{
+    var r=await sb.from('jobs').select('*').eq('parent_job_id',jobId).eq('archived',false).order('created_at',{ascending:true})
+    return r.data||[]
+  }catch(e){return[]}
+}
+
+// Get the full descendant tree (recursive). Returns flat array of all descendants.
+async function getDescendantJobs(jobId){
+  var all=[],queue=[jobId]
+  while(queue.length){
+    var batch=queue.splice(0,queue.length)
+    var r
+    try{r=await sb.from('jobs').select('*').in('parent_job_id',batch).eq('archived',false)}
+    catch(e){return all}
+    var rows=r.data||[]
+    rows.forEach(function(j){all.push(j);queue.push(j.id)})
+  }
+  return all
+}
+
+// Get all labor allocations for a single job. Returns [] if table is missing or empty.
+async function getLaborAllocations(jobId){
+  if(!jobId)return[]
+  try{
+    var r=await sb.from('job_labor_allocations').select('*,companies(name)').eq('job_id',jobId).order('created_at',{ascending:true})
+    return r.data||[]
+  }catch(e){return[]}
+}
+
+// Compute the labor breakdown for a single job from its allocations.
+// Returns { internalHours, subHours, totalHours, hasAllocations, allocations }.
+// If the job has no rows in job_labor_allocations, falls back to:
+//   internalHours = labor_budget (treat entire budget as internal)
+//   subHours = 0
+async function getJobLaborBreakdown(job){
+  if(!job)return{internalHours:0,subHours:0,totalHours:0,hasAllocations:false,allocations:[]}
+  var allocs=await getLaborAllocations(job.id)
+  if(!allocs.length){
+    return{internalHours:Number(job.labor_budget||0),subHours:0,totalHours:Number(job.labor_budget||0),hasAllocations:false,allocations:[]}
+  }
+  var iH=0,sH=0
+  allocs.forEach(function(a){
+    var h=Number(a.hours||0)
+    if(a.source_type==='internal')iH+=h
+    else sH+=h
+  })
+  return{internalHours:iH,subHours:sH,totalHours:iH+sH,hasAllocations:true,allocations:allocs}
+}
+
+// Roll up a parent job's numbers from all its descendants.
+// If the job has no descendants, returns its own numbers (so callers can use
+// this uniformly without branching). The 'self' values are the parent's own,
+// and 'rollup' is the recursive sum across self + all descendants.
+async function getJobRollup(jobId){
+  var self
+  try{var r=await sb.from('jobs').select('*').eq('id',jobId).single();self=r.data}catch(e){self=null}
+  if(!self)return null
+  var descendants=await getDescendantJobs(jobId)
+  // Hours burned from daily_reports for self + descendants
+  var allIds=[self.id].concat(descendants.map(function(d){return d.id}))
+  var burnedByJob={}
+  try{
+    var drRes=await sb.from('daily_reports').select('job_id,total_man_hours,hours_worked').in('job_id',allIds)
+    ;(drRes.data||[]).forEach(function(r){burnedByJob[r.job_id]=(burnedByJob[r.job_id]||0)+(r.total_man_hours||r.hours_worked||0)})
+  }catch(e){}
+  // Labor breakdowns (internal vs sub) for self + descendants
+  var breakdowns={}
+  for(var i=0;i<allIds.length;i++){
+    var jObj=(i===0?self:descendants[i-1])
+    breakdowns[allIds[i]]=await getJobLaborBreakdown(jObj)
+  }
+  // Sum the rollup
+  var roll={
+    contract_value:Number(self.contract_value||0),
+    labor_budget:breakdowns[self.id].totalHours,
+    internal_hours:breakdowns[self.id].internalHours,
+    sub_hours:breakdowns[self.id].subHours,
+    hours_burned:burnedByJob[self.id]||0,
+    earliest_start:self.projected_start||null,
+    latest_end:self.projected_closeout||self.due_date||null,
+    descendant_count:descendants.length,
+    weighted_pct_sum:0,
+    weight_sum:0
+  }
+  // Weight pct_complete by labor_budget (or contract_value if no budget)
+  var selfWeight=breakdowns[self.id].totalHours||self.contract_value||1
+  roll.weighted_pct_sum+=(Number(self.pct_complete||0))*selfWeight
+  roll.weight_sum+=selfWeight
+  descendants.forEach(function(d){
+    roll.contract_value+=Number(d.contract_value||0)
+    var bd=breakdowns[d.id]
+    roll.labor_budget+=bd.totalHours
+    roll.internal_hours+=bd.internalHours
+    roll.sub_hours+=bd.subHours
+    roll.hours_burned+=burnedByJob[d.id]||0
+    if(d.projected_start&&(!roll.earliest_start||d.projected_start<roll.earliest_start))roll.earliest_start=d.projected_start
+    var dEnd=d.projected_closeout||d.due_date
+    if(dEnd&&(!roll.latest_end||dEnd>roll.latest_end))roll.latest_end=dEnd
+    var w=bd.totalHours||d.contract_value||1
+    roll.weighted_pct_sum+=(Number(d.pct_complete||0))*w
+    roll.weight_sum+=w
+  })
+  roll.pct_complete=roll.weight_sum>0?roll.weighted_pct_sum/roll.weight_sum:0
+  delete roll.weighted_pct_sum
+  delete roll.weight_sum
+  return{self:self,descendants:descendants,rollup:roll}
+}
 
 const STAGES=['not_started','make_safe','prewire','roughed_in','trimmed','ready_for_pretest','ready_for_final','complete']
 const STAGE_LABELS={not_started:'Not Started',make_safe:'Make Safe / Demo',prewire:'Pre-Wire',roughed_in:'Roughed In',trimmed:'Trimmed Out',ready_for_pretest:'Ready for Pre-test',ready_for_final:'Ready for Final',complete:'Complete'}
@@ -1125,7 +1243,7 @@ function jobPartsStatus(j){
 async function loadJobsWithPartsStatus(){
   var allJobsRaw=[],ajFrom=0
   while(true){
-    var ajRes=await sb.from('jobs').select('id,name,job_number,phase,address,city,state,zip,gps_lat,gps_lng,gps_radius_ft,project_manager,gc_company,due_date,is_urgent,urgent_note,company_id,labor_budget').eq('archived',false).order('created_at',{ascending:false}).range(ajFrom,ajFrom+999)
+    var ajRes=await sb.from('jobs').select('id,name,job_number,phase,address,city,state,zip,gps_lat,gps_lng,gps_radius_ft,project_manager,gc_company,due_date,is_urgent,urgent_note,company_id,labor_budget,parent_job_id').eq('archived',false).order('created_at',{ascending:false}).range(ajFrom,ajFrom+999)
     allJobsRaw=allJobsRaw.concat(ajRes.data||[])
     if(!ajRes.data||ajRes.data.length<1000)break
     ajFrom+=1000
@@ -1133,6 +1251,10 @@ async function loadJobsWithPartsStatus(){
   const jobs=allJobsRaw
   const{data:parts}=await sb.from('job_parts').select('job_id,status')
   allJobs=jobs||[]
+  // Build child-count map: how many sub-projects each job has
+  var childCount={}
+  allJobs.forEach(function(j){if(j.parent_job_id)childCount[j.parent_job_id]=(childCount[j.parent_job_id]||0)+1})
+  allJobs.forEach(function(j){j._child_count=childCount[j.id]||0})
   // Build parts map per job
   const partsMap={}
   ;(parts||[]).forEach(p=>{
@@ -1348,7 +1470,7 @@ function renderJobsTable(q){
     const ps=jobPartsStatus(j)
     const permit=j.permit_status||'not_required'
     return \`<tr onclick="openJob('\${j.id}')" style="cursor:pointer">
-      <td><div style="font-weight:500;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'inherit'}">\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'⚠ ':''}\${j.name}</div><div style="font-size:10px;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'#414e63'}">\${j.address||''}</div></td>
+      <td>\${j.parent_job_id?'<span style="display:inline-block;width:16px;color:#414e63;font-size:10px;margin-right:3px">↳</span>':''}<span style="font-weight:500;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'inherit'}">\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'⚠ ':''}\${j.name}</span>\${j._child_count?' <span class="badge" style="background:rgba(96,165,250,.15);color:#60a5fa;font-size:9px">📂 '+j._child_count+' sub'+(j._child_count===1?'':'s')+'</span>':''}<div style="font-size:10px;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'#414e63'}">\${j.address||''}</div></td>
       <td style="font-size:11px;color:#8a96ab;white-space:nowrap">\${j.job_number||'\u2014'}</td>
       <td>\${stageBadge(j.phase)}</td>
       <td>\${ps.badge}</td>
@@ -1705,10 +1827,19 @@ function jobSubhead(j){
 function renderJobDetail(){
   const j=currentJob
   const si=STAGES.indexOf(j.phase)
+  // Compute parent/child indicator
+  var childCount=(allJobs||[]).filter(function(x){return x.parent_job_id===j.id}).length
+  var parentJob=j.parent_job_id?(allJobs||[]).find(function(x){return x.id===j.parent_job_id}):null
+  var spBadge=''
+  if(childCount>0){
+    spBadge='<span class="badge" style="background:rgba(96,165,250,.15);color:#60a5fa;font-size:10px;margin-left:8px" onclick="event.stopPropagation();JT(document.querySelector(\\'.tab[onclick*=jt-subprojects]\\'),\\'jt-subprojects\\')">📂 Parent of '+childCount+' sub-project'+(childCount===1?'':'s')+'</span>'
+  }else if(parentJob){
+    spBadge='<span class="badge" style="background:rgba(168,85,247,.15);color:#a78bfa;font-size:10px;margin-left:8px;cursor:pointer" onclick="event.stopPropagation();openJob(\\''+parentJob.id+'\\')">↗ Sub of '+parentJob.name+'</span>'
+  }
   document.getElementById('page-area').innerHTML=\`
   <div style="margin-bottom:14px">
     <button class="btn btn-sm btn-ghost" onclick="pgJobs()" style="margin-bottom:10px;font-size:11px;color:#414e63">&#8592; All Jobs</button>
-    <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">\${j.name}</div>
+    <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">\${j.name}\${spBadge}</div>
     <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${jobSubhead(j)}</div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">
       <select class="fs" style="width:190px;padding:5px 9px;font-size:12px" onchange="updateJobStage(this.value)">\${STAGES.map(s=>\`<option value="\${s}" \${j.phase===s?'selected':''}>\${STAGE_LABELS[s]}</option>\`).join('')}</select>
@@ -1727,6 +1858,8 @@ function renderJobDetail(){
   <div class="tab-bar">
     <div class="tab active" onclick="JT(this,'jt-info')">Info</div>
     <div class="tab" onclick="JT(this,'jt-scope')">Scope</div>
+    <div class="tab" onclick="JT(this,'jt-subprojects')">Sub-Projects</div>
+    <div class="tab" onclick="JT(this,'jt-labormix')">Labor Mix</div>
     <div class="tab" onclick="JT(this,'jt-workers')">Workers</div>
     <div class="tab" onclick="JT(this,'jt-parts')">Parts</div>
     <div class="tab" onclick="JT(this,'jt-daily')">Daily Reports</div>
@@ -1767,6 +1900,8 @@ async function loadJT(id){
   const j=currentJob
   if(id==='jt-info') renderInfoTab(el,j)
   else if(id==='jt-scope') renderScopeTab(el,j)
+  else if(id==='jt-subprojects') await renderSubProjectsTab(el)
+  else if(id==='jt-labormix') await renderLaborMixTab(el)
   else if(id==='jt-workers') await renderWorkersTab(el)
   else if(id==='jt-parts') await renderPartsTab(el)
   else if(id==='jt-daily') await renderJobDailyTab(el)
@@ -1920,6 +2055,302 @@ function renderScopeTab(el,j){
   setTimeout(function(){_dirtyAttach(['sc-scope','sc-notes','sc-jwn','sc-jwb','sc-jwd'],'scope',saveScope)},50)
 }
 async function saveScope(){const{error}=await sb.from('jobs').update({scope:v('sc-scope'),install_notes:v('sc-notes'),job_walk_notes:v('sc-jwn'),job_walk_by:v('sc-jwb'),job_walk_date:v('sc-jwd')||null,updated_at:new Date().toISOString()}).eq('id',currentJobId);if(error)toast(error.message,'error');else{_clearDirty('scope');toast('Saved')}}
+
+// ── SUB-PROJECTS TAB ──────────────────────────────────────────
+async function renderSubProjectsTab(el){
+  if(!currentJob){el.innerHTML='<div class="empty">No job loaded</div>';return}
+  el.innerHTML=ld()
+  var rollup=await getJobRollup(currentJobId)
+  if(!rollup){el.innerHTML='<div class="empty">Could not load job</div>';return}
+  var children=rollup.descendants  // direct + nested, but for the table we want direct only
+  // Filter to direct children
+  var direct=children.filter(function(c){return c.parent_job_id===currentJobId})
+  var hasChildren=direct.length>0
+
+  var rollupCard=hasChildren?
+    '<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:14px 16px;margin-bottom:12px">'
+    +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#60a5fa;margin-bottom:10px">📊 Roll-Up — This Project + '+direct.length+' Sub-Project'+(direct.length===1?'':'s')+'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">'
+    +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">Contract</div><div style="font-size:18px;font-weight:300;margin-top:2px">'+fm(rollup.rollup.contract_value)+'</div></div>'
+    +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">Labor Budget</div><div style="font-size:18px;font-weight:300;margin-top:2px">'+fh(rollup.rollup.labor_budget)+'</div></div>'
+    +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">Hours Burned</div><div style="font-size:18px;font-weight:300;margin-top:2px;color:'+(rollup.rollup.hours_burned>rollup.rollup.labor_budget&&rollup.rollup.labor_budget>0?'#dc2626':'#e8edf5')+'">'+fh(rollup.rollup.hours_burned)+'</div></div>'
+    +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">% Complete</div><div style="font-size:18px;font-weight:300;margin-top:2px">'+(rollup.rollup.pct_complete||0).toFixed(0)+'%</div></div>'
+    +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">Span</div><div style="font-size:13px;margin-top:2px">'+(rollup.rollup.earliest_start?fd(rollup.rollup.earliest_start):'—')+' → '+(rollup.rollup.latest_end?fd(rollup.rollup.latest_end):'—')+'</div></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:14px;margin-top:11px;padding-top:11px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#8a96ab">'
+    +'<div>👷 Internal: <strong style="color:#60a5fa">'+fh(rollup.rollup.internal_hours)+'</strong></div>'
+    +'<div>🤝 Subs: <strong style="color:#fbbf24">'+fh(rollup.rollup.sub_hours)+'</strong></div>'
+    +'</div>'
+    +'</div>':''
+
+  var addBtn='<button class="btn btn-p btn-sm" onclick="addSubProjectModal()">+ Add Sub-Project</button>'
+
+  var childTable=hasChildren?
+    '<table class="tbl"><thead><tr><th>Sub-Project</th><th>Phase</th><th>Contract</th><th>Labor (hrs)</th><th>Burned</th><th>%</th><th>Span</th><th></th></tr></thead><tbody>'
+    +direct.map(function(c){
+      var startEnd=(c.projected_start?fd(c.projected_start):'?')+' → '+(c.projected_closeout?fd(c.projected_closeout):c.due_date?fd(c.due_date):'?')
+      return '<tr style="cursor:pointer" onclick="openJob(\''+c.id+'\')">'
+        +'<td><div style="font-weight:500">'+c.name+'</div>'+(c.job_number?'<div style="font-size:10px;color:#414e63">#'+c.job_number+'</div>':'')+'</td>'
+        +'<td>'+stageBadge(c.phase)+'</td>'
+        +'<td style="font-family:DM Mono,monospace;font-size:12px">'+(c.contract_value?fm(c.contract_value):'—')+'</td>'
+        +'<td style="font-family:DM Mono,monospace;font-size:12px">'+(c.labor_budget?fh(c.labor_budget):'—')+'</td>'
+        +'<td style="font-family:DM Mono,monospace;font-size:12px">—</td>'
+        +'<td><div style="display:flex;align-items:center;gap:5px"><div class="pbar" style="width:50px"><div class="pb" style="width:'+(c.pct_complete||0)+'%"></div></div><span style="font-size:10px">'+(c.pct_complete||0)+'%</span></div></td>'
+        +'<td style="font-size:11px;color:#8a96ab">'+startEnd+'</td>'
+        +'<td><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="event.stopPropagation();detachSubProject(\''+c.id+'\')">Detach</button></td>'
+        +'</tr>'
+    }).join('')
+    +'</tbody></table>':'<div class="empty"><div style="font-size:32px;margin-bottom:8px">📂</div><div style="color:#414e63;font-size:13px">No sub-projects yet</div><div style="color:#414e63;font-size:11px;margin-top:4px">Break a big project into pieces — totals roll up here.</div></div>'
+
+  el.innerHTML=rollupCard
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="sec-hdr" style="margin:0">Sub-Projects ('+direct.length+')</div>'+addBtn+'</div>'
+    +childTable
+
+  // If this job ITSELF is a sub-project, show a "back to parent" banner
+  if(currentJob.parent_job_id){
+    try{
+      var pr=await sb.from('jobs').select('id,name,job_number').eq('id',currentJob.parent_job_id).single()
+      if(pr.data){
+        var banner='<div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:8px;padding:10px 13px;margin-bottom:12px;display:flex;align-items:center;gap:10px">'
+          +'<div style="font-size:18px">↗</div>'
+          +'<div style="flex:1"><div style="font-size:11px;color:#60a5fa;font-weight:600;text-transform:uppercase">Parent Project</div><div style="font-size:13px;font-weight:500">'+pr.data.name+(pr.data.job_number?' (#'+pr.data.job_number+')':'')+'</div></div>'
+          +'<button class="btn btn-sm" onclick="openJob(\''+pr.data.id+'\')">Open Parent →</button>'
+          +'</div>'
+        el.innerHTML=banner+el.innerHTML
+      }
+    }catch(e){}
+  }
+}
+
+async function addSubProjectModal(){
+  // Two paths: create new sub-project, OR link an existing job as a sub-project
+  modal('Add Sub-Project',
+    '<div style="display:flex;gap:8px;margin-bottom:14px">'
+    +'<button class="btn btn-p" id="sp-tab-new" onclick="_spTab(\'new\')" style="flex:1">Create New</button>'
+    +'<button class="btn" id="sp-tab-link" onclick="_spTab(\'link\')" style="flex:1">Link Existing</button>'
+    +'</div>'
+    +'<div id="sp-pane-new">'
+    +'<div class="fg"><label class="fl">Sub-Project Name *</label><input class="fi" id="sp-name" placeholder="e.g. Floor 1 — Rough-in"></div>'
+    +'<div class="two"><div class="fg"><label class="fl">Job Number</label><input class="fi" id="sp-jobnum" placeholder="optional"></div>'
+    +'<div class="fg"><label class="fl">Trade</label><input class="fi" id="sp-trade" value="'+(currentJob.trade||'')+'"></div></div>'
+    +'<div class="two"><div class="fg"><label class="fl">Projected Start</label><input class="fi" type="date" id="sp-start"></div>'
+    +'<div class="fg"><label class="fl">Projected Closeout</label><input class="fi" type="date" id="sp-end"></div></div>'
+    +'<div class="two"><div class="fg"><label class="fl">Contract $</label><input class="fi" type="number" id="sp-cv"></div>'
+    +'<div class="fg"><label class="fl">Labor Budget (hrs)</label><input class="fi" type="number" id="sp-lb"></div></div>'
+    +'<div style="font-size:11px;color:#414e63;margin-top:6px">Address, GC, and PM will be copied from the parent project.</div>'
+    +'</div>'
+    +'<div id="sp-pane-link" style="display:none">'
+    +'<div class="fg"><label class="fl">Select an existing job to make a sub-project of this one</label>'
+    +'<input class="fi" id="sp-search" placeholder="Search by name or job number…" oninput="_spSearch(this.value)">'
+    +'<div id="sp-results" style="max-height:240px;overflow-y:auto;margin-top:8px;border:1px solid rgba(255,255,255,.07);border-radius:7px"></div></div>'
+    +'</div>',
+    async function(){
+      var mode=window._spMode||'new'
+      if(mode==='new'){
+        var name=v('sp-name').trim();if(!name){toast('Name required','error');return}
+        // Copy a few fields from parent
+        var sub={
+          id:uuid(),
+          parent_job_id:currentJobId,
+          name:name,
+          job_number:v('sp-jobnum')||null,
+          trade:v('sp-trade')||currentJob.trade||null,
+          projected_start:v('sp-start')||null,
+          projected_closeout:v('sp-end')||null,
+          contract_value:fN('sp-cv'),
+          labor_budget:fN('sp-lb'),
+          // Inherit from parent
+          address:currentJob.address||null,
+          city:currentJob.city||null,
+          state:currentJob.state||null,
+          zip:currentJob.zip||null,
+          gps_lat:currentJob.gps_lat,
+          gps_lng:currentJob.gps_lng,
+          gc_company:currentJob.gc_company||null,
+          gc_contact:currentJob.gc_contact||null,
+          gc_phone:currentJob.gc_phone||null,
+          gc_email:currentJob.gc_email||null,
+          super_name:currentJob.super_name||null,
+          super_phone:currentJob.super_phone||null,
+          project_manager:currentJob.project_manager||null,
+          company_id:currentJob.company_id||null,
+          phase:'not_started',pct_complete:0,archived:false,
+          created_by:ME&&ME.full_name||null,
+          created_at:new Date().toISOString(),
+          updated_at:new Date().toISOString()
+        }
+        var res=await sb.from('jobs').insert(sub)
+        if(res.error){toast(res.error.message,'error');return}
+        closeModal();toast('Sub-project created');loadJT('jt-subprojects')
+      }else{
+        // Link mode handled inline via _spLink
+      }
+    },'Create Sub-Project')
+  window._spMode='new'
+}
+function _spTab(mode){
+  window._spMode=mode
+  document.getElementById('sp-pane-new').style.display=mode==='new'?'block':'none'
+  document.getElementById('sp-pane-link').style.display=mode==='link'?'block':'none'
+  document.getElementById('sp-tab-new').className='btn '+(mode==='new'?'btn-p':'')
+  document.getElementById('sp-tab-link').className='btn '+(mode==='link'?'btn-p':'')
+  // For link mode, hide the standard Save button (each row has its own Link button)
+  var ok=document.getElementById('modal-ok')
+  if(ok)ok.style.display=mode==='link'?'none':'inline-block'
+  if(mode==='link')_spSearch('')
+}
+var _spSearchDeb=null
+function _spSearch(q){
+  clearTimeout(_spSearchDeb)
+  _spSearchDeb=setTimeout(async function(){
+    var qq=(q||'').trim().toLowerCase()
+    var pool=(allJobs||[]).filter(function(j){
+      if(j.id===currentJobId)return false  // can't be own parent
+      if(j.parent_job_id)return false  // already a sub-project of someone
+      // Prevent circular: this job's existing descendants can't be its new parent
+      // (simple guard — the bigger guard is server-side; this is a UX hint)
+      if(!qq)return true
+      var hay=(j.name||'').toLowerCase()+' '+(j.job_number||'').toLowerCase()
+      return hay.indexOf(qq)>=0
+    }).slice(0,30)
+    var box=document.getElementById('sp-results')
+    if(!box)return
+    box.innerHTML=pool.length?pool.map(function(j){
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border-bottom:1px solid rgba(255,255,255,.04)">'
+        +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#414e63">'+(j.job_number?'#'+j.job_number+' · ':'')+(stageBadge(j.phase)||'')+'</div></div>'
+        +'<button class="btn btn-sm btn-p" onclick="_spLink(\''+j.id+'\')">Link</button>'
+        +'</div>'
+    }).join(''):'<div style="padding:20px;text-align:center;color:#414e63;font-size:12px">No jobs found</div>'
+  },200)
+}
+async function _spLink(jobId){
+  // Make jobId a sub-project of currentJobId
+  // Guard: ensure currentJobId is not a descendant of jobId (circular)
+  var descendants=await getDescendantJobs(jobId)
+  if(descendants.some(function(d){return d.id===currentJobId})){
+    toast('Cannot link — this would create a circular relationship','error')
+    return
+  }
+  var res=await sb.from('jobs').update({parent_job_id:currentJobId,updated_at:new Date().toISOString()}).eq('id',jobId)
+  if(res.error){toast(res.error.message,'error');return}
+  closeModal();toast('Linked as sub-project');loadJT('jt-subprojects')
+}
+async function detachSubProject(jobId){
+  if(!confirm('Detach this sub-project? It will become a top-level project again. All its data stays intact.'))return
+  var res=await sb.from('jobs').update({parent_job_id:null,updated_at:new Date().toISOString()}).eq('id',jobId)
+  if(res.error){toast(res.error.message,'error');return}
+  toast('Detached');loadJT('jt-subprojects')
+}
+
+// ── LABOR MIX TAB ─────────────────────────────────────────────
+async function renderLaborMixTab(el){
+  if(!currentJob){el.innerHTML='<div class="empty">No job loaded</div>';return}
+  el.innerHTML=ld()
+  var allocs=await getLaborAllocations(currentJobId)
+  var{data:companies}=await sb.from('companies').select('id,name').eq('is_active',true).order('name')
+  var hasAllocs=allocs.length>0
+  var totalHrs=allocs.reduce(function(s,a){return s+Number(a.hours||0)},0)
+  var intHrs=allocs.filter(function(a){return a.source_type==='internal'}).reduce(function(s,a){return s+Number(a.hours||0)},0)
+  var subHrs=totalHrs-intHrs
+  var labor_budget=Number(currentJob.labor_budget||0)
+  var budgetMismatch=hasAllocs&&labor_budget>0&&Math.abs(totalHrs-labor_budget)>0.5
+
+  var header=
+    '<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:14px 16px;margin-bottom:12px">'
+    +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#60a5fa;margin-bottom:10px">⚙ Labor Distribution</div>'
+    +(hasAllocs?
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">'
+      +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">👷 Internal Crew</div><div style="font-size:22px;font-weight:300;margin-top:2px;color:#60a5fa">'+fh(intHrs)+'</div><div style="font-size:11px;color:#8a96ab;margin-top:2px">'+(totalHrs>0?Math.round(intHrs/totalHrs*100):0)+'% of total</div></div>'
+      +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">🤝 Subcontractors</div><div style="font-size:22px;font-weight:300;margin-top:2px;color:#fbbf24">'+fh(subHrs)+'</div><div style="font-size:11px;color:#8a96ab;margin-top:2px">'+(totalHrs>0?Math.round(subHrs/totalHrs*100):0)+'% of total</div></div>'
+      +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">Total Allocated</div><div style="font-size:22px;font-weight:300;margin-top:2px">'+fh(totalHrs)+'</div>'+(labor_budget>0?'<div style="font-size:11px;color:'+(budgetMismatch?'#d97706':'#16a34a')+';margin-top:2px">Budget: '+fh(labor_budget)+(budgetMismatch?' ⚠':' ✓')+'</div>':'')+'</div>'
+      +'</div>'
+      +(budgetMismatch?'<div style="margin-top:10px;padding:8px 12px;background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.2);border-radius:6px;font-size:12px;color:#d97706">⚠ Allocations total '+fh(totalHrs)+' but job labor budget is '+fh(labor_budget)+'. <button class="btn btn-sm" onclick="syncLaborBudgetFromAllocs()" style="margin-left:8px">Sync budget to '+fh(totalHrs)+'</button></div>':'')
+      :
+      '<div style="font-size:13px;color:#8a96ab;line-height:1.5">'
+      +'<p style="margin:0 0 8px">This job has <strong>no labor allocations set</strong> — its full <strong>'+fh(labor_budget)+'</strong> labor budget is treated as <strong style="color:#60a5fa">all internal</strong> by default.</p>'
+      +'<p style="margin:0">To split between internal crew and subcontractors (or across multiple subs), add allocations below. The forecast will then split internal vs sub workers needed.</p>'
+      +'</div>'
+    )
+    +'</div>'
+
+  var addBtn='<button class="btn btn-p btn-sm" onclick="addLaborAllocModal()">+ Add Allocation</button>'
+
+  var rows=hasAllocs?allocs.map(function(a){
+    var co=a.companies&&a.companies.name||(a.company_id&&(companies||[]).find(function(c){return c.id===a.company_id})&&((companies||[]).find(function(c){return c.id===a.company_id})).name)||'—'
+    var isSub=a.source_type==='sub'
+    return '<tr>'
+      +'<td><span class="badge '+(isSub?'bg-amber':'bg-blue')+'">'+(isSub?'🤝 Sub':'👷 Internal')+'</span></td>'
+      +'<td>'+(isSub?co:'In-house crew')+'</td>'
+      +'<td style="font-family:DM Mono,monospace;font-weight:600">'+fh(a.hours||0)+'</td>'
+      +'<td style="font-family:DM Mono,monospace;font-size:12px">'+(a.hourly_rate?fm(a.hourly_rate):'—')+'</td>'
+      +'<td style="font-family:DM Mono,monospace;font-size:12px">'+(a.hourly_rate?fm(Number(a.hours||0)*Number(a.hourly_rate)):'—')+'</td>'
+      +'<td style="font-size:11px;color:#8a96ab">'+(a.notes||'—')+'</td>'
+      +'<td><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="deleteLaborAlloc(\''+a.id+'\')">Remove</button></td>'
+      +'</tr>'
+  }).join(''):''
+
+  el.innerHTML=header
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="sec-hdr" style="margin:0">Allocations</div>'+addBtn+'</div>'
+    +(hasAllocs?
+      '<table class="tbl"><thead><tr><th>Type</th><th>Source</th><th>Hours</th><th>Rate</th><th>Est. Cost</th><th>Notes</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'
+      :'<div class="empty" style="border:1px dashed rgba(255,255,255,.1);border-radius:10px;padding:30px"><div style="font-size:32px;margin-bottom:8px">⚙</div><div style="color:#8a96ab;font-size:13px">No allocations yet</div><div style="color:#414e63;font-size:11px;margin-top:6px">Click "+ Add Allocation" to split the labor between internal and one or more subs.</div></div>'
+    )
+
+  // Stash companies for the add-modal
+  window._labCompanies=companies||[]
+}
+
+async function addLaborAllocModal(){
+  var cos=window._labCompanies||[]
+  modal('Add Labor Allocation',
+    '<div class="fg"><label class="fl">Type *</label>'
+    +'<select class="fs" id="la-type" onchange="_laToggleCo()"><option value="internal">👷 Internal Crew</option><option value="sub">🤝 Subcontractor</option></select></div>'
+    +'<div class="fg" id="la-co-wrap" style="display:none"><label class="fl">Subcontractor Company *</label>'
+    +'<select class="fs" id="la-co"><option value="">— Select —</option>'+cos.map(function(c){return '<option value="'+c.id+'">'+c.name+'</option>'}).join('')+'</select></div>'
+    +'<div class="two"><div class="fg"><label class="fl">Hours *</label><input class="fi" type="number" id="la-hrs" step="0.5" min="0"></div>'
+    +'<div class="fg"><label class="fl">Hourly Rate (optional)</label><input class="fi" type="number" id="la-rate" step="0.01" min="0"></div></div>'
+    +'<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="la-notes" placeholder="Optional context"></textarea></div>',
+    async function(){
+      var type=v('la-type'),coId=v('la-co')||null,hrs=parseFloat(v('la-hrs'))
+      if(!hrs||hrs<=0){toast('Hours required','error');return}
+      if(type==='sub'&&!coId){toast('Pick a subcontractor company','error');return}
+      var alloc={
+        job_id:currentJobId,
+        source_type:type,
+        company_id:type==='sub'?coId:null,
+        hours:hrs,
+        hourly_rate:fN('la-rate'),
+        notes:v('la-notes')||null,
+        created_by:ME&&ME.full_name||null,
+        created_at:new Date().toISOString(),
+        updated_at:new Date().toISOString()
+      }
+      try{
+        var res=await sb.from('job_labor_allocations').insert(alloc)
+        if(res.error)throw new Error(res.error.message)
+      }catch(e){
+        toast('Could not save — has the migration been run? ('+e.message+')','error');return
+      }
+      closeModal();toast('Allocation added');loadJT('jt-labormix')
+    },'Save Allocation')
+}
+function _laToggleCo(){
+  var t=v('la-type'),w=document.getElementById('la-co-wrap')
+  if(w)w.style.display=t==='sub'?'block':'none'
+}
+async function deleteLaborAlloc(id){
+  if(!confirm('Remove this allocation?'))return
+  var res=await sb.from('job_labor_allocations').delete().eq('id',id)
+  if(res.error){toast(res.error.message,'error');return}
+  toast('Removed');loadJT('jt-labormix')
+}
+async function syncLaborBudgetFromAllocs(){
+  var allocs=await getLaborAllocations(currentJobId)
+  var total=allocs.reduce(function(s,a){return s+Number(a.hours||0)},0)
+  await sb.from('jobs').update({labor_budget:total,updated_at:new Date().toISOString()}).eq('id',currentJobId)
+  currentJob.labor_budget=total
+  toast('Budget synced to '+fh(total));loadJT('jt-labormix')
+}
 
 // ADDRESS AUTOCOMPLETE
 let _addrDeb=null
@@ -4427,24 +4858,41 @@ function _jobDailyHours(job,hoursBurned,settings){
 // Build the forecast across all jobs.
 async function _buildForecast(){
   var settings=_forecastSettings()
-  var{data:jobs}=await sb.from('jobs').select('id,name,job_number,phase,projected_start,projected_closeout,due_date,expected_onsite_date,labor_budget,archived').eq('archived',false)
+  var{data:jobs}=await sb.from('jobs').select('id,name,job_number,phase,projected_start,projected_closeout,due_date,expected_onsite_date,labor_budget,archived,parent_job_id').eq('archived',false)
   // Hours burned per job (from daily_reports)
   var{data:drs}=await sb.from('daily_reports').select('job_id,total_man_hours,hours_worked')
   var burned={};(drs||[]).forEach(function(r){burned[r.job_id]=(burned[r.job_id]||0)+(r.total_man_hours||r.hours_worked||0)})
 
-  var included=[],missing=[]
-  var allDaily={}  // 'YYYY-MM-DD' -> total hours
-  var perJobDaily={}  // jobId -> daily map (for stacking later)
+  // Find which jobs are parents (have children). We exclude parents from the
+  // forecast to avoid double-counting — the children carry the labor.
+  var hasChildren={}
+  ;(jobs||[]).forEach(function(j){if(j.parent_job_id)hasChildren[j.parent_job_id]=true})
+
+  // Fetch all labor allocations once. If the table doesn't exist (migration not
+  // run), the call throws and we fall back to "all internal" for every job.
+  var allocsByJob={}
+  try{
+    var allocRes=await sb.from('job_labor_allocations').select('*')
+    ;(allocRes.data||[]).forEach(function(a){
+      if(!allocsByJob[a.job_id])allocsByJob[a.job_id]=[]
+      allocsByJob[a.job_id].push(a)
+    })
+  }catch(e){/* migration not run; treat all jobs as internal */}
+
+  var included=[],missing=[],skippedParents=[]
+  var allDaily={},internalDaily={},subDaily={}  // 'YYYY-MM-DD' -> hours
+  var perJobDaily={}
 
   ;(jobs||[]).forEach(function(j){
     // Skip complete jobs
     if(j.phase==='complete')return
-    // Skip jobs without a labor_budget — can't forecast labor without it
+    // Skip parents that have children (children will be counted separately)
+    if(hasChildren[j.id]){skippedParents.push({id:j.id,name:j.name});return}
+    // Skip jobs without a labor_budget
     if(!j.labor_budget||Number(j.labor_budget)<=0){
       missing.push({id:j.id,name:j.name,job_number:j.job_number,reason:'No labor budget set'})
       return
     }
-    // Need at least one date anchor
     var hasFullDates=j.projected_start&&j.projected_closeout
     var hasAnyDate=j.due_date||j.expected_onsite_date||j.projected_closeout
     if(!hasFullDates&&!hasAnyDate){
@@ -4456,12 +4904,31 @@ async function _buildForecast(){
       missing.push({id:j.id,name:j.name,job_number:j.job_number,reason:res.reason||'Could not forecast'})
       return
     }
-    included.push({job:j,estimated:res.estimated,start:res.start,end:res.end,remaining:res.remaining,daily:res.daily})
+
+    // Compute internal vs sub ratio from allocations
+    var allocs=allocsByJob[j.id]||[]
+    var intRatio=1,subRatio=0
+    if(allocs.length){
+      var intH=0,subH=0
+      allocs.forEach(function(a){
+        if(a.source_type==='sub')subH+=Number(a.hours||0)
+        else intH+=Number(a.hours||0)
+      })
+      var tot=intH+subH
+      if(tot>0){intRatio=intH/tot;subRatio=subH/tot}
+    }
+
+    included.push({job:j,estimated:res.estimated,start:res.start,end:res.end,remaining:res.remaining,daily:res.daily,internalRatio:intRatio,subRatio:subRatio,hasAllocations:allocs.length>0})
     perJobDaily[j.id]=res.daily
-    Object.keys(res.daily).forEach(function(k){allDaily[k]=(allDaily[k]||0)+res.daily[k]})
+    Object.keys(res.daily).forEach(function(k){
+      var v=res.daily[k]
+      allDaily[k]=(allDaily[k]||0)+v
+      internalDaily[k]=(internalDaily[k]||0)+v*intRatio
+      subDaily[k]=(subDaily[k]||0)+v*subRatio
+    })
   })
 
-  return{settings:settings,included:included,missing:missing,allDaily:allDaily,perJobDaily:perJobDaily}
+  return{settings:settings,included:included,missing:missing,skippedParents:skippedParents,allDaily:allDaily,internalDaily:internalDaily,subDaily:subDaily,perJobDaily:perJobDaily}
 }
 
 // Aggregate a daily map into N buckets (week/month) covering a window.
@@ -4545,17 +5012,17 @@ function _peakWorkers(daily,windowDays,settings){
   return{peak:peak,avg:avgCount>0?avgSum/avgCount:0}
 }
 
-// Render a stacked-bar SVG chart from buckets
-function _renderForecastChart(buckets,settings){
+// Render a stacked-bar SVG chart from buckets. If subBuckets is provided
+// (same length as buckets), draws the sub-worker portion as a distinct layer
+// stacked beneath the internal-worker portion.
+function _renderForecastChart(buckets,settings,subBuckets){
   var W=900,H=300,pad={t:20,r:20,b:50,l:50}
   var iw=W-pad.l-pad.r,ih=H-pad.t-pad.b
-  // Max workers across buckets (use peak if available, else avg)
   var maxW=Math.max(settings.crewSize,...buckets.map(function(b){return Math.max(b.peakWorkers||b.workers,b.workers)}))
-  maxW=Math.ceil(maxW*1.15)  // 15% headroom
+  maxW=Math.ceil(maxW*1.15)
   if(maxW<=0)maxW=10
   var bw=iw/Math.max(1,buckets.length)*0.78
   var bgap=iw/Math.max(1,buckets.length)*0.22
-  // Y axis ticks
   var ticks=5,tickStep=Math.ceil(maxW/ticks)
   var s='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;font-family:DM Sans,sans-serif">'
   // Grid
@@ -4580,20 +5047,37 @@ function _renderForecastChart(buckets,settings){
     var peakY=pad.t+ih-peakH
     var over=avgW>settings.crewSize
     var color=over?'#dc2626':avgW>settings.crewSize*0.85?'#d97706':'#2563eb'
-    // Peak bar (lighter) behind
+    // Peak bar (faint) behind
     if(peakW>avgW){
-      s+='<rect x="'+x+'" y="'+peakY+'" width="'+bw+'" height="'+peakH+'" fill="'+color+'" opacity="0.25" rx="3"/>'
+      s+='<rect x="'+x+'" y="'+peakY+'" width="'+bw+'" height="'+peakH+'" fill="'+color+'" opacity="0.18" rx="3"/>'
     }
-    // Avg bar
-    s+='<rect x="'+x+'" y="'+avgY+'" width="'+bw+'" height="'+avgH+'" fill="'+color+'" rx="3"><title>'+b.label+': avg '+avgW.toFixed(1)+' workers, peak '+peakW.toFixed(1)+'</title></rect>'
+    if(subBuckets){
+      // Stacked: sub portion at bottom (amber), internal on top (colored by load)
+      var subW=(subBuckets[i]&&subBuckets[i].workers)||0
+      var intW=Math.max(0,avgW-subW)
+      var subH=(subW/maxW)*ih
+      var intH2=(intW/maxW)*ih
+      var subY=pad.t+ih-subH
+      var intY=subY-intH2
+      // Sub portion (amber)
+      if(subH>0){
+        s+='<rect x="'+x+'" y="'+subY+'" width="'+bw+'" height="'+subH+'" fill="#fbbf24" rx="0"><title>'+b.label+' — Subs: '+subW.toFixed(1)+' workers</title></rect>'
+      }
+      // Internal portion (blue/amber/red based on internal-only overload)
+      if(intH2>0){
+        var intColor=intW>settings.crewSize?'#dc2626':intW>settings.crewSize*0.85?'#d97706':'#2563eb'
+        s+='<rect x="'+x+'" y="'+intY+'" width="'+bw+'" height="'+intH2+'" fill="'+intColor+'" rx="3"><title>'+b.label+' — Internal: '+intW.toFixed(1)+', Subs: '+subW.toFixed(1)+', Total: '+avgW.toFixed(1)+'</title></rect>'
+      }
+    }else{
+      s+='<rect x="'+x+'" y="'+avgY+'" width="'+bw+'" height="'+avgH+'" fill="'+color+'" rx="3"><title>'+b.label+': avg '+avgW.toFixed(1)+' workers, peak '+peakW.toFixed(1)+'</title></rect>'
+    }
     // Label
     s+='<text x="'+(x+bw/2)+'" y="'+(H-pad.b+18)+'" text-anchor="middle" fill="#8a96ab" font-size="10">'+b.label+'</text>'
-    // Value on top of bar (only if bar is tall enough)
+    // Value on top
     if(avgH>22){
       s+='<text x="'+(x+bw/2)+'" y="'+(avgY+13)+'" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">'+avgW.toFixed(1)+'</text>'
     }
   })
-  // Axes
   s+='<line x1="'+pad.l+'" y1="'+pad.t+'" x2="'+pad.l+'" y2="'+(pad.t+ih)+'" stroke="rgba(255,255,255,.15)"/>'
   s+='<line x1="'+pad.l+'" y1="'+(pad.t+ih)+'" x2="'+(W-pad.r)+'" y2="'+(pad.t+ih)+'" stroke="rgba(255,255,255,.15)"/>'
   s+='<text x="'+(pad.l-30)+'" y="'+(pad.t+ih/2)+'" transform="rotate(-90,'+(pad.l-30)+','+(pad.t+ih/2)+')" text-anchor="middle" fill="#8a96ab" font-size="11">Workers</text>'
@@ -4623,49 +5107,86 @@ async function pgForecast(){
 
 function _renderForecastPage(fc){
   var settings=fc.settings,daily=fc.allDaily
+  var subDaily=fc.subDaily||{},internalDaily=fc.internalDaily||{}
+  // Detect whether any sub allocations exist across all included jobs
+  var hasSubs=fc.included&&fc.included.some(function(inc){return inc.hasAllocations&&inc.subRatio>0})
   var area=document.getElementById('page-area')
+  // View mode toggle: total / internal / sub. Default 'total' when subs exist; 'total' is identical to internal otherwise.
+  var viewMode=window._forecastState.viewMode||'total'
+
   // KPI tiles — one per window
   var tiles=FORECAST_WINDOWS.map(function(w){
     var stats=_peakWorkers(daily,w.days,settings)
-    var over=stats.peak>settings.crewSize
-    var warn=!over&&stats.peak>settings.crewSize*0.85
+    var subStats=hasSubs?_peakWorkers(subDaily,w.days,settings):null
+    var intStats=hasSubs?_peakWorkers(internalDaily,w.days,settings):stats
+    // Capacity compares to internal-only when subs exist (you don't need your own crew for sub work)
+    var checkAgainst=hasSubs?intStats.peak:stats.peak
+    var over=checkAgainst>settings.crewSize
+    var warn=!over&&checkAgainst>settings.crewSize*0.85
     var clr=over?'#dc2626':warn?'#d97706':'#16a34a'
-    var gap=stats.peak-settings.crewSize
-    return '<div class="forecast-tile" data-window="'+w.key+'" style="cursor:pointer;flex:1;min-width:150px;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:14px 16px;border-top:3px solid '+clr+'">'
+    var gap=checkAgainst-settings.crewSize
+    var html='<div class="forecast-tile" data-window="'+w.key+'" style="cursor:pointer;flex:1;min-width:160px;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:14px 16px;border-top:3px solid '+clr+'">'
       +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a96ab;margin-bottom:6px">'+w.label+'</div>'
-      +'<div style="display:flex;align-items:baseline;gap:6px"><div style="font-size:28px;font-weight:300;color:'+clr+'">'+stats.peak.toFixed(1)+'</div><div style="font-size:11px;color:#8a96ab">peak</div></div>'
-      +'<div style="font-size:11px;color:#414e63;margin-top:2px">Avg: '+stats.avg.toFixed(1)+' workers</div>'
-      +(over?'<div style="font-size:11px;color:#dc2626;font-weight:600;margin-top:4px">⚠ Short '+gap.toFixed(1)+' workers</div>':warn?'<div style="font-size:11px;color:#d97706;margin-top:4px">Near capacity</div>':'<div style="font-size:11px;color:#16a34a;margin-top:4px">✓ Within capacity</div>')
-      +'</div>'
+      +'<div style="display:flex;align-items:baseline;gap:6px"><div style="font-size:28px;font-weight:300;color:'+clr+'">'+stats.peak.toFixed(1)+'</div><div style="font-size:11px;color:#8a96ab">peak total</div></div>'
+    if(hasSubs){
+      html+='<div style="display:flex;gap:8px;font-size:11px;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.06)">'
+        +'<div style="flex:1"><div style="color:#414e63">👷 Int</div><div style="color:#60a5fa;font-weight:600">'+intStats.peak.toFixed(1)+'</div></div>'
+        +'<div style="flex:1"><div style="color:#414e63">🤝 Sub</div><div style="color:#fbbf24;font-weight:600">'+subStats.peak.toFixed(1)+'</div></div>'
+        +'</div>'
+    }else{
+      html+='<div style="font-size:11px;color:#414e63;margin-top:2px">Avg: '+stats.avg.toFixed(1)+' workers</div>'
+    }
+    html+=(over?'<div style="font-size:11px;color:#dc2626;font-weight:600;margin-top:4px">⚠ Int short '+gap.toFixed(1):warn?'<div style="font-size:11px;color:#d97706;margin-top:4px">Near capacity':'<div style="font-size:11px;color:#16a34a;margin-top:4px">✓ Within capacity')+'</div>'
+    html+='</div>'
+    return html
   }).join('')
 
-  // Window selector + chart
+  // Window selector
   var winBtns=FORECAST_WINDOWS.map(function(w){
     var active=window._forecastState.window===w.key
     return '<button class="btn btn-sm" data-window="'+w.key+'" onclick="setForecastWindow(\''+w.key+'\')" style="background:'+(active?'#2563eb':'#131c2e')+';color:'+(active?'#fff':'#8a96ab')+';border:1px solid '+(active?'#2563eb':'rgba(255,255,255,.08)')+'">'+w.label+'</button>'
   }).join(' ')
 
-  var curWin=FORECAST_WINDOWS.find(function(w){return w.key===window._forecastState.window})||FORECAST_WINDOWS[1]
-  var buckets=_aggregate(daily,curWin.days,curWin.bucket,settings)
-  var chartSvg=_renderForecastChart(buckets,settings)
+  // View mode toggle (only visible if subs exist)
+  var viewBtns=hasSubs?
+    '<div style="display:flex;gap:0;margin-right:8px;border:1px solid rgba(255,255,255,.08);border-radius:7px;overflow:hidden">'
+    +['total','internal','sub'].map(function(m){
+      var active=viewMode===m
+      var label=m==='total'?'All':m==='internal'?'👷 Internal':'🤝 Sub'
+      return '<button class="btn btn-sm" onclick="setForecastView(\''+m+'\')" style="background:'+(active?'#2563eb':'transparent')+';color:'+(active?'#fff':'#8a96ab')+';border:none;border-radius:0">'+label+'</button>'
+    }).join('')
+    +'</div>':''
 
-  // Coverage gap table — buckets where peak exceeds capacity
+  var curWin=FORECAST_WINDOWS.find(function(w){return w.key===window._forecastState.window})||FORECAST_WINDOWS[1]
+  var dailyForChart=viewMode==='internal'?internalDaily:viewMode==='sub'?subDaily:daily
+  var buckets=_aggregate(dailyForChart,curWin.days,curWin.bucket,settings)
+  var chartSvg
+  if(viewMode==='total'&&hasSubs){
+    var subBuckets=_aggregate(subDaily,curWin.days,curWin.bucket,settings)
+    chartSvg=_renderForecastChart(buckets,settings,subBuckets)
+  }else{
+    chartSvg=_renderForecastChart(buckets,settings)
+  }
+
+  // Coverage gap table
   var gapBuckets=buckets.filter(function(b){return(b.peakWorkers||b.workers)>settings.crewSize})
 
-  // Jobs included table
+  // Jobs included table — show internal/sub split per job
   var incRows=fc.included.map(function(inc){
     var j=inc.job
-    var startD=_parseYmd(inc.start),endD=_parseYmd(inc.end)
+    var mix=inc.hasAllocations
+      ?'<span style="font-size:10px;color:#60a5fa">'+Math.round(inc.internalRatio*100)+'% int</span> · <span style="font-size:10px;color:#fbbf24">'+Math.round(inc.subRatio*100)+'% sub</span>'
+      :'<span style="font-size:10px;color:#414e63">all internal</span>'
     return '<tr style="cursor:pointer" onclick="openJob(\''+j.id+'\')">'
       +'<td><div style="font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#414e63">'+(j.job_number||'')+'</div></td>'
       +'<td>'+stageBadge(j.phase)+'</td>'
       +'<td style="font-size:11px">'+fd(inc.start)+' → '+fd(inc.end)+(inc.estimated?' <span class="badge bg-amber" style="font-size:9px">est</span>':'')+'</td>'
+      +'<td>'+mix+'</td>'
       +'<td style="font-family:DM Mono,monospace;font-size:12px">'+fh(j.labor_budget||0)+'</td>'
       +'<td style="font-family:DM Mono,monospace;font-size:12px">'+fh(inc.remaining)+'</td>'
       +'</tr>'
   }).join('')
 
-  // Missing data — jobs we couldn't include
   var missRows=fc.missing.map(function(m){
     return '<tr style="cursor:pointer" onclick="openJob(\''+m.id+'\')">'
       +'<td><div style="font-weight:500">'+m.name+'</div><div style="font-size:10px;color:#414e63">'+(m.job_number||'')+'</div></td>'
@@ -4673,19 +5194,31 @@ function _renderForecastPage(fc){
       +'</tr>'
   }).join('')
 
+  var skippedParentsLine=(fc.skippedParents&&fc.skippedParents.length)
+    ?'<div style="font-size:11px;color:#8a96ab;margin-top:6px">Note: '+fc.skippedParents.length+' parent project'+(fc.skippedParents.length===1?'':'s')+' skipped (sub-projects count instead, no double-counting).</div>':''
+
+  // Legend
+  var legend='<div style="display:flex;gap:14px;font-size:11px;color:#8a96ab;margin-top:8px;flex-wrap:wrap">'
+  if(viewMode==='total'&&hasSubs){
+    legend+='<div><span style="display:inline-block;width:10px;height:10px;background:#2563eb;border-radius:2px;margin-right:5px"></span>👷 Internal workers</div>'
+    legend+='<div><span style="display:inline-block;width:10px;height:10px;background:#fbbf24;border-radius:2px;margin-right:5px"></span>🤝 Sub workers</div>'
+  }else{
+    legend+='<div><span style="display:inline-block;width:10px;height:10px;background:#2563eb;border-radius:2px;margin-right:5px"></span>Workers needed</div>'
+  }
+  legend+='<div><span style="display:inline-block;width:10px;height:10px;background:#2563eb;opacity:.18;border-radius:2px;margin-right:5px"></span>Peak day</div>'
+  legend+='<div><span style="display:inline-block;width:14px;height:2px;background:#fbbf24;margin-right:5px;vertical-align:middle"></span>Internal capacity</div>'
+  legend+='</div>'
+
   area.innerHTML=
     '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'+tiles+'</div>'
     +'<div class="card">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">'
     +'<div><div class="card-title" style="margin-bottom:2px">Workforce Forecast</div><div style="font-size:11px;color:#8a96ab">Capacity: '+settings.crewSize+' workers · '+settings.hoursPerDay+'hr days · '+(settings.workDays.length===5?'M-F':settings.workDays.length===6?'M-Sat':'custom')+'</div></div>'
-    +'<div style="display:flex;gap:4px;flex-wrap:wrap">'+winBtns+'</div>'
+    +'<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">'+viewBtns+winBtns+'</div>'
     +'</div>'
     +'<div style="background:#060a10;border-radius:10px;padding:10px;overflow-x:auto">'+chartSvg+'</div>'
-    +'<div style="display:flex;gap:14px;font-size:11px;color:#8a96ab;margin-top:8px;flex-wrap:wrap">'
-    +'<div><span style="display:inline-block;width:10px;height:10px;background:#2563eb;border-radius:2px;margin-right:5px"></span>Avg workers needed</div>'
-    +'<div><span style="display:inline-block;width:10px;height:10px;background:#2563eb;opacity:.25;border-radius:2px;margin-right:5px"></span>Peak day</div>'
-    +'<div><span style="display:inline-block;width:14px;height:2px;background:#fbbf24;margin-right:5px;vertical-align:middle"></span>Your capacity line</div>'
-    +'</div>'
+    +legend
+    +skippedParentsLine
     +'</div>'
     +(gapBuckets.length?'<div class="card" style="border-left:3px solid #dc2626">'
       +'<div class="card-title" style="color:#dc2626">⚠ Coverage Gaps — '+curWin.label+'</div>'
@@ -4694,7 +5227,7 @@ function _renderForecastPage(fc){
       +'</tbody></table></div>':'')
     +'<div class="two">'
     +'<div class="card"><div class="card-title">Jobs Included ('+fc.included.length+')</div>'
-    +(fc.included.length?'<table class="tbl"><thead><tr><th>Job</th><th>Phase</th><th>Span</th><th>Budget</th><th>Remaining</th></tr></thead><tbody>'+incRows+'</tbody></table>':empty('📊','No active jobs to forecast'))
+    +(fc.included.length?'<table class="tbl"><thead><tr><th>Job</th><th>Phase</th><th>Span</th><th>Mix</th><th>Budget</th><th>Remaining</th></tr></thead><tbody>'+incRows+'</tbody></table>':empty('📊','No active jobs to forecast'))
     +'</div>'
     +'<div class="card" style="'+(fc.missing.length?'border-left:3px solid #d97706':'')+'">'
     +'<div class="card-title">Missing Data ('+fc.missing.length+')</div>'
@@ -4702,10 +5235,13 @@ function _renderForecastPage(fc){
     +'</div>'
     +'</div>'
 
-  // Wire up tile clicks to switch window
   area.querySelectorAll('.forecast-tile').forEach(function(t){
     t.onclick=function(){setForecastWindow(this.dataset.window)}
   })
+}
+function setForecastView(mode){
+  window._forecastState.viewMode=mode
+  if(window._forecastState.data)_renderForecastPage(window._forecastState.data)
 }
 
 function setForecastWindow(key){
