@@ -199,14 +199,63 @@ if (!window.location.search.includes('signout')) {
 </body>
 </html>
 `
+const PWA_MANIFEST = JSON.stringify({
+  name:'FieldAxisHQ',short_name:'FieldAxis',description:'Field Operations Platform',
+  start_url:'/admin.html',display:'standalone',background_color:'#060a10',theme_color:'#060a10',
+  orientation:'portrait-primary',
+  icons:[{src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="115" fill="%23060a10"/><text x="50%" y="68%" text-anchor="middle" font-size="300" font-family="sans-serif" fill="%2360a5fa">F</text></svg>',sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'}],
+  categories:['business','productivity'],
+  shortcuts:[
+    {name:'Dashboard',url:'/admin.html',description:'Open dashboard'},
+    {name:'All Jobs',url:'/admin.html#jobs',description:'View all jobs'},
+    {name:'Scan Parts',url:'/admin.html#scanner',description:'Scan barcodes'}
+  ]
+})
+
+const SW_JS = `
+const CACHE='fieldaxis-v2'
+const CORE=['/','/admin.html','/worker.html','/fax-shared.js']
+self.addEventListener('install',function(e){
+  e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(CORE)}).then(function(){return self.skipWaiting()}))
+})
+self.addEventListener('activate',function(e){
+  e.waitUntil(caches.keys().then(function(keys){return Promise.all(keys.filter(function(k){return k!==CACHE}).map(function(k){return caches.delete(k)}))}).then(function(){return self.clients.claim()}))
+})
+self.addEventListener('fetch',function(e){
+  if(e.request.method!=='GET')return
+  if(e.request.url.includes('/api/'))return
+  if(e.request.url.includes('supabase.co'))return
+  e.respondWith(
+    fetch(e.request.clone()).then(function(res){
+      if(res&&res.status===200&&res.type!=='opaque'){var cl=res.clone();caches.open(CACHE).then(function(c){c.put(e.request,cl)})}
+      return res
+    }).catch(function(){
+      return caches.match(e.request).then(function(cached){
+        if(cached)return cached
+        var accept=e.request.headers.get('accept')||''
+        if(accept.includes('text/html'))return caches.match('/admin.html')
+      })
+    })
+  )
+})
+`
+
 const HTML_ADMIN  = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FieldAxisHQ Admin v2</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FieldAxisHQ">
+<meta name="theme-color" content="#060a10">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%23060a10'/><text x='90' y='125' text-anchor='middle' font-size='100' font-family='sans-serif' fill='%2360a5fa'>F</text></svg>">
+<title>FieldAxisHQ</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
@@ -215,7 +264,7 @@ html,body{height:100%;overflow:hidden}
 body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size:13px;display:flex}
 ::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:#1a2540;border-radius:2px}
 #sidebar{width:215px;min-width:215px;background:#0c1220;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;height:100vh;overflow-y:auto}
-.logo{padding:15px 14px 11px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.logo{padding:max(15px,calc(env(safe-area-inset-top,0px) + 8px)) 14px 11px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
 .logo-mark{font-family:Syne,sans-serif;font-size:15px;font-weight:800;background:linear-gradient(135deg,#e8edf5,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .logo-sub{font-size:9px;color:#414e63;letter-spacing:.12em;text-transform:uppercase;margin-top:1px}
 .nav-section{padding:9px 12px 2px;font-size:9px;font-weight:600;color:#414e63;letter-spacing:.1em;text-transform:uppercase}
@@ -228,7 +277,7 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .user-pill:hover{background:#1a2540}
 .av{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:Syne,sans-serif;flex-shrink:0}
 #main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;min-width:0}
-.topbar{height:48px;padding:0 18px;background:#0c1220;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar{min-height:48px;padding:env(safe-area-inset-top,0px) 18px 0;background:#0c1220;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .topbar-title{font-family:Syne,sans-serif;font-size:14px;font-weight:700}
 .tb-right{display:flex;gap:7px;align-items:center}
 #page-area{flex:1;overflow-y:auto;padding:18px}
@@ -256,7 +305,8 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .stat-label{font-size:10px;color:#414e63;font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
 .stat-value{font-size:24px;font-weight:300}
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
-.tbl th{text-align:left;padding:8px 11px;border-bottom:1px solid rgba(255,255,255,.06);color:#414e63;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+#h5qr-region{border-radius:8px;overflow:hidden} #h5qr-region video{border-radius:8px} #h5qr-region__scan_region img{display:none}
+.tbl th{text-align:left;padding:8px 11px;border-bottom:1px solid rgba(255,255,255,.06);color:#414e63;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;position:sticky;top:0;background:#0d1626;z-index:2}
 .tbl td{padding:9px 11px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
 .tbl tbody tr:hover td{background:rgba(255,255,255,.02);cursor:pointer}
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap}
@@ -373,7 +423,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
 
   /* ── Topbar ── */
   .topbar {
-    padding: 0 10px; gap: 6px; min-height: 52px;
+    padding: env(safe-area-inset-top,0px) 10px 0; gap: 6px; min-height: 52px;
     position: sticky; top: 0; z-index: 400;
   }
   .topbar-title { font-size: 13px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -597,7 +647,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
   </div>
 </div>
 <script>
-const sb=window.supabase.createClient('https://htkvgfmbcoozmkiairvt.supabase.co','sb_publishable_1U37N6iZ8Is4mF_aR9kThg_DS7wExWO')
+var sb=window.supabase.createClient('https://htkvgfmbcoozmkiairvt.supabase.co','sb_publishable_1U37N6iZ8Is4mF_aR9kThg_DS7wExWO')
 let ME=null,allJobs=[],allCatalog=[]
 let currentJobId=null,currentJob=null
 // ── BOOT ─────────────────────────────────────────────────────
@@ -751,8 +801,8 @@ const STAGE_COLORS={not_started:'bg-gray',make_safe:'bg-red',prewire:'bg-orange'
 // Parts statuses displayed on job cards
 const PARTS_STATUS_LABELS={ordered:'Ordered',staged:'Staged',delivered:'Delivered to Site',partial:'Partial',none:'None'}
 // Permit statuses
-const PERMIT_STATUS_LABELS={not_required:'Not Required',pending:'Pending',submitted:'Submitted',approved:'Approved',rejected:'Rejected',expired:'Expired'}
-const PERMIT_STATUS_COLORS={not_required:'bg-gray',pending:'bg-amber',submitted:'bg-blue',approved:'bg-green',rejected:'bg-red',expired:'bg-red'}
+const PERMIT_STATUS_LABELS={not_required:'Not Required',needs_cads:'Needs CADs',needs_job_walk:'Needs Job Walk',pending:'Pending',submitted:'Submitted',otc:'OTC (Over the Counter)',approved:'Approved',issued:'Issued',rejected:'Rejected',expired:'Expired',failed:'Failed'}
+const PERMIT_STATUS_COLORS={not_required:'bg-gray',needs_cads:'bg-amber',needs_job_walk:'bg-amber',pending:'bg-amber',submitted:'bg-blue',otc:'bg-blue',approved:'bg-green',issued:'bg-green',rejected:'bg-red',expired:'bg-red',failed:'bg-red'}
 function stageBadge(p){return\`<span class="badge \${STAGE_COLORS[p]||'bg-gray'}">\${STAGE_LABELS[p]||p||'—'}</span>\`}
 function roleBadge(r){const m={admin:'bg-purple',pm:'bg-blue',estimator:'bg-blue',stager:'bg-amber',foreman:'bg-teal',technician:'bg-green',sub_lead:'bg-amber',sub_worker:'bg-gray'};return\`<span class="badge \${m[r]||'bg-gray'}">\${r||'—'}</span>\`}
 function empty(icon,txt){return\`<div class="empty"><div class="empty-icon">\${icon}</div><div style="color:#414e63;font-size:12px">\${txt}</div></div>\`}
@@ -791,6 +841,19 @@ async function pgDash(){
       myWalks=wRes2.data||[]
     }
   }
+  // Labor over-budget alerts
+  var laborAlerts=[]
+  try{
+    var ciAllRes=await sb.from('checkins').select('job_id,hours_logged')
+    if(ciAllRes.data&&allJobs&&allJobs.length){
+      var hrsMap={};ciAllRes.data.forEach(function(c){hrsMap[c.job_id]=(hrsMap[c.job_id]||0)+(c.hours_logged||0)})
+      allJobs.forEach(function(j){
+        var lb=j.labor_budget||0,h=hrsMap[j.id]||0
+        if(lb>0&&h>0){var pct=Math.round(h/lb*100);if(pct>=75)laborAlerts.push({job:j,hrs:h,lb:lb,pct:pct,over:h>lb})}
+      })
+      laborAlerts.sort(function(a,b){return b.pct-a.pct})
+    }
+  }catch(e){}
   // Fetch safety assignments pending for current user
   const {data:safety} = await sb.from('safety_assignments')
     .select('*,safety_topics(id,title,week_of,content)')
@@ -832,7 +895,7 @@ async function pgDash(){
   const soon=[]
   allJobs.forEach(j=>{
     const fields=[['expected_onsite_date','Expected On Site'],['next_visit_date','Next Visit'],['date_closeout','Closeout'],['due_date','Due']]
-    fields.forEach(([f,lbl])=>{if(j[f]){const da=daysAway(j[f]);if(da!=null&&da>=0&&da<=14)soon.push({job:j.name,type:lbl,date:j[f],da,id:j.id})}})
+    fields.forEach(([f,lbl])=>{if(j[f]){const da=daysAway(j[f]);if(da!=null&&da>=0&&da<=(window._dueDays||14))soon.push({job:j.name,type:lbl,date:j[f],da,id:j.id})}})
   })
   soon.sort((a,b)=>a.da-b.da)
   document.getElementById('page-area').innerHTML=\`
@@ -842,36 +905,84 @@ async function pgDash(){
     <div class="stat"><div class="stat-label">Parts Pipeline</div><div class="stat-value" style="color:#a855f7">\${out.length}</div><div style="font-size:10px;color:#414e63;margin-top:2px">\${staged.length} staged · \${out.length} checked out · \${installed.length} installed</div></div>
     <div class="stat"><div class="stat-label">On Site Now</div><div class="stat-value" style="color:#16a34a">\${checkins.length}</div></div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 280px;gap:13px">
-    <div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;width:100%">
+    <div style="min-width:0;overflow:hidden">
       <div class="card">
-        <div class="card-title">Active Jobs <button class="btn btn-sm btn-ghost" onclick="P('jobs',null)">All →</button></div>
-        \${active.length?\`<table class="tbl"><thead><tr><th>Job</th><th>Stage</th><th>Due</th></tr></thead><tbody>\${active.slice(0,8).map(j=>\`<tr onclick="openJob('\${j.id}')"><td><div style="font-weight:500">\${j.name}</div><div style="font-size:10px;color:#414e63">\${j.job_number?'#'+j.job_number+(j.address?' · '+j.address:''):(j.address||'')}</div></td><td>\${stageBadge(j.phase)}</td><td style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">\${fd(j.due_date)}</td></tr>\`).join('')}</tbody></table>\`:empty('📋','No active jobs')}
+        <div class="card-title">Job Search</div>
+        <div style="position:relative"><input class="fi" id="dash-job-search" placeholder="Search by job name or ID..." oninput="dashJobSearch(this.value)" autocomplete="off" style="width:100%;padding-right:36px"><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#414e63">&#128269;</span></div>
+        <div id="dash-job-results" style="margin-top:8px"></div>
       </div>
       <div class="card">
-        <div class="card-title">⚠ Due Within 14 Days</div>
-        \${soon.length?soon.map(s=>\`<div class="sched-item" onclick="openJob('\${s.id}')"><div class="sched-dot" style="background:\${s.da<=3?'#dc2626':s.da<=7?'#d97706':'#16a34a'};margin-top:4px"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${s.job}</div><div style="font-size:10px;color:#414e63">\${s.type} · \${fd(s.date)}</div></div><span class="badge \${s.da<=3?'bg-red':s.da<=7?'bg-amber':'bg-green'}">\${s.da===0?'Today':s.da+'d'}</span></div>\`).join(''):empty('📅','All clear — nothing due in 14 days')}
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>&#9888; Due <span id="due-days-label">14</span>d</span>
+          <span style="display:flex;gap:3px">
+            <button class="btn btn-sm due-day-btn" data-days="14" onclick="setDueDays(14)" style="padding:1px 6px;font-size:10px;background:rgba(59,130,246,.25);color:#60a5fa">14d</button>
+            <button class="btn btn-sm due-day-btn" data-days="30" onclick="setDueDays(30)" style="padding:1px 6px;font-size:10px">30d</button>
+            <button class="btn btn-sm due-day-btn" data-days="60" onclick="setDueDays(60)" style="padding:1px 6px;font-size:10px">60d</button>
+            <button class="btn btn-sm due-day-btn" data-days="90" onclick="setDueDays(90)" style="padding:1px 6px;font-size:10px">90d</button>
+          </span>
+        </div>
+        <div id="due-widget-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>&#128197; Jobs Starting <span id="starting-days-label">14</span>d</span>
+          <span style="display:flex;gap:3px">
+            <button class="btn btn-sm starting-day-btn" data-days="14" onclick="setStartingDays(14)" style="padding:1px 6px;font-size:10px;background:rgba(59,130,246,.25);color:#60a5fa">14d</button>
+            <button class="btn btn-sm starting-day-btn" data-days="30" onclick="setStartingDays(30)" style="padding:1px 6px;font-size:10px">30d</button>
+            <button class="btn btn-sm starting-day-btn" data-days="60" onclick="setStartingDays(60)" style="padding:1px 6px;font-size:10px">60d</button>
+            <button class="btn btn-sm starting-day-btn" data-days="90" onclick="setStartingDays(90)" style="padding:1px 6px;font-size:10px">90d</button>
+          </span>
+        </div>
+        <div id="starting-widget-list"></div>
       </div>
     </div>
-    <div>
+    <div style="min-width:0;overflow:hidden">
       <div class="card">
         <div class="card-title">Low Stock</div>
-        \${lowStock.length?lowStock.slice(0,5).map(i=>\`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span>\${i.name}</span><span style="color:#dc2626;font-weight:500">\${i.qty}/\${i.min_qty}</span></div>\`).join(''):'<div style="font-size:12px;color:#414e63">All stock OK ✓</div>'}
+        <div id="dash-low-stock-list"></div>
       </div>
       <div class="card">
         <div class="card-title">Live Check-ins</div>
-        \${checkins.length?checkins.slice(0,5).map(c=>\`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div class="av" style="width:22px;height:22px;font-size:8px;\${Object.entries(avS(c.workerName)).map(([k,v])=>k+':'+v).join(';')}">\${ini(c.workerName)}</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${c.workerName||'?'}</div><div style="font-size:10px;color:#414e63">\${c.jobName||''} · \${ft(c.checkin_at)}</div></div><span class="gps-live" style="font-size:9px"><span class="pulse"></span></span></div>\`).join(''):'<div style="font-size:12px;color:#414e63">No one on site</div>'}
+        <div id="dash-checkins-list"></div>
       </div>
     </div>
-    <div>
-      \${buildMyTasksDashWidget(myTasks)}
-      \${buildMyWalksDashWidget(myWalks||[],_dashJobMap||{})}
+    <div style="min-width:0;overflow:hidden">
+      <div id="dash-tasks-widget"></div>
+      <div id="dash-labor-widget"></div>
       <div class="card">
-        <div class="card-title">🎓 My Training<span id="dash-training-badge" style="display:none;background:#dc2626;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:8px;font-weight:400"></span></div>
-        \${pendingSafety.length?'<div style="font-size:11px;color:#8a96ab;margin-bottom:8px">'+(pendingSafety.length)+' topic(s) pending — click to read and acknowledge</div>'+(pendingSafety||[]).slice(0,3).map(function(s){return'<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">'+'<div><div style="font-size:12px;font-weight:500">'+(s.safety_topics?s.safety_topics.title:'Topic')+'</div>'+'<div style="font-size:10px;color:#414e63;margin-top:1px">Week of '+fd(s.safety_topics?s.safety_topics.week_of:null)+'</div></div>'+'<button class="btn btn-sm btn-p" style="flex-shrink:0;font-size:10px" onclick="navTo(&quot;my_training&quot;)">Open →</button>'+'</div>'}).join('')+'<button class="btn btn-sm btn-p" style="margin-top:8px;width:100%" onclick="navTo(&quot;my_training&quot;)">View All My Training →</button>':'<div style="font-size:12px;color:#16a34a;padding:8px 0">✓ All training complete!</div><button class="btn btn-sm" style="margin-top:6px;width:100%" onclick="navTo(&quot;my_training&quot;)">View Training History</button>'}
+        <div class="card-title">&#127891; My Training<span id="dash-training-badge" style="display:none;background:#dc2626;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:6px"></span></div>
+        <div id="dash-training-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">Inspections
+          <span style="display:flex;gap:5px">
+            <label style="font-size:10px;font-weight:400;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" id="dash-pretest-chk" checked onchange="renderReadyWidget()"> PT</label>
+            <label style="font-size:10px;font-weight:400;display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" id="dash-final-chk" checked onchange="renderReadyWidget()"> Final</label>
+          </span></div>
+        <div id="dash-ready-list"></div>
       </div>
     </div>
   </div>\`
+  renderReadyWidget()
+  setDueDays(window._dueDays||14)
+  setStartingDays(window._startingDays||14)
+  var tw=document.getElementById('dash-tasks-widget');if(tw)tw.innerHTML=buildMyTasksDashWidget(myTasks)
+  var lw=document.getElementById('dash-labor-widget');if(lw&&laborAlerts.length)lw.innerHTML=buildLaborAlertWidget(laborAlerts)
+  var ls=document.getElementById('dash-low-stock-list')
+  if(ls)ls.innerHTML=lowStock.length?lowStock.slice(0,5).map(function(i){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;font-weight:500">'+i.name+'</span><span class="badge bg-amber">'+i.qty_on_hand+' left</span></div>'}).join(''):empty('Stock OK','')
+  var ciEl=document.getElementById('dash-checkins-list')
+  if(ciEl)ciEl.innerHTML=checkins.length?checkins.slice(0,8).map(function(c){return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="width:8px;height:8px;border-radius:50%;background:#16a34a;flex-shrink:0"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">'+(c.worker_name||c.worker_id||'')+'</div><div style="font-size:10px;color:#414e63">'+(c.job_name||'')+'</div></div></div>'}).join(''):empty('No check-ins','')
+  var tr=document.getElementById('dash-training-list')
+  if(tr)tr.innerHTML=(pendingSafety.length?'<div style="font-size:11px;color:#8a96ab;margin-bottom:8px">'+pendingSafety.length+' topic'+(pendingSafety.length!==1?'s':'')+' pending</div>':'')+pendingSafety.slice(0,3).map(function(t){return '<div style="font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)">'+((t.safety_topics&&t.safety_topics.title)||t.title||'')+'</div>'}).join('')+(pendingSafety.length>3?'<div style="font-size:11px;color:#414e63;margin-top:6px">+'+(pendingSafety.length-3)+' more</div>':'')+(!pendingSafety.length?empty('All up to date',''):'')
+  setTimeout(function(){
+  setDueDays(window._dueDays||14)
+    document.querySelectorAll('.dash-due-row').forEach(function(el){
+      el.onclick=function(){openJob(this.dataset.jid)}
+      el.onmouseover=function(){this.style.background='rgba(255,255,255,.04)'}
+      el.onmouseout=function(){this.style.background=''}
+    })
+  },100)
   } catch(e) {
     console.error('Dashboard error:',e)
     document.getElementById('page-area').innerHTML='<div style="padding:20px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:10px"><div style="color:#dc2626;font-weight:600;margin-bottom:8px">⚠ Dashboard failed to load</div><div style="font-size:12px;color:#f87171;font-family:monospace;background:rgba(0,0,0,.3);padding:10px;border-radius:6px;word-break:break-all">'+e.message+'</div><div style="font-size:11px;color:#8a96ab;margin-top:8px">Check browser console (F12) for full details. This is usually a database connection or missing table issue.</div><button class="btn btn-sm" onclick="pgDash()" style="margin-top:10px">Retry</button></div>'
@@ -881,6 +992,11 @@ async function pgDash(){
 // ALL JOBS
 // ══════════════════════════════════════════
 async function pgJobs(){
+  try{
+    var drRes=await sb.from('daily_reports').select('job_id,total_man_hours,hours_worked')
+    var hmap={};(drRes.data||[]).forEach(function(r){hmap[r.job_id]=(hmap[r.job_id]||0)+(r.total_man_hours||r.hours_worked||0)})
+    window._jobHrsMap=hmap
+  }catch(e){window._jobHrsMap={}}
   document.getElementById('topbar-actions').innerHTML=\`
     <button class="btn btn-sm btn-ghost" onclick="downloadJobTemplate()">📋 Template</button>
     <label class="btn btn-sm" style="cursor:pointer">⬆ Import Excel<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importJobsExcel(this)"></label>
@@ -910,7 +1026,14 @@ function jobPartsStatus(j){
 
 // Load jobs and enrich with parts status snapshot
 async function loadJobsWithPartsStatus(){
-  const{data:jobs}=await sb.from('jobs').select('id,name,job_number,phase,address,city,state,zip,gps_lat,gps_lng,gps_radius_ft,project_manager,gc_company,due_date,is_urgent,urgent_note,company_id').eq('archived',false).order('created_at',{ascending:false})
+  var allJobsRaw=[],ajFrom=0
+  while(true){
+    var ajRes=await sb.from('jobs').select('id,name,job_number,phase,address,city,state,zip,gps_lat,gps_lng,gps_radius_ft,project_manager,gc_company,due_date,is_urgent,urgent_note,company_id,labor_budget').eq('archived',false).order('created_at',{ascending:false}).range(ajFrom,ajFrom+999)
+    allJobsRaw=allJobsRaw.concat(ajRes.data||[])
+    if(!ajRes.data||ajRes.data.length<1000)break
+    ajFrom+=1000
+  }
+  const jobs=allJobsRaw
   const{data:parts}=await sb.from('job_parts').select('job_id,status')
   allJobs=jobs||[]
   // Build parts map per job
@@ -934,6 +1057,121 @@ async function loadJobsWithPartsStatus(){
     else j._parts_status='none'
   })
 }
+function dashJobSearch(q){
+  var el=document.getElementById('dash-job-results');if(!el)return
+  q=(q||'').trim().toLowerCase()
+  if(!q){el.innerHTML='';return}
+  var results=(allJobs||[]).filter(function(j){
+    return j.name.toLowerCase().includes(q)||(j.job_number||'').toLowerCase().includes(q)||(j.address||'').toLowerCase().includes(q)
+  }).slice(0,8)
+  if(!results.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:6px 0">No jobs found</div>';return}
+  el.innerHTML=results.map(function(j){
+    return '<div class="dash-job-row" data-jid="'+j.id+'" style="display:flex;align-items:center;justify-content:space-between;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer">'
+      +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div>'
+      +'<div style="font-size:10px;color:#8a96ab">'+(j.job_number?'#'+j.job_number+' · ':'')+(j.address||'')+'</div></div>'
+      +(j.due_date?'<span style="font-size:11px;color:'+(isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab')+'">'+fd(j.due_date)+'</span>':'')
+      +'</div>'
+  }).join('')
+  el.querySelectorAll('.dash-job-row').forEach(function(d){
+    d.onclick=function(){openJob(this.dataset.jid)}
+    d.onmouseover=function(){this.style.background='rgba(255,255,255,.04)'}
+    d.onmouseout=function(){this.style.background=''}
+  })
+}
+function buildReadyWidget(){
+  var pt=document.getElementById('dash-pretest-chk'),fi=document.getElementById('dash-final-chk')
+  var showPT=!pt||pt.checked,showFI=!fi||fi.checked
+  var jobs=(allJobs||[]).filter(function(j){
+    return (showPT&&j.phase==='ready_for_pretest')||(showFI&&j.phase==='ready_for_final')
+  })
+  if(!jobs.length)return '<div style="font-size:12px;color:#414e63;padding:6px 0">No jobs ready for inspection</div>'
+  return jobs.map(function(j){
+    var isFinal=j.phase==='ready_for_final'
+    var clr=isFinal?'#16a34a':'#3b82f6'
+    var lbl=isFinal?'Ready for Final':'Ready for Pre-Test'
+    return '<div class="ready-job-row" data-jid="'+j.id+'" style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer">'
+    +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#8a96ab">'+(j.job_number?'#'+j.job_number+' · ':'')+(j.project_manager||'')+'</div></div>'
+    +'<span style="font-size:10px;font-weight:600;color:'+clr+';border:1px solid '+clr+';padding:2px 8px;border-radius:12px;white-space:nowrap">'+lbl+'</span></div>'
+  }).join('')
+}
+function setStartingDays(d){
+  window._startingDays=d
+  var lbl=document.getElementById('starting-days-label');if(lbl)lbl.textContent=d
+  var list=document.getElementById('starting-widget-list');if(!list)return
+  var jobs=(allJobs||[]).filter(function(j){
+    var dateStr=j.projected_start||j.expected_onsite_date
+    if(!dateStr)return false
+    var da=daysAway(dateStr)
+    return da!=null&&da>=0&&da<=d
+  }).sort(function(a,b){
+    var da=daysAway(a.projected_start||a.expected_onsite_date||'')
+    var db=daysAway(b.projected_start||b.expected_onsite_date||'')
+    return (da==null?999:da)-(db==null?999:db)
+  })
+  list.innerHTML=jobs.length?jobs.map(function(j){
+    var dateStr=j.projected_start||j.expected_onsite_date
+    var da=daysAway(dateStr)
+    var clr=da<=3?'#16a34a':da<=7?'#3b82f6':'#8a96ab'
+    return '<div class="sched-item dash-starting-row" data-jid="'+j.id+'" style="cursor:pointer">'
+      +'<div class="sched-dot" style="background:'+clr+';margin-top:4px"></div>'
+      +'<div style="flex:1"><div style="font-size:12px;font-weight:500">'+j.name+'</div>'
+      +'<div style="font-size:10px;color:#414e63">'+(j.job_number?'#'+j.job_number+' · ':'')+(da===0?'Today':fd(dateStr))+'</div></div>'
+      +'<span class="badge" style="background:rgba(59,130,246,.15);color:#60a5fa">'+(da===0?'Today':da+'d')+'</span></div>'
+  }).join(''):'<div style="text-align:center;padding:16px;color:#414e63">No jobs starting in '+d+' days</div>'
+  list.querySelectorAll('.dash-starting-row').forEach(function(el){
+    el.onclick=function(){openJob(this.dataset.jid)}
+    el.onmouseover=function(){this.style.background='rgba(255,255,255,.04)'}
+    el.onmouseout=function(){this.style.background=''}
+  })
+  document.querySelectorAll('.starting-day-btn').forEach(function(b){
+    var active=parseInt(b.dataset.days)===d
+    b.style.background=active?'rgba(59,130,246,.25)':''
+    b.style.color=active?'#60a5fa':''
+  })
+}
+function setDueDays(d){
+  window._dueDays=d
+  var soon=[]
+  ;(allJobs||[]).forEach(function(j){
+    var fields=[['expected_onsite_date','Expected On Site'],['next_visit_date','Next Visit'],['date_closeout','Closeout'],['due_date','Due']]
+    fields.forEach(function(pair){
+      var f=pair[0],lbl=pair[1]
+      if(j[f]){var da=daysAway(j[f]);if(da!=null&&da>=0&&da<=d)soon.push({job:j.name,type:lbl,date:j[f],da:da,id:j.id})}
+    })
+  })
+  soon.sort(function(a,b){return a.da-b.da})
+  var lbl=document.getElementById('due-days-label');if(lbl)lbl.textContent=d
+  var list=document.getElementById('due-widget-list')
+  if(!list)return
+  list.innerHTML=soon.length?soon.map(function(s){
+    var dc=s.da<=3?'#dc2626':s.da<=7?'#d97706':'#16a34a'
+    var bc=s.da<=3?'bg-red':s.da<=7?'bg-amber':'bg-green'
+    return '<div class="sched-item dash-due-row" data-jid="'+s.id+'" style="cursor:pointer">'
+      +'<div class="sched-dot" style="background:'+dc+';margin-top:4px"></div>'
+      +'<div style="flex:1"><div style="font-size:12px;font-weight:500">'+s.job+'</div>'
+      +'<div style="font-size:10px;color:#414e63">'+s.type+' &middot; '+fd(s.date)+'</div></div>'
+      +'<span class="badge '+bc+'">'+(s.da===0?'Today':s.da+'d')+'</span></div>'
+  }).join(''):'<div style="text-align:center;padding:20px;color:#414e63">All clear — nothing due in '+d+' days</div>'
+  list.querySelectorAll('.dash-due-row').forEach(function(el){
+    el.onclick=function(){openJob(this.dataset.jid)}
+    el.onmouseover=function(){this.style.background='rgba(255,255,255,.04)'}
+    el.onmouseout=function(){this.style.background=''}
+  })
+  document.querySelectorAll('.due-day-btn').forEach(function(b){
+    var active=parseInt(b.dataset.days)===d
+    b.style.background=active?'rgba(59,130,246,.25)':''
+    b.style.color=active?'#60a5fa':''
+  })
+}
+function renderReadyWidget(){
+  var el=document.getElementById('dash-ready-list');if(!el)return
+  el.innerHTML=buildReadyWidget()
+  el.querySelectorAll('.ready-job-row').forEach(function(d){
+    d.onclick=function(){openJob(this.dataset.jid)}
+    d.onmouseover=function(){this.style.background='rgba(255,255,255,.04)'}
+    d.onmouseout=function(){this.style.background=''}
+  })
+}
 function sortJobsBy(col){
   var q=document.querySelector('#page-area input[placeholder="Search jobs…"]')
   var qVal=q?q.value:''
@@ -942,7 +1180,12 @@ function sortJobsBy(col){
   renderJobsTable(qVal)
 }
 function renderJobsTable(q){
-  const rows=allJobs.filter(j=>!q||j.name.toLowerCase().includes(q.toLowerCase())||(j.job_number||'').toLowerCase().includes(q.toLowerCase())||(j.address||'').toLowerCase().includes(q.toLowerCase())||(j.gc_company||'').toLowerCase().includes(q.toLowerCase()))
+  var hrsMap=window._jobHrsMap||{}
+  const rows=allJobs.filter(j=>{
+    if(window._stageFilter&&window._stageFilter.length&&!window._stageFilter.includes(j.phase||'not_started'))return false
+    if(!q)return true
+    return j.name.toLowerCase().includes(q.toLowerCase())||(j.job_number||'').toLowerCase().includes(q.toLowerCase())||(j.address||'').toLowerCase().includes(q.toLowerCase())||(j.gc_company||'').toLowerCase().includes(q.toLowerCase())
+  })
   // Apply sort
   var sc=window._jobSortCol||'',sd=window._jobSortDir||1
   var stageOrder={'not_started':0,'make_safe':1,'prewire':2,'roughed_in':3,'trimmed':4,'ready_for_pretest':5,'ready_for_final':6,'complete':7}
@@ -963,18 +1206,27 @@ function renderJobsTable(q){
   document.getElementById('page-area').innerHTML=\`
   <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
     <input class="fi" placeholder="Search jobs…" style="max-width:280px" oninput="renderJobsTable(this.value)" value="\${q}">
-    <select class="fs" style="width:180px" onchange="filterJobsByStage(this.value)">
-      <option value="">All Stages</option>
-      \${STAGES.map(s=>\`<option value="\${s}">\${STAGE_LABELS[s]}</option>\`).join('')}
-    </select>
+    <div style="position:relative;display:inline-block" id="stage-filter-wrap">
+      <button class="btn btn-sm" onclick="toggleStageFilter(this)" style="min-width:150px;display:flex;align-items:center;justify-content:space-between;gap:6px">
+        <span id="stage-filter-label">All Stages</span><span>&#9660;</span></button>
+      <div id="stage-filter-menu" style="display:none;position:absolute;top:110%;left:0;z-index:200;background:#1a2535;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
+        <div style="display:flex;gap:6px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.06)">
+          <button class="btn btn-sm" onclick="setAllStages(true)" style="flex:1;font-size:11px">All</button>
+          <button class="btn btn-sm" onclick="setAllStages(false)" style="flex:1;font-size:11px">None</button></div>
+        \${STAGES.map(s=>{
+          var chk=!window._stageFilter||window._stageFilter.includes(s)
+          return '<label style="display:flex;align-items:center;gap:8px;padding:5px 4px;cursor:pointer;border-radius:4px;font-size:12px"><input type="checkbox" value="'+s+'" '+(chk?'checked':'')+' onchange="stageCheckChange()"> '+STAGE_LABELS[s]+'</label>'
+        }).join('')}
+      </div>
+    </div>
   </div>
-  <div class="card" style="padding:0;overflow:hidden">
-  \${rows.length?\`<table class="tbl"><thead><tr><th onclick="sortJobsBy('name')" style="cursor:pointer">Job</th><th>Job ID</th><th onclick="sortJobsBy('status')" style="cursor:pointer">Status</th><th onclick="sortJobsBy('parts')" style="cursor:pointer">Parts</th><th onclick="sortJobsBy('permit')" style="cursor:pointer">Permit</th><th onclick="sortJobsBy('pm')" style="cursor:pointer">PM</th><th onclick="sortJobsBy('due')" style="cursor:pointer">Due Date</th><th>Progress</th><th></th></tr></thead><tbody>\n  \${rows.map(j=>{
+  <div id="jobs-table-wrap" class="card" style="padding:0;overflow:hidden;max-height:calc(100vh - 160px);overflow-y:auto">
+  \${rows.length?\`<table class="tbl"><thead><tr><th onclick="sortJobsBy('name')" style="cursor:pointer">Job</th><th>Job ID</th><th onclick="sortJobsBy('status')" style="cursor:pointer">Stage</th><th onclick="sortJobsBy('parts')" style="cursor:pointer">Parts</th><th onclick="sortJobsBy('permit')" style="cursor:pointer">Permit Status</th><th onclick="sortJobsBy('pm')" style="cursor:pointer">PM</th><th onclick="sortJobsBy('due')" style="cursor:pointer">Due Date</th><th>Progress</th><th></th></tr></thead><tbody>\n  \${rows.map(j=>{
     const ps=jobPartsStatus(j)
     const permit=j.permit_status||'not_required'
     return \`<tr onclick="openJob('\${j.id}')" style="cursor:pointer">
-      <td><div style="font-weight:500">\${j.name}</div><div style="font-size:10px;color:#414e63">\${j.address||''}</div></td>
-      <td style="font-size:11px;color:#8a96ab;white-space:nowrap">\${j.job_number||'—'}</td>
+      <td><div style="font-weight:500;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'inherit'}">\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'⚠ ':''}\${j.name}</div><div style="font-size:10px;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'#414e63'}">\${j.address||''}</div></td>
+      <td style="font-size:11px;color:#8a96ab;white-space:nowrap">\${j.job_number||'\u2014'}</td>
       <td>\${stageBadge(j.phase)}</td>
       <td>\${ps.badge}</td>
       <td><span class="badge \${PERMIT_STATUS_COLORS[permit]||'bg-gray'}">\${PERMIT_STATUS_LABELS[permit]||permit}</span></td>
@@ -994,8 +1246,48 @@ function renderJobsTable(q){
       if(si&&document.activeElement!==si){si.focus();var l=si.value.length;try{si.setSelectionRange(l,l)}catch(e){}}
     },0)
   }
+  if(window._stageMenuOpen){
+    window._stageMenuOpen=false
+    var menu=document.getElementById('stage-filter-menu')
+    if(menu){
+      menu.style.display='block'
+      menu.querySelectorAll('input[type=checkbox]').forEach(function(b){
+        b.checked=!window._stageFilter||window._stageFilter.includes(b.value)
+      })
+      var lbl=document.getElementById('stage-filter-label')
+      if(lbl)lbl.textContent=window._stageFilter?window._stageFilter.length+' Stages':'All Stages'
+      var closeH=function(e){if(!document.getElementById('stage-filter-wrap').contains(e.target)){menu.style.display='none';document.removeEventListener('click',closeH)}}
+      setTimeout(function(){document.addEventListener('click',closeH)},50)
+    }
+  }
+  var _jtw=document.getElementById('jobs-table-wrap')
+  if(_jtw){
+    _jtw.onscroll=function(){window._jobsScrollTop=this.scrollTop}
+    if(window._jobsScrollTop){_jtw.scrollTop=window._jobsScrollTop}
+  }
 }
 
+function toggleStageFilter(btn){
+  if(!menu)return
+  var isOpen=menu.style.display!=='none'
+  menu.style.display=isOpen?'none':'block'
+  if(!isOpen){var close=function(e){if(!document.getElementById('stage-filter-wrap').contains(e.target)){menu.style.display='none';document.removeEventListener('click',close)}};setTimeout(function(){document.addEventListener('click',close)},50)}
+}
+function stageCheckChange(){
+  var boxes=document.querySelectorAll('#stage-filter-menu input[type=checkbox]:checked')
+  var all=document.querySelectorAll('#stage-filter-menu input[type=checkbox]')
+  var checked=[].map.call(boxes,function(b){return b.value})
+  window._stageFilter=checked.length===all.length?null:checked
+  var lbl=document.getElementById('stage-filter-label')
+  if(lbl)lbl.textContent=window._stageFilter?checked.length+' Stages':'All Stages'
+  var q=document.querySelector('#page-area input[placeholder]')
+  window._stageMenuOpen=true
+  renderJobsTable(q?q.value:'')
+}
+function setAllStages(v){
+  document.querySelectorAll('#stage-filter-menu input[type=checkbox]').forEach(function(b){b.checked=v})
+  stageCheckChange()
+}
 function filterJobsByStage(stage){
   const q=(document.getElementById('jobs-q-search')||{}).value||''
   const rows=(stage?allJobs.filter(j=>j.phase===stage):allJobs).filter(j=>!q||(j.name||'').toLowerCase().includes(q.toLowerCase())||(j.job_number||'').toLowerCase().includes(q.toLowerCase())||(j.gc_company||'').toLowerCase().includes(q.toLowerCase()))
@@ -1012,9 +1304,10 @@ async function importJobsExcel(input){
     const rows=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false,dateNF:'yyyy-mm-dd'})
     if(!rows.length){toast('No data found in file','error');return}
     // Pre-fetch existing jobs for preview
-    var prevExisting=await sb.from('jobs').select('name,job_number').eq('archived',false)
-    var prevNames=new Set((prevExisting.data||[]).map(j=>(j.name||'').toLowerCase()))
-    var prevNums=new Set((prevExisting.data||[]).filter(j=>j.job_number).map(j=>j.job_number.toLowerCase()))
+    // Paginate preview pre-fetch to get ALL jobs
+        var prevAllJobs=allJobs||[]
+    var prevNames=new Set(prevAllJobs.map(j=>(j.name||'').toLowerCase().trim().replace(/\s+/g,' ')))
+    var prevNums=new Set(prevAllJobs.filter(j=>j.job_number).map(j=>(j.job_number||'').toLowerCase().trim()))
     // Preview modal
     const validRows=rows.filter(r=>r['Job Name']||r['name']||r['job_name'])
     if(!validRows.length){
@@ -1029,13 +1322,17 @@ async function importJobsExcel(input){
     h+='<table class="tbl" style="font-size:11px"><thead><tr><th>#</th><th>Job Name</th><th>Address</th><th>Stage</th><th>Due Date</th><th>Contract Value</th><th>Status</th></tr></thead><tbody>'
     validRows.forEach(function(r,i){
       var name=r['Job Name']||r['name']||r['job_name']||''
+      var jobNum=r['Job Number']||r['job_number']||''
       var addr=r['Address']||r['address']||''
       var rawStage=String(r['Stage']||r['stage']||r['Phase']||r['phase']||'not_started').trim().toLowerCase()
       var stage=validStages.includes(rawStage)?rawStage:(stageMap[rawStage]||'not_started')
       var stageOk=validStages.includes(rawStage)||stageMap[rawStage]
       var due=r['Due Date']||r['due_date']||r['due']||''
       var val=r['Contract Value']||r['contract_value']||r['value']||''
-      var warn=!name?'<span style="color:#dc2626">Missing name</span>':''
+      var normPN=(name||'').toLowerCase().trim().replace(/\s+/g,' ')
+      var normPNum=(jobNum||'').toLowerCase().trim()
+      var isDupPrev=(normPNum&&prevNums.has(normPNum))||prevNames.has(normPN)
+      var warn=!name?'<span style="color:#dc2626">Missing name</span>':isDupPrev?'<span style="color:#d97706">⚠ Will Update</span>':''
       h+='<tr>'
       h+='<td style="color:#414e63">'+(i+1)+'</td>'
       h+='<td style="font-weight:500">'+(name||'<span style="color:#dc2626">—</span>')+'</td>'
@@ -1052,10 +1349,17 @@ async function importJobsExcel(input){
     modal('Import '+validRows.length+' Jobs', h, async function(){
       var created=0,errors=[],skipped=0,updated=0,skippedNames=[],newJobIds=[]
       // Pre-fetch existing jobs for duplicate detection
-      var existingRes=await sb.from('jobs').select('id,name,job_number,original_contract_value,contract_value,contract_date,address,city,state,zip,gc_company,gc_contact,gc_phone,gc_email,project_manager,description').eq('archived',false)
-      var existingJobs=existingRes.data||[]
-      var existingNames=new Set(existingJobs.map(j=>(j.name||'').toLowerCase()))
-      var existingNums=new Set(existingJobs.filter(j=>j.job_number).map(j=>j.job_number.toLowerCase()))
+      // Fetch ALL existing jobs in pages (Supabase default limit is 1000)
+      // Use allJobs already in memory - avoids column/RLS issues
+      var existingJobs=allJobs||[]
+      if(!existingJobs.length){
+        var exRes=await sb.from('jobs').select('id,name,job_number').limit(5000)
+        existingJobs=exRes.data||[]
+      }
+      var existingNames=new Set(existingJobs.map(j=>(j.name||'').toLowerCase().trim().replace(/\s+/g,' ')))
+      var existingNums=new Set(existingJobs.filter(j=>j.job_number).map(j=>j.job_number.toLowerCase().trim()))
+      var existingCount=existingJobs.length
+      if(!confirm('Ready to import. Found '+existingCount+' existing jobs. If this seems wrong, cancel.'))return
       for(var i=0;i<validRows.length;i++){
         var r=validRows[i]
         var name=r['Job Name']||r['name']||r['job_name']||''
@@ -1112,13 +1416,14 @@ async function importJobsExcel(input){
           project_manager:r['Project Manager']||r['project_manager']||null,
           estimator:r['Estimator']||r['estimator']||null,
           phase:stage,
-          date_start:parseDate(r['Start Date']||r['start_date']||r['Start']),
+          projected_start:parseDate(r['Start Date']||r['start_date']||r['Projected Start']||r['projected_start'])||null,
           due_date:dueDate,
           projected_start:parseDate(r['Projected Start']||r['projected_start']),
           projected_closeout:parseDate(r['Projected Closeout']||r['projected_closeout']),
           date_contract:parseDate(r['Contract Date']||r['contract_date']),
           original_contract_value:parseCurrency(r['Original Contract Value']||r['original_contract_value']),
           contract_value:parseCurrency(r['Original Contract Value']||r['Contract Value']||r['contract_value'])||null,
+          labor_budget:parseCurrency(r['Labor Budget']||r['labor_budget'])||null,
           pm_visit_schedule:r['PM Visit Schedule']||r['pm_visit_schedule']||'none',
           next_pm_visit:parseDate(r['Next PM Visit Due']||r['next_pm_visit']),
           expected_onsite_date:parseDate(r['Expected On Site']||r['expected_onsite_date']),
@@ -1128,7 +1433,9 @@ async function importJobsExcel(input){
           created_at:new Date().toISOString(),updated_at:new Date().toISOString()
         }
         // Check for duplicate using pre-fetched sets
-        var isDup=(job.job_number&&existingNums.has(job.job_number.toLowerCase()))||existingNames.has(job.name.toLowerCase())
+        var normJobName=(job.name||'').toLowerCase().trim().replace(/\s+/g,' ')
+        var normJobNum=(job.job_number||'').toLowerCase().trim()
+        var isDup=(normJobNum&&existingNums.has(normJobNum))||existingNames.has(normJobName)
         if(isDup){
           // Option 2: update ONLY empty/null fields on existing job
           var existingJob=existingJobs.find(function(j){
@@ -1139,6 +1446,7 @@ async function importJobsExcel(input){
             // Only fill fields that are currently null/empty/zero
             if(!existingJob.original_contract_value&&job.original_contract_value)patch.original_contract_value=job.original_contract_value
             if(!existingJob.contract_value&&job.contract_value)patch.contract_value=job.contract_value
+            if(!existingJob.labor_budget&&job.labor_budget)patch.labor_budget=job.labor_budget
             if(!existingJob.contract_date&&job.contract_date)patch.contract_date=job.contract_date
             if(!existingJob.address&&job.address)patch.address=job.address
             if(!existingJob.city&&job.city)patch.city=job.city
@@ -1164,7 +1472,7 @@ async function importJobsExcel(input){
         }
         var res=await sb.from('jobs').insert(job)
         if(res.error)errors.push(name+': '+res.error.message)
-        else{created++;newJobIds.push({id:job.id,address:job.address,city:job.city,state:job.state,zip:job.zip});existingNames.add(job.name.toLowerCase());if(job.job_number)existingNums.add(job.job_number.toLowerCase())}
+        else{created++;newJobIds.push({id:job.id,address:job.address,city:job.city,state:job.state,zip:job.zip});existingNames.add((job.name||'').toLowerCase().trim().replace(/\s+/g,' '));if(job.job_number)existingNums.add(job.job_number.toLowerCase().trim())}
       }
       closeModal()
       if(errors.length){
@@ -1186,13 +1494,13 @@ function downloadJobTemplate(){
   var headers=[['Job Name','Job Number','Trade','Address','City','State','Zip',
     'GC Company','GC Contact','GC Phone','GC Email',
     'Project Manager','Estimator',
-    'Stage','Start Date','Due Date','Projected Start','Projected Closeout','Contract Date','Original Contract Value',
+    'Stage','Start Date','Due Date','Projected Start','Projected Closeout','Contract Date','Original Contract Value','Labor Budget',
     'PM Visit Schedule','Next PM Visit Due',
     'Expected On Site','Description','Notes']]
   var example=[['Fire Alarm Install - 123 Main','2025-001','Fire Alarm','123 Main St','Phoenix','AZ','85001',
     'ABC Construction','John Smith','555-1234','john@abc.com',
     'Jane Doe','Bob Smith',
-    'not_started','2025-11-01','2025-12-01','2025-10-15','2025-12-15','2025-09-01','85000',
+    'not_started','2025-11-01','2025-12-01','2025-10-15','2025-12-15','2025-09-01','85000','42000',
     'none','',
     '','New construction FA install','']]
   var ws=XLSX.utils.aoa_to_sheet(headers.concat(example))
@@ -1200,7 +1508,7 @@ function downloadJobTemplate(){
     {wch:32},{wch:14},{wch:14},{wch:25},{wch:15},{wch:8},{wch:8},
     {wch:22},{wch:18},{wch:14},{wch:24},
     {wch:18},{wch:16},
-    {wch:18},{wch:14},{wch:12},{wch:16},{wch:18},{wch:16},{wch:20},
+    {wch:18},{wch:14},{wch:12},{wch:16},{wch:18},{wch:16},{wch:20},{wch:14},
     {wch:20},{wch:16},
     {wch:16},{wch:30},{wch:20}
   ]
@@ -1230,12 +1538,20 @@ async function exportJobsExcel(){
 // JOB DETAIL
 // ══════════════════════════════════════════
 async function openJob(id){
+
+  sb.from('daily_reports').select('total_man_hours,hours_worked').eq('job_id',id).then(function(res){
+    var hrs=(res.data||[]).reduce(function(s,r){return s+(r.total_man_hours||(r.hours_worked||0))},0)
+    if(currentJob)currentJob._cachedHrs=hrs
+    var el=document.getElementById('ed-hrs-display')
+    if(el){el.textContent=hrs>0?hrs.toFixed(1)+' hrs on site':'No hours logged';el.style.color=hrs>0?'#e8edf5':'#414e63'}
+  })
   currentJobId=id
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
   document.getElementById('page-title').textContent='Job Detail'
   document.getElementById('topbar-actions').innerHTML=\`<button class="btn btn-sm" onclick="P('jobs',null)">← Jobs</button> <button class="btn btn-sm" id="urgent-btn" style="background:rgba(220,38,38,.15);color:#dc2626;border-color:rgba(220,38,38,.3)" onclick="toggleUrgent()">🔥 Flag Urgent</button>\${['admin'].includes(ME?.role)?\` <button class="btn btn-sm" style="color:#dc2626;border-color:rgba(220,38,38,.3)" onclick="deleteJobConfirm()">🗑 Delete Job</button>\`:''}\`
   const{data:job}=await sb.from('jobs').select('*').eq('id',id).single()
   currentJob=job
+  if(job)document.getElementById('page-title').textContent=(job.job_number?job.job_number+' — ':'')+job.name
   // Update urgent button state
   var ub=document.getElementById('urgent-btn')
   if(ub){
@@ -1244,17 +1560,29 @@ async function openJob(id){
   }
   renderJobDetail()
 }
+function jobSubhead(j){
+  var parts=[]
+  if(j.job_number)parts.push('['+j.job_number+']')
+  if(j.address)parts.push(j.address)
+  return parts.join(' ')
+}
 function renderJobDetail(){
   const j=currentJob
   const si=STAGES.indexOf(j.phase)
   document.getElementById('page-area').innerHTML=\`
   <div style="margin-bottom:14px">
+    <button class="btn btn-sm btn-ghost" onclick="pgJobs()" style="margin-bottom:10px;font-size:11px;color:#414e63">&#8592; All Jobs</button>
     <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">\${j.name}</div>
-    <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${j.address||''}</div>
-    <div style="display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap">
-      \${stageBadge(j.phase)}
-      <select class="fs" style="width:180px;padding:5px 9px;font-size:12px" onchange="updateJobStage(this.value)">\${STAGES.map(s=>\`<option value="\${s}" \${j.phase===s?'selected':''}>\${STAGE_LABELS[s]}</option>\`).join('')}</select>
-      <input type="number" class="fi" style="width:70px;padding:5px 8px;font-size:12px" value="\${j.pct_complete||0}" min="0" max="100" title="% Complete" onchange="updateJobPct(this.value)">%
+    <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${jobSubhead(j)}</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <select class="fs" style="width:190px;padding:5px 9px;font-size:12px" onchange="updateJobStage(this.value)">\${STAGES.map(s=>\`<option value="\${s}" \${j.phase===s?'selected':''}>\${STAGE_LABELS[s]}</option>\`).join('')}</select>
+      <button class="btn btn-p btn-sm" onclick="saveInfoTab()" style="padding:5px 14px">Save Changes</button>
+      <button class="btn btn-a btn-sm" onclick="archiveJob()" style="padding:5px 14px">Archive Job</button>
+      <span style="margin-left:auto;display:flex;gap:4px">
+        <button class="btn btn-sm" onclick="navJob(-1)" title="Previous job" style="padding:5px 10px;font-size:13px">&#8592;</button>
+        <button class="btn btn-sm" onclick="navJob(1)" title="Next job" style="padding:5px 10px;font-size:13px">&#8594;</button>
+      </span>
+    </div>
       \${j.due_date?\`<span style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">Due \${fd(j.due_date)}</span>\`:''}
     \${j.is_urgent?'<div style="display:flex;align-items:center;gap:10px;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.25);border-radius:8px;padding:9px 13px;margin-top:8px"><span style="font-size:20px">🔥</span><div style="flex:1"><div style="font-size:13px;font-weight:600;color:#dc2626">URGENT</div><div style="font-size:12px;color:#8a96ab;margin-top:2px">'+( j.urgent_note||'')+'</div><div style="font-size:11px;color:#414e63;margin-top:2px">Assigned: '+(j.urgent_assigned_name||'—')+'</div></div><button class="btn btn-sm btn-g" onclick="resolveUrgent()">✓ Resolve</button><button class="btn btn-sm" style="color:#dc2626" onclick="toggleUrgent()">Remove</button></div>':''}
     </div>
@@ -1332,7 +1660,7 @@ function renderInfoTab(el,j){
   </div>
   <div>
     <div class="sec-hdr">Key Dates</div>
-    <div class="two"><div class="fg"><label class="fl">Start Date</label><input class="fi" type="date" id="ed-start" value="\${j.date_start||''}"></div><div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="ed-due" value="\${j.due_date||''}"></div></div>
+    <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="ed-due" value="\${j.due_date||''}"></div>
     <div class="two"><div class="fg"><label class="fl">Projected Start</label><input class="fi" type="date" id="ed-proj-start" value="\${j.projected_start||''}"></div><div class="fg"><label class="fl">Projected Closeout</label><input class="fi" type="date" id="ed-proj-close" value="\${j.projected_closeout||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Contract Date</label><input class="fi" type="date" id="ed-dc" value="\${j.date_contract||''}"></div><div class="fg"><label class="fl">Expected On Site</label><input class="fi" type="date" id="ed-eos" value="\${j.expected_onsite_date||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Next Visit Date</label><input class="fi" type="date" id="ed-nvd" value="\${j.next_visit_date||''}"></div><div class="fg"><label class="fl">Closeout Date</label><input class="fi" type="date" id="ed-dco" value="\${j.date_closeout||''}"></div></div>
@@ -1342,30 +1670,32 @@ function renderInfoTab(el,j){
     <div class="sec-hdr">Budget</div>
     <div class="fg"><label class="fl">Original Contract $</label><input class="fi" type="number" id="ed-ocv" value="\${j.original_contract_value||''}"></div>
     <div class="two"><div class="fg"><label class="fl">Current Contract $</label><input class="fi" type="number" id="ed-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="ed-lr" value="\${j.labor_rate||''}"></div></div>
-    <div class="two"><div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="ed-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="ed-mb" value="\${j.material_budget||''}"></div></div>
-    <div id="co-budget-summary"></div>
+    <div class="two"><div class="fg"><label class="fl">Labor Budget (hrs)</label><input class="fi" type="number" id="ed-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="ed-mb" value="\${j.material_budget||''}"></div></div>
+    <div class="fg"><label class="fl">Hours Logged on Job</label><div class="fi" style="background:rgba(255,255,255,.03);cursor:default;color:#8a96ab" id="ed-hrs-display">Loading...</div></div>
   </div>
   </div>
   <div class="sec-hdr" style="margin-top:14px">Permit Status</div>
   <div class="two" style="margin-bottom:4px">
     <div class="fg"><label class="fl">Permit Status</label>
       <select class="fs" id="ed-permit-status">
-        <option value="not_required" \\\${(j.permit_status||'not_required')==='not_required'?'selected':''}>Not Required</option>
-        <option value="pending" \\\${j.permit_status==='pending'?'selected':''}>Pending</option>
-        <option value="submitted" \\\${j.permit_status==='submitted'?'selected':''}>Submitted</option>
-        <option value="approved" \\\${j.permit_status==='approved'?'selected':''}>Approved</option>
-        <option value="rejected" \\\${j.permit_status==='rejected'?'selected':''}>Rejected</option>
-        <option value="expired" \\\${j.permit_status==='expired'?'selected':''}>Expired</option>
+        <option value="not_required">Not Required</option>
+        <option value="needs_cads">Needs CADs</option>
+        <option value="needs_job_walk">Needs Job Walk</option>
+        <option value="pending">Pending</option>
+        <option value="submitted">Submitted</option>
+        <option value="otc">OTC (Over the Counter)</option>
+        <option value="approved">Approved</option>
+        <option value="issued">Issued</option>
+        <option value="rejected">Rejected</option>
+        <option value="failed">Failed</option>
+        <option value="expired">Expired</option>
       </select>
     </div>
     <div class="fg"><label class="fl">Permit Number</label>
       <input class="fi" id="ed-permit-number" placeholder="e.g. E-2024-001" value="\\\${j.permit_number||''}">
     </div>
   </div>
-  <div style="display:flex;gap:8px;margin-top:4px">
-    <button class="btn btn-p" onclick="saveInfoTab()">Save Changes</button>
-    <button class="btn btn-a" onclick="archiveJob()">Archive Job</button>
-  </div>\`
+  \`
   setTimeout(async()=>{
     document.getElementById('ed-rad').value=j.gps_radius_ft||250
     if(document.getElementById('ed-pmschedule'))document.getElementById('ed-pmschedule').value=j.pm_visit_schedule||'none'
@@ -1409,13 +1739,24 @@ function renderInfoTab(el,j){
       el.innerHTML=h
     })
   },50)
+  var ps=document.getElementById('ed-permit-status')
+  if(ps)ps.value=j.permit_status||'not_required'
 }
 async function saveInfoTab(){
-  const u={name:v('ed-name'),job_number:v('ed-jobnum')||null,trade:v('ed-trade')||null,estimator:v('ed-estimator')||null,address:v('ed-addr'),city:v('ed-city')||null,state:v('ed-state')||null,zip:v('ed-zip')||null,gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),gc_email:v('ed-gce')||null,super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,permit_status:v('ed-permit-status')||'not_required',permit_number:v('ed-permit-number')||null,date_start:v('ed-start')||null,due_date:v('ed-due')||null,projected_start:v('ed-proj-start')||null,projected_closeout:v('ed-proj-close')||null,date_contract:v('ed-dc')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,original_contract_value:fN('ed-ocv'),contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
+  const u={name:v('ed-name'),job_number:v('ed-jobnum')||null,trade:v('ed-trade')||null,estimator:v('ed-estimator')||null,address:v('ed-addr'),city:v('ed-city')||null,state:v('ed-state')||null,zip:v('ed-zip')||null,gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),gc_email:v('ed-gce')||null,super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,permit_status:v('ed-permit-status')||'not_required',permit_number:v('ed-permit-number')||null,date_start:null,due_date:v('ed-due')||null,projected_start:v('ed-proj-start')||null,projected_closeout:v('ed-proj-close')||null,date_contract:v('ed-dc')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,original_contract_value:fN('ed-ocv'),contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
   if(u.phase==='ready_for_final'||u.phase==='complete')u.pct_complete=100
   const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
   if(error){toast(error.message,'error');return}
   currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;toast('Saved')
+}
+function navJob(dir){
+  var list=allJobs||[]
+  if(!list.length||!currentJobId)return
+  var idx=list.findIndex(function(j){return j.id===currentJobId})
+  if(idx===-1)return
+  var next=list[idx+dir]
+  if(!next){toast(dir>0?'Already on last job':'Already on first job','info');return}
+  openJob(next.id)
 }
 async function archiveJob(){if(!confirm('Archive this job?'))return;await sb.from('jobs').update({archived:true}).eq('id',currentJobId);toast('Archived');P('jobs',null)}
 function renderScopeTab(el,j){
@@ -1725,7 +2066,7 @@ function openWalkPlanMarkup(btn){
   var url=btn.getAttribute('data-url')
   var name=btn.getAttribute('data-name')||btn.getAttribute('data-pname')
   var walkId=window._openWalkId
-  openPlanMarkup(pid,url,name,function(){openJobWalk(walkId)})
+  openPlanMarkup(pid,url,name,function(){if(currentJobId){renderJobDetail();setTimeout(function(){loadJT('jt-walks')},150)}else pgJobWalks()})
 }
 function triggerWalkPlanUpload(){
   var f=document.getElementById('walk-plan-file')
@@ -2091,24 +2432,99 @@ async function updateJobContractValue(){
 async function signCO(id){await sb.from('change_orders').update({pm_signed_by:ME?.full_name,pm_signed_at:new Date().toISOString(),status:'signed'}).eq('id',id);toast('Signed');loadJT('jt-co')}
 
 // FINANCIALS TAB (per job)
+async function schedulePmReviewTask(job,reason){
+  var title='PM Review: '+job.name
+  var{data:existing}=await sb.from('job_tasks').select('id').eq('job_id',job.id).ilike('title','%PM Review%').eq('status','open').limit(1)
+  if(existing&&existing.length)return
+  var pm=job.project_manager||''
+  var pmProfile=null
+  if(pm){var{data:prs}=await sb.from('profiles').select('id,full_name').ilike('full_name','%'+pm.split(' ')[0]+'%').limit(1);if(prs&&prs.length)pmProfile=prs[0]}
+  await sb.from('job_tasks').insert({id:uuid(),job_id:job.id,job_name:job.name,title:title,description:reason,assigned_to:pmProfile?pmProfile.id:null,assigned_name:pmProfile?pmProfile.full_name:pm||'PM',priority:'high',status:'open',source:'labor_alert',created_by:'System',created_at:new Date().toISOString()})
+  toast('PM Review task created','warn')
+}
 async function renderJobFinTab(el){
-  const{data:ci}=await sb.from('checkins').select('hours_logged').eq('job_id',currentJobId)
-  const hrs=(ci||[]).reduce((s,c)=>s+(c.hours_logged||0),0)
+  // Daily reports are the single source of truth for hours
+  const{data:dr}=await sb.from('daily_reports').select('*').eq('job_id',currentJobId)
+  const hrs=(dr||[]).reduce((s,r)=>s+(r.total_man_hours||r.hours_worked||r.hours||0),0)
+  if(currentJob)currentJob._cachedHrs=hrs
+  var hrsEl=document.getElementById('ed-hrs-display')
+  if(hrsEl)hrsEl.textContent=fh(hrs)+' hrs on site'
   const j=currentJob
   const labor=hrs*(j.labor_rate||0)
-  const profit=(j.contract_value||0)-labor
+  const totalCost=labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0)
+  const profit=(j.contract_value||0)-totalCost
   const margin=j.contract_value>0?profit/j.contract_value*100:null
-  el.innerHTML=\`<button class="btn btn-sm" style="float:right;margin-bottom:11px" onclick="editBudget()">Edit Budget</button>
-  <div class="two">
-    <div class="card"><div class="card-title">Revenue</div><div class="fin-row"><span style="color:#8a96ab">Contract Value</span><span style="font-weight:500">\${fm(j.contract_value)}</span></div><div class="fin-row"><span style="color:#8a96ab">Labor Budget</span><span>\${fm(j.labor_budget)}</span></div><div class="fin-row"><span style="color:#8a96ab">Material Budget</span><span>\${fm(j.material_budget)}</span></div></div>
-    <div class="card"><div class="card-title">Costs</div><div class="fin-row"><span style="color:#8a96ab">Labor (\${fh(hrs)} @ \${fm(j.labor_rate||0)}/hr)</span><span>\${fm(labor)}</span></div><div class="fin-row"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">\${fm(labor)}</span></div></div>
-  </div>
-  <div class="card" style="background:\${profit>=0?'rgba(22,163,74,.08)':'rgba(220,38,38,.08)'};border-color:\${profit>=0?'rgba(22,163,74,.2)':'rgba(220,38,38,.2)'}">
-    <div style="font-size:26px;font-weight:300;color:\${profit>=0?'#16a34a':'#dc2626'}">\${fm(profit)} \${margin!=null?'('+margin.toFixed(1)+'% margin)':''}</div>
-    <div style="font-size:12px;color:#8a96ab;margin-top:3px">Gross Profit · \${fh(hrs)} logged</div>
-  </div>\` 
+  // Labor budget threshold logic
+  const lb=j.labor_budget||0
+  const lbPct=lb>0?(hrs/lb)*100:0
+  const lbOver=lb>0&&hrs>lb
+  const lbWarn=lb>0&&lbPct>=75&&!lbOver
+  if(lbWarn)schedulePmReviewTask(j,'Labor at '+Math.round(lbPct)+'% of budget: '+fh(hrs)+' of '+fh(lb)+' hrs')
+  if(lbOver)schedulePmReviewTask(j,'OVER Labor Budget: '+fh(hrs)+' hrs vs '+fh(lb)+' budgeted')
+  const lbColor=lbOver?'#dc2626':lbWarn?'#d97706':'inherit'
+  const lbBg=lbOver?'rgba(220,38,38,.12)':lbWarn?'rgba(217,119,6,.12)':'transparent'
+  el.innerHTML='<button class="btn btn-sm" style="float:right;margin-bottom:11px" onclick="editBudget()">Edit Budget</button>'
+  +'<div class="two">'
+  +'<div class="card"><div class="card-title">Revenue</div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Contract Value</span><span style="font-weight:500">'+fm(j.contract_value)+'</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Labor Budget</span><span>'+fh(j.labor_budget)+' hrs</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Material Budget</span><span>'+fm(j.material_budget)+'</span></div>'
+  +'<div class="fin-row" style="background:'+lbBg+';border-radius:6px;padding:4px 6px;margin:4px -6px">'
+  +'<span style="color:#8a96ab">Hours on Site</span> '
+  +'<span style="font-weight:600;color:'+lbColor+'">'+fh(hrs)+' hrs'+(lbOver?' ⚠ OVER BUDGET':lbWarn?' ⚠ 75%+':'')+'</span></div>'
+  +(lb>0?'<div style="font-size:10px;color:'+lbColor+';margin-top:2px;padding:0 6px">'+Math.round(lbPct)+'% of labor budget used</div>':'')
+  +'</div>'
+  +'<div class="card"><div class="card-title">Costs</div>'
+  +'<div class="card"><div class="card-title">Costs</div>'
+  +(j.labor_budget&&j.labor_rate?'<div class="fin-row" style="color:#414e63"><span>Budget Labor Cost ('+fh(j.labor_budget)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm((j.labor_budget||0)*(j.labor_rate||0))+'</span></div>':'')
+  +'<div class="fin-row"><span style="color:#8a96ab">Labor Actual ('+fh(hrs)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm(labor)+'</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Parts & Materials</span><span>'+fm(j.parts_cost||0)+'</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Shipping</span><span>'+fm(j.shipping_cost||0)+'</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Equipment Rental</span><span>'+fm(j.equipment_rental_cost||0)+'</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Tariff / Misc</span><span>'+fm(j.misc_cost||0)+'</span></div>'
+  +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0))+'</span></div>'
+  +'<button class="btn btn-sm" style="margin-top:8px" onclick="editJobCosts()">+ Edit Costs</button></div>'
+  +'</div>'
+  +'</div>'
+  +'<div class="card" style="background:'+(profit>=0?'rgba(22,163,74,.08)':'rgba(220,38,38,.08)')+'">'
+  +'<div style="font-size:26px;font-weight:300;color:'+(profit>=0?'#16a34a':'#dc2626')+'">'+fm(profit)+(margin!=null?' ('+margin+'%)':'')+' </div>'
+  +'<div style="font-size:12px;color:#8a96ab;margin-top:3px;margin-bottom:'+(lb>0||j.material_budget>0?'14':'0')+'px">Gross Profit &middot; '+fh(hrs)+' logged</div>'
+  +(lb>0?'<div style="margin-bottom:12px">'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;color:#8a96ab;margin-bottom:5px">'
+    +'<span style="font-weight:500;color:#e8edf5">Labor</span>'
+    +'<span style="color:'+(lbOver?'#dc2626':lbWarn?'#d97706':'#8a96ab')+'">'+fh(hrs)+' / '+fh(lb)+' hrs ('+Math.round(Math.min(lbPct,100))+'%)</span>'
+    +'</div>'
+    +'<div style="height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden">'
+    +'<div style="height:100%;width:'+Math.min(lbPct,100)+'%;background:'+(lbOver?'#dc2626':lbWarn?'#d97706':'#3b82f6')+';border-radius:4px;transition:width .4s ease"></div>'
+    +'</div></div>'
+  :'')
+  +(j.material_budget>0?'<div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;color:#8a96ab;margin-bottom:5px">'
+    +'<span style="font-weight:500;color:#e8edf5">Parts &amp; Materials</span>'
+    +'<span style="color:'+(j.parts_cost>j.material_budget?'#dc2626':'#8a96ab')+'">'+fm(j.parts_cost||0)+' / '+fm(j.material_budget)+'</span>'
+    +'</div>'
+    +'<div style="height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden">'
+    +'<div style="height:100%;width:'+Math.min(j.material_budget>0?(j.parts_cost||0)/j.material_budget*100:0,100)+'%;background:'+(j.parts_cost>j.material_budget?'#dc2626':'#8b5cf6')+';border-radius:4px;transition:width .4s ease"></div>'
+    +'</div></div>'
+  :'')
+  +'</div>'
 }
-function editBudget(){const j=currentJob;modal('Edit Budget',\`<div class="two"><div class="fg"><label class="fl">Contract $</label><input class="fi" type="number" id="eb-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="eb-lr" value="\${j.labor_rate||''}"></div></div><div class="two"><div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="eb-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="eb-mb" value="\${j.material_budget||''}"></div></div>\`,async()=>{const u={contract_value:fN('eb-cv'),labor_rate:fN('eb-lr'),labor_budget:fN('eb-lb'),material_budget:fN('eb-mb')};await sb.from('jobs').update(u).eq('id',currentJobId);currentJob={...currentJob,...u};closeModal();toast('Saved');loadJT('jt-fin')})}
+function editJobCosts(){
+  const j=currentJob
+  modal('Edit Job Costs',
+    '<div class="fg"><label class="fl">Parts & Materials ($)</label><input class="fi" type="number" id="ec-parts" value="'+(j.parts_cost||'')+'" placeholder="0.00"></div>'
+    +'<div class="fg"><label class="fl">Shipping ($)</label><input class="fi" type="number" id="ec-ship" value="'+(j.shipping_cost||'')+'" placeholder="0.00"></div>'
+    +'<div class="fg"><label class="fl">Tariff ($)</label><input class="fi" type="number" id="ec-tariff" value="'+(j.tariff_cost||'')+'" placeholder="0.00"></div>'
+    +'<div class="fg"><label class="fl">Equipment Rental ($)</label><input class="fi" type="number" id="ec-equip" value="'+(j.equipment_rental_cost||'')+'" placeholder="0.00"></div>'
+    +'<div class="fg"><label class="fl">Misc Charges ($)</label><input class="fi" type="number" id="ec-misc" value="'+(j.misc_cost||'')+'" placeholder="0.00"></div>'
+    +'<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ec-notes">'+(j.cost_notes||'')+'</textarea></div>',
+    async function(){
+      var u={parts_cost:parseFloat(document.getElementById('ec-parts').value)||0,shipping_cost:parseFloat(document.getElementById('ec-ship').value)||0,tariff_cost:parseFloat(document.getElementById('ec-tariff').value)||0,equipment_rental_cost:parseFloat(document.getElementById('ec-equip').value)||0,misc_cost:(parseFloat(document.getElementById('ec-tariff').value)||0)+(parseFloat(document.getElementById('ec-misc').value)||0),cost_notes:document.getElementById('ec-notes').value||null,updated_at:new Date().toISOString()}
+      await sb.from('jobs').update(u).eq('id',currentJobId)
+      Object.assign(currentJob,u);closeModal();toast('Costs saved');loadJT('jt-fin')
+    },'Save Costs')
+}
+function editBudget(){const j=currentJob;modal('Edit Budget',\`<div class="two"><div class="fg"><label class="fl">Contract $</label><input class="fi" type="number" id="eb-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="eb-lr" value="\${j.labor_rate||''}"></div></div><div class="two"><div class="fg"><label class="fl">Labor Budget (hrs)</label><input class="fi" type="number" id="eb-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="eb-mb" value="\${j.material_budget||''}"></div></div>\`,async()=>{const u={contract_value:fN('eb-cv'),labor_rate:fN('eb-lr'),labor_budget:fN('eb-lb'),material_budget:fN('eb-mb')};await sb.from('jobs').update(u).eq('id',currentJobId);currentJob={...currentJob,...u};closeModal();toast('Saved');loadJT('jt-fin')})}
 
 // DOCUMENTS TAB (per job)
 async function renderDocsTab(el){
@@ -2141,7 +2557,6 @@ async function pgNewJob(){
       <div class="fg"><label class="fl">State</label><input class="fi" id="nj-state" placeholder="AZ" style="max-width:80px"></div>
       <div class="fg"><label class="fl">Zip</label><input class="fi" id="nj-zip" placeholder="85001" style="max-width:90px" onblur="autoLookupZip()"></div></div>
       <div class="three"><div class="fg"><label class="fl">Radius</label><select class="fs" id="nj-rad"><option value="100">100ft</option><option value="250" selected>250ft</option><option value="500">500ft</option><option value="750">750ft</option><option value="1000">1000ft</option></select></div>
-      <div class="fg"><label class="fl">Start Date</label><input class="fi" type="date" id="nj-start"></div>
       <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="nj-due"></div></div>
       <div class="three"><div class="fg"><label class="fl">Projected Start Date</label><input class="fi" type="date" id="nj-proj-start"></div>
       <div class="fg"><label class="fl">Projected Closeout Date</label><input class="fi" type="date" id="nj-proj-close"></div>
@@ -2150,7 +2565,7 @@ async function pgNewJob(){
       <div class="fg"><label class="fl">Closeout Date</label><input class="fi" type="date" id="nj-dco"></div>
       <div class="fg"><label class="fl">Contract Date</label><input class="fi" type="date" id="nj-dc2"></div></div>
       <div class="three"><div class="fg"><label class="fl">Original Contract $</label><input class="fi" type="number" id="nj-cv"></div>
-      <div class="fg"><label class="fl">Labor Budget</label><input class="fi" type="number" id="nj-lb"></div>
+      <div class="fg"><label class="fl">Labor Budget (hrs)</label><input class="fi" type="number" id="nj-lb"></div>
       <div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="nj-lr"></div></div>
       <div class="fg"><label class="fl">GC Company</label><input class="fi" id="nj-gc"></div>
       <div class="two"><div class="fg"><label class="fl">GC Contact</label><input class="fi" id="nj-gcc"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="nj-gcp"></div></div>
@@ -2209,7 +2624,7 @@ async function submitNewJob(){
   const btn=document.getElementById('nj-btn');btn.disabled=true;btn.textContent='Creating…'
   let lat=parseFloat(v('nj-lat'))||null,lng=parseFloat(v('nj-lng'))||null
   if(!lat&&v('nj-addr')){try{const r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(v('nj-addr'))+'&format=json&limit=1',{headers:{'User-Agent':'FieldAxisHQ/1.0'}});const j=await r.json();if(j[0]){lat=parseFloat(j[0].lat);lng=parseFloat(j[0].lon)}}catch{}}
-  const job={id:uuid(),name,address:v('nj-addr'),city:v('nj-city')||null,state:v('nj-state')||null,zip:v('nj-zip')||null,gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:v('nj-start')||null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,projected_start:v('nj-proj-start')||null,projected_closeout:v('nj-proj-close')||null,job_number:v('nj-jobid')||null,estimator:v('nj-estimator')||null,original_contract_value:fN('nj-cv'),contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),trade:v('nj-trade')||null,gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),project_manager:v('nj-pm')||null,pm_visit_schedule:v('nj-pmschedule')||'none',next_pm_visit:v('nj-pmvisit')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
+  const job={id:uuid(),name,address:v('nj-addr'),city:v('nj-city')||null,state:v('nj-state')||null,zip:v('nj-zip')||null,gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,projected_start:v('nj-proj-start')||null,projected_closeout:v('nj-proj-close')||null,job_number:v('nj-jobid')||null,estimator:v('nj-estimator')||null,original_contract_value:fN('nj-cv'),contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),trade:v('nj-trade')||null,gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),project_manager:v('nj-pm')||null,pm_visit_schedule:v('nj-pmschedule')||'none',next_pm_visit:v('nj-pmvisit')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
   const{data:created,error}=await sb.from('jobs').insert(job).select().single()
   if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Create Job';return}
   document.querySelectorAll('#nj-workers input[type=checkbox]:checked').forEach(async cb=>await sb.from('job_workers').insert({id:uuid(),job_id:created.id,worker_id:cb.value,is_active:true,added_by:ME?.full_name,added_at:new Date().toISOString()}))
@@ -2220,7 +2635,14 @@ async function submitNewJob(){
 // SCHEDULE PAGE
 // ══════════════════════════════════════════
 async function pgSchedule(){
-  const{data:jobs}=await sb.from('jobs').select('*').eq('archived',false).order('name')
+  var allJobsData=[],ajFrom2=0
+  while(true){
+    var aj2Res=await sb.from('jobs').select('*').eq('archived',false).order('name').range(ajFrom2,ajFrom2+999)
+    allJobsData=allJobsData.concat(aj2Res.data||[])
+    if(!aj2Res.data||aj2Res.data.length<1000)break
+    ajFrom2+=1000
+  }
+  const jobs=allJobsData
   const events=[];const today=new Date();today.setHours(0,0,0,0)
   ;(jobs||[]).forEach(j=>{
     const fields=[['expected_onsite_date','📍 Expected On Site','#60a5fa'],['next_visit_date','🔄 Next Visit','#d97706'],['date_roughin','🔨 Rough-in','#fb923c'],['date_trimout','✂ Trim-out','#2dd4bf'],['date_inspection','🔍 Inspection','#a78bfa'],['date_closeout','📋 Closeout','#16a34a'],['due_date','⚑ Due Date','#dc2626']]
@@ -2260,26 +2682,28 @@ async function pgDaily(){
   // Fetch reports with job names
   const[{data:reports},{data:jobs}]=await Promise.all([
     sb.from('daily_reports').select('*').order('report_date',{ascending:false}).limit(500),
-    sb.from('jobs').select('id,name').order('name')
+    sb.from('jobs').select('id,name,job_number').order('name')
   ])
   _drAll=reports||[]
+  _drAll=reports||[]
   _drJobs={}; (jobs||[]).forEach(j=>_drJobs[j.id]=j.name)
+  allJobs=jobs||[]
   // Build employee list for filter
   const employees=[...new Set(_drAll.map(r=>r.submitted_by).filter(Boolean))].sort()
   const today=new Date().toISOString().split('T')[0]
   const thirtyDaysAgo=new Date(Date.now()-30*864e5).toISOString().split('T')[0]
   document.getElementById('page-area').innerHTML=
-    '<div style="background:#0c1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px;margin-bottom:13px">'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:flex-end">'+
-    '<div><label class="fl">Job</label><select class="fs" id="dr-f-job" onchange="filterDailyReports()"><option value="">All Jobs</option>'+
-    (jobs||[]).map(j=>'<option value="'+j.id+'">'+j.name+'</option>').join('')+
-    '</select></div>'+
-    '<div><label class="fl">From Date</label><input class="fi" type="date" id="dr-f-from" value="'+thirtyDaysAgo+'" onchange="filterDailyReports()"></div>'+
-    '<div><label class="fl">To Date</label><input class="fi" type="date" id="dr-f-to" value="'+today+'" onchange="filterDailyReports()"></div>'+
-    '<div><label class="fl">Employee</label><select class="fs" id="dr-f-emp" onchange="filterDailyReports()"><option value="">All Employees</option>'+
+  document.getElementById('page-area').innerHTML=
+    '<div style="background:#0c1220;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px;margin-bottom:14px">'+
+    '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">'+
+    '<div style="flex:1;min-width:200px"><label class="fl">Search Job / Job ID</label><input class="fi" id="dr-f-search" placeholder="Job name or ID..." oninput="filterDailyReports()" style="width:100%"></div>'+
+    '<div style="flex:0 0 150px"><label class="fl">From Date</label><input class="fi" type="date" id="dr-f-from" value="'+thirtyDaysAgo+'" onchange="filterDailyReports()"></div>'+
+    '<div style="flex:0 0 150px"><label class="fl">To Date</label><input class="fi" type="date" id="dr-f-to" value="'+today+'" onchange="filterDailyReports()"></div>'+
+    '<div style="flex:0 0 160px"><label class="fl">Employee</label><select class="fs" id="dr-f-emp" onchange="filterDailyReports()"><option value="">All Employees</option>'+
     employees.map(e=>'<option value="'+e+'">'+e+'</option>').join('')+
     '</select></div>'+
-    '<button class="btn btn-sm" onclick="clearDrFilters()">Clear</button>'+
+    '<div style="flex:0 0 auto;padding-bottom:1px"><button class="btn btn-sm" style="height:36px;padding:0 16px" onclick="clearDrFilters()">Clear</button></div>'+
+    '<div style="flex:0 0 auto;padding-bottom:1px"><button class="btn btn-sm" id="dr-email-btn" onclick="toggleEmailInbox()" style="height:36px;color:#f59e0b;border-color:rgba(245,158,11,.35)">⚠ Unmatched Emails</button></div>'+
     '</div></div>'+
     '<div id="dr-results"></div>'
   filterDailyReports()
@@ -2287,19 +2711,82 @@ async function pgDaily(){
 function clearDrFilters(){
   const today=new Date().toISOString().split('T')[0]
   const ago=new Date(Date.now()-30*864e5).toISOString().split('T')[0]
-  document.getElementById('dr-f-job').value=''
+  if(document.getElementById('dr-f-search'))document.getElementById('dr-f-search').value=''
   document.getElementById('dr-f-from').value=ago
   document.getElementById('dr-f-to').value=today
   document.getElementById('dr-f-emp').value=''
   filterDailyReports()
 }
+async function toggleEmailInbox(){
+  var el=document.getElementById('dr-results');if(!el)return
+  var btn=document.getElementById('dr-email-btn')
+  if(btn&&btn.dataset.showing==='1'){btn.dataset.showing='';filterDailyReports();return}
+  if(btn)btn.dataset.showing='1'
+  el.innerHTML='<div style="font-size:12px;color:#8a96ab;padding:8px">Loading...</div>'
+  var{data:inbox}=await sb.from('email_inbox').select('*').eq('status','unmatched').order('received_at',{ascending:false}).limit(50)
+  if(!inbox||!inbox.length){el.innerHTML='<div style="padding:20px;text-align:center;color:#414e63">No unmatched emails ✓</div>';return}
+  var h='<div style="margin-bottom:10px;font-size:12px;color:#f59e0b;font-weight:500">'+inbox.length+' unmatched email'+(inbox.length!==1?'s':'')+' need attention</div>'
+  h+='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr><th>Received</th><th>From</th><th>Subject</th><th>Job ID Guess</th><th>Preview</th><th></th></tr></thead><tbody>'
+  inbox.forEach(function(e){
+    var eb=encodeURIComponent((e.body||'').slice(0,2000))
+    var ef=encodeURIComponent(e.from_address||'')
+    h+='<tr>'
+    h+='<td style="font-size:11px;white-space:nowrap">'+fd(e.received_at)+'</td>'
+    h+='<td style="font-size:11px;color:#8a96ab">'+( e.from_address||'')+'</td>'
+    h+='<td style="font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(e.subject||'')+'</td>'
+    h+=(e.job_id_guess?'<td><span class="badge bg-amber">'+e.job_id_guess+'</span></td>':'<td style="color:#414e63">none</td>')
+    h+='<td style="font-size:11px;color:#8a96ab;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(e.body||'').slice(0,60)+'</td>'
+    h+='<td style="display:flex;gap:4px" onclick="event.stopPropagation()">'
+    h+='<button class="btn btn-sm" data-eid="'+e.id+'" data-ef="'+ef+'" data-eb="'+eb+'" onclick="assignEmailModal(this.dataset.eid,decodeURIComponent(this.dataset.ef),decodeURIComponent(this.dataset.eb))">Assign</button>'
+    h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" data-eid="'+e.id+'" onclick="dismissEmail(this.dataset.eid)">Dismiss</button>'
+    h+='</td></tr>'
+  })
+  h+='</tbody></table></div>'
+  el.innerHTML=h
+}
+function assignEmailModal(eid,efrom,ebody){
+  modal('Assign Email to Job',
+    '<div style="font-size:12px;color:#8a96ab;margin-bottom:10px">From: '+efrom+'</div>'
+    +'<div class="fg"><label class="fl">Work Performed</label><textarea class="ft" id="aem-body" style="min-height:80px">'+ebody+'</textarea></div>'
+    +'<div class="fg"><label class="fl">Search Job</label><input class="fi" id="aem-search" placeholder="Job name or ID..." oninput="filterAemJobs(this.value)" style="margin-bottom:4px"><select class="fs" id="aem-job"><option value="">— Select job —</option>'+(allJobs||[]).map(function(j){return '<option value="'+j.id+'">'+( j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>'}).join('')+'</select></div>'
+    +'<div class="fg"><label class="fl">Report Date</label><input class="fi" type="date" id="aem-date" value="'+new Date().toISOString().split('T')[0]+'"></div>',
+    async function(){
+      var jobId=(document.getElementById('aem-job')||{}).value
+      if(!jobId){toast('Select a job','error');return}
+      var bd=(document.getElementById('aem-body')||{}).value||ebody
+      var dt=(document.getElementById('aem-date')||{}).value||new Date().toISOString().split('T')[0]
+      var{error}=await sb.from('daily_reports').insert({id:uuid(),job_id:jobId,report_date:dt,submitted_by:efrom,work_performed:bd,crew_count:0,hours_worked:0,total_man_hours:0,source:'email',created_at:new Date().toISOString()})
+      if(error){toast(error.message,'error');return}
+      await sb.from('email_inbox').update({status:'assigned',job_id:jobId}).eq('id',eid)
+      closeModal();toast('Report created — add hours when ready');toggleEmailInbox()
+    },'Create Report')
+  setTimeout(function(){var el=document.getElementById('aem-search');if(el)el.focus()},200)
+}
+function filterAemJobs(q){
+  var sel=document.getElementById('aem-job');if(!sel)return
+  q=(q||'').toLowerCase().trim()
+  var h='<option value="">— Select job —</option>'
+  ;(allJobs||[]).filter(function(j){return !q||j.name.toLowerCase().includes(q)||(j.job_number||'').toLowerCase().includes(q)})
+  .forEach(function(j){h+='<option value="'+j.id+'">'+( j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>'})
+  sel.innerHTML=h
+}
+async function dismissEmail(eid){
+  if(!confirm('Dismiss this email?'))return
+  await sb.from('email_inbox').update({status:'dismissed'}).eq('id',eid)
+  toast('Dismissed');toggleEmailInbox()
+}
 function filterDailyReports(){
-  const jobId=document.getElementById('dr-f-job')?.value||''
+  const q=(document.getElementById('dr-f-search')?.value||'').toLowerCase().trim()
   const from=document.getElementById('dr-f-from')?.value||''
   const to=document.getElementById('dr-f-to')?.value||''
   const emp=document.getElementById('dr-f-emp')?.value||''
   const rows=(_drAll||[]).filter(r=>{
-    if(jobId&&r.job_id!==jobId)return false
+    if(q){
+      var jn=((_drJobs||{})[r.job_id]||'').toLowerCase()
+      var jObj=(typeof allJobs!=='undefined'?allJobs:[]).find(function(j){return j.id===r.job_id})
+      var jNum=(jObj&&jObj.job_number?jObj.job_number:'').toLowerCase()
+      if(!jn.includes(q)&&!jNum.includes(q))return false
+    }
     if(from&&r.report_date<from)return false
     if(to&&r.report_date>to)return false
     if(emp&&r.submitted_by!==emp)return false
@@ -2310,14 +2797,17 @@ function filterDailyReports(){
   if(!rows.length){el.innerHTML=empty('📋','No reports match your filters');return}
   let html='<div style="font-size:11px;color:#414e63;margin-bottom:8px">'+rows.length+' report'+(rows.length!==1?'s':'')+' found</div>'
   html+='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr>'
-  html+='<th>Date</th><th>Job</th><th>Submitted By</th><th>Crew</th><th>Hours</th><th>Weather</th><th>Issues</th><th></th>'
+  html+='<th>Date</th><th>Job</th><th>Job ID</th><th>Submitted By</th><th>Crew</th><th>Hours</th><th>Weather</th><th>Issues</th><th></th>'
   html+='</tr></thead><tbody>'
   for(const r of rows){
     const jobName=(_drJobs||{})[r.job_id]||r.job_id||'—'
+    const jobObj=(typeof allJobs!=='undefined'?allJobs:[]).find(function(j){return j.id===r.job_id})
+    const jobNum=jobObj&&jobObj.job_number?jobObj.job_number:'—'
     const hasIssues=r.issues&&r.issues.trim()
     html+='<tr data-rid="'+r.id+'" onclick="viewDailyReport(this.dataset.rid)" style="cursor:pointer">'
     html+='<td style="font-weight:500;white-space:nowrap">'+fd(r.report_date)+'</td>'
     html+='<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+jobName+'</td>'
+    html+='<td style="font-size:11px;color:#8a96ab;white-space:nowrap">'+jobNum+'</td>'
     html+='<td style="font-size:12px">'+(r.submitted_by||'—')+'</td>'
     html+='<td>'+r.crew_count+'</td>'
     html+='<td>'+fh(r.hours_worked)+'</td>'
@@ -2340,7 +2830,9 @@ async function editDailyReport(id){
   var h='<div class="two"><div class="fg"><label class="fl">Report Date</label><input class="fi" type="date" id="edr-date" value="'+(r.report_date||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Submitted By</label><input class="fi" id="edr-by" value="'+(r.submitted_by||'')+'"></div></div>'
   h+='<div class="two"><div class="fg"><label class="fl">Crew Count</label><input class="fi" type="number" id="edr-crew" value="'+(r.crew_count||0)+'"></div>'
-  h+='<div class="fg"><label class="fl">Hours Worked</label><input class="fi" type="number" id="edr-hrs" step="0.5" value="'+(r.hours_worked||0)+'"></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Crew Count</label><input class="fi" type="number" id="edr-crew" value="'+(r.crew_count||0)+'" oninput="calcEdrManHours()"></div>'
+  h+='<div class="fg"><label class="fl">Hours Worked (per person)</label><input class="fi" type="number" id="edr-hrs" step="0.5" value="'+(r.hours_worked||0)+'" oninput="calcEdrManHours()"></div></div>'
+  h+='<div class="fg"><label class="fl">Total Man-Hours</label><input class="fi" type="number" id="edr-manhrs" value="'+(r.total_man_hours||Math.round((r.hours_worked||0)*(r.crew_count||1)*10)/10)+'" readonly style="background:rgba(255,255,255,.03);cursor:default"></div>'
   h+='<div class="two"><div class="fg"><label class="fl">Weather</label><input class="fi" id="edr-wx" value="'+(r.weather||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Temp Hi / Lo</label><div style="display:flex;gap:5px"><input class="fi" type="number" id="edr-th" placeholder="Hi" value="'+(r.temp_high||'')+'"><input class="fi" type="number" id="edr-tl" placeholder="Lo" value="'+(r.temp_low||'')+'"></div></div></div>'
   h+='<div class="fg"><label class="fl">Work Performed *</label><textarea class="ft" id="edr-work" style="min-height:80px">'+(r.work_performed||'')+'</textarea></div>'
@@ -2659,11 +3151,13 @@ async function pgScan(){
         <div style="margin-bottom:10px;display:flex;gap:8px">
           <button class="btn btn-sm" onclick="focusScanInput()" style="flex:1">🎯 Focus Scanner Input</button>
           <button class="btn btn-sm" onclick="testBeep()">🔊 Test Beep</button>
+          <button class="btn btn-sm" id="cam-toggle-btn" onclick="toggleCam()">📷 Start Camera</button>
         </div>
         <div class="fg">
           <label class="fl">Barcode / Part # <span style="color:#414e63">— scanner auto-submits, or type + Enter</span></label>
           <input class="fi" id="sc-bc" placeholder="Ready for scanner — click Focus button or click here…" autocomplete="off" autofocus style="font-size:15px;letter-spacing:.5px" oninput="liveResolveBC(this.value)" onkeydown="if(event.key==='Enter'&&this.value.trim()){addToBatch(null,null);this.value='';document.getElementById('sc-resolve').style.display='none';document.getElementById('sc-qty-row').style.display='none';this.focus()}">
         </div>
+        <div id="cam-wrap" style="display:none;margin-bottom:12px"><video id="cam-viewport" style="width:100%;max-height:280px;border-radius:8px;background:#000" autoplay muted playsinline></video><div id="cam-status" style="font-size:11px;color:#8a96ab;margin-top:4px">Camera not started</div></div>
         <div id="sc-resolve" style="display:none;margin-bottom:9px"></div>
         <div id="sc-qty-row" style="display:none;margin-bottom:9px">
           <label class="fl">Quantity</label>
@@ -2821,40 +3315,187 @@ async function loadScanEvents(){
 }
 
 // CAMERA SCANNING
+// CAMERA SCANNING
+var _h5scanner=null,_nativeStream=null,_nativeTimer=null,_lastScanned='',_lastScanTime=0
+
 async function toggleCam(){
   if(_camRunning){stopCam();return}
-  const wrap=document.getElementById('cam-wrap');if(!wrap)return
+  var wrap=document.getElementById('cam-wrap');if(!wrap)return
   wrap.style.display='block'
   document.getElementById('cam-toggle-btn').textContent='⏹ Stop Camera'
-  try{
-    await Quagga.init({inputStream:{name:'Live',type:'LiveStream',target:document.getElementById('cam-viewport'),constraints:{facingMode:'environment'}},decoder:{readers:['code_128_reader','ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_39_reader','itf_reader']},locate:true},err=>{if(err){toast('Camera error: '+err,'error');stopCam();return};Quagga.start();_camRunning=true;document.getElementById('cam-status').textContent='Ready — point at barcode'})
-    let lastCode='',lastTime=0
-    Quagga.onDetected(data=>{
-      const code=data.codeResult.code;const now=Date.now()
-      if(code===lastCode&&now-lastTime<2000)return
-      lastCode=code;lastTime=now
-      document.getElementById('sc-bc').value=code
-      liveResolveBC(code)
-      const match=allCatalog.find(c=>c.barcode===code)
-      if(match){addToBatch(code,match.name);document.getElementById('sc-bc').value='';document.getElementById('sc-resolve').style.display='none'}
-      else{beep();document.getElementById('cam-status').textContent='Found: '+code+' — not in catalog, set qty and add'}
-    })
-  }catch(e){toast('Camera failed: '+e.message,'error');stopCam()}
-}
-function focusScanInput(){
-  var el=document.getElementById('sc-bc')
-  if(el){el.focus();el.select();toast('Scanner input focused — scan away','info')}
-}
-function stopCam(){if(!_camRunning)return;try{Quagga.stop()}catch{};_camRunning=false;const w=document.getElementById('cam-wrap');if(w)w.style.display='none';const b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera'}
 
-// ══════════════════════════════════════════
-// CATALOG PAGE
+  // Detect if BarcodeDetector is available
+  var hasBD=typeof BarcodeDetector!=='undefined'
+  if(hasBD){
+    try{
+      var sup=await BarcodeDetector.getSupportedFormats().catch(function(){
+        return['code_128','ean_13','ean_8','upc_a','upc_e','code_39','qr_code','data_matrix','itf','codabar']
+      })
+      window._bd=new BarcodeDetector({formats:sup})
+    }catch(e){hasBD=false;window._bd=null}
+  }
+
+  if(hasBD){
+    // ── NATIVE PATH: getUserMedia + BarcodeDetector at 15fps ──────────────
+    wrap.innerHTML=
+      '<div style="position:relative;background:#000;border-radius:10px;overflow:hidden">'
+      +'<video id="scan-vid" autoplay muted playsinline webkit-playsinline style="width:100%;display:block;max-height:300px;object-fit:cover"></video>'
+      +'<canvas id="scan-cvs" style="display:none"></canvas>'
+      +'<div style="position:absolute;inset:0;pointer-events:none"><div id="scan-line" style="position:absolute;left:5%;right:5%;height:2px;top:50%;background:rgba(239,68,68,.9);box-shadow:0 0 8px 2px rgba(239,68,68,.7)"></div></div>'
+      +'<div style="position:absolute;inset:12%;border:1.5px solid rgba(255,255,255,.2);border-radius:4px;pointer-events:none"></div>'
+      +'<div style="position:absolute;bottom:8px;right:8px;display:flex;gap:6px">'
+      +'<button id="torch-btn" onclick="toggleTorch()" style="display:none;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:6px 11px;font-size:16px;cursor:pointer">🔦</button>'
+      +'<button onclick="capturePhoto()" style="background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:6px 11px;font-size:16px;cursor:pointer">📸</button>'
+      +'</div></div>'
+      +'<div id="cam-status-inner" style="font-size:12px;color:#8a96ab;margin-top:6px;text-align:center">Starting camera...</div>'
+    try{
+      var stream
+      try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:'environment'},width:{ideal:1920},height:{ideal:1080}}})}catch(e1){
+        try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}})}catch(e2){
+          stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+        }
+      }
+      _nativeStream=stream
+      var vid=document.getElementById('scan-vid')
+      vid.srcObject=stream
+      await new Promise(function(res,rej){vid.onloadedmetadata=res;vid.onerror=rej;setTimeout(res,3000)})
+      await vid.play()
+      try{await stream.getVideoTracks()[0].applyConstraints({advanced:[{focusMode:'continuous'}]})}catch(e){}
+      try{
+        var caps=stream.getVideoTracks()[0].getCapabilities()
+        if(caps&&caps.torch){var tb=document.getElementById('torch-btn');if(tb)tb.style.display='block'}
+      }catch(e){}
+      _camRunning=true
+      var si=document.getElementById('cam-status-inner');if(si)si.textContent='Ready — center barcode on line'
+      var canvas=document.getElementById('scan-cvs')
+      var ctx=canvas.getContext('2d',{willReadFrequently:true,alpha:false})
+      var busy=false
+      _nativeTimer=setInterval(async function(){
+        if(!_camRunning||busy||!vid.videoWidth)return
+        busy=true
+        try{
+          var res=await window._bd.detect(vid)
+          if(!res.length){
+            canvas.width=vid.videoWidth;canvas.height=vid.videoHeight
+            ctx.drawImage(vid,0,0)
+            res=await window._bd.detect(canvas)
+          }
+          if(res.length){
+            var code=res[0].rawValue,now=Date.now()
+            if(!(code===_lastScanned&&now-_lastScanTime<2000)){_lastScanned=code;_lastScanTime=now;onScan(code)}
+          }
+        }catch(e){}
+        busy=false
+      },67)
+    }catch(e){
+      var si=document.getElementById('cam-status-inner')
+      if(si)si.textContent='⚠ '+(e.message||'Camera error')
+      toast('Camera: '+(e.message||'error'),'error')
+      stopCam()
+    }
+  }else{
+    // ── FALLBACK PATH: html5-qrcode ────────────────────────────────────────
+    if(typeof Html5Qrcode==='undefined'){
+      toast('Scanner library not loaded. Refresh the page.','error')
+      wrap.style.display='none'
+      document.getElementById('cam-toggle-btn').textContent='📷 Start Camera'
+      return
+    }
+    wrap.innerHTML='<div id="h5qr-region" style="width:100%"></div>'
+      +'<div id="cam-status-inner" style="font-size:12px;color:#8a96ab;margin-top:6px;text-align:center">Starting...</div>'
+    try{
+      _h5scanner=new Html5Qrcode('h5qr-region',{verbose:false})
+      var fmts=[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.CODE_93,Html5QrcodeSupportedFormats.QR_CODE,Html5QrcodeSupportedFormats.DATA_MATRIX,Html5QrcodeSupportedFormats.PDF_417,Html5QrcodeSupportedFormats.ITF,Html5QrcodeSupportedFormats.CODABAR]
+      await _h5scanner.start(
+        {facingMode:{ideal:'environment'}},
+        {fps:30,qrbox:function(w,h){return{width:Math.min(w-20,380),height:Math.min(Math.floor(h*.65),260)}},
+         formatsToSupport:fmts,
+         videoConstraints:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},
+         showTorchButtonIfSupported:true},
+        function(code){
+          var now=Date.now()
+          if(code===_lastScanned&&now-_lastScanTime<2000)return
+          _lastScanned=code;_lastScanTime=now;onScan(code)
+        },
+        function(err){}
+      )
+      _camRunning=true
+      var si=document.getElementById('cam-status-inner');if(si)si.textContent='Ready — aim at barcode'
+    }catch(e){
+      var si=document.getElementById('cam-status-inner')
+      if(si)si.textContent='⚠ '+(e.message||'Camera error')
+      toast('Camera: '+(e.message||'error'),'error')
+      stopCam()
+    }
+  }
+}
+
+async function capturePhoto(){
+  var vid=document.getElementById('scan-vid');if(!vid||!vid.videoWidth)return
+  var canvas=document.getElementById('scan-cvs');if(!canvas)return
+  canvas.width=vid.videoWidth;canvas.height=vid.videoHeight
+  var ctx=canvas.getContext('2d');ctx.drawImage(vid,0,0)
+  var si=document.getElementById('cam-status-inner');if(si)si.textContent='Scanning frame...'
+  if(window._bd){
+    try{var r=await window._bd.detect(canvas);if(r.length){onScan(r[0].rawValue);return}}catch(e){}
+  }
+  if(si)si.textContent='No barcode found — try moving closer'
+}
+
+var _torchOn=false
+async function toggleTorch(){
+  if(!_nativeStream)return
+  try{
+    _torchOn=!_torchOn
+    await _nativeStream.getVideoTracks()[0].applyConstraints({advanced:[{torch:_torchOn}]})
+    var btn=document.getElementById('torch-btn');if(btn)btn.style.background=_torchOn?'rgba(255,200,0,.5)':'rgba(0,0,0,.55)'
+  }catch(e){toast('Torch not available','warn')}
+}
+
+function onScan(code){
+  beep()
+  var line=document.getElementById('scan-line')
+  if(line){line.style.background='rgba(34,197,94,.9)';setTimeout(function(){if(line)line.style.background='rgba(239,68,68,.9)'},500)}
+  var si=document.getElementById('cam-status-inner')
+  if(window._scanToCatalog){scanToCatalog(code);return}
+  var existing=_batch.find(function(b){return b.barcode===code})
+  if(existing&&code===_lastScanned){existing.qty++;renderBatch();if(si)si.textContent='✓ x'+existing.qty+' '+existing.name;return}
+  var match=allCatalog.find(function(c){return c.barcode===code})
+  if(match){
+    addToBatch(code,match.name)
+    document.getElementById('sc-bc').value=''
+    document.getElementById('sc-resolve').style.display='none'
+    if(si)si.textContent='✓ '+match.name+' — scan again for more'
+  }else{
+    document.getElementById('sc-bc').value=code;liveResolveBC(code)
+    if(si)si.textContent='⚠ Unknown: '+code
+  }
+}
+
+function stopCam(){
+  _camRunning=false;_torchOn=false;_lastScanned='';_lastScanTime=0
+  if(_nativeTimer){clearInterval(_nativeTimer);_nativeTimer=null}
+  if(_nativeStream){_nativeStream.getTracks().forEach(function(t){t.stop()});_nativeStream=null}
+  if(_h5scanner){try{_h5scanner.stop().catch(function(){}).finally(function(){try{_h5scanner.clear()}catch(e){};_h5scanner=null})}catch(e){_h5scanner=null}}
+  var w=document.getElementById('cam-wrap');if(w){w.style.display='none';w.innerHTML=''}
+  var b=document.getElementById('cam-toggle-btn');if(b)b.textContent='📷 Start Camera'
+}
+
+function scanToCatalog(code){
+  var si=document.getElementById('cam-status-inner')
+  var existing=allCatalog.find(function(c){return c.barcode===code})
+  if(existing){if(si)si.textContent='✓ Already in catalog: '+existing.name;return}
+  stopCam();window._scanToCatalog=false
+  addCatalogModal(code);setTimeout(function(){lookupBarcode()},300)
+}
+
 // ══════════════════════════════════════════
 async function pgCatalog(){
   document.getElementById('topbar-actions').innerHTML=\`
     <label class="btn btn-sm" style="cursor:pointer">⬆ Import<input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importCatalogCSV(this)"></label>
     <button class="btn btn-sm" onclick="exportCatalogCSV()">⬇ Export CSV</button>
     <button class="btn btn-sm btn-ghost" onclick="downloadCatalogTemplate()">📋 Template</button>
+    <button class="btn btn-sm" onclick="startScanToCatalog()">📷 Scan to Add</button>
     <button class="btn btn-p btn-sm" onclick="addCatalogModal()">+ Add Part</button>\`
   const{data:cat}=await sb.from('catalog').select('*').order('name')
   allCatalog=cat||[]
@@ -2870,10 +3511,20 @@ function renderCatalogTable(q){
   </tbody></table>\`:empty('📋','No parts in catalog — add or import CSV')}
   </div>\`
 }
-function addCatalogModal(){
+function addCatalogModal(prefillBarcode){
+  if(prefillBarcode){
+    setTimeout(function(){
+      var el=document.getElementById('ca-bc');if(el)el.value=prefillBarcode
+    },50)
+  }
   modal('Add Part to Catalog',\`
   <div class="fg"><label class="fl">Barcode *</label><input class="fi" id="ca-bc" placeholder="UPC, EAN, or custom barcode"></div>
-  <div class="fg"><label class="fl">Part Name *</label><input class="fi" id="ca-nm"></div>
+  <div class="fg"><label class="fl">Barcode *</label>
+  <div style="display:flex;gap:6px;align-items:center">
+    <input class="fi" id="ca-bc" placeholder="Scan or type UPC/EAN" oninput="clearTimeout(window._bcTimer);window._bcTimer=setTimeout(function(){lookupBarcode()},800)" style="flex:1">
+    <button class="btn btn-sm" onclick="lookupBarcode()" type="button">Lookup</button>
+  </div>
+  <div id="ca-lookup-status" style="font-size:11px;color:#8a96ab;margin-top:4px"></div></div>
   <div class="two"><div class="fg"><label class="fl">Part Number</label><input class="fi" id="ca-pn" placeholder="Manufacturer #"></div><div class="fg"><label class="fl">Category</label><input class="fi" id="ca-cat" value="FA-Parts" placeholder="FA-Parts, Electrical…"></div></div>
   <div class="fg"><label class="fl">Description</label><textarea class="ft" id="ca-desc" style="min-height:55px"></textarea></div>
   <div class="three"><div class="fg"><label class="fl">Unit Cost ($)</label><input class="fi" type="number" id="ca-cost" step="0.01"></div><div class="fg"><label class="fl">Unit of Measure</label><select class="fs" id="ca-uom"><option value="each">Each</option><option value="ft">Foot</option><option value="lf">Linear Ft</option><option value="box">Box</option><option value="roll">Roll</option><option value="lb">Pound</option><option value="gal">Gallon</option></select></div><div class="fg"><label class="fl">Vendor</label><input class="fi" id="ca-vendor"></div></div>\`,
@@ -2883,6 +3534,89 @@ function addCatalogModal(){
     const{error}=await sb.from('catalog').insert({barcode:bc,name:nm,part_number:v('ca-pn'),category:v('ca-cat'),description:v('ca-desc'),unit_cost:parseFloat(v('ca-cost'))||0,unit_of_measure:v('ca-uom')||'each',vendor:v('ca-vendor')})
     if(error)toast(error.message,'error');else{closeModal();toast('Part added');pgCatalog()}
   })
+}
+async function lookupBarcode(){
+  var bc=(document.getElementById('ca-bc')||{}).value||'';bc=bc.trim()
+  if(!bc||bc.length<4)return
+  var status=document.getElementById('ca-lookup-status')
+  if(status)status.textContent='Looking up...'
+  try{
+    var r2=await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc='+encodeURIComponent(bc))
+    var d2=await r2.json()
+    if(d2.code==='OK'&&d2.items&&d2.items.length){
+      var item=d2.items[0]
+      var nm=item.title||'';var desc=item.description||item.brand||'';var pn=item.model||''
+      if(nm){
+        var nmEl=document.getElementById('ca-nm');if(nmEl)nmEl.value=nm
+        var dEl=document.getElementById('ca-desc');if(dEl)dEl.value=desc
+        var pEl=document.getElementById('ca-pn');if(pEl&&pn)pEl.value=pn
+        if(status)status.innerHTML='<span style="color:#16a34a">✓ Found: '+nm+'</span> <span style="font-size:10px;color:#8a96ab">(edit any field below)</span>'
+        return
+      }
+    }
+  }catch(e){}
+  try{
+    var r3=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(bc)+'.json')
+    var d3=await r3.json()
+    if(d3.status===1&&d3.product){
+      var p=d3.product;var nm2=p.product_name||p.product_name_en||''
+      if(nm2){
+        var nmEl2=document.getElementById('ca-nm');if(nmEl2)nmEl2.value=nm2
+        var dEl2=document.getElementById('ca-desc');if(dEl2)dEl2.value=(p.brands?p.brands+' ':'')+nm2
+        if(status)status.innerHTML='<span style="color:#16a34a">✓ Found: '+nm2+'</span> <span style="font-size:10px;color:#8a96ab">(edit any field below)</span>'
+        return
+      }
+    }
+  }catch(e){}
+  if(status)status.innerHTML='<span style="color:#d97706">⚠ Not found — enter details manually</span>'
+}
+function startScanToCatalog(){
+  window._scanToCatalog=true
+  pgScan()
+  setTimeout(function(){
+    toggleCam()
+    setTimeout(function(){
+      var si=document.getElementById('cam-status-inner')
+      if(si)si.textContent='📷 Catalog mode — scan a barcode to add or assign it'
+    },1000)
+  },800)
+}
+function assignUpcModal(catalogId){
+  var item=allCatalog.find(function(c){return c.id===catalogId})
+  if(!item){toast('Item not found','error');return}
+  modal('Assign Barcode — '+item.name,
+    '<div class="fg"><label class="fl">Barcode / UPC</label>'
+    +'<div style="display:flex;gap:6px">'
+    +'<input class="fi" id="assign-upc-val" placeholder="Scan or type barcode" style="flex:1" oninput="clearTimeout(window._bcTimer);window._bcTimer=setTimeout(function(){lookupBarcodeForAssign()},600)">'
+    +'<button class="btn btn-sm" onclick="lookupBarcodeForAssign()">Lookup</button></div></div>'
+    +'<div id="assign-upc-status" style="font-size:11px;color:#8a96ab;margin-top:4px"></div>',
+    async function(){
+      var bc=document.getElementById('assign-upc-val').value.trim()
+      if(!bc){toast('Enter a barcode','error');return}
+      var dup=allCatalog.find(function(c){return c.barcode===bc&&c.id!==catalogId})
+      if(dup){toast('Barcode already used by: '+dup.name,'error');return}
+      var{error}=await sb.from('catalog').update({barcode:bc,updated_at:new Date().toISOString()}).eq('id',catalogId)
+      if(error){toast(error.message,'error');return}
+      closeModal();toast('Barcode assigned to '+item.name);pgCatalog()
+    },'Assign Barcode')
+  // Focus the input so scanner can immediately type into it
+  setTimeout(function(){var el=document.getElementById('assign-upc-val');if(el)el.focus()},200)
+}
+async function lookupBarcodeForAssign(){
+  var bc=(document.getElementById('assign-upc-val')||{}).value||'';bc=bc.trim()
+  if(!bc||bc.length<4)return
+  var status=document.getElementById('assign-upc-status')
+  if(status)status.textContent='Looking up...'
+  try{
+    var r=await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc='+encodeURIComponent(bc))
+    var d=await r.json()
+    if(d.code==='OK'&&d.items&&d.items.length){
+      var item=d.items[0]
+      if(status)status.innerHTML='<span style="color:#16a34a">✓ Found: '+item.title+'</span>'
+      return
+    }
+  }catch(e){}
+  if(status)status.textContent='Not found in database — you can still assign this barcode'
 }
 function editCatalogModal(bc){
   const c=allCatalog.find(x=>x.barcode===bc);if(!c)return
@@ -4084,34 +4818,30 @@ async function adminCheckOut(){
   document.getElementById('checkin-status-dot').style.background='#414e63'
   document.getElementById('checkin-status-txt').textContent='Check In'
   document.getElementById('admin-checkin-btn').style.borderColor='rgba(255,255,255,.1)'
-  // Show checkout confirmation + daily report prompt
+  // Check if daily report already exists for today
+  var today=new Date().toISOString().split('T')[0]
+  var drCheck=await sb.from('daily_reports').select('id').eq('job_id',savedJobId).eq('report_date',today).limit(1)
+  if(drCheck.data&&drCheck.data.length>0){
+    toast('Checked out - daily report already filed for today')
+    return
+  }
+  // Prompt to file daily report
   var bodyHtml='<div style="background:#0a1f0a;border:1px solid #16a34a;border-radius:8px;padding:12px;margin-bottom:12px">'
-    +'<div style="color:#16a34a;font-weight:600;margin-bottom:4px">Checked out successfully</div>'
-  if(hrsStr)bodyHtml+='<div style="font-size:12px;color:#8a96ab">Time on site: '+hrsStr+' hours</div>'
-  bodyHtml+='</div><div style="font-size:13px;color:#e8edf5;margin-bottom:4px">File a daily report for this job?</div>'
-  bodyHtml+='<div style="font-size:12px;color:#8a96ab">Hours will be pre-filled from your check-in.</div>'
+  bodyHtml+='<div style="color:#16a34a;font-weight:600">Checked out'+(hrsStr?' - '+hrsStr+' hrs on site':'')+'</div></div>'
+  bodyHtml+='<div style="font-size:13px;color:#e8edf5;margin-bottom:4px">No daily report filed yet today. File one now to capture your hours?</div>'
   modal('Checked Out',bodyHtml,
     function(){
-      closeModal()
-      newDailyModal(savedJobId)
+      closeModal();newDailyModal(savedJobId)
       setTimeout(function(){
-        var h=document.getElementById('dr-hrs')
-        var b=document.getElementById('dr-by')
+        var h=document.getElementById('dr-hrs'),b=document.getElementById('dr-by')
         if(h&&hrsStr)h.value=hrsStr
         if(b&&ME)b.value=ME.full_name||''
         calcDrManHours()
       },250)
     },'File Daily Report')
-  // Add Skip button
   setTimeout(function(){
     var mf=document.getElementById('modal-footer')
-    if(mf){
-      var skip=document.createElement('button')
-      skip.className='btn'
-      skip.textContent='Skip'
-      skip.onclick=closeModal
-      mf.insertBefore(skip,mf.firstChild)
-    }
+    if(mf){var s=document.createElement('button');s.className='btn';s.textContent='Skip';s.onclick=closeModal;mf.insertBefore(s,mf.firstChild)}
   },50)
 }
 
@@ -4190,6 +4920,33 @@ async function pgSettings(){
   h+='<div class="card-title" style="color:#dc2626;margin-bottom:4px">⚠ Reset Database</div>'
   h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">Start with a fresh database. This will permanently delete ALL jobs, reports, tasks, orders, contacts, and other data. Company settings and user accounts are preserved. <strong style="color:#dc2626">This cannot be undone.</strong></div>'
   h+='<button class="btn btn-ghost" style="color:#dc2626;border:1px solid rgba(220,38,38,.3)" onclick="resetDatabase()">🗑 Reset to Fresh Database</button>'
+  h+='</div>'
+
+
+  h+='<div class="card" style="margin-bottom:14px">'
+  h+='<div class="card-title" style="margin-bottom:4px">&#128231; Email Ingest</div>'
+  h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:8px">Auto-create daily reports from incoming emails. Webhook URL: '
+  h+='<code style="background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px;font-size:11px">'+(window.location.origin||'https://filed-ops.onrender.com')+'/api/email-ingest</code></div>'
+  h+='<div class="fg"><label class="fl">Email Provider</label>'
+  h+='<select class="fs" id="ei-provider" onchange="toggleEmailProviderFields(this.value)">'
+  h+='<option value="">— Disabled —</option>'
+  h+='<option value="mailgun"'+(co.email_ingest_provider==='mailgun'?' selected':'')+'>Mailgun</option>'
+  h+='<option value="sendgrid"'+(co.email_ingest_provider==='sendgrid'?' selected':'')+'>SendGrid Inbound Parse</option>'
+  h+='<option value="postmark"'+(co.email_ingest_provider==='postmark'?' selected':'')+'>Postmark (Pro/Platform plan required)</option>'
+  h+='<option value="webhook"'+(co.email_ingest_provider==='webhook'?' selected':'')+'>Generic Webhook</option>'
+  h+='</select></div>'
+  h+='<div id="ei-help" style="font-size:11px;color:#8a96ab;margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:6px;display:none"></div>'
+  h+='<div class="fg" style="margin-top:10px"><label class="fl">Webhook Secret / Signing Key <span style="font-size:10px;color:#414e63">(optional)</span></label>'
+  h+='<input class="fi" id="ei-secret" placeholder="Verify webhook authenticity" value="'+(co.email_ingest_secret||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Allowed Senders <span style="font-size:10px;color:#414e63">(comma-separated emails — blank = accept all)</span></label>'
+  h+='<input class="fi" id="ei-allowlist" placeholder="crew@yourco.com, foreman@yourco.com" value="'+(co.email_ingest_allowlist||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Job ID Regex Pattern <span style="font-size:10px;color:#414e63">(leave blank to auto-detect from subject)</span></label>'
+  h+='<input class="fi" id="ei-pattern" placeholder="Leave blank for auto-detect" value="'+(co.email_ingest_pattern||'')+'"></div>'
+  h+='<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">'
+  h+='<button class="btn btn-p" onclick="saveEmailIngestSettings()">&#128190; Save Email Settings</button>'
+  h+='<button class="btn btn-sm" onclick="testEmailIngest()">&#129514; Test Webhook</button>'
+  h+='</div>'
+  h+='<div id="ei-test-result" style="margin-top:8px;font-size:12px"></div>'
   h+='</div>'
 
   document.getElementById('page-area').innerHTML=h
@@ -4327,6 +5084,37 @@ async function deleteAllDuplicates(){
 }
 
 
+function toggleEmailProviderFields(v){
+  var h=document.getElementById('ei-help');if(!h)return
+  var helps={
+    mailgun:'Mailgun: Go to Sending > Domains > your domain > Edit > Receiving. Set inbound route to forward to the webhook URL above. Free tier: 1,000 emails/month.',
+    sendgrid:'SendGrid: Go to Settings > Inbound Parse. Add the webhook URL above as your POST URL. Free tier: 100 emails/day.',
+    postmark:'Postmark: In your server, go to Settings > Inbound. Set the webhook URL above. Requires Pro or Platform plan ($16.50+/mo).',
+    webhook:'Generic Webhook: Point any email provider inbound webhook POST to the URL above. Expects JSON with fields: subject, text_body (or html_body), from.'
+  }
+  if(v&&helps[v]){h.style.display='block';h.innerHTML=helps[v]}
+  else h.style.display='none'
+}
+async function saveEmailIngestSettings(){
+  var provider=(document.getElementById('ei-provider')||{}).value||''
+  var secret=(document.getElementById('ei-secret')||{}).value||''
+  var allowlist=(document.getElementById('ei-allowlist')||{}).value||''
+  var pattern=(document.getElementById('ei-pattern')||{}).value||''
+  var{error}=await sb.from('company_settings').upsert({email_ingest_provider:provider,email_ingest_secret:secret,email_ingest_allowlist:allowlist,email_ingest_pattern:pattern},{onConflict:'id'})
+  if(error)toast(error.message,'error')
+  else toast('Email ingest settings saved'+(provider?' ('+provider+' active)':' (disabled)'))
+}
+async function testEmailIngest(){
+  var res=document.getElementById('ei-test-result');if(res)res.textContent='Sending test...'
+  try{
+    var{data:{session}}=await sb.auth.getSession()
+    var r=await fetch('/api/email-ingest',{method:'POST',headers:{'Content-Type':'application/json','x-fieldaxis-test':'1','Authorization':'Bearer '+(session?.access_token||'')},body:JSON.stringify({subject:'TEST - No Job ID',from:{address:'test@test.com'},text_body:'This is a test email from FieldAxisHQ settings.',html_body:''})})
+    var d={};try{d=await r.json()}catch(e){}
+    if(res)res.innerHTML='<span style="color:#16a34a">✓ Webhook working! '+JSON.stringify(d)+'</span>'
+  }catch(e){
+    if(res)res.innerHTML='<span style="color:#dc2626">✗ Error: '+e.message+'</span>'
+  }
+}
 async function saveCompanySettings(){
   var data={
     company_name:document.getElementById('co-name').value||null,
@@ -4490,7 +5278,16 @@ function filterEmployees(){
     html+='<td style="font-size:11px">'+(u.companies?.name||'Internal')+'</td>'
     html+='<td style="font-size:10px;color:#8a96ab">'+(u.emergency_contact||'—')+'<br>'+(u.emergency_phone?'<span style="color:#414e63">'+u.emergency_phone+'</span>':'')+'</td>'
     html+='<td><span class="badge '+(u.is_active?'bg-green':'bg-gray')+'">'+(u.is_active?'Active':'Inactive')+'</span></td>'
-    html+='<td style="display:flex;gap:4px"><button class="btn btn-sm" data-id="'+u.id+'" onclick="viewEmployeeModal(this.dataset.id)">View</button><button class="btn btn-sm" data-id="'+u.id+'" data-role="'+u.role+'" data-active="'+u.is_active+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="editUserModal(this.dataset.id,this.dataset.role,this.dataset.active,this.dataset.name)">Edit</button></td>'
+    html+='<td style="display:flex;gap:4px;flex-wrap:wrap">'
+    html+='<button class="btn btn-sm" data-id="'+u.id+'" onclick="viewEmployeeModal(this.dataset.id)">View</button>'
+    html+='<button class="btn btn-sm" data-id="'+u.id+'" data-role="'+u.role+'" data-active="'+u.is_active+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="editUserModal(this.dataset.id,this.dataset.role,this.dataset.active,this.dataset.name)">Edit</button>'
+    html+=u.is_active
+      ?'<button class="btn btn-sm" style="color:#d97706;border-color:rgba(217,119,6,.35)" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="toggleUserActive(this.dataset.id,this.dataset.name,false)">Deactivate</button>'
+      :'<button class="btn btn-sm" style="color:#16a34a;border-color:rgba(22,163,74,.35)" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="toggleUserActive(this.dataset.id,this.dataset.name,true)">Activate</button>'
+    html+='<button class="btn btn-sm" style="color:#6366f1;border-color:rgba(99,102,241,.35)" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="resetPasswordModal(this.dataset.id,this.dataset.name)">🔑 Password</button>'
+    html+='<button class="btn btn-sm" style="color:#8a96ab" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="forceLogoutUser(this.dataset.id,this.dataset.name)" title="Force logout">⏏ Logout</button>'
+    html+='<button class="btn btn-sm" style="color:#dc2626;border-color:rgba(220,38,38,.3)" data-id="'+u.id+'" data-name="'+u.full_name.replace(/"/g,'&quot;')+'" onclick="deleteUserConfirm(this.dataset.id,this.dataset.name)">Delete</button>'
+    html+='</td>'
     html+='</tr>'
   }
   html+='</tbody></table></div>'
@@ -4584,45 +5381,85 @@ function addUserModal(){
     const btn=document.getElementById('modal-ok')
     btn.disabled=true;btn.textContent='Adding…'
     try{
-      // Try server route first (creates auth account + profile + sends password email)
-      const{data:{session}}=await sb.auth.getSession()
-      const res=await fetch('/api/invite-user',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
-        body:JSON.stringify({email:em,full_name:nm,role:v('au-rl'),phone:v('au-ph'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep')})
-      })
-      const result=await res.json()
-      if(res.ok&&result.success){
-        closeModal()
-        toast('Employee added! Password setup email sent to '+em)
-        pgUsers()
-        return
+      btn.disabled=true;btn.textContent='Adding...'
+      var pw1=(document.getElementById('au-pw')||{}).value||''
+      var pw2=(document.getElementById('au-pw2')||{}).value||''
+      if(pw1&&pw1.length<8){toast('Password must be at least 8 characters','error');return}
+      if(pw1&&pw1!==pw2){toast('Passwords do not match','error');return}
+      var tempPw=pw1||(Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2).toUpperCase()+'!9')
+      var{data:signUpData,error:signUpErr}=await sb.auth.signUp({email:em,password:tempPw,options:{data:{full_name:nm,role:v('au-rl')}}})
+      var authId=signUpData?.user?.id
+      if(signUpErr&&!authId){
+        var{data:existP}=await sb.from('profiles').select('id').eq('email',em).limit(1)
+        if(existP&&existP[0])authId=existP[0].id
+        else{toast(signUpErr.message||'Could not create account','error');btn.disabled=false;btn.textContent='Save';return}
       }
-      // If service key not set, fall back to profile-only (no auth account)
-      console.warn('Invite route result:',result)
-      if(result.error?.includes('SUPABASE_SERVICE_KEY')||result.error?.includes('service')){
-        // Fallback: create auth user via signUp then insert profile
-        const tempPw=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2).toUpperCase()+'!9'
-        const{data:signUpData,error:signUpErr}=await sb.auth.signUp({email:em,password:tempPw,options:{data:{full_name:nm,role:v('au-rl')}}})
-        const authId=signUpData?.user?.id
-        if(signUpErr&&!authId){toast(signUpErr.message,'error');btn.disabled=false;btn.textContent='Save';return}
-        // Wait a moment then insert profile
-        await new Promise(r=>setTimeout(r,500))
-        const{error:profErr}=await sb.from('profiles').upsert({id:authId,full_name:nm,email:em,phone:v('au-ph'),role:v('au-rl'),company_id:v('au-co')||null,hire_date:v('au-hire')||null,emergency_contact:v('au-ec'),emergency_phone:v('au-ep'),is_active:true,created_at:new Date().toISOString()},{onConflict:'id'})
-        if(profErr){toast(profErr.message,'error');btn.disabled=false;btn.textContent='Save';return}
-        closeModal()
-        toast('Employee added. They will get a confirmation email to set their password.','info')
-        pgUsers()
-        return
-      }
-      throw new Error(result.error||'Failed to create employee')
+      await new Promise(r=>setTimeout(r,400))
+      var prof={full_name:nm,email:em,phone:v('au-ph')||'',role:v('au-rl')||'sub_worker',company_id:v('au-co')||null,hire_date:v('au-hd')||null,emergency_contact:v('au-ec')||'',emergency_phone:v('au-ep')||'',is_active:true,created_at:new Date().toISOString()}
+      if(authId)prof.id=authId
+      var{error:profErr}=authId?await sb.from('profiles').upsert(prof):await sb.from('profiles').insert(prof)
+      if(profErr){toast(profErr.message,'error');btn.disabled=false;btn.textContent='Save';return}
+      closeModal()
+      toast('Employee added! They will receive a confirmation email to set their password.')
+      pgUsers()
     }catch(e){
-      toast(e.message,'error')
+      toast(e.message||'Error adding employee','error')
       btn.disabled=false;btn.textContent='Save'
     }
-  })
+  },'Save')
 }
 
+async function toggleUserActive(id,name,activate){
+  if(!confirm((activate?'Activate':'Deactivate')+' '+name+'?'))return
+  var{error}=await sb.from('profiles').update({is_active:activate,updated_at:new Date().toISOString()}).eq('id',id)
+  if(error){toast(error.message,'error');return}
+  if(!activate){
+    try{var{data:{session}}=await sb.auth.getSession();await fetch('/api/force-logout',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},body:JSON.stringify({user_id:id})})}catch(e){}
+  }
+  toast(name+(activate?' activated':' deactivated'))
+  pgUsers()
+}
+async function forceLogoutUser(id,name){
+  if(!confirm('Force log out '+name+'? Their session ends immediately.'))return
+  try{
+    var{data:{session}}=await sb.auth.getSession()
+    var res=await fetch('/api/force-logout',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},body:JSON.stringify({user_id:id})})
+    var d={};try{d=await res.json()}catch(e){}
+    if(d.error)toast('Could not force logout: '+d.error,'error')
+    else toast(name+' has been logged out')
+  }catch(e){toast(e.message,'error')}
+}
+async function deleteUserConfirm(id,name){
+  if(!confirm('Delete '+name+'? This cannot be undone.'))return
+  var{error}=await sb.from('profiles').delete().eq('id',id)
+  if(error){toast(error.message,'error');return}
+  try{
+    var{data:{session}}=await sb.auth.getSession()
+    await fetch('/api/delete-user',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify({user_id:id})})
+  }catch(e){}
+  toast(name+' has been deleted')
+  pgUsers()
+}
+async function resetPasswordModal(id,name){
+  modal('Reset Password — '+name,
+    '<div class="fg"><label class="fl">New Password</label><input class="fi" type="password" id="rp-pw" placeholder="Min 8 characters"></div>'
+    +'<div class="fg"><label class="fl">Confirm</label><input class="fi" type="password" id="rp-pw2"></div>',
+    async function(){
+      var pw=document.getElementById('rp-pw').value
+      var pw2=document.getElementById('rp-pw2').value
+      if(!pw||pw.length<8){toast('Password must be at least 8 characters','error');return}
+      if(pw!==pw2){toast('Passwords do not match','error');return}
+      try{
+        var{data:{session}}=await sb.auth.getSession()
+        var res=await fetch('/api/set-password',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},body:JSON.stringify({user_id:id,password:pw})})
+        var d={};try{d=await res.json()}catch(e){}
+        if(d.error){toast(d.error,'error');return}
+        closeModal();toast('Password reset for '+name)
+      }catch(e){toast(e.message,'error')}
+    },'Set Password')
+}
 function editUserModal(id,role,active,name){
   const coOpts=(window._empCos||[]).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')
   const html=
@@ -4668,12 +5505,20 @@ async function pgJobMap(){
   document.getElementById('page-title').textContent='Job Map'
   document.getElementById('topbar-actions').innerHTML=\`
     <div id="map-stats" style="display:flex;gap:8px;align-items:center;flex-shrink:0"></div>
+    <button class="btn btn-sm btn-ghost" onclick="geocodeMissingJobs()" style="font-size:11px">Geocode Missing</button>
     <select class="fs" id="map-filter-pm" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All PMs</option></select>
     <select class="fs" id="map-filter-gc" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All GC Companies</option></select>
     <select class="fs" id="map-filter-stage" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All Stages</option>\${STAGES.map(s=>\`<option value="\${s}">\${STAGE_LABELS[s]}</option>\`).join('')}</select>
     <select class="fs" id="map-filter-sub" style="width:160px;padding:5px 8px;font-size:12px" onchange="filterMapPins()"><option value="">All Subs</option></select>\`
 
-  const{data:jobs}=await sb.from('jobs').select('*').eq('archived',false)
+  var mapJobs=[],mapFrom=0
+  while(true){
+    var mRes=await sb.from('jobs').select('*').eq('archived',false).range(mapFrom,mapFrom+999)
+    mapJobs=mapJobs.concat(mRes.data||[])
+    if(!mRes.data||mRes.data.length<1000)break
+    mapFrom+=1000
+  }
+  var jobs=mapJobs
   window._mapJobs=jobs||[]
   updateMapStats(jobs||[])
 
@@ -4854,7 +5699,7 @@ function addMapPins(jobs,map){
   const noGPS=jobs.filter(j=>(!j.gps_lat||!j.gps_lng)&&(j.address||j.city))
   if(noGPS.length>0){
     toast('📍 Geocoding '+noGPS.length+' jobs in background — pins will appear as they resolve','info')
-    geocodeAndAddPins(noGPS,map).then(function(){toast('✓ All job locations resolved','success')})
+    if(noGPS.length>0){toast(noGPS.length+' jobs missing GPS. Click Geocode Missing.');window._noGPSJobs=noGPS}
   }
   // Legend
   const el=document.getElementById('map-legend')
@@ -4934,6 +5779,23 @@ function updateMapStats(jobs){
   html+='</div>'
   el.innerHTML=html
 }
+async function geocodeMissingJobs(){
+  var jobs=window._noGPSJobs||[]
+  if(!jobs.length){toast('No jobs missing GPS');return}
+  if(!confirm('Geocode '+jobs.length+' jobs at 2s each. Continue?'))return
+  var done=0,failed=0
+  for(var i=0;i<jobs.length;i++){
+    var j=jobs[i];try{
+      var q=[j.address,j.city,j.state,j.zip].filter(Boolean).join(', ')
+      var resp=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
+      var geo=await resp.json()
+      if(geo[0]){await sb.from('jobs').update({gps_lat:parseFloat(geo[0].lat),gps_lng:parseFloat(geo[0].lon)}).eq('id',j.id);done++}else failed++
+    }catch(e){failed++}
+    if(i<jobs.length-1)await new Promise(function(r){setTimeout(r,2100)})
+    if((i+1)%5===0||i===jobs.length-1)toast((i+1)+'/'+jobs.length+' geocoded...')
+  }
+  toast('Done: '+done+' geocoded, '+failed+' failed');pgJobMap()
+}
 function filterMapPins(){
   const pm=(document.getElementById('map-filter-pm')||document.getElementById('mob-f-pm'))?.value||''
   const gc=document.getElementById('map-filter-gc')?.value||''
@@ -5006,8 +5868,8 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
   _markupPlanId=planId;_markupReturnFn=returnFn
   document.getElementById('page-title').textContent='Plan Markup — '+fileName
   document.getElementById('topbar-actions').innerHTML=\`
-    <button class="btn btn-sm" onclick="if(_markupReturnFn)_markupReturnFn()">← Back</button>
-    <button class="btn btn-sm btn-p" onclick="saveMarkupData()">💾 Save</button>
+    <button class="btn btn-sm" onclick="window._pdfBgCanvas=null;window._pdfDoc=null;window._pdfCurrentPage=1;if(_markupReturnFn)_markupReturnFn()">← Back</button>
+    <button class="btn btn-sm btn-p" onclick="saveMarkupAndReturn()">&#128190; Save &amp; Back</button>
     <button class="btn btn-sm btn-g" onclick="downloadMarkupPNG()">⬇ Download PNG</button>\`
 
   document.getElementById('page-area').innerHTML=\`
@@ -5063,8 +5925,34 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
   loadMarkupData(planId,planUrl)
 }
 
-let _mMode='dot',_mColor='#dc2626',_mCanvas=null,_mCtx=null,_mImg=null,_mData={dots:[],textboxes:[],lines:[],legend:[]},_mLineStart=null
+let _mMode='dot',_mColor='#dc2626',_mCanvas=null,_mCtx=null,_mImg=null,_mData={legend:[],pages:{}},_mLineStart=null
+function _pg(){return window._pdfCurrentPage||1}
+function _mpd(){if(!_mData.pages[_pg()])_mData.pages[_pg()]={dots:[],textboxes:[],lines:[]};return _mData.pages[_pg()]}
 
+function renderPdfPage(pageNum){
+  if(!window._pdfDoc)return
+  window._pdfCurrentPage=pageNum
+  window._pdfDoc.getPage(pageNum).then(function(page){
+    var canvas=document.getElementById('markup-canvas');if(!canvas)return
+    var container=canvas.parentElement
+    var scale=Math.max(1.5,(container?container.clientWidth-20:1200)/page.getViewport({scale:1}).width)
+    var vp=page.getViewport({scale:scale})
+    canvas.width=vp.width;canvas.height=vp.height
+    var ctx=canvas.getContext('2d');_mCanvas=canvas;_mCtx=ctx
+    page.render({canvasContext:ctx,viewport:vp}).promise.then(function(){
+      var bgC=document.createElement('canvas');bgC.width=canvas.width;bgC.height=canvas.height
+      bgC.getContext('2d').drawImage(canvas,0,0)
+      window._pdfBgCanvas=bgC;_mImg=null
+      redrawMarkup()
+      renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount()
+      canvas.onclick=handleMarkupClick
+      document.getElementById('canvas-loading').style.display='none'
+      var lbl=document.getElementById('pdf-page-label');if(lbl)lbl.textContent='Page '+pageNum+' of '+window._pdfTotalPages
+    })
+  })
+}
+function pdfPrevPage(){if(!window._pdfDoc||window._pdfCurrentPage<=1)return;renderPdfPage(window._pdfCurrentPage-1)}
+function pdfNextPage(){if(!window._pdfDoc||window._pdfCurrentPage>=window._pdfTotalPages)return;renderPdfPage(window._pdfCurrentPage+1)}
 function setMarkupMode(m,btn){
   _mMode=m
   document.querySelectorAll('.mt-btn').forEach(b=>b.classList.remove('active'))
@@ -5080,36 +5968,54 @@ function setMarkupColor(c,el){
 
 async function loadMarkupData(planId,planUrl){
   const{data:plan}=await sb.from('job_walk_plans').select('markup_json').eq('id',planId).single()
-  _mData=plan?.markup_json||{dots:[],textboxes:[],lines:[],legend:[]};if(!_mData.lines)_mData.lines=[]
+  var loaded=plan&&plan.markup_json||{legend:[],pages:{}}
+  if(loaded.dots||loaded.textboxes||loaded.lines){
+    _mData={legend:loaded.legend||[],pages:{1:{dots:loaded.dots||[],textboxes:loaded.textboxes||[],lines:loaded.lines||[]}}}
+  }else{
+    _mData={legend:loaded.legend||[],pages:loaded.pages||{}}
+  }
   const canvas=document.getElementById('markup-canvas')
   const ctx=canvas.getContext('2d')
   _mCanvas=canvas;_mCtx=ctx
 
-  var isPdf=planUrl.toLowerCase().includes('.pdf')||planUrl.toLowerCase().includes('%2Fpdf')||planUrl.includes('application/pdf')
+  var isPdf=planUrl.toLowerCase().includes('.pdf')||planUrl.toLowerCase().includes('%2Fpdf')
   if(isPdf){
-    // For PDFs: add viewer panel above canvas, canvas used for annotation overlay
-    var canvasWrap=canvas.closest('[style*="overflow:auto"]')||canvas.parentElement
-    var pageArea=document.getElementById('page-area')
-    if(pageArea&&!document.getElementById('pdf-view-panel')){
-      var panel=document.createElement('div')
-      panel.id='pdf-view-panel'
-      panel.style='background:#1e3a5f;border:1px solid #2563eb;border-radius:8px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px'
-      panel.innerHTML='<span style="font-size:32px">📄</span>'        +'<div style="flex:1">'        +'<div style="font-size:13px;font-weight:600;color:#e8edf5;margin-bottom:4px">'+planUrl.split('/').pop().replace(/%20/g,' ').replace(/_/g,' ')+'</div>'        +'<div style="font-size:11px;color:#8a96ab">Use the canvas below to draw your markup annotations. Click Save when done.</div>'        +'</div>'        +'<a href="'+planUrl+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#2563eb;color:#fff;padding:9px 16px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:500;white-space:nowrap">📄 View PDF</a>'
-      canvasWrap.insertBefore(panel,canvasWrap.firstChild)
+    if(typeof pdfjsLib!=='undefined'){
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+      window._pdfPlanUrl=planUrl;window._pdfCurrentPage=1;window._pdfTotalPages=1;window._pdfDoc=null
+      var canvasWrap=canvas.closest('[style*="overflow:auto"]')||canvas.parentElement
+      if(canvasWrap&&!document.getElementById('pdf-nav-bar')){
+        var nav=document.createElement('div')
+        nav.id='pdf-nav-bar'
+        nav.style='display:flex;align-items:center;gap:8px;padding:8px 12px;background:#0c1220;border-radius:8px;margin-bottom:8px'
+        nav.innerHTML='<button class="btn btn-sm" onclick="pdfPrevPage()">&#9664; Prev</button>'
+          +'<span id="pdf-page-label" style="font-size:12px;color:#8a96ab">Page 1 of 1</span>'
+          +'<button class="btn btn-sm" onclick="pdfNextPage()">Next &#9654;</button>'
+          +'<span style="font-size:11px;color:#414e63;margin-left:8px">Markup overlays the current page</span>'
+        canvasWrap.insertBefore(nav,canvasWrap.firstChild)
+      }
+      pdfjsLib.getDocument(planUrl).promise.then(function(pdfDoc){
+        window._pdfDoc=pdfDoc;window._pdfTotalPages=pdfDoc.numPages
+        var lbl=document.getElementById('pdf-page-label');if(lbl)lbl.textContent='Page 1 of '+pdfDoc.numPages
+        renderPdfPage(1)
+      }).catch(function(err){
+        canvas.width=1400;canvas.height=900
+        ctx.fillStyle='#0c1835';ctx.fillRect(0,0,1400,900)
+        ctx.fillStyle='#dc2626';ctx.font='bold 16px sans-serif';ctx.textAlign='center'
+        ctx.fillText('Could not load PDF: '+err.message,700,430)
+        ctx.fillStyle='#8a96ab';ctx.font='13px sans-serif'
+        ctx.fillText('PDF may be on a different domain. Try re-uploading the file.',700,460)
+        document.getElementById('canvas-loading').style.display='none'
+        redrawMarkup();canvas.onclick=handleMarkupClick
+      })
+    }else{
+      canvas.width=1400;canvas.height=900
+      ctx.fillStyle='#0c1835';ctx.fillRect(0,0,1400,900)
+      ctx.fillStyle='#d97706';ctx.font='bold 16px sans-serif';ctx.textAlign='center'
+      ctx.fillText('PDF viewer loading... please refresh the page.',700,450)
+      document.getElementById('canvas-loading').style.display='none'
+      canvas.onclick=handleMarkupClick
     }
-    canvas.width=1400;canvas.height=900
-    canvas.style.width='100%'
-    ctx.fillStyle='#0c1835';ctx.fillRect(0,0,canvas.width,canvas.height)
-    ctx.fillStyle='#2d4a7a';ctx.fillRect(40,40,canvas.width-80,canvas.height-80)
-    ctx.fillStyle='#60a5fa';ctx.font='bold 18px DM Sans,sans-serif';ctx.textAlign='center'
-    ctx.fillText('Annotation Canvas — Click "View PDF" to open the plans in a new tab',canvas.width/2,canvas.height/2-30)
-    ctx.fillStyle='#8a96ab';ctx.font='14px DM Sans,sans-serif'
-    ctx.fillText('Then come back here and click to place dots, text, and lines on this canvas',canvas.width/2,canvas.height/2+10)
-    ctx.fillStyle='#414e63';ctx.font='12px DM Sans,sans-serif'
-    ctx.fillText('Your annotations will be saved and overlaid on the PDF when downloaded',canvas.width/2,canvas.height/2+40)
-    _mImg=null
-    document.getElementById('canvas-loading').style.display='none'
-    redrawMarkup();canvas.onclick=handleMarkupClick
   }else{
     // Image plan - load directly onto canvas
     const img=new Image();img.crossOrigin='anonymous'
@@ -5142,11 +6048,11 @@ function handleMarkupClick(e){
   const cx=(e.clientX-rect.left)*sx,cy=(e.clientY-rect.top)*sy
   if(_mMode==='dot'){
     const sz=parseInt(document.getElementById('dot-size')?.value||13)
-    _mData.dots.push({id:uuid(),x:cx,y:cy,color:_mColor,size:sz,label:''})
+    _mpd().dots.push({id:uuid(),x:cx,y:cy,color:_mColor,size:sz,label:''})
     redrawMarkup();updateDotCount();beep()
   } else if(_mMode==='text'){
     const txt=prompt('Enter text to place on plan:');if(!txt)return
-    _mData.textboxes.push({id:uuid(),x:cx,y:cy,text:txt,color:_mColor,fontSize:14})
+    _mpd().textboxes.push({id:uuid(),x:cx,y:cy,text:txt,color:_mColor,fontSize:14})
     redrawMarkup();renderTextboxEntries()
   } else if(_mMode==='line'){
     if(!_mLineStart){
@@ -5156,25 +6062,25 @@ function handleMarkupClick(e){
     } else {
       const lw=parseInt(document.getElementById('line-width')?.value||2)
       _mData.lines=_mData.lines||[]
-      _mData.lines.push({id:uuid(),x1:_mLineStart.x,y1:_mLineStart.y,x2:cx,y2:cy,color:_mColor,width:lw})
+      _mpd().lines.push({id:uuid(),x1:_mLineStart.x,y1:_mLineStart.y,x2:cx,y2:cy,color:_mColor,width:lw})
       _mLineStart=null
       redrawMarkup();renderLineEntries()
     }
   } else if(_mMode==='delete'){
     const hit=findMarkupHit(cx,cy)
     if(hit){
-      if(hit.type==='dot')_mData.dots=_mData.dots.filter(d=>d.id!==hit.id)
-      else if(hit.type==='line')_mData.lines=(_mData.lines||[]).filter(l=>l.id!==hit.id)
-      else _mData.textboxes=_mData.textboxes.filter(t=>t.id!==hit.id)
+      if(hit.type==='dot')_mpd().dots=_mpd().dots.filter(d=>d.id!==hit.id)
+      else if(hit.type==='line')_mData.lines=(_mpd().lines||[]).filter(l=>l.id!==hit.id)
+      else _mpd().textboxes=_mpd().textboxes.filter(t=>t.id!==hit.id)
       redrawMarkup();renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount()
       toast('Removed','info')
     }
   }
 }
 function findMarkupHit(cx,cy){
-  for(const d of _mData.dots){if(Math.sqrt((cx-d.x)**2+(cy-d.y)**2)<=d.size+5)return{...d,type:'dot'}}
-  for(const t of _mData.textboxes){if(cx>=t.x-5&&cx<=t.x+200&&cy>=t.y-t.fontSize-2&&cy<=t.y+5)return{...t,type:'text'}}
-  for(const l of (_mData.lines||[])){
+  for(const d of _mpd().dots){if(Math.sqrt((cx-d.x)**2+(cy-d.y)**2)<=d.size+5)return{...d,type:'dot'}}
+  for(const t of _mpd().textboxes){if(cx>=t.x-5&&cx<=t.x+200&&cy>=t.y-t.fontSize-2&&cy<=t.y+5)return{...t,type:'text'}}
+  for(const l of (_mpd().lines||[])){
     const dx=l.x2-l.x1,dy=l.y2-l.y1,len2=dx*dx+dy*dy
     const t=len2>0?Math.max(0,Math.min(1,((cx-l.x1)*dx+(cy-l.y1)*dy)/len2)):0
     const px=l.x1+t*dx,py=l.y1+t*dy
@@ -5185,41 +6091,42 @@ function findMarkupHit(cx,cy){
 function redrawMarkup(){
   if(!_mCtx||!_mCanvas)return
   _mCtx.clearRect(0,0,_mCanvas.width,_mCanvas.height)
-  if(_mImg)_mCtx.drawImage(_mImg,0,0)
+  if(window._pdfBgCanvas){_mCtx.drawImage(window._pdfBgCanvas,0,0)}
+  else if(_mImg)_mCtx.drawImage(_mImg,0,0)
   else{_mCtx.fillStyle='#1a2540';_mCtx.fillRect(0,0,_mCanvas.width,_mCanvas.height)}
   // Draw lines first (behind dots/text)
-  for(const l of (_mData.lines||[])){
+  for(const l of (_mpd().lines||[])){
     _mCtx.beginPath();_mCtx.moveTo(l.x1,l.y1);_mCtx.lineTo(l.x2,l.y2)
     _mCtx.strokeStyle=l.color;_mCtx.lineWidth=l.width||2;_mCtx.lineCap='round';_mCtx.stroke()
     _mCtx.beginPath();_mCtx.arc(l.x1,l.y1,3,0,Math.PI*2);_mCtx.fillStyle=l.color;_mCtx.fill()
     _mCtx.beginPath();_mCtx.arc(l.x2,l.y2,3,0,Math.PI*2);_mCtx.fillStyle=l.color;_mCtx.fill()
   }
   // Draw dots
-  for(const d of _mData.dots){
+  for(const d of _mpd().dots){
     _mCtx.beginPath();_mCtx.arc(d.x,d.y,d.size/2,0,Math.PI*2)
     _mCtx.fillStyle=d.color;_mCtx.fill()
     _mCtx.strokeStyle='rgba(255,255,255,.75)';_mCtx.lineWidth=1.5;_mCtx.stroke()
     if(d.label){_mCtx.fillStyle=d.color;_mCtx.font='bold 11px DM Sans,sans-serif';_mCtx.fillText(d.label,d.x+d.size/2+4,d.y+4)}
   }
   // Draw textboxes
-  for(const t of _mData.textboxes){
+  for(const t of _mpd().textboxes){
     _mCtx.font=\`\${t.fontSize}px DM Sans,sans-serif\`
     const w=_mCtx.measureText(t.text).width
     _mCtx.fillStyle='rgba(0,0,0,.65)';_mCtx.fillRect(t.x-3,t.y-t.fontSize,w+6,t.fontSize+6)
     _mCtx.fillStyle=t.color;_mCtx.fillText(t.text,t.x,t.y)
   }
 }
-function updateDotCount(){const el=document.getElementById('dot-count-display');if(el)el.textContent=(_mData.dots||[]).length+' dots placed'}
+function updateDotCount(){const el=document.getElementById('dot-count-display');if(el)el.textContent=(_mpd().dots||[]).length+' dots placed'}
 function renderLegendEntries(){
   const el=document.getElementById('legend-entries');if(!el)return
   const colorCounts={}
-  ;(_mData.dots||[]).forEach(d=>{colorCounts[d.color]=(colorCounts[d.color]||0)+1})
+  ;(_mpd().dots||[]).forEach(d=>{colorCounts[d.color]=(colorCounts[d.color]||0)+1})
   el.innerHTML=(_mData.legend||[]).map((l,i)=>\`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><div style="width:14px;height:14px;border-radius:50%;background:\${l.color};flex-shrink:0;border:1.5px solid rgba(255,255,255,.3)"></div><div style="font-size:10px;color:#414e63;flex-shrink:0">\${colorCounts[l.color]||0}×</div><input style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:5px;color:#e8edf5;font-size:11px;padding:3px 7px;font-family:inherit" value="\${l.label||''}" placeholder="What this color means…" oninput="_mData.legend[\${i}].label=this.value"><button onclick="_mData.legend.splice(\${i},1);renderLegendEntries()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:16px;flex-shrink:0">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No legend entries — click + to add</div>'
 }
 function addLegendEntry(){_mData.legend.push({id:uuid(),color:_mColor,label:''});renderLegendEntries()}
 function renderTextboxEntries(){
   const el=document.getElementById('textbox-entries');if(!el)return
-  el.innerHTML=(_mData.textboxes||[]).map((t,i)=>\`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="width:8px;height:8px;border-radius:50%;background:\${t.color};flex-shrink:0"></div><div style="font-size:11px;flex:1;color:#8a96ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${t.text}</div><button onclick="_mData.textboxes.splice(\${i},1);renderTextboxEntries();redrawMarkup()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No text boxes</div>'
+  el.innerHTML=(_mpd().textboxes||[]).map((t,i)=>\`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="width:8px;height:8px;border-radius:50%;background:\${t.color};flex-shrink:0"></div><div style="font-size:11px;flex:1;color:#8a96ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${t.text}</div><button onclick="_mpd().textboxes.splice(\${i},1);renderTextboxEntries();redrawMarkup()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No text boxes</div>'
 }
 function renderLineEntries(){
   var el=document.getElementById('line-entries');if(!el)return
@@ -5234,7 +6141,13 @@ function renderLineEntries(){
   })
   el.innerHTML=h
 }
-function clearAllMarkup(){if(!confirm('Clear all dots, lines and text boxes?'))return;_mData.dots=[];_mData.textboxes=[];_mData.lines=[];_mLineStart=null;redrawMarkup();renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount();toast('Cleared','warn')}
+function clearAllMarkup(){if(!confirm('Clear all dots, lines and text boxes?'))return;_mpd().dots=[];_mpd().textboxes=[];_mpd().lines=[];_mLineStart=null;redrawMarkup();renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount();toast('Cleared','warn')}
+async function saveMarkupAndReturn(){
+  await saveMarkupData()
+  window._pdfBgCanvas=null;window._pdfDoc=null;window._pdfCurrentPage=1
+  if(_markupReturnFn)_markupReturnFn()
+  else if(currentJobId)renderJobDetail()
+}
 async function saveMarkupData(){
   if(!_markupPlanId)return
   const{error}=await sb.from('job_walk_plans').update({markup_json:_mData}).eq('id',_markupPlanId)
@@ -5274,7 +6187,7 @@ async function renderDrawingsTab(el){
   }
   el.innerHTML=h
 }
-function openDrawingMarkup(btn){openPlanMarkup(btn.getAttribute('data-pid'),btn.getAttribute('data-purl'),btn.getAttribute('data-pname'),function(){loadJT('jt-drawings')})}
+function openDrawingMarkup(btn){openPlanMarkup(btn.getAttribute('data-pid'),btn.getAttribute('data-purl'),btn.getAttribute('data-pname'),function(){renderJobDetail();setTimeout(function(){JT(document.querySelector('.tab[onclick*="jt-drawings"]'),'jt-drawings')},100)})}
 function delDrawing(btn){deleteJobPlan(btn.getAttribute('data-pid'),btn.getAttribute('data-ppath'))}
 async function uploadJobDrawing(files){
   for(const f of files){
@@ -5312,7 +6225,7 @@ async function renderAsbuiltsTab(el){
     <div style="font-size:22px">\${p.file_name?.match(/\\.pdf$/i)?'📄':'🖼'}</div>
     <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${p.file_name}</div>
     <div style="font-size:10px;color:#414e63;margin-top:1px">\${fd(p.created_at)} · \${(p.markup_json?.dots||[]).length} dots · \${(p.markup_json?.textboxes||[]).length} text boxes</div></div>
-    <button class="btn btn-sm btn-p" onclick="openPlanMarkup('\${p.id}','\${p.url}','\${p.file_name}',()=>loadJT('jt-asbuilts'))">✏ Markup</button>
+    <button class="btn btn-sm btn-p" onclick="openPlanMarkup('\${p.id}','\${p.url}','\${p.file_name}',function(){renderJobDetail();setTimeout(function(){loadJT('jt-asbuilts')},200)})">✏ Markup</button>
     <a href="\${p.url}" target="_blank" class="btn btn-sm">View</a>
     <button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="deleteJobPlan('\${p.id}','\${p.storage_path||''}')">Del</button>
   </div>\`).join(''):empty('📐','No plans uploaded yet — upload PDF or image files to begin markup')}\` 
@@ -5400,8 +6313,6 @@ async function logPmVisitModal(){
 }
 
 </script>
-</body>
-</html>
 <script>
 // ══════════════════════════════════════════
 // NOTIFICATIONS PAGE + BADGE
@@ -7611,6 +8522,17 @@ async function viewTask(btn){
   modal('Task: '+t.title.substring(0,50), h, null, '', true)
 }
 
+async function filterNtkJobs(q){
+  var sel=document.getElementById('ntk-job');if(!sel)return
+  q=(q||'').toLowerCase().trim()
+  var html='<option value="">— No linked job —</option>'
+  ;(window._ntkJobsAll||[]).filter(function(j){
+    return !q||j.name.toLowerCase().includes(q)||(j.job_number||'').toLowerCase().includes(q)
+  }).forEach(function(j){
+    html+='<option value="'+j.id+'|'+j.name+'">'+(j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>'
+  })
+  sel.innerHTML=html
+}
 async function newTaskModal(){
   if(!window._faxBidUsers){
     var r=await sb.from('profiles').select('id,full_name,role').in('role',['admin','pm','estimator','foreman','stager'])
@@ -7618,14 +8540,17 @@ async function newTaskModal(){
   }
   var userOpts=''
   ;(window._faxBidUsers||[]).forEach(function(u){userOpts+='<option value="'+u.id+'">'+(u.full_name||u.id)+'</option>'})
-  var rJobs=await sb.from('jobs').select('id,name').eq('archived',false).order('name',{ascending:true}).limit(50)
+  var rJobs=await sb.from('jobs').select('id,name,job_number').eq('archived',false).order('name',{ascending:true}).limit(500)
   var jobOpts=''
-  ;(rJobs.data||[]).forEach(function(j){jobOpts+='<option value="'+j.id+'|'+j.name+'">'+j.name+'</option>'})
+  window._ntkJobsAll=rJobs.data||[]
+  ;window._ntkJobsAll.forEach(function(j){jobOpts+='<option value="'+j.id+'|'+j.name+'">'+(j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>'})
   var h='<div class="fg"><label class="fl">Title *</label><input class="fi" id="ntk-title" placeholder="What needs to be done?"></div>'
   h+='<div class="fg"><label class="fl">Description</label><textarea class="ft" id="ntk-desc"></textarea></div>'
-  h+='<div class="two"><div class="fg"><label class="fl">Linked Job</label><select class="fs" id="ntk-job"><option value="">— No linked job —</option>'+jobOpts+'</select></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Linked Job</label><input class="fi" id="ntk-job-search" placeholder="Search name or job ID..." oninput="filterNtkJobs(this.value)" autocomplete="off" style="margin-bottom:4px"><select class="fs" id="ntk-job"><option value="">— No linked job —</option>'+jobOpts+'</select></div>'
   h+='<div class="fg"><label class="fl">Priority</label><select class="fs" id="ntk-pri"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div></div>'
   h+='<div class="fg"><label class="fl">Assign To *</label><select class="fs" id="ntk-assign"><option value="">— Select person —</option>'+userOpts+'</select></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="ntk-due"></div>'
+  h+='<div class="fg"><label class="fl">Est. Hours</label><input class="fi" type="number" id="ntk-hrs" step="0.5" placeholder="Optional"></div></div>'
   modal('New Task', h, async function(){
     var title=(document.getElementById('ntk-title').value||'').trim()
     if(!title){toast('Title required','error');return}
@@ -7703,6 +8628,26 @@ function filterMyTasks(){
   }
 }
 
+function buildLaborAlertWidget(alerts){
+  var over=alerts.filter(function(a){return a.over})
+  var near=alerts.filter(function(a){return !a.over})
+  var h='<div class="card" style="border:1px solid rgba(220,38,38,.3);margin-bottom:14px">'
+  h+='<div class="card-title" style="color:#dc2626;margin-bottom:8px">⚠ Labor Budget Alerts</div>'
+  over.slice(0,5).forEach(function(a){
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+    h+='<div><div style="font-size:12px;font-weight:500">'+a.job.name+'</div>'
+    h+='<div style="font-size:10px;color:#dc2626">'+a.hrs.toFixed(1)+' hrs / '+a.lb+' budgeted</div></div>'
+    h+='<span class="badge" style="background:rgba(220,38,38,.15);color:#dc2626">'+a.pct+'% ↗</span></div>'
+  })
+  near.slice(0,3).forEach(function(a){
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+    h+='<div><div style="font-size:12px;font-weight:500">'+a.job.name+'</div>'
+    h+='<div style="font-size:10px;color:#d97706">'+a.hrs.toFixed(1)+' hrs / '+a.lb+' budgeted</div></div>'
+    h+='<span class="badge" style="background:rgba(217,119,6,.15);color:#d97706">'+a.pct+'%</span></div>'
+  })
+  h+='</div>'
+  return h
+}
 function buildMyWalksDashWidget(walks, jobMap){
   if(!walks||!walks.length)return''
   var rows=walks.map(function(w){
@@ -8771,145 +9716,430 @@ async function crmDeleteLead(btn){
 // ── INSPECTIONS ─────────────────────────────────────────────────
 async function pgCrmInspections(){
   document.getElementById('topbar-actions').innerHTML=
-    '<button class="btn btn-p btn-sm" onclick="crmNewInspection()">+ Schedule Inspection</button>'
+    '<button class="btn btn-sm" onclick="pgInspectionReports()">&#128196; Reports</button>'+
+    '<button class="btn btn-p btn-sm" onclick="startNewInspection()">+ Start Inspection</button>'
   var res=await sb.from('crm_inspections').select('*,crm_accounts(name),crm_buildings(name,address)').order('next_due',{ascending:true})
   var insps=res.data||[]
   var now=new Date()
-  var overdue=insps.filter(function(i){return new Date(i.next_due)<now&&i.status!=='completed'})
-  var due30=insps.filter(function(i){var d=new Date(i.next_due);return d>=now&&d<=new Date(now.getTime()+30*86400000)&&i.status!=='completed'})
-  var due90=insps.filter(function(i){var d=new Date(i.next_due);return d>new Date(now.getTime()+30*86400000)&&d<=new Date(now.getTime()+90*86400000)&&i.status!=='completed'})
+  var overdue=insps.filter(function(i){return new Date(i.next_due)<now&&i.status!=='completed'}).length
+  var due30=insps.filter(function(i){var d=new Date(i.next_due);return d>=now&&d<=new Date(now.getTime()+30*86400000)&&i.status!=='completed'}).length
+  var done=insps.filter(function(i){return i.status==='completed'}).length
   var h='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px">'
-  h+='<div class="stat" style="border-left:3px solid #dc2626"><div class="stat-label">Overdue</div><div class="stat-value" style="color:#dc2626">'+overdue.length+'</div></div>'
-  h+='<div class="stat" style="border-left:3px solid #d97706"><div class="stat-label">Due in 30 Days</div><div class="stat-value" style="color:#d97706">'+due30.length+'</div></div>'
-  h+='<div class="stat" style="border-left:3px solid #2563eb"><div class="stat-label">Due in 90 Days</div><div class="stat-value" style="color:#2563eb">'+due90.length+'</div></div>'
-  h+='<div class="stat"><div class="stat-label">Total Tracked</div><div class="stat-value">'+insps.length+'</div></div>'
-  h+='</div>'
-  h+='<div style="display:flex;gap:8px;margin-bottom:14px">'
-  h+='<select class="fs" id="insp-filter" style="width:180px" onchange="filterInspections(this.value)">'
-  h+='<option value="all">All Inspections</option><option value="overdue">Overdue</option><option value="30">Due in 30 days</option><option value="90">Due in 90 days</option><option value="completed">Completed</option></select>'
-  h+='<input class="fi" id="insp-search" placeholder="Search..." style="width:220px" oninput="crmInspSearchFilter(this.value)">'
+  h+='<div class="stat" style="border-left:3px solid #dc2626"><div class="stat-label">Overdue</div><div class="stat-value">'+overdue+'</div></div>'
+  h+='<div class="stat" style="border-left:3px solid #d97706"><div class="stat-label">Due in 30 Days</div><div class="stat-value">'+due30+'</div></div>'
+  h+='<div class="stat" style="border-left:3px solid #16a34a"><div class="stat-label">Completed</div><div class="stat-value">'+done+'</div></div>'
+  h+='<div class="stat"><div class="stat-label">Total Tracked</div><div class="stat-value">'+insps.length+'</div></div></div>'
+  h+='<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">'
+  h+='<button class="btn btn-sm insp-type-tab active" data-type="all" onclick="inspTabClick(this)">All</button>'
+  h+='<button class="btn btn-sm insp-type-tab" data-type="Fire Alarm" onclick="inspTabClick(this)">&#128293; Fire Alarm</button>'
+  h+='<button class="btn btn-sm insp-type-tab" data-type="Sprinkler" onclick="inspTabClick(this)">&#128167; Sprinkler</button>'
+  h+='<button class="btn btn-sm insp-type-tab" data-type="ERRC" onclick="inspTabClick(this)">&#9888; ERRC</button>'
+  h+='<input class="fi" id="insp-search" placeholder="Search..." style="width:200px;margin-left:auto" oninput="inspSearchInput()">'
   h+='</div>'
   h+='<div id="insp-list">'+buildInspTable(insps)+'</div>'
   document.getElementById('page-area').innerHTML=h
   window._crmInspections=insps
 }
-
 function buildInspTable(insps){
-  if(!insps.length)return empty('🔍','No inspections tracked yet')
+  if(!insps.length)return empty('&#128269;','No inspections yet')
   var now=new Date()
-  var h='<table class="tbl"><thead><tr><th>Building / Site</th><th>Account</th><th>Type</th><th>Last Done</th><th>Next Due</th><th>Status</th><th></th></tr></thead><tbody>'
+  var typeIcon={'Fire Alarm':'&#128293;','Sprinkler':'&#128167;','ERRC':'&#9888;'}
+  var h='<table class="tbl"><thead><tr><th>Building</th><th>Account</th><th>Type</th><th>Frequency</th><th>Last Done</th><th>Next Due</th><th>Status</th><th></th></tr></thead><tbody>'
   insps.forEach(function(i){
-    var nextDue=new Date(i.next_due)
-    var daysUntil=Math.ceil((nextDue-now)/86400000)
+    var nextDue=new Date(i.next_due),daysUntil=Math.ceil((nextDue-now)/86400000)
     var dueColor=daysUntil<0?'#dc2626':daysUntil<=30?'#d97706':daysUntil<=90?'#2563eb':'#8a96ab'
     var dueLabel=daysUntil<0?Math.abs(daysUntil)+'d overdue':daysUntil===0?'Today':daysUntil+'d'
-    var bld=i.crm_buildings
-    var acc=i.crm_accounts
+    var bld=i.crm_buildings,acc=i.crm_accounts
     var stColor={scheduled:'#2563eb',completed:'#16a34a',overdue:'#dc2626',cancelled:'#414e63'}[i.status]||'#8a96ab'
+    var sysType=i.inspection_type||''
+    var icon=typeIcon[Object.keys(typeIcon).find(function(k){return sysType.includes(k)})||'']||''
     h+='<tr>'
-    h+='<td style="font-weight:500">'+(bld?bld.name:i.building_name||'—')+'<div style="font-size:10px;color:#414e63">'+(bld?bld.address||'':'')+'</div></td>'
+    h+='<td style="font-weight:500">'+(bld?bld.name:i.building_name||'—')+'</td>'
     h+='<td style="font-size:12px">'+(acc?acc.name:'—')+'</td>'
-    h+='<td style="font-size:12px">'+(i.inspection_type||'Annual')+'</td>'
+    h+='<td style="font-size:12px">'+(icon?icon+' ':'')+sysType+'</td>'
+    h+='<td style="font-size:12px">'+(i.frequency||'Annual')+'</td>'
     h+='<td style="font-size:12px;color:#8a96ab">'+(i.last_completed?fd(i.last_completed):'Never')+'</td>'
     h+='<td><div style="font-weight:500;color:'+dueColor+'">'+fd(i.next_due)+'</div><div style="font-size:10px;color:'+dueColor+'">'+dueLabel+'</div></td>'
     h+='<td><span style="font-size:11px;font-weight:600;color:'+stColor+'">'+i.status+'</span></td>'
     h+='<td style="display:flex;gap:4px">'
-    if(i.status!=='completed')h+='<button class="btn btn-sm btn-g" data-iid="'+i.id+'" onclick="crmCompleteInspection(this)">Complete</button>'
+    if(i.status!=='completed')h+='<button class="btn btn-sm btn-p" data-iid="'+i.id+'" onclick="conductInspection(this.dataset.iid)">Inspect</button>'
+    h+='<button class="btn btn-sm" data-iid="'+i.id+'" onclick="viewInspectionReportsFor(this.dataset.iid)">Reports</button>'
     h+='<button class="btn btn-sm btn-ghost" data-iid="'+i.id+'" onclick="crmEditInspection(this)">Edit</button>'
     h+='</td></tr>'
   })
   return h+'</tbody></table>'
 }
+function inspTabClick(btn){
+  document.querySelectorAll('.insp-type-tab').forEach(function(b){b.classList.remove('active')})
+  btn.classList.add('active')
+  filterInspections(btn.dataset.type||'all')
+}
+function inspSearchInput(){
+  var active=document.querySelector('.insp-type-tab.active')
+  filterInspections(active?active.dataset.type:'all')
+}
+function filterInspections(typeFilter,btn){
+  if(btn){document.querySelectorAll('.insp-type-tab').forEach(function(b){b.classList.remove('active')});btn.classList.add('active')}
 
-function filterInspections(filter){
+  if(btn){document.querySelectorAll('.insp-type-tab').forEach(function(b){b.classList.remove('active')});btn.classList.add('active')}
   var q=(document.getElementById('insp-search')||{}).value||''
-  var now=new Date()
   var insps=(window._crmInspections||[]).filter(function(i){
-    var matchQ=!q||(((i.crm_buildings||{}).name||i.building_name||'')+((i.crm_accounts||{}).name||'')+( i.inspection_type||'')).toLowerCase().includes(q.toLowerCase())
+    var matchQ=!q||((i.crm_buildings&&i.crm_buildings.name||i.building_name||'')+(i.crm_accounts&&i.crm_accounts.name||'')+(i.inspection_type||'')).toLowerCase().includes(q.toLowerCase())
     if(!matchQ)return false
-    if(filter==='all')return true
-    var d=new Date(i.next_due)
-    if(filter==='overdue')return d<now&&i.status!=='completed'
-    if(filter==='30')return d>=now&&d<=new Date(now.getTime()+30*86400000)&&i.status!=='completed'
-    if(filter==='90')return d>=now&&d<=new Date(now.getTime()+90*86400000)&&i.status!=='completed'
-    if(filter==='completed')return i.status==='completed'
-    return true
+    if(!typeFilter||typeFilter==='all')return true
+    return (i.inspection_type||'').includes(typeFilter)
   })
   var el=document.getElementById('insp-list')
   if(el)el.innerHTML=buildInspTable(insps)
 }
-
-async function crmNewInspection(){
+var INSP_TEMPLATES={
+  'Fire Alarm':{label:'Fire Alarm Inspection',icon:'&#128293;',nfpa:'NFPA 72',sections:[
+    {title:'Control Panel',items:['Panel display shows normal — no trouble or alarm signals','Panel free of corrosion, damage, or unauthorized modifications','Primary (AC) power indicator lit','Battery backup present and in good condition','All zone indicators functional','Event log reviewed for recent alarms or troubles']},
+    {title:'Smoke Detectors',items:['Detectors free of dust, paint, or physical damage','Detector spacing complies with NFPA 72','Each smoke detector tested — responds within acceptable range','No detectors missing or covered','Detector sensitivity within listed limits']},
+    {title:'Heat Detectors',items:['Heat detectors visually inspected — no physical damage','Location appropriate for area classification','Each heat detector tested (functional test)','Fixed-temperature and rate-of-rise elements operational']},
+    {title:'Manual Pull Stations',items:['All pull stations visible and unobstructed','Pull stations mounted at correct height (42"–48" AFF)','No damage or paint on pull stations','Each pull station tested — activates panel alarm','Pull station guards in place where required']},
+    {title:'Notification Appliances',items:['All horns, strobes, chimes operational','Strobes flash at correct candela rating','Appliances free of physical damage or paint','Audible devices meet minimum dB at 5 ft','Speaker/voice systems clear and intelligible (if applicable)']},
+    {title:'Flow & Tamper Switches',items:['Water flow switch activates panel within 90 seconds','Tamper switches functional on all OS&Y and PIV valves','Pre-action / deluge switches operational (if applicable)']},
+    {title:'Power & Wiring',items:['All wiring connections tight — no loose terminals','Battery voltage and impedance within spec','Battery load test performed','No splices outside approved junction boxes','Ground fault isolation operational']},
+    {title:'Suppression Interface',items:['CO2/clean agent release contacts tested (if applicable)','Door holders and magnetic releases operational','HVAC shutdown contacts functional','Elevator recall interface tested (if applicable)']}
+  ]},
+  'Sprinkler':{label:'Sprinkler System Inspection',icon:'&#128167;',nfpa:'NFPA 25',sections:[
+    {title:'Water Supply & Main Drain',items:['Main control valve (OS&Y or PIV) fully open and supervised','Main drain test performed — flow and pressure recorded','Static pressure: _____ psi  |  Residual: _____ psi','Backflow preventer tested and certified current','Water supply source adequate per hydraulic design']},
+    {title:'Sprinkler Heads',items:['All heads free of corrosion, paint, or physical damage','No loading or foreign material on heads','Clearance of 18" maintained below all heads','Correct temperature rating for area classification','No missing escutcheon plates','Spare sprinklers in cabinet','Spare head wrench present']},
+    {title:'Pipes & Hangers',items:['Visible piping free of damage, corrosion, or leaks','Hangers and supports properly secured','No unauthorized modifications to system','Pipe sleeves through walls sealed (fire stop)','System not used to support other objects']},
+    {title:'Control Valves',items:['All control valves in correct open position','All valves accessible and properly identified','Tamper switches on all supervised valves functional','Locked or sealed valves — seals intact','Post indicator valve (PIV) open and locked']},
+    {title:'Alarm Devices',items:['Water motor gong or electric bell operational','Water flow alarm activates within 90 seconds','Alarm check valve functional','Retard chamber functional (if applicable)']},
+    {title:'Wet Pipe Systems',items:['System fully charged with water','No sections drained or isolated','Gauge reads correct pressure','Inspector test connection present and operational','Drain valve and inspector test valve accessible']},
+    {title:'Dry / Pre-Action Systems',items:['Air pressure within acceptable range','Priming water level correct','Low air alarm tested and functional','Accelerator / exhauster functional (if applicable)','Trip test performed per NFPA 25 schedule']},
+    {title:'Documentation',items:['Previous inspection report on site and reviewed','Hydraulic design placard present at riser','Impairment procedures posted','Deficiency tags from prior inspection addressed']}
+  ]},
+  'ERRC':{label:'ERRC Inspection',icon:'&#9888;',nfpa:'ERRC',sections:[
+    {title:'Emergency Exits & Egress',items:['All exit doors operable and unobstructed','Exit signs illuminated (primary and battery backup)','Emergency lighting operational — 90-minute battery test','Exit paths clear and marked per NFPA 101','Panic hardware functional on all required doors','No padlocks or chains on required exit doors']},
+    {title:'Portable Fire Extinguishers',items:['All extinguishers visible, accessible, and mounted','Seals and pins intact','Pressure gauge in green zone','Inspection tags current','No extinguisher more than 12 months past annual service','Correct type and rating for hazard class','Within required travel distance (75 ft for Class A)']},
+    {title:'Suppression Systems — Visual',items:['Kitchen hood suppression service tag current','Fusible links in range hood in good condition','CO2/clean agent systems — no visible damage','Suppression manual pull accessible and labeled']},
+    {title:'Housekeeping & Storage',items:['No combustibles within 18" of sprinkler heads','Electrical panels accessible — 36" clearance maintained','No storage in mechanical, electrical, or boiler rooms','Rubbish and waste properly contained','Flammable/combustible liquids in approved containers','Storage height within approved rack limits']},
+    {title:'Hazardous Materials',items:['SDS sheets available for all hazardous materials on site','Hazmat storage areas properly labeled','Incompatible materials separated','Spill containment adequate','Quantities within code-permitted limits']},
+    {title:'Life Safety Systems',items:['CO detectors present and functional (if required)','Emergency communication system operational','AED present, charged, and accessible (if required)','First aid supplies stocked and accessible','Emergency contact numbers posted','Fire department connection (FDC) accessible and capped']},
+    {title:'Building Systems',items:['HVAC operational and filters current','Electrical — no exposed wiring, tripped breakers','Generator tested and fuel adequate (if applicable)','Elevator inspection certificate current (if applicable)','Roof access hatches operational and locked']},
+    {title:'Documentation & Training',items:['Occupancy load posted at assembly areas','Emergency action plan (EAP) current and posted','Fire drill conducted within required frequency','Employee training records current','Previous inspection deficiencies corrected']}
+  ]}
+}
+async function startNewInspection(){
   if(!window._crmAccounts){var r=await sb.from('crm_accounts').select('id,name').order('name');window._crmAccounts=r.data||[]}
-  var accOpts='<option value="">— No account —</option>'+(window._crmAccounts||[]).map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>'}).join('')
-  var h='<div class="fg"><label class="fl">Account</label><select class="fs" id="ni-acc" onchange="loadBuildingsForInspection(this.value)">'+accOpts+'</select></div>'
+  var accOpts='<option value="">— Select account —</option>'+(window._crmAccounts||[]).map(function(a){return'<option value="'+a.id+'">'+a.name+'</option>'}).join('')
+  var sysTypes=Object.keys(INSP_TEMPLATES).map(function(k){return'<option value="'+k+'">'+INSP_TEMPLATES[k].icon+' '+INSP_TEMPLATES[k].label+'</option>'}).join('')
+  var h='<div class="fg"><label class="fl">Inspection Type *</label><select class="fs" id="ni-sys">'+sysTypes+'</select></div>'
+  h+='<div class="fg"><label class="fl">Account</label><select class="fs" id="ni-acc" onchange="loadBuildingsForInspection(this.value)">'+accOpts+'</select></div>'
   h+='<div class="fg"><label class="fl">Building / Site</label><select class="fs" id="ni-bld"><option value="">— Select account first —</option></select></div>'
-  h+='<div class="fg"><label class="fl">Or enter building name manually</label><input class="fi" id="ni-bname" placeholder="Leave blank if selected above"></div>'
-  h+='<div class="two"><div class="fg"><label class="fl">Inspection Type</label><select class="fs" id="ni-type"><option value="Annual">Annual</option><option value="Semi-Annual">Semi-Annual</option><option value="Quarterly">Quarterly</option><option value="Monthly">Monthly</option><option value="Pre-Test">Pre-Test</option><option value="Final">Final</option><option value="Other">Other</option></select></div>'
-  h+='<div class="fg"><label class="fl">Next Due Date *</label><input class="fi" type="date" id="ni-due"></div></div>'
-  h+='<div class="fg"><label class="fl">Last Completed Date</label><input class="fi" type="date" id="ni-last"></div>'
+  h+='<div class="fg"><label class="fl">Or enter building name manually</label><input class="fi" id="ni-bname" placeholder="e.g. 123 Main St"></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Frequency</label><select class="fs" id="ni-freq"><option value="Annual">Annual</option><option value="Semi-Annual">Semi-Annual</option><option value="Quarterly">Quarterly</option><option value="Monthly">Monthly</option></select></div>'
+  h+='<div class="fg"><label class="fl">Inspector</label><input class="fi" id="ni-inspector" value="'+(window.ME&&window.ME.full_name||'')+'"></div></div>'
   h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ni-notes" style="min-height:50px"></textarea></div>'
-  modal('Schedule Inspection', h, async function(){
-    var due=document.getElementById('ni-due').value
-    if(!due){toast('Due date required','error');return}
+  modal('Start New Inspection',h,async function(){
+    var sysType=document.getElementById('ni-sys').value
     var accId=document.getElementById('ni-acc').value||null
     var bldId=document.getElementById('ni-bld').value||null
     var bname=document.getElementById('ni-bname').value||null
-    var res=await sb.from('crm_inspections').insert({id:uuid(),account_id:accId,building_id:bldId||null,building_name:bname,inspection_type:document.getElementById('ni-type').value,next_due:due,last_completed:document.getElementById('ni-last').value||null,status:'scheduled',notes:document.getElementById('ni-notes').value||null,created_at:new Date().toISOString()})
-    if(res.error){toast(res.error.message,'error');return}
-    closeModal();pgCrmInspections();toast('Inspection scheduled')
-  },'Schedule')
+    var freq=document.getElementById('ni-freq').value
+    var inspector=document.getElementById('ni-inspector').value
+    var notes=document.getElementById('ni-notes').value
+    var today=new Date().toISOString().split('T')[0]
+    var inspId=uuid()
+    var ins=await sb.from('crm_inspections').insert({id:inspId,account_id:accId,building_id:bldId||null,building_name:bname,inspection_type:sysType,frequency:freq,status:'scheduled',next_due:today,notes:notes,created_at:new Date().toISOString()})
+    if(ins.error){toast(ins.error.message,'error');return}
+    closeModal()
+    conductInspectionFlow(inspId,sysType,inspector,notes)
+  },'Start Inspection')
 }
-
+async function conductInspection(inspId){
+  var insp=(window._crmInspections||[]).find(function(i){return i.id===inspId})
+  if(!insp)return
+  conductInspectionFlow(inspId,insp.inspection_type,window.ME&&window.ME.full_name||'','')
+}
+function conductInspectionFlow(inspId,sysType,inspector,prefillNotes){
+  var tmpl=INSP_TEMPLATES[sysType]
+  if(!tmpl){toast('Unknown inspection type','error');return}
+  window._inspResults={};window._inspPhotos={};window._wizNotes={}
+  window._inspId=inspId;window._inspType=sysType
+  if(window.innerWidth<768){launchWizardInspection(inspId,sysType,tmpl,inspector,prefillNotes)}
+  else{launchFullFormInspection(inspId,sysType,tmpl,inspector,prefillNotes)}
+}
+function launchFullFormInspection(inspId,sysType,tmpl,inspector,prefillNotes){
+  var pa=document.getElementById('page-area')
+  var totalItems=0;tmpl.sections.forEach(function(s){totalItems+=s.items.length})
+  var h='<div style="max-width:900px">'
+  h+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">'
+  h+='<div><div style="font-size:20px;font-weight:600">'+tmpl.icon+' '+tmpl.label+'</div>'
+  h+='<div style="font-size:12px;color:#8a96ab">'+tmpl.nfpa+'</div></div>'
+  h+='<div style="margin-left:auto;display:flex;gap:8px">'
+  h+='<button class="btn btn-sm" onclick="pgCrmInspections()">Cancel</button>'
+  h+='<button class="btn btn-p" onclick="submitInspection()">&#10003; Complete &amp; Save</button></div></div>'
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">'
+  h+='<div class="fg"><label class="fl">Inspector</label><input class="fi" id="insp-inspector" value="'+inspector+'"></div>'
+  h+='<div class="fg"><label class="fl">Date</label><input class="fi" type="date" id="insp-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'
+  h+='<div class="fg"><label class="fl">Conditions</label><input class="fi" id="insp-conditions" placeholder="e.g. Clear, 72F"></div></div>'
+  h+='<div style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;font-size:11px;color:#8a96ab;margin-bottom:4px"><span>Progress</span><span id="insp-progress-label">0 / '+totalItems+' items</span></div>'
+  h+='<div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px"><div id="insp-progress-bar" style="height:100%;width:0%;background:#2563eb;border-radius:3px;transition:width .3s"></div></div></div>'
+  tmpl.sections.forEach(function(sec,si){
+    h+='<div class="card" style="margin-bottom:12px"><div class="card-title" style="margin-bottom:12px">'+sec.title+'</div>'
+    sec.items.forEach(function(item,ii){
+      var id='item-'+si+'-'+ii
+      h+='<div class="insp-row" id="row-'+id+'" style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+      h+='<div style="flex:1;font-size:13px;padding-top:6px">'+item+'</div>'
+      h+='<div style="display:flex;gap:5px;flex-shrink:0">'
+      h+='<button class="btn btn-sm insp-btn" data-id="'+id+'" data-val="pass" onclick="setItemResult(this)" style="color:#16a34a;border-color:rgba(22,163,74,.3)">Pass</button>'
+      h+='<button class="btn btn-sm insp-btn" data-id="'+id+'" data-val="fail" onclick="setItemResult(this)" style="color:#dc2626;border-color:rgba(220,38,38,.3)">Fail</button>'
+      h+='<button class="btn btn-sm insp-btn" data-id="'+id+'" data-val="na" onclick="setItemResult(this)" style="color:#8a96ab;border-color:rgba(255,255,255,.1)">N/A</button>'
+      h+='</div></div>'
+      h+='<div id="def-'+id+'" style="display:none;padding:6px 0 10px;margin-left:4px">'
+      h+='<input class="fi" id="note-'+id+'" placeholder="Describe deficiency..." style="margin-bottom:6px">'
+      h+='<div style="display:flex;gap:6px;align-items:center">'
+      h+='<label class="btn btn-sm def-photo-label" data-id="'+id+'" style="cursor:pointer">&#128247; Photo'
+        +'<input type="file" accept="image/*" capture="environment" style="display:none" onchange="attachDefPhoto(this)"></label>'
+      h+='<span id="photo-'+id+'" style="font-size:11px;color:#16a34a"></span></div></div>'
+    })
+    h+='</div>'
+  })
+  h+='<div class="fg"><label class="fl">Overall Notes</label><textarea class="ft" id="insp-notes" style="min-height:80px">'+prefillNotes+'</textarea></div>'
+  h+='<button class="btn btn-p btn-full" onclick="submitInspection()">&#10003; Complete Inspection &amp; Generate Report</button>'
+  h+='</div>'
+  pa.innerHTML=h
+}
+function launchWizardInspection(inspId,sysType,tmpl,inspector,prefillNotes){
+  window._wizItems=[]
+  tmpl.sections.forEach(function(sec,si){sec.items.forEach(function(item,ii){window._wizItems.push({id:'item-'+si+'-'+ii,text:item,section:sec.title})})})
+  window._wizCurrent=0;window._wizInspector=inspector;window._wizPrefillNotes=prefillNotes;window._wizTmpl=tmpl
+  renderWizardStep()
+}
+function renderWizardStep(){
+  var items=window._wizItems,idx=window._wizCurrent,item=items[idx],total=items.length,tmpl=window._wizTmpl
+  var done=Object.keys(window._inspResults||{}).length,pct=Math.round(done/total*100)
+  var result=(window._inspResults||{})[item.id]
+  var pa=document.getElementById('page-area')
+  var h='<div style="max-width:600px;margin:0 auto">'
+  h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'
+  h+='<button class="btn btn-sm btn-ghost" onclick="pgCrmInspections()">&#8592; Exit</button>'
+  h+='<div style="flex:1"><div style="font-size:14px;font-weight:600">'+tmpl.icon+' '+tmpl.label+'</div>'
+  h+='<div style="font-size:11px;color:#8a96ab">Item '+(idx+1)+' of '+total+'</div></div>'
+  h+='<button class="btn btn-sm btn-p" onclick="submitInspection()">Done</button></div>'
+  h+='<div style="margin-bottom:16px"><div style="height:8px;background:rgba(255,255,255,.06);border-radius:4px"><div style="height:100%;width:'+pct+'%;background:#2563eb;border-radius:4px;transition:width .3s"></div></div>'
+  h+='<div style="display:flex;justify-content:space-between;font-size:10px;color:#414e63;margin-top:3px"><span>'+done+' answered</span><span>'+pct+'%</span></div></div>'
+  h+='<div style="font-size:11px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">'+item.section+'</div>'
+  h+='<div class="card" style="margin-bottom:12px">'
+  h+='<div style="font-size:15px;line-height:1.5;margin-bottom:16px">'+item.text+'</div>'
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
+  h+='<button class="btn wiz-result-btn" data-id="'+item.id+'" data-val="pass" onclick="wizResultClick(this)"'
+    +' style="padding:14px;font-size:14px;color:#16a34a;border-color:rgba(22,163,74,.3);background:'+( result==='pass'?'rgba(22,163,74,.2)':'')+'">&#10003; Pass</button>'
+  h+='<button class="btn wiz-result-btn" data-id="'+item.id+'" data-val="fail" onclick="wizResultClick(this)"'
+    +' style="padding:14px;font-size:14px;color:#dc2626;border-color:rgba(220,38,38,.3);background:'+( result==='fail'?'rgba(220,38,38,.2)':'')+'">&#10007; Fail</button>'
+  h+='<button class="btn wiz-result-btn" data-id="'+item.id+'" data-val="na" onclick="wizResultClick(this)"'
+    +' style="padding:14px;font-size:14px;color:#8a96ab;border-color:rgba(255,255,255,.1);background:'+( result==='na'?'rgba(255,255,255,.1)':'')+'">N/A</button>'
+  if(result==='fail'){
+    h+='<div style="margin-top:12px;border-top:1px solid rgba(255,255,255,.06);padding-top:12px">'
+    h+='<div style="font-size:11px;color:#dc2626;font-weight:600;margin-bottom:6px">&#9888; Deficiency Details</div>'
+    h+='<textarea class="ft" id="wiz-note" style="min-height:70px" placeholder="Describe the deficiency...">'+(window._wizNotes&&window._wizNotes[item.id]||'')+'</textarea>'
+    h+='<div style="display:flex;gap:8px;margin-top:8px;align-items:center">'
+    h+='<label class="btn btn-sm wiz-photo-label" data-id="'+item.id+'" style="cursor:pointer">&#128247; Add Photo'
+      +'<input type="file" accept="image/*" capture="environment" style="display:none" onchange="wizAttachPhoto(this)"></label>'
+    h+='<span id="wiz-photo-label" style="font-size:11px;color:#16a34a">'+(window._inspPhotos&&window._inspPhotos[item.id]?'&#10003; Photo attached':'')+'</span>'
+    h+='</div></div>'
+  }
+  h+='</div>'
+  h+='<div style="display:flex;gap:8px">'
+  if(idx>0)h+='<button class="btn btn-full" onclick="wizNav(-1)">&#8592; Previous</button>'
+  if(idx<total-1)h+='<button class="btn btn-p btn-full" onclick="wizNav(1)">'+(result?'Next &#8594;':'Skip &#8594;')+'</button>'
+  else h+='<button class="btn btn-p btn-full" onclick="submitInspection()">&#10003; Complete</button>'
+  h+='</div></div>'
+  pa.innerHTML=h
+}
+function wizSaveCurrentNote(){
+  var item=window._wizItems&&window._wizItems[window._wizCurrent]
+  if(!item)return
+  if((window._inspResults||{})[item.id]==='fail'){var n=document.getElementById('wiz-note');if(n){window._wizNotes=window._wizNotes||{};window._wizNotes[item.id]=n.value}}
+}
+function wizResultClick(btn){
+  wizSetResult(btn.dataset.id, btn.dataset.val)
+}
+function wizSetResult(id,val){
+  wizSaveCurrentNote()
+  window._inspResults=window._inspResults||{}
+  window._inspResults[id]=val
+  if(val!=='fail'){setTimeout(function(){if(window._wizCurrent<window._wizItems.length-1){window._wizCurrent++;renderWizardStep()}else renderWizardStep()},300)}
+  else{renderWizardStep()}
+}
+function wizNav(dir){wizSaveCurrentNote();window._wizCurrent=Math.max(0,Math.min(window._wizItems.length-1,window._wizCurrent+dir));renderWizardStep()}
+function wizAttachPhoto(input){var id=input.closest('[data-id]')&&input.closest('[data-id]').dataset.id||'';if(!id)return;
+  var file=input.files[0];if(!file)return
+  var reader=new FileReader()
+  reader.onload=function(e){window._inspPhotos=window._inspPhotos||{};window._inspPhotos[id]=e.target.result;var lbl=document.getElementById('wiz-photo-label');if(lbl)lbl.innerHTML='&#10003; Photo attached'}
+  reader.readAsDataURL(file)
+}
+function setItemResult(btn){
+  var id=btn.dataset.id,val=btn.dataset.val
+  window._inspResults=window._inspResults||{}
+  window._inspResults[id]=val
+  document.querySelectorAll('.insp-btn[data-id="'+id+'"]').forEach(function(b){
+    b.style.background=b.dataset.val===val?(val==='pass'?'rgba(22,163,74,.2)':val==='fail'?'rgba(220,38,38,.2)':'rgba(255,255,255,.1)'):''
+  })
+  var defDiv=document.getElementById('def-'+id);if(defDiv)defDiv.style.display=val==='fail'?'block':'none'
+  var tmpl=INSP_TEMPLATES[window._inspType]
+  if(tmpl){var tot=0;tmpl.sections.forEach(function(s){tot+=s.items.length});var done=Object.keys(window._inspResults).length;var pct=Math.round(done/tot*100);var bar=document.getElementById('insp-progress-bar');var lbl=document.getElementById('insp-progress-label');if(bar)bar.style.width=pct+'%';if(lbl)lbl.textContent=done+' / '+tot+' items'}
+}
+function attachDefPhoto(input){var id=input.closest('[data-id]')&&input.closest('[data-id]').dataset.id||'';if(!id)return;
+  var file=input.files[0];if(!file)return
+  var reader=new FileReader()
+  reader.onload=function(e){window._inspPhotos=window._inspPhotos||{};window._inspPhotos[id]=e.target.result;var lbl=document.getElementById('photo-'+id);if(lbl)lbl.innerHTML='&#10003; Photo attached'}
+  reader.readAsDataURL(file)
+}
+async function submitInspection(){
+  var inspId=window._inspId,sysType=window._inspType
+  var tmpl=INSP_TEMPLATES[sysType];if(!tmpl){toast('Unknown type','error');return}
+  wizSaveCurrentNote()
+  var results=window._inspResults||{},notes=window._wizNotes||{},photos=window._inspPhotos||{}
+  var inspector=(document.getElementById('insp-inspector')||{}).value||(window._wizInspector||'')
+  var date=(document.getElementById('insp-date')||{}).value||new Date().toISOString().split('T')[0]
+  var conditions=(document.getElementById('insp-conditions')||{}).value||''
+  var overallNotes=(document.getElementById('insp-notes')||{}).value||(window._wizPrefillNotes||'')
+  var totalItems=0;tmpl.sections.forEach(function(s){totalItems+=s.items.length})
+  var passCount=Object.values(results).filter(function(v){return v==='pass'}).length
+  var failCount=Object.values(results).filter(function(v){return v==='fail'}).length
+  var naCount=Object.values(results).filter(function(v){return v==='na'}).length
+  var deficiencies=[]
+  tmpl.sections.forEach(function(sec,si){sec.items.forEach(function(item,ii){var id='item-'+si+'-'+ii;if(results[id]==='fail'){var noteEl=document.getElementById('note-'+id);deficiencies.push({item:item,section:sec.title,note:noteEl?noteEl.value:(notes[id]||''),photo:photos[id]||null})}})})
+  if(!confirm('Save inspection? '+passCount+' passed, '+failCount+' failed, '+naCount+' N/A. Generate PDF?'))return
+  var reportId=uuid()
+  var reportData={id:reportId,inspection_id:inspId,system_type:sysType,inspector_name:inspector,inspection_date:date,conditions:conditions,results:results,deficiency_notes:notes,deficiencies:deficiencies,pass_count:passCount,fail_count:failCount,na_count:naCount,total_items:totalItems,overall_notes:overallNotes,created_at:new Date().toISOString()}
+  var ins=await sb.from('inspection_reports').insert(reportData)
+  if(ins.error){toast('Error saving: '+ins.error.message,'error');return}
+  var today=new Date(),nextDue=new Date(today)
+  var insp=(window._crmInspections||[]).find(function(i){return i.id===inspId})
+  var freq=(insp||{}).frequency||'Annual'
+  if(freq==='Annual')nextDue.setFullYear(nextDue.getFullYear()+1)
+  else if(freq==='Semi-Annual')nextDue.setMonth(nextDue.getMonth()+6)
+  else if(freq==='Quarterly')nextDue.setMonth(nextDue.getMonth()+3)
+  else nextDue.setMonth(nextDue.getMonth()+1)
+  await sb.from('crm_inspections').update({status:'completed',last_completed:date,next_due:nextDue.toISOString().split('T')[0],updated_at:new Date().toISOString()}).eq('id',inspId)
+  if(deficiencies.length>0&&confirm('Create '+deficiencies.length+' work order task'+(deficiencies.length!==1?'s':'')+' for deficiencies?')){
+    await Promise.all(deficiencies.map(function(def){return sb.from('tasks').insert({id:uuid(),title:'['+sysType+'] '+def.item.slice(0,80),description:'Section: '+def.section+' | '+def.item+(def.note?' | '+def.note:''),status:'open',priority:'high',source:'inspection',created_at:new Date().toISOString()})}))
+    toast(deficiencies.length+' work order tasks created','info')
+  }
+  toast('Inspection saved!','success')
+  setTimeout(function(){generateInspectionPDF(reportData,tmpl,insp)},400)
+}
+function generateInspectionPDF(report,tmpl,insp){
+  var bld=insp&&insp.crm_buildings?insp.crm_buildings.name:(insp&&insp.building_name)||'—'
+  var acc=insp&&insp.crm_accounts?insp.crm_accounts.name:'—'
+  var defList=report.deficiencies||[]
+  var passRate=report.total_items>0?Math.round(((report.pass_count+report.na_count)/report.total_items)*100):0
+  var statusColor=defList.length===0?'#16a34a':defList.length<=3?'#d97706':'#dc2626'
+  var statusText=defList.length===0?'PASS':defList.length<=3?'PASS WITH DEFICIENCIES':'FAIL'
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+tmpl.label+' Report</title><style>'
+  html+='body{font-family:Arial,sans-serif;font-size:12px;color:#1a1a1a;margin:0;padding:20px}'
+  html+='.header{border-bottom:2px solid #1a1a1a;padding-bottom:12px;margin-bottom:16px}h1{font-size:20px;margin:0 0 4px}h2{font-size:13px;border-bottom:1px solid #ccc;padding-bottom:4px;margin:18px 0 8px}'
+  html+='.meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}.meta-item{background:#f5f5f5;padding:8px;border-radius:4px}.meta-label{font-size:9px;text-transform:uppercase;color:#666;margin-bottom:2px}.meta-value{font-weight:600}'
+  html+='.status{text-align:center;padding:12px;border-radius:6px;margin-bottom:16px;font-size:16px;font-weight:700;color:white;background:'+statusColor+'}'
+  html+='.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}.sum-box{text-align:center;padding:10px;border-radius:4px;border:1px solid #ddd}.sum-num{font-size:22px;font-weight:300}.sum-lbl{font-size:9px;color:#666;text-transform:uppercase}'
+  html+='.sec{background:#f0f0f0;padding:6px 10px;font-weight:600;margin:8px 0 4px;font-size:11px}'
+  html+='.item-row{display:flex;align-items:flex-start;padding:4px 8px;border-bottom:1px solid #f0f0f0}.item-text{flex:1}'
+  html+='.result{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px;white-space:nowrap}.pass{background:#dcfce7;color:#166534}.fail{background:#fee2e2;color:#991b1b}.na{background:#f3f4f6;color:#6b7280}'
+  html+='.def{background:#fff3cd;border-left:3px solid #d97706;padding:8px;margin:4px 8px 8px;font-size:11px}'
+  html+='@media print{button{display:none}}'
+  html+='</style></head><body>'
+  html+='<div class="header"><h1>'+tmpl.label+'</h1><div style="font-size:11px;color:#666">'+tmpl.nfpa+' Compliance Inspection</div></div>'
+  html+='<div class="meta">'
+  html+='<div class="meta-item"><div class="meta-label">Building</div><div class="meta-value">'+bld+'</div></div>'
+  html+='<div class="meta-item"><div class="meta-label">Account</div><div class="meta-value">'+acc+'</div></div>'
+  html+='<div class="meta-item"><div class="meta-label">Date</div><div class="meta-value">'+(report.inspection_date||'')+'</div></div>'
+  html+='<div class="meta-item"><div class="meta-label">Inspector</div><div class="meta-value">'+(report.inspector_name||'—')+'</div></div>'
+  html+='<div class="meta-item"><div class="meta-label">Conditions</div><div class="meta-value">'+(report.conditions||'—')+'</div></div>'
+  html+='<div class="meta-item"><div class="meta-label">Pass Rate</div><div class="meta-value">'+passRate+'%</div></div>'
+  html+='</div>'
+  html+='<div class="status">'+statusText+'</div>'
+  html+='<div class="summary">'
+  html+='<div class="sum-box"><div class="sum-num" style="color:#16a34a">'+(report.pass_count||0)+'</div><div class="sum-lbl">Passed</div></div>'
+  html+='<div class="sum-box"><div class="sum-num" style="color:#dc2626">'+(report.fail_count||0)+'</div><div class="sum-lbl">Failed</div></div>'
+  html+='<div class="sum-box"><div class="sum-num" style="color:#6b7280">'+(report.na_count||0)+'</div><div class="sum-lbl">N/A</div></div>'
+  html+='<div class="sum-box"><div class="sum-num" style="color:#d97706">'+((report.total_items||0)-(report.pass_count||0)-(report.fail_count||0)-(report.na_count||0))+'</div><div class="sum-lbl">Not Checked</div></div>'
+  html+='</div>'
+  html+='<h2>Inspection Checklist</h2>'
+  tmpl.sections.forEach(function(sec,si){
+    html+='<div class="sec">'+sec.title+'</div>'
+    sec.items.forEach(function(item,ii){
+      var id='item-'+si+'-'+ii
+      var res=(report.results||{})[id]||'—'
+      html+='<div class="item-row"><span class="item-text">'+item+'</span><span class="result '+(res==='pass'?'pass':res==='fail'?'fail':res==='na'?'na':'')+'">'+res.toUpperCase()+'</span></div>'
+      if(res==='fail'){var n=(report.deficiency_notes||{})[id]||'';html+='<div class="def"><strong>&#9888; Deficiency</strong>'+(n?'<br>'+n:'')+'</div>'}
+    })
+  })
+  if(defList.length>0){html+='<h2 style="color:#dc2626">&#9888; Deficiencies ('+defList.length+')</h2>';defList.forEach(function(def,i){html+='<div class="def" style="margin:6px 0"><strong>'+(i+1)+'. ['+def.section+'] '+def.item+'</strong>'+(def.note?'<br>'+def.note:'')+'</div>'})}
+  if(report.overall_notes)html+='<h2>Notes</h2><p>'+report.overall_notes+'</p>'
+  html+='<div style="margin-top:40px;border-top:1px solid #ccc;padding-top:12px;font-size:10px;color:#999">Generated by FieldAxisHQ &middot; '+new Date().toLocaleString()+'</div>'
+  html+='<div style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px">'
+  html+='<div style="border-top:1px solid #666;padding-top:6px;font-size:11px">Inspector Signature<br><br>'+( report.inspector_name||'')+'</div>'
+  html+='<div style="border-top:1px solid #666;padding-top:6px;font-size:11px">Date: '+(report.inspection_date||'')+'</div>'
+  html+='</div></body></html>'
+  var win=window.open('','_blank')
+  if(win){win.document.write(html);win.document.close();setTimeout(function(){win.print()},800)}
+  pgCrmInspections()
+}
+async function pgInspectionReports(){
+  var res=await sb.from('inspection_reports').select('*').order('inspection_date',{ascending:false}).limit(100)
+  var reports=res.data||[]
+  var h='<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><h2 style="margin:0;font-size:16px">&#128196; Inspection Reports</h2><button class="btn btn-sm btn-ghost" onclick="pgCrmInspections()" style="margin-left:auto">&#8592; Back</button></div>'
+  if(!reports.length){h+=empty('&#128196;','No reports yet');document.getElementById('page-area').innerHTML=h;return}
+  h+='<table class="tbl"><thead><tr><th>Date</th><th>Type</th><th>Inspector</th><th>Pass</th><th>Fail</th><th>Result</th><th></th></tr></thead><tbody>'
+  reports.forEach(function(r){
+    var defCount=(r.deficiencies||[]).length
+    var stColor=defCount===0?'#16a34a':defCount<=3?'#d97706':'#dc2626'
+    var stText=defCount===0?'Pass':defCount<=3?'Pass w/ Deficiencies':'Fail'
+    h+='<tr><td>'+fd(r.inspection_date)+'</td><td>'+(INSP_TEMPLATES[r.system_type]?INSP_TEMPLATES[r.system_type].icon+' ':'')+( r.system_type||'')+'</td><td style="font-size:12px">'+(r.inspector_name||'—')+'</td><td style="color:#16a34a;font-weight:600">'+(r.pass_count||0)+'</td><td style="color:#dc2626;font-weight:600">'+(r.fail_count||0)+'</td><td><span style="font-size:11px;font-weight:600;color:'+stColor+'">'+stText+'</span></td>'
+    h+='<td><button class="btn btn-sm" data-rid="'+r.id+'" onclick="reprintReport(this.dataset.rid)">&#128196; PDF</button></td></tr>'
+  })
+  h+='</tbody></table>'
+  document.getElementById('page-area').innerHTML=h
+  window._allReports=reports
+}
+async function viewInspectionReportsFor(inspId){
+  var res=await sb.from('inspection_reports').select('*').eq('inspection_id',inspId).order('inspection_date',{ascending:false}).limit(1)
+  if(!res.data||!res.data.length){toast('No reports yet','info');return}
+  var r=res.data[0],insp=(window._crmInspections||[]).find(function(i){return i.id===inspId})
+  var tmpl=INSP_TEMPLATES[r.system_type];if(tmpl)generateInspectionPDF(r,tmpl,insp)
+}
+async function reprintReport(reportId){
+  var r=(window._allReports||[]).find(function(x){return x.id===reportId});if(!r)return
+  var tmpl=INSP_TEMPLATES[r.system_type];if(!tmpl){toast('Template not found','error');return}
+  generateInspectionPDF(r,tmpl,null)
+}
+async function crmNewInspection(){startNewInspection()}
 async function loadBuildingsForInspection(accountId){
-  var sel=document.getElementById('ni-bld')
-  if(!sel)return
+  var sel=document.getElementById('ni-bld');if(!sel)return
   if(!accountId){sel.innerHTML='<option value="">— Select account first —</option>';return}
   var r=await sb.from('crm_buildings').select('id,name').eq('account_id',accountId).order('name')
-  sel.innerHTML='<option value="">— Select building —</option>'+( r.data||[]).map(function(b){return'<option value="'+b.id+'">'+b.name+'</option>'}).join('')
+  sel.innerHTML='<option value="">— Select building —</option>'+(r.data||[]).map(function(b){return'<option value="'+b.id+'">'+b.name+'</option>'}).join('')
 }
-
-async function crmCompleteInspection(btn){
-  var id=btn.getAttribute('data-iid')
-  var today=new Date().toISOString().split('T')[0]
-  var insp=(window._crmInspections||[]).find(function(x){return x.id===id})
-  // Calculate next due based on type
-  var nextDue=new Date()
-  var type=(insp||{}).inspection_type||'Annual'
-  if(type==='Annual')nextDue.setFullYear(nextDue.getFullYear()+1)
-  else if(type==='Semi-Annual')nextDue.setMonth(nextDue.getMonth()+6)
-  else if(type==='Quarterly')nextDue.setMonth(nextDue.getMonth()+3)
-  else if(type==='Monthly')nextDue.setMonth(nextDue.getMonth()+1)
-  else nextDue.setFullYear(nextDue.getFullYear()+1)
-  var nextDueStr=nextDue.toISOString().split('T')[0]
-  var notes=prompt('Completion notes (optional):')||null
-  // Mark current as completed
-  await sb.from('crm_inspections').update({status:'completed',last_completed:today,completion_notes:notes,updated_at:new Date().toISOString()}).eq('id',id)
-  // Schedule next inspection
-  await sb.from('crm_inspections').insert({id:uuid(),account_id:(insp||{}).account_id,building_id:(insp||{}).building_id,building_name:(insp||{}).building_name,inspection_type:type,next_due:nextDueStr,status:'scheduled',created_at:new Date().toISOString()})
-  pgCrmInspections();toast('Inspection completed — next '+type+' scheduled for '+fd(nextDueStr))
-}
-
 async function crmEditInspection(btn){
   var id=btn.getAttribute('data-iid')
   var r=await sb.from('crm_inspections').select('*').eq('id',id).single()
   var i=r.data;if(!i)return
-  var typeOpts=['Annual','Semi-Annual','Quarterly','Monthly','Pre-Test','Final','Other'].map(function(t){return'<option'+(i.inspection_type===t?' selected':'')+'>'+t+'</option>'}).join('')
+  var sysTypes=Object.keys(INSP_TEMPLATES).map(function(k){return'<option value="'+k+'"'+(i.inspection_type===k?' selected':'')+'>'+INSP_TEMPLATES[k].icon+' '+INSP_TEMPLATES[k].label+'</option>'}).join('')
+  var freqOpts=['Annual','Semi-Annual','Quarterly','Monthly'].map(function(f){return'<option value="'+f+'"'+(i.frequency===f?' selected':'')+'>'+f+'</option>'}).join('')
   var statOpts=['scheduled','completed','overdue','cancelled'].map(function(s){return'<option value="'+s+'"'+(i.status===s?' selected':'')+'>'+s+'</option>'}).join('')
-  var h='<div class="two"><div class="fg"><label class="fl">Type</label><select class="fs" id="ei-type">'+typeOpts+'</select></div>'
-  h+='<div class="fg"><label class="fl">Status</label><select class="fs" id="ei-stat">'+statOpts+'</select></div></div>'
+  var h='<div class="two"><div class="fg"><label class="fl">Type</label><select class="fs" id="ei-sys">'+sysTypes+'</select></div>'
+  h+='<div class="fg"><label class="fl">Frequency</label><select class="fs" id="ei-freq">'+freqOpts+'</select></div></div>'
+  h+='<div class="fg"><label class="fl">Status</label><select class="fs" id="ei-stat">'+statOpts+'</select></div>'
   h+='<div class="two"><div class="fg"><label class="fl">Next Due</label><input class="fi" type="date" id="ei-due" value="'+(i.next_due||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Last Completed</label><input class="fi" type="date" id="ei-last" value="'+(i.last_completed||'')+'"></div></div>'
   h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ei-notes">'+(i.notes||'')+'</textarea></div>'
-  modal('Edit Inspection', h, async function(){
-    var res=await sb.from('crm_inspections').update({inspection_type:document.getElementById('ei-type').value,status:document.getElementById('ei-stat').value,next_due:document.getElementById('ei-due').value,last_completed:document.getElementById('ei-last').value||null,notes:document.getElementById('ei-notes').value||null,updated_at:new Date().toISOString()}).eq('id',id)
+  modal('Edit Inspection',h,async function(){
+    var res=await sb.from('crm_inspections').update({inspection_type:document.getElementById('ei-sys').value,frequency:document.getElementById('ei-freq').value,status:document.getElementById('ei-stat').value,next_due:document.getElementById('ei-due').value,last_completed:document.getElementById('ei-last').value||null,notes:document.getElementById('ei-notes').value,updated_at:new Date().toISOString()}).eq('id',id)
     if(res.error){toast(res.error.message,'error');return}
     closeModal();pgCrmInspections();toast('Inspection updated')
   },'Save')
 }
-
-
 </script>
+</body>
+</html>
 `
 const HTML_WORKER = `<!DOCTYPE html>
 <html lang="en">
@@ -9872,7 +11102,15 @@ function requireAuth(res, u)  { if (!u) { json(res, 401, { error: 'Not authentic
 function requireRole(res, u, ...roles) { if (!requireAuth(res, u)) return false; if (!roles.includes(u.role)) { json(res, 403, { error: 'Permission denied' }); return false; } return true; }
 
 // ── HTTP ──────────────────────────────────────────────────────────────────────
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS' };
+const ALLOWED_ORIGIN = (process.env.ALLOWED_ORIGIN || 'https://filed-ops.onrender.com').trim()
+// Validate CORS origin to prevent header injection crash
+const SAFE_ORIGIN = /^https?:\/\/[a-zA-Z0-9._-]+(:[0-9]+)?$/.test(ALLOWED_ORIGIN) ? ALLOWED_ORIGIN : 'https://filed-ops.onrender.com'
+const CORS = {
+  'Access-Control-Allow-Origin': SAFE_ORIGIN,
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+  'Vary': 'Origin'
+};
 function json(res, status, data) { res.writeHead(status, { 'Content-Type': 'application/json', ...CORS }); res.end(JSON.stringify(data)); }
 function readBody(req) { return new Promise(r => { let b = ''; req.on('data', c => b += c); req.on('end', () => { try { r(JSON.parse(b)); } catch(e) { r({}); }}); }); }
 function serveFile(res, fp, ct) { try { const d = fs.readFileSync(fp); res.writeHead(200, { 'Content-Type': ct }); res.end(d); } catch(e) { res.writeHead(404); res.end('Not found'); } }
@@ -9894,16 +11132,34 @@ const server = http.createServer(async (req, res) => {
   const p = parsed.pathname;
   const method = req.method;
 
-  if (method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
+  if (method === 'OPTIONS') { res.writeHead(204, {...CORS,'X-Content-Type-Options':'nosniff','X-Frame-Options':'SAMEORIGIN'}); return res.end(); }
 
   // Static files — embedded in server (always current), filesystem fallback
   if (method === 'GET' && !p.startsWith('/api/')) {
-    const h = {'Content-Type': 'text/html', ...CORS}
+    const SEC = {
+      'X-Frame-Options': 'SAMEORIGIN',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'camera=self, microphone=(), geolocation=self',
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+      'Content-Security-Policy':
+        "default-src 'self';" +
+        " script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://unpkg.com;" +
+        " style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;" +
+        " font-src 'self' https://fonts.gstatic.com;" +
+        " img-src 'self' data: blob: https:;" +
+        " connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;" +
+        " media-src 'self' blob:;" +
+        " worker-src 'self' blob:;"
+    }
+    const h = {'Content-Type': 'text/html', ...CORS, ...SEC}
     const j = {'Content-Type': 'application/javascript', ...CORS}
     if (p === '/' || p === '/index.html')   { res.writeHead(200, h); return res.end(HTML_INDEX) }
     if (p === '/admin.html')                { res.writeHead(200, h); return res.end(HTML_ADMIN) }
     if (p === '/worker.html')               { res.writeHead(200, h); return res.end(HTML_WORKER) }
     if (p === '/fax-shared.js')             { res.writeHead(200, j); return res.end(HTML_FAXJS) }
+    if (p === '/manifest.json')             { res.writeHead(200, {'Content-Type':'application/manifest+json',...CORS}); return res.end(PWA_MANIFEST) }
+    if (p === '/sw.js')                     { res.writeHead(200, {'Content-Type':'application/javascript','Service-Worker-Allowed':'/',...CORS}); return res.end(SW_JS) }
     if (/^\/award\/[a-f0-9]{64}$/.test(p)) { res.writeHead(200, h); return res.end(HTML_AWARD) }
     // Filesystem fallback for other assets
     const cleanPath = p.replace(/^\//, '')
@@ -9929,7 +11185,7 @@ const server = http.createServer(async (req, res) => {
       const user = rows[0];
       if (!user || !verifyPwd(password, user.password_hash)) return json(res, 401, { error: 'Invalid username or password' });
       return json(res, 200, { token: makeToken(user.id), user: safeUser(user) });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/me' && method === 'GET') {
     const u = await getUser(req); if (!u) return json(res, 401, { error: 'Not authenticated' });
@@ -9959,7 +11215,7 @@ const server = http.createServer(async (req, res) => {
   // ── USERS ─────────────────────────────────────────────────────────────────
   if (p === '/api/users' && method === 'GET') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin')) return;
-    try { return json(res, 200, (await dbGet('users', { select: '*', order: 'created_at.asc' })).map(safeUser)); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbGet('users', { select: '*', order: 'created_at.asc' })).map(safeUser)); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/users' && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin')) return;
@@ -9970,7 +11226,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const rows = await dbInsert('users', { id: uid(), username, password_hash: hashPwd(password), name, role, company_id: company_id || null, phone: phone || '', email: email || '', is_lead: !!is_lead, avatar_url: avatar_url || null, active: true, created_at: nowISO() });
       return json(res, 201, safeUser(rows[0]));
-    } catch(e) { return json(res, 400, { error: e.message.includes('unique') ? 'Username already taken' : e.message }); }
+    } catch(e) { return json(res, 400, { error: e.message && e.message.includes('unique') ? 'Username already taken' : 'Request failed' }); }
   }
   const uM = p.match(/^\/api\/users\/([^/]+)$/);
   if (uM && method === 'PUT') {
@@ -9978,29 +11234,29 @@ const server = http.createServer(async (req, res) => {
     const b = await readBody(req); const upd = {};
     ['name','role','active','phone','email','is_lead','company_id','avatar_url'].forEach(k => { if (b[k] !== undefined) upd[k] = b[k]; });
     if (b.password && b.password.length >= 6) upd.password_hash = hashPwd(b.password);
-    try { return json(res, 200, safeUser((await dbUpdate('users', upd, { id: 'eq.' + uM[1] }))[0])); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, safeUser((await dbUpdate('users', upd, { id: 'eq.' + uM[1] }))[0])); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (uM && method === 'DELETE') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin')) return;
     if (uM[1] === u.id) return json(res, 400, { error: "Can't delete yourself" });
-    try { await dbDelete('users', { id: 'eq.' + uM[1] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbDelete('users', { id: 'eq.' + uM[1] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── COMPANIES ─────────────────────────────────────────────────────────────
   if (p === '/api/companies' && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('companies', { is_active: 'eq.true', select: '*', order: 'name.asc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('companies', { is_active: 'eq.true', select: '*', order: 'name.asc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/companies' && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm')) return;
     const b = await readBody(req);
     if (!b.name) return json(res, 400, { error: 'name required' });
-    try { return json(res, 201, (await dbInsert('companies', { id: uid(), ...b, is_active: true, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('companies', { id: uid(), ...b, is_active: true, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const coM = p.match(/^\/api\/companies\/([^/]+)$/);
   if (coM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm')) return;
-    try { return json(res, 200, (await dbUpdate('companies', await readBody(req), { id: 'eq.' + coM[1] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('companies', await readBody(req), { id: 'eq.' + coM[1] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── JOBS ─────────────────────────────────────────────────────────────────
@@ -10018,7 +11274,7 @@ const server = http.createServer(async (req, res) => {
         params['id'] = 'in.(' + jobIds.join(',') + ')';
       }
       return json(res, 200, await dbGet('jobs', params));
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/jobs' && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
@@ -10045,7 +11301,7 @@ const server = http.createServer(async (req, res) => {
       const rows = await dbInsert('jobs', job);
       await auditLog('job_created', job.id, null, job.name, u.name, '');
       return json(res, 201, rows[0]);
-    } catch(e) { return json(res, 400, { error: e.message }); }
+    } catch(e) { return json(res, 400, { error: 'Request failed' }); }
   }
   // Job CSV import
   if (p === '/api/jobs/import' && method === 'POST') {
@@ -10069,7 +11325,7 @@ const server = http.createServer(async (req, res) => {
       const rows = await dbGet('jobs', { id: 'eq.' + jM[1], select: '*' });
       if (!rows[0]) return json(res, 404, { error: 'Not found' });
       return json(res, 200, rows[0]);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (jM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager', 'technician')) return;
@@ -10080,24 +11336,24 @@ const server = http.createServer(async (req, res) => {
     try {
       await auditLog('job_updated', jM[1], null, null, u.name, JSON.stringify(upd).slice(0, 200));
       return json(res, 200, (await dbUpdate('jobs', upd, { id: 'eq.' + jM[1] }))[0]);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── JOB WORKERS (sub assignment) ──────────────────────────────────────────
   const jwM = p.match(/^\/api\/jobs\/([^/]+)\/workers$/);
   if (jwM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_workers', { job_id: 'eq.' + jwM[1], is_active: 'eq.true', select: '*' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_workers', { job_id: 'eq.' + jwM[1], is_active: 'eq.true', select: '*' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (jwM && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
     const { worker_id } = await readBody(req);
-    try { return json(res, 201, (await dbUpsert('job_workers', { id: uid(), job_id: jwM[1], worker_id, is_active: true, added_by: u.name, added_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbUpsert('job_workers', { id: uid(), job_id: jwM[1], worker_id, is_active: true, added_by: u.name, added_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const jwIM = p.match(/^\/api\/jobs\/([^/]+)\/workers\/([^/]+)$/);
   if (jwIM && method === 'DELETE') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
-    try { await dbUpdate('job_workers', { is_active: false }, { job_id: 'eq.' + jwIM[1], worker_id: 'eq.' + jwIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbUpdate('job_workers', { is_active: false }, { job_id: 'eq.' + jwIM[1], worker_id: 'eq.' + jwIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── CHECK-INS (GPS) ───────────────────────────────────────────────────────
@@ -10110,7 +11366,7 @@ const server = http.createServer(async (req, res) => {
       if (parsed.query.job_id) params['job_id'] = 'eq.' + parsed.query.job_id;
       if (['sub_lead','sub_worker'].includes(u.role)) params['worker_id'] = 'eq.' + u.id;
       return json(res, 200, await dbGet('checkins', params));
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/checkins' && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -10146,14 +11402,14 @@ const server = http.createServer(async (req, res) => {
       const rec = await dbInsert('checkins', { id: uid(), job_id, worker_id: u.id, company_id: u.company_id || null, checkin_lat, checkin_lng, checkin_dist_ft: dist, status: 'checked_in', checkin_at: nowISO() });
       await auditLog('checkin', job_id, null, null, u.name, (dist || '?') + 'ft');
       return json(res, 201, rec[0]);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── JOB PARTS (warehouse staging) ─────────────────────────────────────────
   const jpM = p.match(/^\/api\/jobs\/([^/]+)\/parts$/);
   if (jpM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_parts', { job_id: 'eq.' + jpM[1], select: '*', order: 'created_at.asc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_parts', { job_id: 'eq.' + jpM[1], select: '*', order: 'created_at.asc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (jpM && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
@@ -10181,7 +11437,7 @@ const server = http.createServer(async (req, res) => {
       }
       await auditLog(action === 'out' ? 'signed_out' : 'staged', jobId, part_id, part_name, u.name, 'qty:' + (qty || 1));
       return json(res, 201, row);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const jpIM = p.match(/^\/api\/jobs\/([^/]+)\/parts\/([^/]+)$/);
   if (jpIM && method === 'PUT') {
@@ -10191,35 +11447,35 @@ const server = http.createServer(async (req, res) => {
       const upd = { ...b, updated_at: nowISO() };
       if (b.status === 'installed' || b.status === 'partial_install') { upd.installed_by = u.name; upd.installed_at = nowDisplay(); }
       return json(res, 200, (await dbUpdate('job_parts', upd, { id: 'eq.' + jpIM[2] }))[0]);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── JOB MANIFEST ──────────────────────────────────────────────────────────
   const mfM = p.match(/^\/api\/jobs\/([^/]+)\/manifest$/);
   if (mfM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_manifest', { job_id: 'eq.' + mfM[1], select: '*' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_manifest', { job_id: 'eq.' + mfM[1], select: '*' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (mfM && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
     const b = await readBody(req);
-    try { return json(res, 201, (await dbInsert('job_manifest', { id: uid(), job_id: mfM[1], ...b, added_by: u.name, added_at: nowDisplay() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('job_manifest', { id: uid(), job_id: mfM[1], ...b, added_by: u.name, added_at: nowDisplay() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const mfIM = p.match(/^\/api\/jobs\/([^/]+)\/manifest\/([^/]+)$/);
   if (mfIM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
-    try { return json(res, 200, (await dbUpdate('job_manifest', await readBody(req), { id: 'eq.' + mfIM[2] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('job_manifest', await readBody(req), { id: 'eq.' + mfIM[2] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (mfIM && method === 'DELETE') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
-    try { await dbDelete('job_manifest', { id: 'eq.' + mfIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbDelete('job_manifest', { id: 'eq.' + mfIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── ATTENDANCE ─────────────────────────────────────────────────────────────
   const attM = p.match(/^\/api\/jobs\/([^/]+)\/attendance$/);
   if (attM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_attendance', { job_id: 'eq.' + attM[1], select: '*', order: 'sign_in_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_attendance', { job_id: 'eq.' + attM[1], select: '*', order: 'sign_in_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (attM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -10237,11 +11493,11 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, { ok: true, hours: hrs });
       }
       return json(res, 400, { error: 'action must be signin or signout' });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/attendance/status' && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_attendance', { user_id: 'eq.' + u.id, sign_out_at: 'is.null', select: '*' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_attendance', { user_id: 'eq.' + u.id, sign_out_at: 'is.null', select: '*' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/attendance/report' && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -10259,14 +11515,14 @@ const server = http.createServer(async (req, res) => {
         byJob[r.job_id].techs[r.user_name] = (byJob[r.job_id].techs[r.user_name] || 0) + hrs;
       });
       return json(res, 200, { by_tech: Object.values(byTech), by_job: Object.values(byJob), raw: all });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── PHOTOS ─────────────────────────────────────────────────────────────────
   const phM = p.match(/^\/api\/jobs\/([^/]+)\/photos$/);
   if (phM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_photos', { job_id: 'eq.' + phM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_photos', { job_id: 'eq.' + phM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (phM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -10276,64 +11532,64 @@ const server = http.createServer(async (req, res) => {
       const r = (await dbInsert('job_photos', { id: uid(), job_id: phM[1], url: photoUrl, public_id: public_id || '', caption: caption || '', type: type || 'photo', photo_lat: photo_lat || null, photo_lng: photo_lng || null, dist_from_site_ft: dist_from_site_ft || null, uploaded_by: u.name, created_at: nowISO() }))[0];
       await auditLog('photo_uploaded', phM[1], null, null, u.name, caption || '');
       return json(res, 201, r);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const phIM = p.match(/^\/api\/jobs\/([^/]+)\/photos\/([^/]+)$/);
   if (phIM && method === 'DELETE') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { await dbDelete('job_photos', { id: 'eq.' + phIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbDelete('job_photos', { id: 'eq.' + phIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── PLANS ──────────────────────────────────────────────────────────────────
   const plM = p.match(/^\/api\/jobs\/([^/]+)\/plans$/);
   if (plM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_plans', { job_id: 'eq.' + plM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_plans', { job_id: 'eq.' + plM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (plM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const { url: planUrl, public_id, name, thumb_url, plan_type } = await readBody(req);
     if (!planUrl) return json(res, 400, { error: 'url required' });
-    try { return json(res, 201, (await dbInsert('job_plans', { id: uid(), job_id: plM[1], name: name || 'Plan', url: planUrl, public_id: public_id || '', thumb_url: thumb_url || '', plan_type: plan_type || 'plans', notes: '', uploaded_by: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('job_plans', { id: uid(), job_id: plM[1], name: name || 'Plan', url: planUrl, public_id: public_id || '', thumb_url: thumb_url || '', plan_type: plan_type || 'plans', notes: '', uploaded_by: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const plIM = p.match(/^\/api\/jobs\/([^/]+)\/plans\/([^/]+)$/);
   if (plIM && method === 'PUT') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, (await dbUpdate('job_plans', await readBody(req), { id: 'eq.' + plIM[2] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('job_plans', await readBody(req), { id: 'eq.' + plIM[2] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (plIM && method === 'DELETE') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { await dbDelete('job_plans', { id: 'eq.' + plIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbDelete('job_plans', { id: 'eq.' + plIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── CHECKLISTS ─────────────────────────────────────────────────────────────
   const chM = p.match(/^\/api\/jobs\/([^/]+)\/checklist$/);
   if (chM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('job_checklist_items', { job_id: 'eq.' + chM[1], select: '*', order: 'sort_order.asc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('job_checklist_items', { job_id: 'eq.' + chM[1], select: '*', order: 'sort_order.asc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (chM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const b = await readBody(req);
-    try { return json(res, 201, (await dbInsert('job_checklist_items', { id: uid(), job_id: chM[1], ...b, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('job_checklist_items', { id: uid(), job_id: chM[1], ...b, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const chIM = p.match(/^\/api\/jobs\/([^/]+)\/checklist\/([^/]+)$/);
   if (chIM && method === 'PUT') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const b = await readBody(req);
     if (b.is_checked !== undefined) { b.checked_by = b.is_checked ? u.name : null; b.checked_at = b.is_checked ? nowISO() : null; }
-    try { return json(res, 200, (await dbUpdate('job_checklist_items', b, { id: 'eq.' + chIM[2] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('job_checklist_items', b, { id: 'eq.' + chIM[2] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (chIM && method === 'DELETE') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { await dbDelete('job_checklist_items', { id: 'eq.' + chIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbDelete('job_checklist_items', { id: 'eq.' + chIM[2] }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── PM INSPECTIONS ─────────────────────────────────────────────────────────
   const insM = p.match(/^\/api\/jobs\/([^/]+)\/inspections$/);
   if (insM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('pm_inspections', { job_id: 'eq.' + insM[1], select: '*', order: 'visited_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('pm_inspections', { job_id: 'eq.' + insM[1], select: '*', order: 'visited_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (insM && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
@@ -10342,7 +11598,7 @@ const server = http.createServer(async (req, res) => {
       const r = (await dbInsert('pm_inspections', { id: uid(), job_id: insM[1], pm_id: u.id, pm_name: u.name, ...b, visited_at: nowISO(), created_at: nowISO() }))[0];
       await auditLog('pm_inspection_created', insM[1], null, null, u.name, b.visit_type || '');
       return json(res, 201, r);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const insIM = p.match(/^\/api\/jobs\/([^/]+)\/inspections\/([^/]+)\/(approve|reject)$/);
   if (insIM && method === 'POST') {
@@ -10354,47 +11610,47 @@ const server = http.createServer(async (req, res) => {
       if (isApprove) await dbUpdate('jobs', { status: 'complete', completion_date: nowISO().split('T')[0], phase: 'closeout', pct_complete: 100, updated_at: nowISO() }, { id: 'eq.' + insIM[1] });
       await auditLog('pm_signoff', insIM[1], null, null, u.name, insIM[3]);
       return json(res, 200, { ok: true });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── CHANGE ORDERS ─────────────────────────────────────────────────────────
   const coIM = p.match(/^\/api\/jobs\/([^/]+)\/change-orders$/);
   if (coIM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('change_orders', { job_id: 'eq.' + coIM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('change_orders', { job_id: 'eq.' + coIM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (coIM && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
     const b = await readBody(req);
     const { count } = await dbGet('change_orders', { job_id: 'eq.' + coIM[1], select: 'id' }).then(r => ({ count: r.length }));
-    try { return json(res, 201, (await dbInsert('change_orders', { id: uid(), job_id: coIM[1], co_number: 'CO-' + String(count + 1).padStart(3, '0'), ...b, created_by: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('change_orders', { id: uid(), job_id: coIM[1], co_number: 'CO-' + String(count + 1).padStart(3, '0'), ...b, created_by: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const coSignM = p.match(/^\/api\/change-orders\/([^/]+)\/sign$/);
   if (coSignM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const { side } = await readBody(req);
     const upd = side === 'pm' ? { pm_signed_by: u.name, pm_signed_at: nowISO() } : { sub_signed_by: u.name, sub_signed_at: nowISO(), status: 'signed' };
-    try { return json(res, 200, (await dbUpdate('change_orders', upd, { id: 'eq.' + coSignM[1] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('change_orders', upd, { id: 'eq.' + coSignM[1] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── DAILY LOGS ─────────────────────────────────────────────────────────────
   const dlM = p.match(/^\/api\/jobs\/([^/]+)\/logs$/);
   if (dlM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('daily_logs', { job_id: 'eq.' + dlM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('daily_logs', { job_id: 'eq.' + dlM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (dlM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const { content, type } = await readBody(req);
     if (!content) return json(res, 400, { error: 'Content required' });
-    try { return json(res, 201, (await dbInsert('daily_logs', { id: uid(), job_id: dlM[1], type: type || 'note', content, author: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('daily_logs', { id: uid(), job_id: dlM[1], type: type || 'note', content, author: u.name, created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── GC ALERTS ──────────────────────────────────────────────────────────────
   const gcM = p.match(/^\/api\/jobs\/([^/]+)\/alerts$/);
   if (gcM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('gc_alerts', { job_id: 'eq.' + gcM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('gc_alerts', { job_id: 'eq.' + gcM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (gcM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -10403,19 +11659,19 @@ const server = http.createServer(async (req, res) => {
     try {
       await addNotif('gc_alert', 'GC Alert: ' + title, 'Job ' + gcM[1] + ' by ' + u.name, { job_id: gcM[1] });
       return json(res, 201, (await dbInsert('gc_alerts', { id: uid(), job_id: gcM[1], title, description: description || '', priority: priority || 'normal', status: 'open', created_by: u.name, created_at: nowISO() }))[0]);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const gcIM = p.match(/^\/api\/jobs\/([^/]+)\/alerts\/([^/]+)$/);
   if (gcIM && method === 'PUT') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, (await dbUpdate('gc_alerts', await readBody(req), { id: 'eq.' + gcIM[2] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('gc_alerts', await readBody(req), { id: 'eq.' + gcIM[2] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── PART REQUESTS ──────────────────────────────────────────────────────────
   const prM = p.match(/^\/api\/jobs\/([^/]+)\/requests$/);
   if (prM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('part_requests', { job_id: 'eq.' + prM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('part_requests', { job_id: 'eq.' + prM[1], select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (prM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -10423,26 +11679,26 @@ const server = http.createServer(async (req, res) => {
     try {
       await addNotif('part_request', 'Part Request', u.name + ' requested ' + part_name + ' for job ' + prM[1], { job_id: prM[1] });
       return json(res, 201, (await dbInsert('part_requests', { id: uid(), job_id: prM[1], part_id: part_id || '', part_name: part_name || '', qty: qty || 1, reason: reason || '', status: 'pending', created_by: u.name, created_at: nowISO() }))[0]);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const prIM = p.match(/^\/api\/jobs\/([^/]+)\/requests\/([^/]+)$/);
   if (prIM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
     const b = await readBody(req);
     if (b.status === 'approved') { b.approved_by = u.name; b.approved_at = nowDisplay(); }
-    try { return json(res, 200, (await dbUpdate('part_requests', b, { id: 'eq.' + prIM[2] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('part_requests', b, { id: 'eq.' + prIM[2] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── CATALOG ───────────────────────────────────────────────────────────────
   if (p === '/api/catalog' && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('catalog', { select: '*', order: 'name.asc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('catalog', { select: '*', order: 'name.asc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/catalog' && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
     const { barcode, name, part_number, category, description, alt_barcodes, unit_cost } = await readBody(req);
     if (!barcode || !name) return json(res, 400, { error: 'barcode and name required' });
-    try { return json(res, 201, (await dbUpsert('catalog', { barcode, name, part_number: part_number || '', category: category || '', description: description || '', alt_barcodes: alt_barcodes || [], unit_cost: parseFloat(unit_cost) || 0 }))[0] || { barcode, name }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbUpsert('catalog', { barcode, name, part_number: part_number || '', category: category || '', description: description || '', alt_barcodes: alt_barcodes || [], unit_cost: parseFloat(unit_cost) || 0 }))[0] || { barcode, name }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/catalog/lookup' && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -10453,18 +11709,18 @@ const server = http.createServer(async (req, res) => {
       let rows = await dbGet('catalog', { barcode: 'eq.' + bc, select: '*' });
       if (!rows[0]) rows = await dbGet('catalog', { alt_barcodes: 'cs.{' + bc + '}', select: '*' });
       return json(res, 200, rows[0] || null);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const catM = p.match(/^\/api\/catalog\/([^/]+)$/);
   if (catM && method === 'DELETE') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin')) return;
-    try { await dbDelete('catalog', { barcode: 'eq.' + decodeURIComponent(catM[1]) }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbDelete('catalog', { barcode: 'eq.' + decodeURIComponent(catM[1]) }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── INVENTORY ─────────────────────────────────────────────────────────────
   if (p === '/api/inventory' && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('inventory', { select: '*', order: 'name.asc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('inventory', { select: '*', order: 'name.asc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/inventory' && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
@@ -10477,12 +11733,12 @@ const server = http.createServer(async (req, res) => {
       const rows = await dbUpsert('inventory', item);
       if (item.min_qty > 0 && item.qty <= item.min_qty) await addNotif('low_stock', 'Low stock: ' + name, name + ' is at ' + item.qty + ' (min: ' + item.min_qty + ')', { part_id: id });
       return json(res, 200, rows?.[0] || item);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const invM = p.match(/^\/api\/inventory\/([^/]+)$/);
   if (invM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman', 'stager')) return;
-    try { return json(res, 200, (await dbUpdate('inventory', { ...await readBody(req), updated_at: nowISO() }, { id: 'eq.' + decodeURIComponent(invM[1]) }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('inventory', { ...await readBody(req), updated_at: nowISO() }, { id: 'eq.' + decodeURIComponent(invM[1]) }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── ORDERS ────────────────────────────────────────────────────────────────
@@ -10492,7 +11748,7 @@ const server = http.createServer(async (req, res) => {
       const params = { select: '*', order: 'created_at.desc' };
       if (u.role === 'requestor') params['created_by'] = 'eq.' + u.name;
       return json(res, 200, await dbGet('orders', params));
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/orders' && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
@@ -10502,7 +11758,7 @@ const server = http.createServer(async (req, res) => {
       const order = { id: uid(), job_id, notes: notes || '', items: JSON.stringify(items), status: 'pending', created_by: u.name, created_at: nowISO() };
       await addNotif('new_order', 'New Order', u.name + ' requested ' + items.length + ' part type(s) for job ' + job_id, { job_id });
       return json(res, 201, (await dbInsert('orders', order))[0]);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const ordM = p.match(/^\/api\/orders\/([^/]+)\/(approve|reject|stage)$/);
   if (ordM && method === 'POST') {
@@ -10532,7 +11788,7 @@ const server = http.createServer(async (req, res) => {
         await dbUpdate('orders', { status: 'staged', staged_by: u.name, staged_at: nowISO() }, { id: 'eq.' + ordM[1] });
       }
       return json(res, 200, { ok: true });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── SCHEDULE ──────────────────────────────────────────────────────────────
@@ -10552,17 +11808,17 @@ const server = http.createServer(async (req, res) => {
       });
       upcoming.sort((a, b) => new Date(a.date) - new Date(b.date));
       return json(res, 200, upcoming);
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── NOTIFICATIONS ─────────────────────────────────────────────────────────
   if (p === '/api/notifications' && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('notifications', { select: '*', order: 'created_at.desc', limit: '100' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('notifications', { select: '*', order: 'created_at.desc', limit: '100' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/notifications/read-all' && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { await dbUpdate('notifications', { read: true }, { read: 'eq.false' }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { await dbUpdate('notifications', { read: true }, { read: 'eq.false' }); return json(res, 200, { ok: true }); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── FINANCIALS ────────────────────────────────────────────────────────────
@@ -10587,14 +11843,14 @@ const server = http.createServer(async (req, res) => {
       const totalCost = Math.round((materialCost + laborCost) * 100) / 100;
       const grossProfit = Math.round((contractValue - totalCost) * 100) / 100;
       return json(res, 200, { contract_value: contractValue, labor_budget: parseFloat(job.labor_budget || 0), material_budget: parseFloat(job.material_budget || 0), labor_rate: laborRate, total_hours: Math.round(totalHours * 100) / 100, labor_cost: laborCost, material_cost: Math.round(materialCost * 100) / 100, total_cost: totalCost, gross_profit: grossProfit, profit_margin: contractValue > 0 ? Math.round(grossProfit / contractValue * 10000) / 100 : null });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (finM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
     const b = await readBody(req);
     const upd = { updated_at: nowISO() };
     ['contract_value','labor_budget','material_budget','labor_rate'].forEach(k => { if (b[k] !== undefined) upd[k] = parseFloat(b[k]) || 0; });
-    try { return json(res, 200, (await dbUpdate('jobs', upd, { id: 'eq.' + finM[1] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('jobs', upd, { id: 'eq.' + finM[1] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/financials/overview' && method === 'GET') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
@@ -10618,7 +11874,7 @@ const server = http.createServer(async (req, res) => {
       });
       const totals = summary.reduce((a, j) => ({ contract: a.contract + j.contract_value, cost: a.cost + j.total_cost, profit: a.profit + j.gross_profit }), { contract: 0, cost: 0, profit: 0 });
       return json(res, 200, { jobs: summary, totals });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── PURCHASE ORDER ────────────────────────────────────────────────────────
@@ -10636,7 +11892,7 @@ const server = http.createServer(async (req, res) => {
         lineItems.push({ part_id: part.part_id, part_number: cat[0]?.part_number || '', description: cat[0]?.description || part.part_name, name: part.part_name, qty: part.assigned_qty || 1, unit_cost: uc, line_total: Math.round(uc * (part.assigned_qty || 1) * 100) / 100, status: part.status });
       }
       return json(res, 200, { po_number: 'PO-' + poM[1].slice(-6) + '-' + Date.now().toString().slice(-5), job_id: job.id, job_name: job.name, address: job.address, gc_company: job.gc_company, generated_by: u.name, generated_at: nowDisplay(), line_items: lineItems, total: Math.round(lineItems.reduce((s, i) => s + i.line_total, 0) * 100) / 100 });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── REPORTS ───────────────────────────────────────────────────────────────
@@ -10654,43 +11910,122 @@ const server = http.createServer(async (req, res) => {
       parts.forEach(pt => { if (pt.over) overages.push(pt); else if (pt.status === 'installed' || pt.status === 'partial_install') installed.push(pt); else if (pt.status === 'signed_out') signedOut.push(pt); else staged.push(pt); });
       const lowStock = (await dbGet('inventory', { select: '*' })).filter(i => i.min_qty > 0 && i.qty <= i.min_qty);
       return json(res, 200, { jobs: jobs.length, staged, signedOut, installed, overages, lowStock });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── AUDIT LOG ─────────────────────────────────────────────────────────────
   if (p === '/api/log' && method === 'GET') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm')) return;
-    try { return json(res, 200, await dbGet('audit_log', { select: '*', order: 'created_at.desc', limit: '500' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('audit_log', { select: '*', order: 'created_at.desc', limit: '500' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── LIEN WAIVERS ──────────────────────────────────────────────────────────
   const lwM = p.match(/^\/api\/jobs\/([^/]+)\/lien-waivers$/);
   if (lwM && method === 'GET') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
-    try { return json(res, 200, await dbGet('lien_waivers', { job_id: 'eq.' + lwM[1], select: '*' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('lien_waivers', { job_id: 'eq.' + lwM[1], select: '*' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (lwM && method === 'POST') {
     const u = await getUser(req); if (!requireAuth(res, u)) return;
     const b = await readBody(req);
-    try { return json(res, 201, (await dbInsert('lien_waivers', { id: uid(), job_id: lwM[1], uploaded_by: u.name, created_at: nowISO(), ...b }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('lien_waivers', { id: uid(), job_id: lwM[1], uploaded_by: u.name, created_at: nowISO(), ...b }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // ── INVOICES ──────────────────────────────────────────────────────────────
   if (p === '/api/invoices' && method === 'GET') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
-    try { return json(res, 200, await dbGet('invoices', { select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, await dbGet('invoices', { select: '*', order: 'created_at.desc' })); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   if (p === '/api/invoices' && method === 'POST') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm', 'foreman')) return;
-    try { return json(res, 201, (await dbInsert('invoices', { id: uid(), ...await readBody(req), created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 201, (await dbInsert('invoices', { id: uid(), ...await readBody(req), created_at: nowISO() }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
   const invIM = p.match(/^\/api\/invoices\/([^/]+)$/);
   if (invIM && method === 'PUT') {
     const u = await getUser(req); if (!requireRole(res, u, 'admin', 'pm')) return;
-    try { return json(res, 200, (await dbUpdate('invoices', await readBody(req), { id: 'eq.' + invIM[1] }))[0]); } catch(e) { return json(res, 500, { error: e.message }); }
+    try { return json(res, 200, (await dbUpdate('invoices', await readBody(req), { id: 'eq.' + invIM[1] }))[0]); } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
-  // ── INVITE / CREATE USER ─────────────────────────────────────
+  if(p==='/api/email-ingest'&&method==='POST'){
+    const body=await readBody(req)
+    const isTest=req.headers['x-fieldaxis-test']==='1'
+    const settingsRes=await sbFetch('GET','/rest/v1/company_settings?limit=1',null,SB_ANON)
+    const co=(settingsRes&&settingsRes[0])||{}
+    if(!co.email_ingest_provider&&!isTest)return json(res,200,{status:'disabled'})
+    const ct=req.headers['content-type']||''
+    let subject='',fromAddr='',textBody=''
+    if(ct.includes('application/json')){
+      subject=body.Subject||body.subject||''
+      fromAddr=String(body.From||body.from?.address||body.from||'')
+      textBody=body.TextBody||body.text_body||body.stripped_text||''
+    }else{
+      subject=body.subject||body.Subject||''
+      fromAddr=body.sender||body.from||body.From||''
+      textBody=body['body-plain']||body.text||body.TextBody||''
+    }
+    const cleanText=(textBody||'').trim()
+    if(co.email_ingest_allowlist&&!isTest){
+      const allowed=co.email_ingest_allowlist.split(',').map(s=>s.trim().toLowerCase())
+      if(!allowed.some(a=>fromAddr.toLowerCase().includes(a)))return json(res,200,{status:'rejected'})
+    }
+    const pat=co.email_ingest_pattern?new RegExp(co.email_ingest_pattern,'i'):/\b(\d{4}[A-Z0-9]*\.[A-Z0-9]+(?:\.[A-Z0-9]+)*)\b/i
+    const match=subject.match(pat)
+    const jobIdGuess=match?match[1]||match[0]:null
+    let jobRow=null
+    if(jobIdGuess){
+      const jRes=await sbFetch('GET',`/rest/v1/jobs?job_number=ilike.${encodeURIComponent(jobIdGuess)}&archived=eq.false&limit=1`,null,SB_ANON)
+      if(jRes&&jRes[0])jobRow=jRes[0]
+    }
+    const today=new Date().toISOString().split('T')[0]
+    const crypto=require('crypto')
+    if(jobRow){
+      if(!isTest)await sbFetch('POST','/rest/v1/daily_reports',{id:crypto.randomUUID(),job_id:jobRow.id,report_date:today,submitted_by:fromAddr,work_performed:cleanText,crew_count:0,hours_worked:0,total_man_hours:0,source:'email',email_subject:subject,email_from:fromAddr,created_at:new Date().toISOString()},SB_ANON)
+      return json(res,200,{status:'created',job:jobRow.name,job_number:jobRow.job_number})
+    }else{
+      const inboxId=crypto.randomUUID()
+      if(!isTest){
+        await sbFetch('POST','/rest/v1/email_inbox',{id:inboxId,received_at:new Date().toISOString(),from_address:fromAddr,subject,body:cleanText,status:'unmatched',job_id_guess:jobIdGuess},SB_ANON)
+        await sbFetch('POST','/rest/v1/notifications',{id:crypto.randomUUID(),type:'email_unmatched',title:'Unmatched email report',message:'Email from '+fromAddr+' — no matching job. Subject: '+subject,link_type:'email_inbox',link_id:inboxId,read:false,created_at:new Date().toISOString()},SB_ANON)
+      }
+      return json(res,200,{status:'unmatched',subject,from:fromAddr,guess:jobIdGuess})
+    }
+  }
+
+  if(p==='/api/set-password'&&method==='POST'){
+    const u=await requireAuth(req,res);if(!u)return
+    const body=await readBody(req)
+    const{user_id,password}=body
+    if(!user_id||!password)return json(res,400,{error:'user_id and password required'})
+    if(password.length<8)return json(res,400,{error:'Password must be at least 8 characters'})
+    const serviceKey=SB_SERVICE||SB_ANON
+    const setRes=await sbFetch('PUT','/auth/v1/admin/users/'+user_id,{password},serviceKey)
+    if(setRes.error)return json(res,400,{error:setRes.error.message||'Could not set password'})
+    return json(res,200,{success:true})
+  }
+
+  if(p==='/api/force-logout'&&method==='POST'){
+    const u=await requireAuth(req,res);if(!u)return
+    const body=await readBody(req)
+    const{user_id}=body
+    if(!user_id)return json(res,400,{error:'user_id required'})
+    const serviceKey=SB_SERVICE||SB_ANON
+    const logoutRes=await sbFetch('POST','/auth/v1/admin/users/'+user_id+'/logout',{scope:'global'},serviceKey)
+    if(logoutRes.error)return json(res,400,{error:logoutRes.error.message||'Could not force logout'})
+    return json(res,200,{success:true})
+  }
+
+  if(p==='/api/delete-user'&&method==='POST'){
+    const u=await requireAuth(req,res);if(!u)return
+    const body=await readBody(req)
+    const{user_id}=body
+    if(!user_id)return json(res,400,{error:'user_id required'})
+    const serviceKey=SB_SERVICE||SB_ANON
+    const delRes=await sbFetch('DELETE','/auth/v1/admin/users/'+user_id,null,serviceKey)
+    if(delRes.error)return json(res,400,{error:delRes.error.message||'Could not delete auth user'})
+    return json(res,200,{success:true})
+  }
+
+  // ── INVITE / CREATE USER ─────────────────────────────────────────
   if (p === '/api/invite-user' && method === 'POST') {
     const u = await requireAuth(req, res); if (!u) return;
     const body = await readBody(req);
@@ -10756,7 +12091,7 @@ const server = http.createServer(async (req, res) => {
       const allRecs = await dbGet('fax_bid_recipients', { quote_id: 'eq.' + rec.quote_id, select: 'id,status' });
       const awardedElsewhere = allRecs.some(r => r.id !== rec.id && r.status === 'awarded');
       return json(res, 200, { quote, recipient: rec, branding: branding || {}, awardedElsewhere });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // POST /api/qf/award/:token — submit award signature (public, no auth)
@@ -10772,7 +12107,7 @@ const server = http.createServer(async (req, res) => {
       if (!b.signature_name || !b.signature_image) return json(res, 400, { error: 'Signature required' });
       await dbUpdate('fax_bid_recipients', { status: 'awarded', awarded_at: new Date().toISOString(), signature_name: b.signature_name, signature_title: b.signature_title || '', signature_email: b.signature_email || '', signature_image: b.signature_image, signature_timestamp: new Date().toISOString() }, { id: 'eq.' + rec.id });
       return json(res, 200, { ok: true });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // POST /api/qf/award/:token/decline — decline from public page
@@ -10785,7 +12120,7 @@ const server = http.createServer(async (req, res) => {
       const b = await readBody(req);
       await dbUpdate('fax_bid_recipients', { status: 'declined', declined_at: new Date().toISOString(), decline_reason: b.decline_reason || '' }, { id: 'eq.' + rec.id });
       return json(res, 200, { ok: true });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // POST /api/qf/recipients/:id/send — send email to recipient
@@ -10830,7 +12165,7 @@ const server = http.createServer(async (req, res) => {
       if (emailRes.statusCode >= 400 || emailRes.error) throw new Error(emailRes.message || emailRes.error || 'Email send failed');
       await dbUpdate('fax_bid_recipients', { status: 'sent', sent_at: new Date().toISOString() }, { id: 'eq.' + recipSendM[1] });
       return json(res, 200, { ok: true, awardUrl });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
   // GET /api/qf/recipients/:id/link — get award URL
@@ -10842,7 +12177,7 @@ const server = http.createServer(async (req, res) => {
       if (!rec) return json(res, 404, { error: 'Not found' });
       const appUrl = process.env.APP_URL || 'https://' + (process.env.RENDER_EXTERNAL_HOSTNAME || 'localhost:3000');
       return json(res, 200, { url: appUrl + '/award/' + rec.token });
-    } catch(e) { return json(res, 500, { error: e.message }); }
+    } catch(e) { return json(res, 500, { error: 'Internal server error' }); }
   }
 
     json(res, 404, { error: 'Not found: ' + p });
@@ -10933,6 +12268,42 @@ async function submitAward(){
 function showDeclineModal(){
   const r=prompt('Reason:\n'+FAX_LOSS.map((x,i)=>(i+1)+'. '+x).join('\n'));if(!r)return
   fetch('/api/qf/award/'+token+'/decline',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decline_reason:r})}).then(x=>x.json()).then(d=>{if(d.ok)loadAwardPage(token);else alert(d.error||'Error')})
+}
+// PWA Service Worker registration
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('/sw.js',{scope:'/'})
+      .then(function(r){console.log('SW registered',r.scope)})
+      .catch(function(e){console.log('SW failed',e)})
+  })
+}
+// Offline sync: flush queued actions when online
+window.addEventListener('online',function(){
+  var q=JSON.parse(localStorage.getItem('faxq')||'[]')
+  if(!q.length)return
+  var toast_msg='Syncing '+q.length+' offline action'+(q.length!==1?'s':'')+'...'
+  toast(toast_msg,'info')
+  Promise.all(q.map(function(item){
+    return fetch(item.url,{method:item.method,headers:{'Content-Type':'application/json'},body:item.body})
+      .then(function(r){return r.json()})
+      .catch(function(){return{error:'failed'}})
+  })).then(function(results){
+    var failed=results.filter(function(r){return r&&r.error}).length
+    localStorage.removeItem('faxq')
+    toast(failed?'Synced with '+failed+' error(s)':'All offline actions synced!',failed?'warn':'success')
+    if(typeof allJobs!=='undefined')pgDash&&pgDash()
+  })
+})
+// Show offline banner when network lost
+window.addEventListener('offline',function(){
+  toast('No connection — app works offline, changes will sync when back online','warn')
+})
+// Queue a fetch for offline use
+function queueOffline(url,method,body){
+  var q=JSON.parse(localStorage.getItem('faxq')||'[]')
+  q.push({url:url,method:method||'POST',body:typeof body==='string'?body:JSON.stringify(body),ts:Date.now()})
+  localStorage.setItem('faxq',JSON.stringify(q))
+  toast('Saved offline — will sync when connected','info')
 }
 </script>
 </body>
