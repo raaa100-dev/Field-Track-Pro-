@@ -6698,7 +6698,32 @@ async function pgJobMap(){
   document.getElementById('map-filter-sub').innerHTML='<option value="">All Subs</option>'+subs.map(s=>\`<option value="\${s}">\${coMap[s]||s}</option>\`).join('')
 
   document.getElementById('page-area').innerHTML=\`
-  <style>@media(max-width:768px){#map-outer{grid-template-columns:1fr!important;height:calc(100vh - 60px)!important}#map-side-panel{display:none!important}#map-float-btns{display:flex!important}#page-area{padding:0!important}#map-filter-pm,#map-filter-gc,#map-filter-stage,#map-filter-sub{display:none!important}.topbar{position:sticky;top:0;z-index:400}}</style>
+  <style>
+  @media(max-width:768px){
+    /* Hide topbar filter selects on mobile — accessed via floating ⚙ button instead */
+    #topbar-actions #map-filter-pm,
+    #topbar-actions #map-filter-gc,
+    #topbar-actions #map-filter-stage,
+    #topbar-actions #map-filter-sub,
+    #topbar-actions .btn[onclick="geocodeMissingJobs()"]{display:none!important}
+    /* Page area becomes a full-bleed map below the topbar */
+    #page-area{padding:0!important;margin:0!important}
+    /* The map outer becomes a single full-screen column, no gaps */
+    #map-outer{grid-template-columns:1fr!important;gap:0!important;height:calc(100dvh - 56px)!important;height:calc(100vh - 56px)!important;margin:0!important;padding:0!important}
+    /* Side panel hidden on mobile (accessed via floating 📋 button) */
+    #map-side-panel{display:none!important}
+    /* Map wrapper: no border, no radius, fill everything */
+    #map-outer > div:first-child{border-radius:0!important;border:none!important;height:100%!important;width:100%!important;position:relative!important}
+    #map-container{border-radius:0!important;border:none!important;width:100%!important;height:100%!important;display:block!important}
+    #leaflet-map{width:100%!important;height:100%!important}
+    /* Floating control buttons */
+    #map-float-btns{display:flex!important}
+    /* Move legend to top-left on mobile (bottom-left is where stage filter button overlay sits) */
+    #map-legend{bottom:auto!important;top:60px!important;font-size:10px!important;padding:6px 8px!important;max-width:140px!important;opacity:.92}
+    /* Sticky topbar so navigation stays visible */
+    .topbar{position:sticky;top:0;z-index:400}
+  }
+  </style>
   <div id="map-float-btns" style="display:none;position:fixed;bottom:80px;right:16px;z-index:450;flex-direction:column;gap:8px">
     <button onclick="toggleMapFilters()" style="width:44px;height:44px;border-radius:22px;background:#2563eb;color:#fff;border:none;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.5)">⚙</button>
     <button onclick="toggleMapList()" style="width:44px;height:44px;border-radius:22px;background:#131c2e;color:#e8edf5;border:1px solid rgba(255,255,255,.15);font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.5)">📋</button>
@@ -6745,18 +6770,11 @@ function initMap(jobs){
   if(!container||!window.L)return
 
   // ── MOBILE: do all DOM/style adjustments BEFORE creating the map so the
-  // container has its final size when Leaflet measures it. Previously the
-  // map was created first and the container resized after, which caused
-  // Leaflet to load tiles for the wrong viewport — the "missing squares"
-  // bug on mobile.
+  // container has its final size when Leaflet measures it.
   var isMobile=window.innerWidth<=768
   if(isMobile){
     closeSidebar()
-    var outer=document.getElementById('map-outer')
-    if(outer){outer.style.gridTemplateColumns='1fr';outer.style.height='calc(100vh - 56px)';outer.style.gap='0'}
-    var jlw=document.getElementById('map-job-list-wrap')
-    if(jlw)jlw.style.display='none'
-    if(container){container.style.borderRadius='0';container.style.border='none'}
+    // CSS handles the layout — we just need to make sure sidebar is closed.
   }
 
   container.innerHTML='<div id="leaflet-map" style="width:100%;height:100%"></div>'
@@ -6766,42 +6784,34 @@ function initMap(jobs){
   window._mapMarkers=[]
   addMapPins(jobs,map)
 
-  // ── MOBILE: inject filter overlay AFTER map exists (its parent needs to be
-  // positioned relative). This doesn't change the map's own size.
+  // ── MOBILE: populate the bottom-sheet filter selects from the same data
+  // as the topbar ones. The bottom sheet (#map-filter-sheet) is hidden by
+  // default and opened by the floating ⚙ button.
   if(isMobile){
-    var filterBar=document.getElementById('mobile-map-filters')
-    if(!filterBar){
-      filterBar=document.createElement('div')
-      filterBar.id='mobile-map-filters'
-      filterBar.style.cssText='position:absolute;top:10px;left:10px;right:10px;z-index:1000;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none'
-      filterBar.innerHTML=
-        '<select class="fs" id="mob-f-pm" style="pointer-events:all;font-size:12px;padding:5px 8px;background:#0c1220cc;color:#e8edf5;border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(8px)" onchange="filterMapPins()"><option value="">All PMs</option></select>'
-        +'<select class="fs" id="mob-f-stage" style="pointer-events:all;font-size:12px;padding:5px 8px;background:#0c1220cc;color:#e8edf5;border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(8px)" onchange="filterMapPins()"><option value="">All Stages</option>'
-        +STAGES.map(function(s){return'<option value="'+s+'">'+STAGE_LABELS[s]+'</option>'}).join('')
-        +'</select>'
-        +'<button style="pointer-events:all;background:#0c1220cc;color:#e8edf5;border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:5px 10px;font-size:12px;backdrop-filter:blur(8px);cursor:pointer" onclick="showMobileJobList()">📋 Jobs</button>'
-      var mapWrap=document.getElementById('leaflet-map').parentElement
-      mapWrap.style.position='relative'
-      mapWrap.appendChild(filterBar)
-      // Populate PM filter
-      var pms=[...new Set((window._mapJobs||[]).map(function(j){return j.project_manager}).filter(Boolean))]
-      document.getElementById('mob-f-pm').innerHTML='<option value="">All PMs</option>'+pms.map(function(p){return'<option value="'+p+'">'+p+'</option>'}).join('')
-    }
+    var srcPm=document.getElementById('map-filter-pm')
+    var srcGc=document.getElementById('map-filter-gc')
+    var srcStage=document.getElementById('map-filter-stage')
+    var dstPm=document.getElementById('map-filter-pm2')
+    var dstGc=document.getElementById('map-filter-gc2')
+    var dstStage=document.getElementById('map-filter-stage2')
+    if(srcPm&&dstPm)dstPm.innerHTML=srcPm.innerHTML
+    if(srcGc&&dstGc)dstGc.innerHTML=srcGc.innerHTML
+    if(srcStage&&dstStage)dstStage.innerHTML=srcStage.innerHTML
   }
 
   // ── Belt-and-suspenders invalidateSize: call multiple times at increasing
   // delays. Catches: initial reflow, web-font loading, mobile URL-bar collapse,
   // and any async layout shifts. Cheap to over-call — invalidateSize is a no-op
-  // when the size hasn't changed.
+  // when the size has not changed.
   var safeInvalidate=function(){
     if(window._leafletMap===map){try{map.invalidateSize()}catch(e){}}
   }
   requestAnimationFrame(safeInvalidate)
   setTimeout(safeInvalidate,300)
   setTimeout(safeInvalidate,800)
+  setTimeout(safeInvalidate,1500)
 
   // Re-fit on orientation/resize so the tiles fill the new viewport.
-  // Use a small debounce so we don't fire on every resize tick.
   if(!window._mapResizeWired){
     window._mapResizeWired=true
     var resizeDeb=null
