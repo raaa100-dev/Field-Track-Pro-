@@ -6756,9 +6756,17 @@ function addUserModal(){
     '<option value="admin">Admin</option></select></div></div>'+
     '<div class="two"><div class="fg"><label class="fl">Company</label><select class="fs" id="au-co">'+
     '<option value="">Internal</option>'+coOpts+'</select></div>'+
-    '<div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="au-hire"></div></div>'+
+    '<div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="au-hd"></div></div>'+
     '<div class="two"><div class="fg"><label class="fl">Emergency Contact</label><input class="fi" id="au-ec"></div>'+
     '<div class="fg"><label class="fl">Emergency Phone</label><input class="fi" id="au-ep"></div></div>'+
+    // ── Manual password toggle ─────────────────────────────────
+    '<div style="background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.18);border-radius:7px;padding:10px 12px;margin-top:6px">'+
+    '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px"><input type="checkbox" id="au-manual" onchange="_auToggleManualPw()" style="width:auto;margin:0"> <span><strong>Set password manually instead of emailing them</strong><div style="color:#8a96ab;font-size:11px;margin-top:2px;font-weight:400">No confirmation email is sent. You give them the password directly. Use for workers without reliable email.</div></span></label>'+
+    '<div id="au-pw-wrap" style="display:none;margin-top:10px">'+
+    '<div class="two"><div class="fg"><label class="fl">Password *</label><input class="fi" id="au-pw" type="text" placeholder="At least 8 characters" autocomplete="new-password"></div>'+
+    '<div class="fg"><label class="fl">Confirm Password *</label><input class="fi" id="au-pw2" type="text" placeholder="Re-enter to confirm" autocomplete="new-password"></div></div>'+
+    '<button type="button" class="btn btn-sm btn-ghost" onclick="_auGenPw()" style="margin-top:4px">🎲 Generate strong password</button>'+
+    '</div></div>'+
     '<div id="au-status" style="display:none;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:7px;padding:9px 12px;font-size:12px;color:#16a34a;margin-top:4px"></div>'
   modal('Add Employee', html, async()=>{
     const nm=v('au-nm').trim(),em=v('au-em').trim()
@@ -6766,12 +6774,46 @@ function addUserModal(){
     const btn=document.getElementById('modal-ok')
     btn.disabled=true;btn.textContent='Adding…'
     try{
-      btn.disabled=true;btn.textContent='Adding...'
+      var manualPw=!!(document.getElementById('au-manual')||{}).checked
       var pw1=(document.getElementById('au-pw')||{}).value||''
       var pw2=(document.getElementById('au-pw2')||{}).value||''
-      if(pw1&&pw1.length<8){toast('Password must be at least 8 characters','error');return}
-      if(pw1&&pw1!==pw2){toast('Passwords do not match','error');return}
-      var tempPw=pw1||(Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2).toUpperCase()+'!9')
+      // ── BRANCH 1: Manual password (no email, server-side admin create) ──
+      if(manualPw){
+        if(!pw1||pw1.length<8){toast('Password must be at least 8 characters','error');btn.disabled=false;btn.textContent='Save';return}
+        if(pw1!==pw2){toast('Passwords do not match','error');btn.disabled=false;btn.textContent='Save';return}
+        var session=(await sb.auth.getSession()).data.session
+        var token=session?.access_token||''
+        var r=await fetch('/api/create-user-direct',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({
+          email:em,full_name:nm,password:pw1,
+          role:v('au-rl')||'sub_worker',
+          phone:v('au-ph')||'',
+          company_id:v('au-co')||null,
+          hire_date:v('au-hd')||null,
+          emergency_contact:v('au-ec')||'',
+          emergency_phone:v('au-ep')||''
+        })})
+        var d={};try{d=await r.json()}catch(e){}
+        if(!r.ok||d.error){toast(d.error||'Failed to create user','error');btn.disabled=false;btn.textContent='Save';return}
+        closeModal()
+        // Show the credentials in a one-time confirmation modal so the admin
+        // can copy them to share with the user. Email + password are visible
+        // because the admin just typed them in — nothing new is exposed.
+        setTimeout(function(){
+          modal('Employee Created — Share These Credentials',
+            '<div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:7px;padding:11px 14px;margin-bottom:10px">'+
+            '<div style="font-size:13px;font-weight:600;color:#16a34a;margin-bottom:6px">✓ Account ready — no email sent</div>'+
+            '<div style="font-size:11px;color:#8a96ab">'+nm+' can log in right now. Share these credentials with them however you like:</div>'+
+            '</div>'+
+            '<div class="fg"><label class="fl">Email</label><input class="fi" readonly value="'+_escapeHTML(em)+'" onclick="this.select()"></div>'+
+            '<div class="fg"><label class="fl">Password</label><input class="fi" readonly value="'+_escapeHTML(pw1)+'" onclick="this.select()"></div>'+
+            '<div style="font-size:11px;color:#414e63;margin-top:8px">⚠ This is the only time the password is shown. If lost, use the 🔑 Password button on their row to set a new one.</div>',
+            function(){closeModal();pgUsers()},'Done',false)
+          document.getElementById('modal-footer').innerHTML='<button class="btn btn-p" onclick="closeModal();pgUsers()">Done</button>'
+        },100)
+        return
+      }
+      // ── BRANCH 2: Standard flow (signUp sends confirmation email) ──────
+      var tempPw=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2).toUpperCase()+'!9'
       var{data:signUpData,error:signUpErr}=await sb.auth.signUp({email:em,password:tempPw,options:{data:{full_name:nm,role:v('au-rl')}}})
       var authId=signUpData?.user?.id
       if(signUpErr&&!authId){
@@ -6792,6 +6834,21 @@ function addUserModal(){
       btn.disabled=false;btn.textContent='Save'
     }
   },'Save')
+}
+function _auToggleManualPw(){
+  var w=document.getElementById('au-pw-wrap')
+  var cb=document.getElementById('au-manual')
+  if(!w||!cb)return
+  w.style.display=cb.checked?'block':'none'
+}
+function _auGenPw(){
+  // Generate a memorable-but-strong password: 3 short words + 2 digits + symbol
+  var words=['fox','sun','rock','tree','bolt','star','wave','peak','iron','gold','blue','swift','calm','bold','wild','river','storm','ember']
+  var pick=function(){return words[Math.floor(Math.random()*words.length)]}
+  var pw=pick()+'-'+pick()+'-'+pick()+(10+Math.floor(Math.random()*90))+'!'
+  var p1=document.getElementById('au-pw'),p2=document.getElementById('au-pw2')
+  if(p1)p1.value=pw
+  if(p2)p2.value=pw
 }
 
 async function toggleUserActive(id,name,activate){
@@ -13797,6 +13854,59 @@ const server = http.createServer(async (req, res) => {
       },writeKey)
     }catch(e){return json(res,500,{error:e.message||String(e)})}
     return json(res,200,{status:'rejected'})
+  }
+
+  // ── CREATE USER WITHOUT EMAIL VERIFICATION ────────────────────────
+  // Admin-only. Creates the auth user with email_confirm:true and the
+  // supplied password — no confirmation/recovery email is sent. Intended
+  // for the few field workers who don't have reliable email access.
+  if(p==='/api/create-user-direct'&&method==='POST'){
+    const u=await requireAuth(req,res);if(!u)return
+    // Only admins can create users this way
+    const meRes=await sbFetch('GET','/rest/v1/profiles?id=eq.'+encodeURIComponent(u.id)+'&select=role&limit=1',null,SB_ANON)
+    const meRole=(meRes&&meRes[0]&&meRes[0].role)||''
+    if(meRole!=='admin')return json(res,403,{error:'Admin role required'})
+
+    const body=await readBody(req)
+    const{email,full_name,password,role,phone,company_id,hire_date,emergency_contact,emergency_phone}=body
+    if(!email||!full_name||!password)return json(res,400,{error:'email, full_name, and password are required'})
+    if(password.length<8)return json(res,400,{error:'Password must be at least 8 characters'})
+    if(!SB_SERVICE)return json(res,500,{error:'SUPABASE_SERVICE_KEY not configured on the server — required for direct user creation'})
+
+    // Create auth user with email_confirm:true (skips verification) and the
+    // chosen password. No email is sent by Supabase in this path.
+    const createRes=await sbFetch('POST','/auth/v1/admin/users',{
+      email,
+      password,
+      email_confirm:true,
+      user_metadata:{full_name,role:role||'sub_worker'}
+    },SB_SERVICE)
+    if(createRes.error||!createRes.id){
+      return json(res,400,{error:createRes.error?.message||createRes.msg||'Could not create auth user (does the email already exist?)'})
+    }
+    const authUserId=createRes.id
+
+    // Create the profile row
+    const profileRes=await sbFetch('POST','/rest/v1/profiles',{
+      id:authUserId,
+      full_name,
+      email,
+      phone:phone||'',
+      role:role||'sub_worker',
+      company_id:company_id||null,
+      hire_date:hire_date||null,
+      emergency_contact:emergency_contact||'',
+      emergency_phone:emergency_phone||'',
+      is_active:true,
+      created_at:new Date().toISOString()
+    },SB_SERVICE)
+    if(profileRes&&profileRes.error){
+      // Auth user was created but profile failed. Roll back the auth user so
+      // the next attempt doesn't get an "email already in use" error.
+      try{await sbFetch('DELETE','/auth/v1/admin/users/'+authUserId,null,SB_SERVICE)}catch(e){}
+      return json(res,400,{error:'Profile creation failed: '+(profileRes.error.message||profileRes.error)})
+    }
+    return json(res,200,{success:true,user_id:authUserId})
   }
 
   if(p==='/api/set-password'&&method==='POST'){
