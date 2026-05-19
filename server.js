@@ -1,92 +1,3 @@
-
-// ── GEOCODING ─────────────────────────────────────────────────
-// Consolidated single source of truth. Both geocodeJob and geocodeJobAddress
-// delegate here. Respects Nominatim's ~1 req/sec global rate limit via a
-// shared throttle (window._geoThrottle).
-window._geoLastCall=window._geoLastCall||0
-async function _geoThrottle(){
-  var MIN_GAP=1100  // ms between requests, conservative for Nominatim
-  var since=Date.now()-window._geoLastCall
-  if(since<MIN_GAP)await new Promise(function(r){setTimeout(r,MIN_GAP-since)})
-  window._geoLastCall=Date.now()
-}
-function _buildGeoQueries(address,city,state,zip){
-  var addr=address||''
-  // Strip suite/unit/floor/etc. — these confuse Nominatim
-  var cleanAddr=addr
-    .replace(/,?\s*(suite|ste|unit|apt|apartment|floor|fl|bldg|building|#)\s*[\w\d-]*/gi,'')
-    .replace(/,?\s*\d+[a-z]?\s*$/i,'')
-    .replace(/,\s*,/g,',')
-    .trim()
-  var queries=[]
-  if(cleanAddr&&city&&state)queries.push(cleanAddr+', '+city+', '+state+(zip?' '+zip:''))
-  if(cleanAddr&&city&&state)queries.push(cleanAddr+', '+city+', '+state)
-  if(cleanAddr&&city)queries.push(cleanAddr+', '+city)
-  if(city&&state)queries.push(city+', '+state+(zip?' '+zip:''))
-  if(zip)queries.push(zip+', USA')
-  return queries
-}
-async function _geocodeOnce(query){
-  await _geoThrottle()
-  var r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(query)+'&format=json&limit=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
-  var res=await r.json()
-  if(res&&res[0])return{lat:parseFloat(res[0].lat),lng:parseFloat(res[0].lon)}
-  return null
-}
-// Core: try queries in order, return {lat,lng} or null. Persists to DB if jobId given.
-async function geocodeAddress(opts){
-  // opts: {jobId, address, city, state, zip, persist (default true)}
-  var queries=_buildGeoQueries(opts.address,opts.city,opts.state,opts.zip)
-  for(var i=0;i<queries.length;i++){
-    try{
-      var hit=await _geocodeOnce(queries[i])
-      if(hit){
-        if(opts.jobId&&opts.persist!==false){
-          try{await sb.from('jobs').update({gps_lat:hit.lat,gps_lng:hit.lng,updated_at:new Date().toISOString()}).eq('id',opts.jobId)}catch(e){}
-        }
-        return hit
-      }
-    }catch(e){/* try next query */}
-  }
-  return null
-}
-// Legacy wrapper: same signature as the original geocodeJobAddress
-async function geocodeJobAddress(jobId,address,city,state,zip){
-  return geocodeAddress({jobId:jobId,address:address,city:city,state:state,zip:zip,persist:true})
-}
-// Legacy wrapper: same signature as the original geocodeJob — geocodes a job
-// object and adds a pin to the supplied Leaflet map.
-async function geocodeJob(j,map){
-  var hit=await geocodeAddress({jobId:j.id,address:j.address,city:j.city,state:j.state,zip:j.zip,persist:true})
-  if(!hit||!map)return hit
-  j.gps_lat=hit.lat;j.gps_lng=hit.lng
-  var color=(typeof MAP_COLORS!=='undefined'&&MAP_COLORS[j.phase])||'#8a96ab'
-  var iconHtml=j.is_urgent
-    ?'<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));animation:urgentPulse 1.2s ease-in-out infinite">🔥</div>'
-    :'<div style="width:14px;height:14px;border-radius:50%;background:'+color+';border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>'
-  var sz=j.is_urgent?[28,28]:[14,14]
-  var anc=j.is_urgent?[14,14]:[7,7]
-  var icon=window.L.divIcon({html:iconHtml,className:'',iconSize:sz,iconAnchor:anc})
-  var marker=window.L.marker([hit.lat,hit.lng],{icon:icon}).addTo(map)
-  marker.bindPopup(buildGeocodePopup(j))
-  ;(window._mapMarkers=window._mapMarkers||[]).push(marker)
-  var leg=document.getElementById('map-legend')
-  if(leg){
-    var total=(window._mapJobs||[]).length
-    var withGPS=(window._mapMarkers||[]).length
-    var countEl=leg.querySelector('.gps-count')
-    if(countEl)countEl.textContent=withGPS+' of '+total+' jobs have GPS'
-  }
-  return hit
-}
-async function geocodeAndAddPins(jobs,map){
-  // Process serially through the throttle (the throttle handles rate limiting),
-  // which is simpler and safer than parallel batches.
-  for(var i=0;i<jobs.length;i++){
-    try{await geocodeJob(jobs[i],map)}catch(e){console.warn('Geocode failed for job',jobs[i]&&jobs[i].id,e)}
-  }
-}
-
 /**
  * FieldAxisHQ — Server v1.0
  * Field Operations + Warehouse + Subcontractor Management
@@ -6796,41 +6707,83 @@ function buildGeocodePopup(j){
   return h
 }
 
-async function geocodeAndAddPins(jobs,map){
-  // Geocode jobs with address but no GPS, then add their pins
-  // Rate-limit to avoid Nominatim throttling (1 req/sec)
-  for(var i=0;i<jobs.length;i++){
-    var j=jobs[i]
-    var query=''
-    if(j.address&&j.city&&j.state) query=j.address+', '+j.city+', '+j.state+(j.zip?' '+j.zip:'')
-    else if(j.address&&j.city) query=j.address+', '+j.city
-    else if(j.address) query=j.address
-    else if(j.city&&j.state) query=j.city+', '+j.state
-    if(!query)continue
+// ── GEOCODING ─────────────────────────────────────────────────
+// Consolidated single source of truth. Browser-side. Respects Nominatim's
+// ~1 req/sec global rate limit via a shared throttle.
+window._geoLastCall=window._geoLastCall||0
+async function _geoThrottle(){
+  var MIN_GAP=1100
+  var since=Date.now()-window._geoLastCall
+  if(since<MIN_GAP)await new Promise(function(r){setTimeout(r,MIN_GAP-since)})
+  window._geoLastCall=Date.now()
+}
+function _buildGeoQueries(address,city,state,zip){
+  var addr=address||''
+  var cleanAddr=addr
+    .replace(/,?\s*(suite|ste|unit|apt|apartment|floor|fl|bldg|building|#)\s*[\w\d-]*/gi,'')
+    .replace(/,?\s*\d+[a-z]?\s*$/i,'')
+    .replace(/,\s*,/g,',')
+    .trim()
+  var queries=[]
+  if(cleanAddr&&city&&state)queries.push(cleanAddr+', '+city+', '+state+(zip?' '+zip:''))
+  if(cleanAddr&&city&&state)queries.push(cleanAddr+', '+city+', '+state)
+  if(cleanAddr&&city)queries.push(cleanAddr+', '+city)
+  if(city&&state)queries.push(city+', '+state+(zip?' '+zip:''))
+  if(zip)queries.push(zip+', USA')
+  return queries
+}
+async function _geocodeOnce(query){
+  await _geoThrottle()
+  var r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(query)+'&format=json&limit=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
+  var res=await r.json()
+  if(res&&res[0])return{lat:parseFloat(res[0].lat),lng:parseFloat(res[0].lon)}
+  return null
+}
+async function geocodeAddress(opts){
+  var queries=_buildGeoQueries(opts.address,opts.city,opts.state,opts.zip)
+  for(var i=0;i<queries.length;i++){
     try{
-      var r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(query)+'&format=json&limit=1&countrycodes=us',{headers:{'User-Agent':'FieldAxisHQ/1.0'}})
-      var res=await r.json()
-      if(res[0]){
-        var lat=parseFloat(res[0].lat)
-        var lng=parseFloat(res[0].lon)
-        j.gps_lat=lat;j.gps_lng=lng
-        // Save GPS to DB so we don't geocode again next time
-        sb.from('jobs').update({gps_lat:lat,gps_lng:lng,updated_at:new Date().toISOString()}).eq('id',j.id)
-        // Add pin to map
-        var color=MAP_COLORS[j.phase]||'#8a96ab'
-        var iconHtml=j.is_urgent
-          ?'<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));animation:urgentPulse 1.2s ease-in-out infinite">🔥</div>'
-          :'<div style="width:14px;height:14px;border-radius:50%;background:'+color+';border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>'
-        var sz=j.is_urgent?[28,28]:[14,14]
-        var anc=j.is_urgent?[14,14]:[7,7]
-        var icon=window.L.divIcon({html:iconHtml,className:'',iconSize:sz,iconAnchor:anc})
-        var marker=window.L.marker([lat,lng],{icon}).addTo(map)
-        marker.bindPopup(buildGeocodePopup(j))
-        ;(window._mapMarkers=window._mapMarkers||[]).push(marker)
+      var hit=await _geocodeOnce(queries[i])
+      if(hit){
+        if(opts.jobId&&opts.persist!==false){
+          try{await sb.from('jobs').update({gps_lat:hit.lat,gps_lng:hit.lng,updated_at:new Date().toISOString()}).eq('id',opts.jobId)}catch(e){}
+        }
+        return hit
       }
     }catch(e){}
-    // Rate limit: 1 request per 1.1 seconds
-    if(i<jobs.length-1)await new Promise(function(res){setTimeout(res,1100)})
+  }
+  return null
+}
+async function geocodeJobAddress(jobId,address,city,state,zip){
+  return geocodeAddress({jobId:jobId,address:address,city:city,state:state,zip:zip,persist:true})
+}
+async function geocodeJob(j,map){
+  var hit=await geocodeAddress({jobId:j.id,address:j.address,city:j.city,state:j.state,zip:j.zip,persist:true})
+  if(!hit||!map)return hit
+  j.gps_lat=hit.lat;j.gps_lng=hit.lng
+  var color=(typeof MAP_COLORS!=='undefined'&&MAP_COLORS[j.phase])||'#8a96ab'
+  var iconHtml=j.is_urgent
+    ?'<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));animation:urgentPulse 1.2s ease-in-out infinite">🔥</div>'
+    :'<div style="width:14px;height:14px;border-radius:50%;background:'+color+';border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>'
+  var sz=j.is_urgent?[28,28]:[14,14]
+  var anc=j.is_urgent?[14,14]:[7,7]
+  var icon=window.L.divIcon({html:iconHtml,className:'',iconSize:sz,iconAnchor:anc})
+  var marker=window.L.marker([hit.lat,hit.lng],{icon:icon}).addTo(map)
+  marker.bindPopup(buildGeocodePopup(j))
+  ;(window._mapMarkers=window._mapMarkers||[]).push(marker)
+  var leg=document.getElementById('map-legend')
+  if(leg){
+    var total=(window._mapJobs||[]).length
+    var withGPS=(window._mapMarkers||[]).length
+    var countEl=leg.querySelector('.gps-count')
+    if(countEl)countEl.textContent=withGPS+' of '+total+' jobs have GPS'
+  }
+  return hit
+}
+async function geocodeAndAddPins(jobs,map){
+  // Process serially through the shared throttle.
+  for(var i=0;i<jobs.length;i++){
+    try{await geocodeJob(jobs[i],map)}catch(e){console.warn('Geocode failed for job',jobs[i]&&jobs[i].id,e)}
   }
 }
 
