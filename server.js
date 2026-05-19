@@ -6756,10 +6756,23 @@ async function pgJobMap(){
     </div>
   </div>\`
 
-  // Load Leaflet map
+  // Load Leaflet map. We wait for BOTH the CSS and the JS to finish loading
+  // before calling initMap — without the stylesheet, Leaflet's tile positioning
+  // is broken and tiles render scattered around the page.
   if(!document.getElementById('leaflet-css')){
-    const link=document.createElement('link');link.id='leaflet-css';link.rel='stylesheet';link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(link)
-    const script=document.createElement('script');script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';script.onload=()=>initMap(jobs||[]);document.head.appendChild(script)
+    var cssReady=false,jsReady=false
+    var tryInit=function(){if(cssReady&&jsReady)initMap(jobs||[])}
+    const link=document.createElement('link')
+    link.id='leaflet-css';link.rel='stylesheet'
+    link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+    link.onload=function(){cssReady=true;tryInit()}
+    // Fallback in case onload doesn't fire for the stylesheet (some browsers/proxies)
+    setTimeout(function(){if(!cssReady){cssReady=true;tryInit()}},2500)
+    document.head.appendChild(link)
+    const script=document.createElement('script')
+    script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+    script.onload=function(){jsReady=true;tryInit()}
+    document.head.appendChild(script)
   } else {
     initMap(jobs||[])
   }
@@ -12398,10 +12411,10 @@ const server = http.createServer(async (req, res) => {
       'Content-Security-Policy':
         "default-src 'self';" +
         " script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://unpkg.com;" +
-        " style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;" +
+        " style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;" +
         " font-src 'self' https://fonts.gstatic.com;" +
         " img-src 'self' data: blob: https:;" +
-        " connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;" +
+        " connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;" +
         " media-src 'self' blob:;" +
         " worker-src 'self' blob:;"
     }
