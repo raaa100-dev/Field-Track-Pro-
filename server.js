@@ -12588,26 +12588,47 @@ function sbReq(method, table, body, params, svc) {
 }
 async function sbFetch(method, endpoint, body, key) {
   const k = key || SB_ANON;
-  const opts = {
-    method,
-    headers: {
-      'apikey': k,
-      'Authorization': 'Bearer ' + k,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
-    }
+  // Defensive: if SB_URL is missing, fail fast with a useful error rather than
+  // throwing inside `new URL(...)` and killing the request handler.
+  if (!SB_URL) return { error: 'SUPABASE_URL env var is not set on the server' };
+  const headers = {
+    'apikey': k,
+    'Authorization': 'Bearer ' + k,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
   };
-  if (body && method !== 'GET') opts.body = JSON.stringify(body);
+  let bodyStr = null;
+  if (body && method !== 'GET') {
+    bodyStr = JSON.stringify(body);
+    headers['Content-Length'] = Buffer.byteLength(bodyStr);
+  }
   return new Promise((resolve) => {
-    const urlObj = new URL(SB_URL + endpoint);
+    let settled = false;
+    const settle = (val) => { if (!settled) { settled = true; resolve(val); } };
+    let urlObj;
+    try { urlObj = new URL(SB_URL + endpoint); }
+    catch (e) { return settle({ error: 'Bad Supabase URL: ' + (e.message || e) }); }
     const reqFn = urlObj.protocol === 'https:' ? https.request : http.request;
-    const req = reqFn({ hostname: urlObj.hostname, path: urlObj.pathname + urlObj.search, method, headers: opts.headers }, res => {
+    const req = reqFn({
+      hostname: urlObj.hostname,
+      port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
+      path: urlObj.pathname + urlObj.search,
+      method,
+      headers
+    }, res => {
       let d = '';
       res.on('data', chunk => d += chunk);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({}); } });
+      res.on('end', () => {
+        try { settle(d ? JSON.parse(d) : {}); }
+        catch { settle({ _raw: d, _status: res.statusCode }); }
+      });
     });
-    req.on('error', e => resolve({ error: e.message }));
-    if (opts.body) req.write(opts.body);
+    req.on('error', e => settle({ error: e.message || String(e) }));
+    // 20-second timeout — Supabase normally responds in <2s. Anything longer
+    // is either a hang or a network issue, and we want to return cleanly so
+    // the calling handler can respond instead of getting 502'd by Render.
+    req.setTimeout(20000, () => { try { req.destroy(); } catch (e) {} settle({ error: 'Supabase request timed out after 20s' }); });
+    if (bodyStr) req.write(bodyStr);
     req.end();
   });
 }
@@ -13898,43 +13919,43 @@ const server = http.createServer(async (req, res) => {
   // a 'yourname+temp@yourcompany.com' plus-address) for a worker's real
   // email once they have one.
   if(p==='/api/update-user-email'&&method==='POST'){
-    const u=await requireAuth(req,res);if(!u)return
-    const meRes=await sbFetch('GET','/rest/v1/profiles?id=eq.'+encodeURIComponent(u.id)+'&select=role&limit=1',null,SB_ANON)
-    const meRole=(meRes&&meRes[0]&&meRes[0].role)||''
-    if(meRole!=='admin')return json(res,403,{error:'Admin role required'})
+    try{
+      const u=await requireAuth(req,res);if(!u)return
+      const meRes=await sbFetch('GET','/rest/v1/profiles?id=eq.'+encodeURIComponent(u.id)+'&select=role&limit=1',null,SB_ANON)
+      const meRole=(meRes&&meRes[0]&&meRes[0].role)||''
+      if(meRole!=='admin')return json(res,403,{error:'Admin role required'})
 
-    const body=await readBody(req)
-    const{user_id,email}=body
-    if(!user_id||!email)return json(res,400,{error:'user_id and email required'})
-    // Basic email shape check
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return json(res,400,{error:'Invalid email format'})
-    if(!SB_SERVICE)return json(res,500,{error:'SUPABASE_SERVICE_KEY not configured — required to change a user email'})
+      const body=await readBody(req)
+      const{user_id,email}=body
+      if(!user_id||!email)return json(res,400,{error:'user_id and email required'})
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return json(res,400,{error:'Invalid email format'})
+      if(!SB_SERVICE)return json(res,500,{error:'SUPABASE_SERVICE_KEY not configured on Render — required to change a user email'})
 
-    // Update auth identity. email_confirm:true tells Supabase to treat the
-    // new email as already-verified, so no confirmation email is sent.
-    const authRes=await sbFetch('PUT','/auth/v1/admin/users/'+encodeURIComponent(user_id),{
-      email,
-      email_confirm:true
-    },SB_SERVICE)
-    if(authRes.error){
-      var msg=authRes.error.message||authRes.error
-      if(/already.*registered|exists/i.test(String(msg))){
-        return json(res,400,{error:'That email is already used by another account.'})
+      const authRes=await sbFetch('PUT','/auth/v1/admin/users/'+encodeURIComponent(user_id),{
+        email,
+        email_confirm:true
+      },SB_SERVICE)
+      if(!authRes||(authRes.error||(!authRes.id&&!authRes.user))){
+        var msg=(authRes&&(authRes.msg||authRes.error?.message||authRes.error||authRes.message))||'unknown'
+        if(/already.*registered|exists/i.test(String(msg))){
+          return json(res,400,{error:'That email is already used by another account.'})
+        }
+        return json(res,400,{error:'Auth update failed: '+msg})
       }
-      return json(res,400,{error:'Auth update failed: '+msg})
-    }
 
-    // Mirror into profiles.email so display/search remain consistent.
-    const profRes=await sbFetch('PATCH','/rest/v1/profiles?id=eq.'+encodeURIComponent(user_id),{
-      email,
-      updated_at:new Date().toISOString()
-    },SB_SERVICE)
-    if(profRes&&profRes.error){
-      // Auth was updated successfully but profile mirror failed. Not fatal —
-      // login still works with the new email. Log a warning so the admin sees it.
-      return json(res,200,{success:true,warning:'Auth email updated, but profile sync failed: '+(profRes.error.message||profRes.error)})
+      const profRes=await sbFetch('PATCH','/rest/v1/profiles?id=eq.'+encodeURIComponent(user_id),{
+        email,
+        updated_at:new Date().toISOString()
+      },SB_SERVICE)
+      if(profRes&&!Array.isArray(profRes)&&(profRes.error||profRes.code)){
+        const msg=profRes.message||profRes.msg||(profRes.error&&(profRes.error.message||profRes.error))||'unknown'
+        return json(res,200,{success:true,warning:'Auth email updated, but profile sync failed: '+msg})
+      }
+      return json(res,200,{success:true})
+    }catch(err){
+      console.error('[update-user-email] uncaught:',err&&err.stack||err)
+      return json(res,500,{error:'Server error: '+(err&&err.message||String(err))})
     }
-    return json(res,200,{success:true})
   }
 
   // ── CREATE USER WITHOUT EMAIL VERIFICATION ────────────────────────
@@ -13942,52 +13963,87 @@ const server = http.createServer(async (req, res) => {
   // supplied password — no confirmation/recovery email is sent. Intended
   // for the few field workers who don't have reliable email access.
   if(p==='/api/create-user-direct'&&method==='POST'){
-    const u=await requireAuth(req,res);if(!u)return
-    // Only admins can create users this way
-    const meRes=await sbFetch('GET','/rest/v1/profiles?id=eq.'+encodeURIComponent(u.id)+'&select=role&limit=1',null,SB_ANON)
-    const meRole=(meRes&&meRes[0]&&meRes[0].role)||''
-    if(meRole!=='admin')return json(res,403,{error:'Admin role required'})
+    try{
+      const u=await requireAuth(req,res);if(!u)return
+      // Only admins can create users this way
+      const meRes=await sbFetch('GET','/rest/v1/profiles?id=eq.'+encodeURIComponent(u.id)+'&select=role&limit=1',null,SB_ANON)
+      const meRole=(meRes&&meRes[0]&&meRes[0].role)||''
+      if(meRole!=='admin')return json(res,403,{error:'Admin role required (your role appears to be: '+(meRole||'unknown')+')'})
 
-    const body=await readBody(req)
-    const{email,full_name,password,role,phone,company_id,hire_date,emergency_contact,emergency_phone}=body
-    if(!email||!full_name||!password)return json(res,400,{error:'email, full_name, and password are required'})
-    if(password.length<8)return json(res,400,{error:'Password must be at least 8 characters'})
-    if(!SB_SERVICE)return json(res,500,{error:'SUPABASE_SERVICE_KEY not configured on the server — required for direct user creation'})
+      const body=await readBody(req)
+      const{email,full_name,password,role,phone,company_id,hire_date,emergency_contact,emergency_phone}=body
+      if(!email||!full_name||!password)return json(res,400,{error:'email, full_name, and password are required'})
+      if(password.length<8)return json(res,400,{error:'Password must be at least 8 characters'})
+      if(!SB_SERVICE){
+        console.warn('[create-user-direct] SUPABASE_SERVICE_KEY not set')
+        return json(res,500,{error:'SUPABASE_SERVICE_KEY env var is not set on Render. An admin needs to add it in Render → Environment → Add Environment Variable.'})
+      }
 
-    // Create auth user with email_confirm:true (skips verification) and the
-    // chosen password. No email is sent by Supabase in this path.
-    const createRes=await sbFetch('POST','/auth/v1/admin/users',{
-      email,
-      password,
-      email_confirm:true,
-      user_metadata:{full_name,role:role||'sub_worker'}
-    },SB_SERVICE)
-    if(createRes.error||!createRes.id){
-      return json(res,400,{error:createRes.error?.message||createRes.msg||'Could not create auth user (does the email already exist?)'})
+      // Create auth user with email_confirm:true (skips verification) and the
+      // chosen password. No email is sent by Supabase in this path.
+      const createRes=await sbFetch('POST','/auth/v1/admin/users',{
+        email,
+        password,
+        email_confirm:true,
+        user_metadata:{full_name,role:role||'sub_worker'}
+      },SB_SERVICE)
+
+      // Supabase admin API returns various shapes on error. Look for an id
+      // first; if absent, surface whatever message field is populated.
+      if(!createRes||!createRes.id){
+        console.warn('[create-user-direct] Supabase response (no id):',JSON.stringify(createRes).slice(0,500))
+        let msg=''
+        if(createRes){
+          msg=createRes.msg
+            ||(createRes.error&&(createRes.error.message||createRes.error))
+            ||createRes.error_description
+            ||createRes.message
+            ||''
+        }
+        const lower=String(msg).toLowerCase()
+        if(/already.*registered|already.*exists|email.*registered|email_exists/.test(lower)){
+          return json(res,400,{error:'That email is already used by another account. Try a different email — or look in the Users page (active and inactive both) for the existing one.'})
+        }
+        if(/weak.*password|password.*short|password.*strength|password.*characters/.test(lower)){
+          return json(res,400,{error:'Password rejected by Supabase: '+msg})
+        }
+        if(/invalid.*email|email.*format/.test(lower)){
+          return json(res,400,{error:'Email rejected by Supabase: '+msg})
+        }
+        if(/timed out/i.test(lower)){
+          return json(res,504,{error:'Supabase timed out. Try again — if it keeps failing, check Supabase status.'})
+        }
+        return json(res,400,{error:'Supabase rejected the request: '+(msg||'no error message returned. Raw response (truncated): '+JSON.stringify(createRes).slice(0,250))})
+      }
+      const authUserId=createRes.id
+
+      // Create the profile row
+      const profileRes=await sbFetch('POST','/rest/v1/profiles',{
+        id:authUserId,
+        full_name,
+        email,
+        phone:phone||'',
+        role:role||'sub_worker',
+        company_id:company_id||null,
+        hire_date:hire_date||null,
+        emergency_contact:emergency_contact||'',
+        emergency_phone:emergency_phone||'',
+        is_active:true,
+        created_at:new Date().toISOString()
+      },SB_SERVICE)
+      // PostgREST returns the inserted row(s) as an array on success.
+      const profileOk=Array.isArray(profileRes)||(profileRes&&profileRes.id)
+      if(!profileOk&&profileRes&&(profileRes.error||profileRes.code||profileRes.message||profileRes.msg)){
+        const msg=profileRes.message||profileRes.msg||(profileRes.error&&(profileRes.error.message||profileRes.error))||JSON.stringify(profileRes).slice(0,250)
+        console.warn('[create-user-direct] profile insert failed, rolling back auth user:',msg)
+        try{await sbFetch('DELETE','/auth/v1/admin/users/'+authUserId,null,SB_SERVICE)}catch(e){}
+        return json(res,400,{error:'Profile creation failed (auth user rolled back): '+msg})
+      }
+      return json(res,200,{success:true,user_id:authUserId})
+    }catch(err){
+      console.error('[create-user-direct] uncaught:',err&&err.stack||err)
+      return json(res,500,{error:'Server error: '+(err&&err.message||String(err))})
     }
-    const authUserId=createRes.id
-
-    // Create the profile row
-    const profileRes=await sbFetch('POST','/rest/v1/profiles',{
-      id:authUserId,
-      full_name,
-      email,
-      phone:phone||'',
-      role:role||'sub_worker',
-      company_id:company_id||null,
-      hire_date:hire_date||null,
-      emergency_contact:emergency_contact||'',
-      emergency_phone:emergency_phone||'',
-      is_active:true,
-      created_at:new Date().toISOString()
-    },SB_SERVICE)
-    if(profileRes&&profileRes.error){
-      // Auth user was created but profile failed. Roll back the auth user so
-      // the next attempt doesn't get an "email already in use" error.
-      try{await sbFetch('DELETE','/auth/v1/admin/users/'+authUserId,null,SB_SERVICE)}catch(e){}
-      return json(res,400,{error:'Profile creation failed: '+(profileRes.error.message||profileRes.error)})
-    }
-    return json(res,200,{success:true,user_id:authUserId})
   }
 
   if(p==='/api/set-password'&&method==='POST'){
@@ -14014,14 +14070,23 @@ const server = http.createServer(async (req, res) => {
   }
 
   if(p==='/api/delete-user'&&method==='POST'){
-    const u=await requireAuth(req,res);if(!u)return
-    const body=await readBody(req)
-    const{user_id}=body
-    if(!user_id)return json(res,400,{error:'user_id required'})
-    const serviceKey=SB_SERVICE||SB_ANON
-    const delRes=await sbFetch('DELETE','/auth/v1/admin/users/'+user_id,null,serviceKey)
-    if(delRes.error)return json(res,400,{error:delRes.error.message||'Could not delete auth user'})
-    return json(res,200,{success:true})
+    try{
+      const u=await requireAuth(req,res);if(!u)return
+      const body=await readBody(req)
+      const{user_id}=body
+      if(!user_id)return json(res,400,{error:'user_id required'})
+      const serviceKey=SB_SERVICE||SB_ANON
+      if(!SB_SERVICE)return json(res,500,{error:'SUPABASE_SERVICE_KEY not configured on Render — required to delete users'})
+      const delRes=await sbFetch('DELETE','/auth/v1/admin/users/'+user_id,null,serviceKey)
+      if(delRes&&delRes.error){
+        const msg=(delRes.error.message||delRes.error||delRes.msg||'Could not delete auth user')
+        return json(res,400,{error:msg})
+      }
+      return json(res,200,{success:true})
+    }catch(err){
+      console.error('[delete-user] uncaught:',err&&err.stack||err)
+      return json(res,500,{error:'Server error: '+(err&&err.message||String(err))})
+    }
   }
 
   // ── INVITE / CREATE USER ─────────────────────────────────────────
