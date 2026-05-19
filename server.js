@@ -739,13 +739,25 @@ function _closeWalkSafely(){
 // plus a saveFn the prompt can invoke to "Save & Continue".
 window._dirtyScopes=window._dirtyScopes||{}
 function _dirtyAttach(ids,scope,saveFn){
-  if(!window._dirtyScopes[scope])window._dirtyScopes[scope]={dirty:false,save:null}
-  // Reset dirty when (re)attaching — we're rendering fresh fields
+  if(!window._dirtyScopes[scope])window._dirtyScopes[scope]={dirty:false,save:null,initial:{}}
+  // Reset dirty when (re)attaching — we're rendering fresh fields. Capture
+  // each field's initial value so we can detect true changes vs noise.
   window._dirtyScopes[scope].dirty=false
+  window._dirtyScopes[scope].initial={}
   if(typeof saveFn==='function')window._dirtyScopes[scope].save=saveFn
   ;(ids||[]).forEach(function(id){
     var el=document.getElementById(id);if(!el)return
-    var mark=function(){window._dirtyScopes[scope].dirty=true}
+    window._dirtyScopes[scope].initial[id]=el.value
+    var mark=function(e){
+      // Only count real, user-triggered changes — ignore programmatic value
+      // sets, focus-only events, and browser autofills that fire without
+      // changing the value vs initial. This prevents false-dirty flags that
+      // could trigger an unwanted "save" prompt later.
+      if(e && e.isTrusted===false)return
+      var initial=window._dirtyScopes[scope].initial[id]
+      if(el.value===initial)return  // no actual change
+      window._dirtyScopes[scope].dirty=true
+    }
     el.addEventListener('input',mark)
     el.addEventListener('change',mark)
   })
@@ -1940,11 +1952,81 @@ function renderInfoTab(el,j){
   },100)
 }
 async function saveInfoTab(){
-  const u={name:v('ed-name'),job_number:v('ed-jobnum')||null,trade:v('ed-trade')||null,estimator:v('ed-estimator')||null,address:v('ed-addr'),city:v('ed-city')||null,state:v('ed-state')||null,zip:v('ed-zip')||null,gps_lat:fN('ed-lat'),gps_lng:fN('ed-lng'),gps_radius_ft:parseInt(v('ed-rad'))||250,gc_company:v('ed-gc'),gc_contact:v('ed-gcc'),gc_phone:v('ed-gcp'),gc_email:v('ed-gce')||null,super_name:v('ed-sup'),super_phone:v('ed-supp'),project_manager:v('ed-pm'),pm_visit_schedule:v('ed-pmschedule')||'none',next_pm_visit:v('ed-pmvisit')||null,permit_status:v('ed-permit-status')||'not_required',permit_number:v('ed-permit-number')||null,date_start:null,due_date:v('ed-due')||null,projected_start:v('ed-proj-start')||null,projected_closeout:v('ed-proj-close')||null,date_contract:v('ed-dc')||null,expected_onsite_date:v('ed-eos')||null,next_visit_date:v('ed-nvd')||null,date_roughin:v('ed-dr')||null,date_trimout:v('ed-dt')||null,date_inspection:v('ed-di')||null,date_closeout:v('ed-dco')||null,completion_date:v('ed-comp')||null,original_contract_value:fN('ed-ocv'),contract_value:fN('ed-cv'),labor_rate:fN('ed-lr'),labor_budget:fN('ed-lb'),material_budget:fN('ed-mb'),updated_at:new Date().toISOString()}
-  if(u.phase==='ready_for_final'||u.phase==='complete')u.pct_complete=100
+  // ── Guardrail #1: form must be rendered.
+  // If the Info tab is not currently mounted (e.g. user is on Workers/Walks tab),
+  // 'ed-name' will not exist in the DOM and v() returns empty. Saving in that
+  // state would write nulls into every column. Abort cleanly instead.
+  if(!document.getElementById('ed-name')){
+    console.warn('saveInfoTab called but Info form is not mounted — aborting to prevent data loss')
+    return
+  }
+  // ── Guardrail #2: build update object only from fields that actually exist
+  // in the DOM. Each entry: [fieldId, dbColumn, transform]. transform is one
+  // of 'str', 'strOrNull', 'num', 'int', 'date'.
+  var fieldMap=[
+    ['ed-name','name','str'],
+    ['ed-jobnum','job_number','strOrNull'],
+    ['ed-trade','trade','strOrNull'],
+    ['ed-estimator','estimator','strOrNull'],
+    ['ed-addr','address','str'],
+    ['ed-city','city','strOrNull'],
+    ['ed-state','state','strOrNull'],
+    ['ed-zip','zip','strOrNull'],
+    ['ed-lat','gps_lat','num'],
+    ['ed-lng','gps_lng','num'],
+    ['ed-rad','gps_radius_ft','int'],
+    ['ed-gc','gc_company','str'],
+    ['ed-gcc','gc_contact','str'],
+    ['ed-gcp','gc_phone','str'],
+    ['ed-gce','gc_email','strOrNull'],
+    ['ed-sup','super_name','str'],
+    ['ed-supp','super_phone','str'],
+    ['ed-pm','project_manager','str'],
+    ['ed-pmschedule','pm_visit_schedule','str'],
+    ['ed-pmvisit','next_pm_visit','date'],
+    ['ed-permit-status','permit_status','str'],
+    ['ed-permit-number','permit_number','strOrNull'],
+    ['ed-due','due_date','date'],
+    ['ed-proj-start','projected_start','date'],
+    ['ed-proj-close','projected_closeout','date'],
+    ['ed-dc','date_contract','date'],
+    ['ed-eos','expected_onsite_date','date'],
+    ['ed-nvd','next_visit_date','date'],
+    ['ed-dr','date_roughin','date'],
+    ['ed-dt','date_trimout','date'],
+    ['ed-di','date_inspection','date'],
+    ['ed-dco','date_closeout','date'],
+    ['ed-comp','completion_date','date'],
+    ['ed-ocv','original_contract_value','num'],
+    ['ed-cv','contract_value','num'],
+    ['ed-lr','labor_rate','num'],
+    ['ed-lb','labor_budget','num'],
+    ['ed-mb','material_budget','num']
+  ]
+  var u={}
+  fieldMap.forEach(function(tup){
+    var id=tup[0],col=tup[1],type=tup[2]
+    var el=document.getElementById(id)
+    if(!el)return  // skip silently — field not in current form
+    var raw=el.value
+    if(type==='str')u[col]=raw
+    else if(type==='strOrNull')u[col]=raw||null
+    else if(type==='date')u[col]=raw||null
+    else if(type==='num'){var n=parseFloat(raw);u[col]=isNaN(n)?null:n}
+    else if(type==='int'){var n2=parseInt(raw);u[col]=isNaN(n2)?(col==='gps_radius_ft'?250:null):n2}
+  })
+  // ── Guardrail #3: refuse to save a blank name. Name is the one required
+  // field; if it's empty something is wrong (form not loaded, race condition).
+  if(!u.name||!u.name.trim()){
+    toast('Job name is empty — save aborted to protect your data','error')
+    return
+  }
+  u.updated_at=new Date().toISOString()
   const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
   if(error){toast(error.message,'error');return}
-  currentJob={...currentJob,...u};document.getElementById('page-title').textContent=u.name;_clearDirty('info');toast('Saved')
+  currentJob={...currentJob,...u}
+  var pt=document.getElementById('page-title');if(pt&&u.name)pt.textContent=u.name
+  _clearDirty('info');toast('Saved')
 }
 function navJob(dir){
   var list=allJobs||[]
