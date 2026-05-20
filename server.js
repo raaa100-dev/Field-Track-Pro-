@@ -2051,7 +2051,54 @@ function renderScopeTab(el,j){
   <button class="btn btn-p" onclick="saveScope()">Save</button>\`
   setTimeout(function(){_dirtyAttach(['sc-scope','sc-notes','sc-jwn','sc-jwb','sc-jwd'],'scope',saveScope)},50)
 }
-async function saveScope(){const{error}=await sb.from('jobs').update({scope:v('sc-scope'),install_notes:v('sc-notes'),job_walk_notes:v('sc-jwn'),job_walk_by:v('sc-jwb'),job_walk_date:v('sc-jwd')||null,updated_at:new Date().toISOString()}).eq('id',currentJobId);if(error)toast(error.message,'error');else{_clearDirty('scope');toast('Saved')}}
+async function saveScope(){
+  // ── Guardrail #1: form must be rendered.
+  // If the Scope tab is not currently mounted, sc-scope will not exist.
+  // Calling v() on missing inputs returns empty string; saving in that
+  // state would wipe all scope fields. Abort cleanly.
+  if(!document.getElementById('sc-scope')){
+    console.warn('saveScope called but form is not mounted — aborting to prevent data loss')
+    return
+  }
+  // ── Guardrail #2: only include fields whose inputs actually exist.
+  var fieldMap=[
+    ['sc-scope','scope','str'],
+    ['sc-notes','install_notes','str'],
+    ['sc-jwn','job_walk_notes','str'],
+    ['sc-jwb','job_walk_by','str'],
+    ['sc-jwd','job_walk_date','dateOrNull']
+  ]
+  var u={}
+  var anyNonEmpty=false
+  fieldMap.forEach(function(tup){
+    var id=tup[0],col=tup[1],type=tup[2]
+    var el=document.getElementById(id)
+    if(!el)return
+    var raw=el.value
+    if(type==='dateOrNull')u[col]=raw||null
+    else u[col]=raw
+    if(raw&&String(raw).trim())anyNonEmpty=true
+  })
+  // ── Guardrail #3: if every field is blank, this is almost certainly a
+  // render/load timing bug, not a legitimate "clear everything" intent.
+  // Refuse to save and tell the user. Existing data stays intact.
+  if(!anyNonEmpty){
+    // But only refuse if the job currently has any scope data — if the user
+    // legitimately wants to save an empty Scope tab (e.g. brand-new job),
+    // let them. Check currentJob to see if there's anything to lose.
+    var hadAny=currentJob&&(currentJob.scope||currentJob.install_notes||currentJob.job_walk_notes||currentJob.job_walk_by||currentJob.job_walk_date)
+    if(hadAny){
+      toast('All scope fields are blank — save aborted to protect existing data. If you really want to clear everything, type a space in each field first.','error')
+      return
+    }
+  }
+  u.updated_at=new Date().toISOString()
+  const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
+  if(error){toast(error.message,'error');return}
+  // Mirror saved values into currentJob so the next render uses fresh data
+  Object.assign(currentJob||{},u)
+  _clearDirty('scope');toast('Saved')
+}
 
 // ── SUB-PROJECTS TAB ──────────────────────────────────────────
 async function renderSubProjectsTab(el){
