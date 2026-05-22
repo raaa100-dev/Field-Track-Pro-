@@ -573,10 +573,20 @@ window.addEventListener('DOMContentLoaded',async()=>{
   // Normalize role to lowercase so 'Admin' vs 'admin' vs 'ADMIN' all behave
   // the same. Every role comparison in the app uses lowercase literals.
   if(ME&&ME.role)ME.role=String(ME.role).toLowerCase()
+  // Compute role-tier flags. These mirror the server-side SQL helpers
+  // (is_admin, is_admin_or_pm, etc.) added in migration-004.
+  ME.isAdmin=ME.role==='admin'
+  ME.isPm=['admin','pm'].includes(ME.role)
+  ME.isEstimatorOrHigher=['admin','pm','estimator'].includes(ME.role)
+  ME.isOperationsStaff=['admin','pm','foreman'].includes(ME.role)
+  ME.isFieldUser=!ME.isOperationsStaff&&!ME.isEstimatorOrHigher
   const nm=ME.full_name||session.user.email
   document.getElementById('user-name').textContent=nm
   const av=document.getElementById('user-av')
   av.textContent=ini(nm);Object.assign(av.style,avS(nm))
+  // Apply role-based UI visibility BEFORE first page navigation, so users
+  // don't see flashes of nav items they shouldn't have.
+  applyRoleVisibility()
   P('dashboard',document.querySelector('.nav-item'))
   checkSafetyBadge()
   // Delay badge load slightly to ensure ME is set
@@ -584,6 +594,59 @@ window.addEventListener('DOMContentLoaded',async()=>{
   // Mobile: show hamburger on small screens
   initMobileLayout()
 })
+
+// ── ROLE-BASED UI VISIBILITY ──────────────────────────────────────────────
+// Hide sidebar nav items and UI sections the current user doesn't have access
+// to. RLS at the DB level is the real security; this is just to avoid showing
+// users buttons that would silently return empty pages.
+function applyRoleVisibility(){
+  if(!ME)return
+  // Walk every sidebar nav-item and hide based on what page it links to.
+  // Each nav-item has an onclick="P('pagekey',this)" we can parse.
+  document.querySelectorAll('.nav-item').forEach(function(item){
+    var onclick=item.getAttribute('onclick')||''
+    var match=onclick.match(/P\\('([^']+)'/)
+    if(!match)return
+    var pageKey=match[1]
+    var hide=false
+    // Admin-only pages
+    if(['users','settings','email_review','notifications'].includes(pageKey)){
+      hide=!ME.isAdmin
+    }
+    // Estimator-or-higher pages
+    if(['crm_accounts','crm_contacts','crm_pipeline','crm_inspections',
+        'fax_bids','fax_bid_invoices','fax_bid_templates','fax_bid_reports',
+        'financials'].includes(pageKey)){
+      hide=!ME.isEstimatorOrHigher
+    }
+    // Operations staff (admin/pm/foreman) pages
+    if(['dispatch','forecast','companies','reports','documents'].includes(pageKey)){
+      hide=!ME.isOperationsStaff&&!ME.isEstimatorOrHigher
+    }
+    // PM-only pages (we treat admin as PM-equivalent)
+    if(['gps','hours'].includes(pageKey)){
+      hide=!ME.isPm
+    }
+    if(hide)item.style.display='none'
+    else item.style.display=''  // ensure it's visible (in case it was hidden before)
+  })
+  // Also hide entire sidebar section headers if every item in that section is hidden
+  setTimeout(function(){
+    document.querySelectorAll('.nav-section-title').forEach(function(hdr){
+      var sib=hdr.nextElementSibling
+      var anyVisible=false
+      while(sib&&!sib.classList.contains('nav-section-title')){
+        if(sib.classList.contains('nav-item')&&sib.style.display!=='none'){anyVisible=true;break}
+        sib=sib.nextElementSibling
+      }
+      hdr.style.display=anyVisible?'':'none'
+    })
+  },20)
+}
+// Helper to check if user should see job financial fields (contract value etc.)
+function canSeeFinancials(){return ME&&ME.isEstimatorOrHigher}
+function canSeeCrm(){return ME&&ME.isEstimatorOrHigher}
+function canCheckInOthers(){return ME&&ME.isOperationsStaff}
 
 // ── MOBILE LAYOUT ──────────────────────────────────────────────────────────
 function initMobileLayout(){
@@ -6323,7 +6386,8 @@ async function pgSettings(){
   // ── Database Backup ──────────────────────────────────────────
   h+='<div class="card" style="margin-bottom:14px">'
   h+='<div class="card-title" style="margin-bottom:4px">💾 Database Backup</div>'
-  h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">Download a full JSON backup of your data. This includes jobs, contacts, daily reports, tasks, orders, and more.</div>'
+  h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:6px">Complete JSON backup of your entire database. Useful for migration safety, compliance audits, and disaster recovery.</div>'
+  h+='<div style="font-size:11px;color:#414e63;margin-bottom:12px;line-height:1.5"><strong style="color:#8a96ab">Includes:</strong> all 65+ tables (data rows), table schemas (column definitions), RLS policies, and helper functions. Runs server-side with the service key so it captures everything regardless of your RLS permissions. Admin role required.</div>'
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap">'
   h+='<button class="btn btn-p" onclick="downloadDatabaseBackup()">⬇ Download Full Backup</button>'
   h+='<button class="btn btn-sm btn-ghost" data-tbl="jobs" onclick="dlTableBackup(this.dataset.tbl)">Jobs only</button>'
@@ -6648,24 +6712,33 @@ async function downloadTableBackup(table){
 
 async function downloadDatabaseBackup(){
   var prog=document.getElementById('backup-progress')
-  var tables=['jobs','job_tasks','job_parts','job_walk_plans','job_walks','daily_reports','orders','order_requests','catalog','safety_topics','safety_assignments','safety_acks','crm_accounts','crm_contacts','crm_activities','pm_visits','change_orders','company_settings']
-  var backup={exported_at:new Date().toISOString(),version:'FieldAxisHQ-v2',tables:{}}
-  for(var t of tables){
-    if(prog){prog.style.display='block';prog.textContent='Backing up: '+t+'...'}
-    try{
-      var res=await sb.from(t).select('*')
-      backup.tables[t]=res.data||[]
-    }catch(e){backup.tables[t]=[]}
+  if(prog){prog.style.display='block';prog.textContent='Requesting full backup from server... (this can take 30-60 seconds for large databases)'}
+  try{
+    var session=(await sb.auth.getSession()).data.session
+    var token=session?.access_token||''
+    var r=await fetch('/api/backup/full',{method:'GET',headers:{'Authorization':'Bearer '+token}})
+    if(!r.ok){
+      var errBody={};try{errBody=await r.json()}catch(e){}
+      if(prog)prog.style.display='none'
+      toast('Backup failed: '+(errBody.error||r.statusText)+(r.status===403?' — admin role required':''),'error')
+      return
+    }
+    if(prog)prog.textContent='Downloading file...'
+    var backup=await r.json()
+    var blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'})
+    var a=document.createElement('a')
+    a.href=URL.createObjectURL(blob)
+    a.download='FieldAxisHQ-backup-'+new Date().toISOString().split('T')[0]+'.json'
+    a.click()
+    if(prog)prog.style.display='none'
+    var stats=backup.stats||{}
+    var summary=stats.tables_backed_up+' tables, '+stats.total_rows+' rows'
+    if(stats.errors&&stats.errors.length)summary+=' ('+stats.errors.length+' table errors — see file)'
+    toast('Backup complete: '+summary)
+  }catch(e){
+    if(prog)prog.style.display='none'
+    toast('Backup error: '+(e.message||e),'error')
   }
-  if(prog){prog.textContent='Creating file...'}
-  var blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'})
-  var a=document.createElement('a')
-  a.href=URL.createObjectURL(blob)
-  a.download='FieldAxisHQ-backup-'+new Date().toISOString().split('T')[0]+'.json'
-  a.click()
-  if(prog)prog.style.display='none'
-  var total=Object.values(backup.tables).reduce(function(s,r){return s+r.length},0)
-  toast('Backup downloaded ('+total+' total records)')
 }
 
 async function loadDatabaseBackup(file){
@@ -14053,6 +14126,123 @@ const server = http.createServer(async (req, res) => {
   // Find/delete profile rows whose `id` doesn't match any auth.users row.
   // These accumulate when user-creation flows fail partway through. They
   // block re-creating a user with the same email (unique constraint).
+  // ── FULL DATABASE BACKUP ─────────────────────────────────────────
+  // Returns a JSON object with: data from every public table, schema info,
+  // RLS policies, and helper functions. Uses service key so it bypasses RLS
+  // entirely and captures everything regardless of who's calling.
+  // Admin-only.
+  if(p==='/api/backup/full'&&method==='GET'){
+    try{
+      const u=await getUser(req);if(!requireAuth(res,u))return
+      const meRole=String(u.role||'').toLowerCase()
+      if(meRole!=='admin')return json(res,403,{error:'Admin role required'})
+      if(!SB_SERVICE)return json(res,500,{error:'SUPABASE_SERVICE_KEY not configured'})
+
+      const backup={
+        meta:{
+          exported_at:new Date().toISOString(),
+          exported_by:u.email||u.id,
+          version:'FieldAxisHQ-v3-full',
+          notes:'Full backup including data, schema, policies, and helper functions. Use this for compliance-grade restore.'
+        },
+        tables:{},
+        schema:{},
+        policies:[],
+        functions:[],
+        stats:{tables_backed_up:0,total_rows:0,errors:[]}
+      }
+
+      // Discover every table in the public schema dynamically so we don't
+      // miss any new tables. Skip system tables and ones starting with pg_.
+      const tablesRes=await sbFetch('GET',
+        '/rest/v1/rpc/list_public_tables',null,SB_SERVICE)
+      let tableNames=[]
+      if(Array.isArray(tablesRes)){
+        tableNames=tablesRes.map(function(r){return r.table_name||r.tablename||r}).filter(Boolean)
+      }
+      // Fallback: if the helper function doesn't exist, use a hardcoded list
+      // that covers everything currently in the schema.
+      if(!tableNames.length){
+        tableNames=['audit_log','catalog','change_orders','checkins','companies','company_settings',
+          'crm_accounts','crm_activities','crm_agreements','crm_buildings','crm_contacts',
+          'crm_inspections','crm_pipeline','daily_logs','daily_reports','dispatch_assignments',
+          'email_inbox','email_ingest_log','email_ingest_rules','email_pending_updates',
+          'fax_bid_branding','fax_bid_email_config','fax_bid_invoices','fax_bid_recipients',
+          'fax_bid_scope_blocks','fax_bid_templates','fax_bids','gc_alerts','gcs',
+          'inspection_reports','integration_settings','inventory','invoices','job_attendance',
+          'job_checklist_items','job_documents','job_labor_allocations','job_manifest',
+          'job_parts','job_photos','job_plans','job_sub_assignments','job_tasks',
+          'job_walk_plans','job_walks','job_workers','jobs','lien_waivers','notifications',
+          'orders','part_requests','plan_markups','pm_inspections','pm_visits','profiles',
+          'punch_list','punchlist','quote_recipients','quote_templates','quotes','safety_acks',
+          'safety_assignments','safety_topics','scan_events','scan_log','scope_blocks',
+          'site_signins','users']
+      }
+
+      // Fetch each table's data in batches of 1000 rows
+      for(const t of tableNames){
+        try{
+          let allRows=[]
+          let offset=0
+          const pageSize=1000
+          while(offset<200000){  // safety cap at 200k rows per table
+            const rows=await sbFetch('GET',
+              '/rest/v1/'+t+'?select=*&limit='+pageSize+'&offset='+offset,
+              null,SB_SERVICE)
+            if(!Array.isArray(rows)||!rows.length)break
+            allRows=allRows.concat(rows)
+            if(rows.length<pageSize)break
+            offset+=pageSize
+          }
+          backup.tables[t]=allRows
+          backup.stats.tables_backed_up++
+          backup.stats.total_rows+=allRows.length
+        }catch(e){
+          backup.tables[t]=[]
+          backup.stats.errors.push(t+': '+(e.message||e))
+        }
+      }
+
+      // Schema: column info for every table
+      try{
+        const cols=await sbFetch('GET',
+          '/rest/v1/rpc/list_schema_columns',null,SB_SERVICE)
+        if(Array.isArray(cols)){
+          for(const c of cols){
+            const t=c.table_name
+            if(!backup.schema[t])backup.schema[t]=[]
+            backup.schema[t].push({
+              column:c.column_name,
+              type:c.data_type,
+              nullable:c.is_nullable,
+              default:c.column_default,
+              max_length:c.character_maximum_length
+            })
+          }
+        }
+      }catch(e){backup.stats.errors.push('schema export failed: '+(e.message||e))}
+
+      // RLS policies
+      try{
+        const pols=await sbFetch('GET',
+          '/rest/v1/rpc/list_rls_policies',null,SB_SERVICE)
+        if(Array.isArray(pols))backup.policies=pols
+      }catch(e){backup.stats.errors.push('policies export failed: '+(e.message||e))}
+
+      // Helper functions (security definer functions in public schema)
+      try{
+        const fns=await sbFetch('GET',
+          '/rest/v1/rpc/list_helper_functions',null,SB_SERVICE)
+        if(Array.isArray(fns))backup.functions=fns
+      }catch(e){backup.stats.errors.push('functions export failed: '+(e.message||e))}
+
+      return json(res,200,backup)
+    }catch(err){
+      console.error('[backup/full] uncaught:',err&&err.stack||err)
+      return json(res,500,{error:'Backup failed: '+(err&&err.message||String(err))})
+    }
+  }
+
   if(p==='/api/orphan-profiles/scan'&&method==='GET'){
     try{
       const u=await getUser(req);if(!requireAuth(res,u))return
