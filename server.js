@@ -3332,7 +3332,7 @@ async function renderCOTab(el){
       }
       if(isCanceled||isApproved)h+='<button class="btn btn-sm btn-ghost" data-coid="'+co.id+'" onclick="resetCO(this)">↩ Reset to Pending</button>'
       h+='<button class="btn btn-sm" data-coid="'+co.id+'" onclick="editCO(this)">Edit</button>'
-      if(ME&&ME.role==='admin')h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" data-coid="'+co.id+'" onclick="deleteCO(this.dataset.coid)">Delete</button>'
+      if((ME&&ME.isAdmin)||(ME&&ME.role==='admin'))h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" data-coid="'+co.id+'" onclick="deleteCO(this.dataset.coid)">Delete</button>'
       h+='</div></div>'
     })
   })
@@ -3480,7 +3480,7 @@ async function editCO(btn){
   h+='<button class="btn btn-sm btn-p" style="margin-bottom:10px" data-coid="'+id+'" data-conum="'+_escAttr(co.co_number||'')+'" data-cotitle="'+_escAttr(co.title||'')+'" onclick="closeModal();openCOLines(this.dataset.coid,this.dataset.conum,this.dataset.cotitle)">✎ Edit Line Items</button>'
   h+='<div class="two"><div class="fg"><label class="fl">Submitted Date</label><input class="fi" type="date" id="eco-sub" value="'+(co.submitted_date?co.submitted_date.split('T')[0]:'')+'"></div>'
   h+='<div class="fg"><label class="fl">Approved Date</label><input class="fi" type="date" id="eco-app" value="'+(co.approved_date?co.approved_date.split('T')[0]:'')+'"></div></div>'
-  if(ME&&ME.role==='admin')h+='<div style="padding-top:10px;border-top:1px solid rgba(255,255,255,.06)"><button class="btn btn-ghost btn-sm" style="color:#dc2626" data-coid="'+id+'" onclick="deleteCO(this.dataset.coid)">Delete Change Order</button></div>'
+  if((ME&&ME.isAdmin)||(ME&&ME.role==='admin'))h+='<div style="padding-top:10px;border-top:1px solid rgba(255,255,255,.06)"><button class="btn btn-ghost btn-sm" style="color:#dc2626" data-coid="'+id+'" onclick="deleteCO(this.dataset.coid)">Delete Change Order</button></div>'
   modal('Edit '+co.co_number, h, async function(){
     var t=(document.getElementById('eco-t').value||'').trim()
     if(!t){toast('Title required','error');return}
@@ -3491,10 +3491,18 @@ async function editCO(btn){
   },'Save')
 }
 async function deleteCO(id){
-  if(!confirm('Delete this change order? This cannot be undone.'))return
+  if(!confirm('Delete this change order? This also deletes its line items and cannot be undone.'))return
   closeModal()
-  var res=await sb.from('change_orders').delete().eq('id',id)
-  if(res.error){toast(res.error.message,'error');return}
+  var res=await sb.from('change_orders').delete().eq('id',id).select()
+  if(res.error){
+    toast('Could not delete: '+res.error.message+(/policy|permission|rls/i.test(res.error.message)?' (you may not have delete permission)':''),'error')
+    return
+  }
+  // If RLS silently blocked the delete, the returned data array will be empty.
+  if(Array.isArray(res.data)&&res.data.length===0){
+    toast('Delete was blocked — you may not have permission to delete change orders.','error')
+    return
+  }
   await updateJobContractValue()
   loadJT('jt-co');toast('Change order deleted','warn')
 }
