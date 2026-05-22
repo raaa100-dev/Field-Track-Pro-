@@ -1009,7 +1009,9 @@ const PARTS_STATUS_LABELS={ordered:'Ordered',staged:'Staged',delivered:'Delivere
 const PERMIT_STATUS_LABELS={not_required:'Not Required',needs_cads:'Needs CADs',needs_job_walk:'Needs Job Walk',pending:'Pending',submitted:'Submitted',otc:'OTC (Over the Counter)',approved:'Approved',issued:'Issued',rejected:'Rejected',expired:'Expired',failed:'Failed'}
 const PERMIT_STATUS_COLORS={not_required:'bg-gray',needs_cads:'bg-amber',needs_job_walk:'bg-amber',pending:'bg-amber',submitted:'bg-blue',otc:'bg-blue',approved:'bg-green',issued:'bg-green',rejected:'bg-red',expired:'bg-red',failed:'bg-red'}
 function stageBadge(p){return\`<span class="badge \${STAGE_COLORS[p]||'bg-gray'}">\${STAGE_LABELS[p]||p||'—'}</span>\`}
-function roleBadge(r){const m={admin:'bg-purple',pm:'bg-blue',estimator:'bg-blue',stager:'bg-amber',foreman:'bg-teal',technician:'bg-green',sub_lead:'bg-amber',sub_worker:'bg-gray'};return\`<span class="badge \${m[r]||'bg-gray'}">\${r||'—'}</span>\`}
+var ROLE_LABELS={admin:'Admin',pm:'Project Manager',estimator:'Estimator',foreman:'Foreman',technician:'Field Worker',sub_worker:'Subcontractor Worker',sub_lead:'Lead',stager:'Stager',signout:'Signout',requestor:'Requestor'}
+function roleLabel(r){return ROLE_LABELS[r]||r||'—'}
+function roleBadge(r){const m={admin:'bg-purple',pm:'bg-blue',estimator:'bg-blue',stager:'bg-amber',foreman:'bg-teal',technician:'bg-green',sub_lead:'bg-amber',sub_worker:'bg-gray'};return\`<span class="badge \${m[r]||'bg-gray'}">\${roleLabel(r)}</span>\`}
 function empty(icon,txt){return\`<div class="empty"><div class="empty-icon">\${icon}</div><div style="color:#414e63;font-size:12px">\${txt}</div></div>\`}
 function ld(){return'<div class="loading"><div class="spin"></div> Loading…</div>'}
 
@@ -3988,7 +3990,7 @@ async function newWalkModal(jobIdOverride){
   // Fetch workers for assignment
   var{data:workers}=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
   workers=workers||[]
-  var workerOpts=workers.map(function(w){return'<option value="'+w.id+'" data-name="'+w.full_name+'">'+w.full_name+' ('+w.role+')</option>'}).join('')
+  var workerOpts=workers.map(function(w){return'<option value="'+w.id+'" data-name="'+w.full_name+'">'+w.full_name+' ('+roleLabel(w.role)+')</option>'}).join('')
   var jobSel=jobIdOverride
     ?'<input type="hidden" id="wk-job" value="'+jobIdOverride+'">'
     :'<div class="fg"><label class="fl">Job *</label><select class="fs" id="wk-job"><option value="">— Select —</option>'+allJobs.map(function(j){return'<option value="'+j.id+'">'+(j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>'}).join('')+'</select></div>'
@@ -5675,7 +5677,7 @@ function addWorkerToCoModal(coId){
   <div class="fg"><label class="fl">Full Name *</label><input class="fi" id="nw-nm"></div>
   <div class="fg"><label class="fl">Email *</label><input class="fi" id="nw-em" type="email"></div>
   <div class="fg"><label class="fl">Phone</label><input class="fi" id="nw-ph"></div>
-  <div class="fg"><label class="fl">Role</label><select class="fs" id="nw-rl"><option value="sub_worker">Worker</option><option value="sub_lead">Lead</option><option value="technician">Technician</option><option value="foreman">Foreman</option></select></div>\`,
+  <div class="fg"><label class="fl">Role</label><select class="fs" id="nw-rl"><option value="sub_worker">Subcontractor Worker</option><option value="foreman">Foreman</option><option value="technician">Field Worker</option></select></div>\`,
   async()=>{const nm=v('nw-nm').trim(),em=v('nw-em').trim();if(!nm||!em){toast('Name and email required','error');return};const{error}=await sb.from('profiles').insert({id:uuid(),company_id:coId,full_name:nm,email:em,phone:v('nw-ph'),role:v('nw-rl'),is_lead:v('nw-rl')==='sub_lead',is_active:true,created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();toast('Worker added — invite via Supabase Auth to set password');pgCompanies()}})
 }
 
@@ -6934,9 +6936,11 @@ function addUserModal(){
     '<div class="fg"><label class="fl">Email *</label><input class="fi" id="au-em" type="email" placeholder="They will get a password setup email"></div></div>'+
     '<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="au-ph"></div>'+
     '<div class="fg"><label class="fl">Role *</label><select class="fs" id="au-rl">'+
-    '<option value="sub_worker">Field Worker</option><option value="sub_lead">Lead</option>'+
-    '<option value="technician">Technician</option><option value="stager">Stager</option>'+
-    '<option value="foreman">Foreman</option><option value="estimator">Estimator</option><option value="pm">Project Manager</option>'+
+    '<option value="technician">Field Worker</option>'+
+    '<option value="sub_worker">Subcontractor Worker</option>'+
+    '<option value="foreman">Foreman</option>'+
+    '<option value="estimator">Estimator</option>'+
+    '<option value="pm">Project Manager</option>'+
     '<option value="admin">Admin</option></select></div></div>'+
     '<div class="two"><div class="fg"><label class="fl">Company</label><select class="fs" id="au-co">'+
     '<option value="">Internal</option>'+coOpts+'</select></div>'+
@@ -7124,10 +7128,19 @@ function editUserModal(id,role,active,name){
     '<div class="fg" id="eu-em-warn" style="display:none;background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.2);border-radius:7px;padding:8px 11px;font-size:11px;color:#d97706;margin-top:-4px">⚠ Changing the email updates the user\\'s login. They will sign in with the new address from now on. No confirmation email is sent.</div>'+
     '<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="eu-ph"></div>'+
     '<div class="fg"><label class="fl">Role</label><select class="fs" id="eu-rl">'+
-    '<option value="sub_worker">Field Worker</option><option value="sub_lead">Lead</option>'+
-    '<option value="technician">Technician</option><option value="stager">Stager</option>'+
-    '<option value="foreman">Foreman</option><option value="estimator">Estimator</option><option value="pm">Project Manager</option>'+
-    '<option value="admin">Admin</option></select></div></div>'+
+    '<option value="technician">Field Worker</option>'+
+    '<option value="sub_worker">Subcontractor Worker</option>'+
+    '<option value="foreman">Foreman</option>'+
+    '<option value="estimator">Estimator</option>'+
+    '<option value="pm">Project Manager</option>'+
+    '<option value="admin">Admin</option>'+
+    // Legacy roles — hidden from new selection but kept so existing users with
+    // these roles still display correctly when their profile loads.
+    '<option value="sub_lead">Lead (legacy)</option>'+
+    '<option value="stager">Stager (legacy)</option>'+
+    '<option value="signout">Signout (legacy)</option>'+
+    '<option value="requestor">Requestor (legacy)</option>'+
+    '</select></div></div>'+
     '<div class="two"><div class="fg"><label class="fl">Company</label><select class="fs" id="eu-co"><option value="">Internal</option>'+coOpts+'</select></div>'+
     '<div class="fg"><label class="fl">Hire Date</label><input class="fi" type="date" id="eu-hire"></div></div>'+
     '<div class="two"><div class="fg"><label class="fl">Status</label><select class="fs" id="eu-act"><option value="true">Active</option><option value="false">Inactive</option></select></div>'+
