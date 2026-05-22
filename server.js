@@ -1000,9 +1000,9 @@ async function getJobRollup(jobId){
   return{self:self,descendants:descendants,rollup:roll}
 }
 
-const STAGES=['not_started','make_safe','prewire','roughed_in','trimmed','ready_for_pretest','ready_for_final','complete']
-const STAGE_LABELS={not_started:'Not Started',make_safe:'Make Safe / Demo',prewire:'Pre-Wire',roughed_in:'Roughed In',trimmed:'Trimmed Out',ready_for_pretest:'Ready for Pre-test',ready_for_final:'Ready for Final',complete:'Complete'}
-const STAGE_COLORS={not_started:'bg-gray',make_safe:'bg-red',prewire:'bg-orange',roughed_in:'bg-blue',trimmed:'bg-teal',ready_for_pretest:'bg-amber',ready_for_final:'bg-purple',complete:'bg-green'}
+const STAGES=['not_started','make_safe','prewire','roughed_in','trimmed','ready_for_pretest','ready_for_final','callback_warranty','complete']
+const STAGE_LABELS={not_started:'Not Started',make_safe:'Make Safe / Demo',prewire:'Pre-Wire',roughed_in:'Roughed In',trimmed:'Trimmed Out',ready_for_pretest:'Ready for Pre-test',ready_for_final:'Ready for Final',callback_warranty:'Callback / Warranty',complete:'Complete'}
+const STAGE_COLORS={not_started:'bg-gray',make_safe:'bg-red',prewire:'bg-orange',roughed_in:'bg-blue',trimmed:'bg-teal',ready_for_pretest:'bg-amber',ready_for_final:'bg-purple',callback_warranty:'bg-amber',complete:'bg-green'}
 // Parts statuses displayed on job cards
 const PARTS_STATUS_LABELS={ordered:'Ordered',staged:'Staged',delivered:'Delivered to Site',partial:'Partial',none:'None'}
 // Permit statuses
@@ -1425,7 +1425,7 @@ function renderJobsTable(q){
   })
   // Apply sort
   var sc=window._jobSortCol||'',sd=window._jobSortDir||1
-  var stageOrder={'not_started':0,'make_safe':1,'prewire':2,'roughed_in':3,'trimmed':4,'ready_for_pretest':5,'ready_for_final':6,'complete':7}
+  var stageOrder={'not_started':0,'make_safe':1,'prewire':2,'roughed_in':3,'trimmed':4,'ready_for_pretest':5,'ready_for_final':6,'callback_warranty':7,'complete':8}
   var partsOrder={'none':0,'ordered':1,'partial':2,'staged':3,'checked_out':4,'installed':5}
   var permitOrder={'not_required':0,'pending':1,'submitted':2,'approved':3,'issued':4,'failed':5,'expired':6}
   if(sc)rows.sort(function(a,b){
@@ -1558,8 +1558,8 @@ async function importJobsExcel(input){
       modal('Import Error','<div style="color:#dc2626">No rows with a Job Name found.<br><br>Make sure your spreadsheet has a column called <strong>Job Name</strong>.</div>',null,'',true)
       return
     }
-    const validStages=['not_started','make_safe','prewire','roughed_in','trimmed','ready_for_pretest','ready_for_final','complete']
-    const stageMap={'not started':'not_started','make safe':'make_safe','prewire':'prewire','roughed in':'roughed_in','rough in':'roughed_in','trimmed':'trimmed','trim':'trimmed','ready for pretest':'ready_for_pretest','ready for final':'ready_for_final','complete':'complete','completed':'complete','done':'complete'}
+    const validStages=['not_started','make_safe','prewire','roughed_in','trimmed','ready_for_pretest','ready_for_final','callback_warranty','complete']
+    const stageMap={'not started':'not_started','make safe':'make_safe','prewire':'prewire','roughed in':'roughed_in','rough in':'roughed_in','trimmed':'trimmed','trim':'trimmed','ready for pretest':'ready_for_pretest','ready for final':'ready_for_final','callback':'callback_warranty','callback/warranty':'callback_warranty','callback / warranty':'callback_warranty','warranty':'callback_warranty','complete':'complete','completed':'complete','done':'complete'}
     // Build preview table
     var h='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">Found <strong style="color:#e8edf5">'+validRows.length+' jobs</strong> ready to import. Review below then click Import.</div>'
     h+='<div style="max-height:320px;overflow-y:auto;margin-bottom:12px">'
@@ -1759,7 +1759,7 @@ function downloadJobTemplate(){
   var wb=XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb,ws,'Jobs')
   // Add a stages reference sheet
-  var stagesData=[['Valid Stage Values'],['not_started'],['make_safe'],['prewire'],['roughed_in'],['trimmed'],['ready_for_pretest'],['ready_for_final'],['complete']]
+  var stagesData=[['Valid Stage Values'],['not_started'],['make_safe'],['prewire'],['roughed_in'],['trimmed'],['ready_for_pretest'],['ready_for_final'],['callback_warranty'],['complete']]
   var ws2=XLSX.utils.aoa_to_sheet(stagesData)
   XLSX.utils.book_append_sheet(wb,ws2,'Stage Reference')
   XLSX.writeFile(wb,'FieldAxisHQ-Job-Import-Template.xlsx')
@@ -1835,7 +1835,8 @@ function renderJobDetail(){
     <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${jobSubhead(j)}</div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">
       <select class="fs" style="width:190px;padding:5px 9px;font-size:12px" onchange="updateJobStage(this.value)">\${STAGES.map(s=>\`<option value="\${s}" \${j.phase===s?'selected':''}>\${STAGE_LABELS[s]}</option>\`).join('')}</select>
-      <button class="btn btn-p btn-sm" onclick="saveInfoTab()" style="padding:5px 14px">Save Changes</button>
+      <button class="btn btn-p btn-sm" onclick="saveCurrentTab()" style="padding:5px 14px">Save Changes</button>
+      <button class="btn btn-sm" onclick="openJobDashboard()" style="padding:5px 14px;background:rgba(37,99,235,.15);color:#60a5fa;border:1px solid rgba(37,99,235,.3)">📊 Dashboard</button>
       <button class="btn btn-a btn-sm" onclick="archiveJob()" style="padding:5px 14px">Archive Job</button>
       <span style="margin-left:auto;display:flex;gap:4px">
         <button class="btn btn-sm" onclick="navJob(-1)" title="Previous job" style="padding:5px 10px;font-size:13px">&#8592;</button>
@@ -1886,6 +1887,18 @@ function JT(el,id){
   }
   _go()
 }
+// Header "Save Changes" button dispatches to the active tab's save function.
+// Tabs that aren't simple editable forms either have their own inline save
+// (and we no-op here) or get a gentle hint.
+function saveCurrentTab(){
+  switch(_curTab){
+    case 'jt-info': return saveInfoTab()
+    case 'jt-scope': return saveScope()
+    default:
+      // Most other tabs save inline (Workers, Parts, Daily Reports, etc.).
+      toast('This tab saves changes as you make them — no Save button needed here','info')
+  }
+}
 async function loadJT(id){
   const el=document.getElementById('jt-content');if(!el)return
   el.innerHTML=ld()
@@ -1913,6 +1926,104 @@ async function loadJT(id){
 }
 async function updateJobStage(phase){var pu={phase,updated_at:new Date().toISOString()};if(phase==='ready_for_final'||phase==='complete')pu.pct_complete=100;await sb.from('jobs').update(pu).eq('id',currentJobId);currentJob.phase=phase;if(pu.pct_complete){currentJob.pct_complete=100;}toast('Stage updated'+(pu.pct_complete?' (100% set)':''))}
 async function updateJobPct(pct){await sb.from('jobs').update({pct_complete:parseInt(pct)||0,updated_at:new Date().toISOString()}).eq('id',currentJobId);currentJob.pct_complete=parseInt(pct)||0;toast('Progress updated')}
+
+// ── JOB DASHBOARD (stats overview popup) ───────────────────────────────────
+async function openJobDashboard(){
+  if(!currentJob){toast('No job loaded','error');return}
+  var j=currentJob
+  modal('📊 '+(j.name||'Job')+' — Dashboard','<div id="jobdash-body" style="min-height:200px">'+ld()+'</div>',closeModal,'Close')
+  // Pull all the child data in parallel
+  var jobId=currentJobId
+  try{
+    var results=await Promise.all([
+      sb.from('daily_reports').select('report_date,total_man_hours,hours_worked,crew_count').eq('job_id',jobId),
+      sb.from('punch_list').select('id,status').eq('job_id',jobId),
+      sb.from('change_orders').select('id,amount,status').eq('job_id',jobId),
+      sb.from('job_parts').select('id,status').eq('job_id',jobId),
+      sb.from('job_photos').select('id').eq('job_id',jobId),
+      sb.from('job_walks').select('id,status').eq('job_id',jobId),
+      sb.from('job_workers').select('id,worker_id,is_active').eq('job_id',jobId)
+    ])
+    var reports=results[0].data||[]
+    var punch=results[1].data||[]
+    var cos=results[2].data||[]
+    var parts=results[3].data||[]
+    var photos=results[4].data||[]
+    var walks=results[5].data||[]
+    var workers=results[6].data||[]
+
+    // Compute stats
+    var hoursBurned=reports.reduce(function(s,r){return s+(Number(r.total_man_hours)||0)},0)
+    var laborBudget=Number(j.labor_budget)||0
+    var laborPct=laborBudget>0?Math.round(hoursBurned/laborBudget*100):0
+    var reportDates=reports.map(function(r){return r.report_date}).filter(Boolean).sort()
+    var daysOnSite=new Set(reportDates).size
+    var firstDay=reportDates[0]
+    var lastDay=reportDates[reportDates.length-1]
+    var openPunch=punch.filter(function(p){return p.status!=='complete'}).length
+    var donePunch=punch.filter(function(p){return p.status==='complete'}).length
+    var coTotal=cos.reduce(function(s,c){return s+(Number(c.amount)||0)},0)
+    var coApproved=cos.filter(function(c){return c.status==='approved'}).reduce(function(s,c){return s+(Number(c.amount)||0)},0)
+    var activeWorkers=workers.filter(function(w){return w.is_active}).length
+    var openWalks=walks.filter(function(w){return w.status!=='complete'}).length
+
+    // Contract / financial (only show $ to estimator+)
+    var showMoney=(typeof ME!=='undefined'&&ME&&ME.isEstimatorOrHigher)
+    var contractVal=Number(j.contract_value)||0
+
+    // Build the dashboard HTML
+    var tile=function(label,value,sub,color){
+      return '<div style="background:#060a10;border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:13px 15px">'
+        +'<div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.05em;font-weight:600">'+label+'</div>'
+        +'<div style="font-size:22px;font-weight:700;color:'+(color||'#e8edf5')+';margin-top:3px;line-height:1">'+value+'</div>'
+        +(sub?'<div style="font-size:11px;color:#8a96ab;margin-top:3px">'+sub+'</div>':'')
+        +'</div>'
+    }
+    var pctColor=(j.pct_complete||0)>=75?'#16a34a':(j.pct_complete||0)>=40?'#d97706':'#60a5fa'
+    var laborColor=laborPct>100?'#dc2626':laborPct>85?'#d97706':'#16a34a'
+
+    var html='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">'
+    html+=tile('Stage',stageBadge(j.phase),'')
+    html+=tile('Progress',(j.pct_complete||0)+'%','',pctColor)
+    html+=tile('Days On Site',daysOnSite,firstDay&&lastDay?fd(firstDay)+' → '+fd(lastDay):'No reports yet')
+    html+=tile('Labor Hours',fh(hoursBurned),laborBudget>0?('of '+fh(laborBudget)+' budget ('+laborPct+'%)'):'No budget set',laborColor)
+    html+=tile('Daily Reports',reports.length,'')
+    html+=tile('Active Workers',activeWorkers,'')
+    html+=tile('Punch List',openPunch+' open',donePunch+' done')
+    html+=tile('Job Walks',walks.length,openWalks?openWalks+' open':'all closed')
+    html+=tile('Photos',photos.length,'')
+    html+=tile('Parts',parts.length,'')
+    html+=tile('Change Orders',cos.length,showMoney&&coTotal?fm(coTotal)+' total':'')
+    if(showMoney&&contractVal)html+=tile('Contract',fm(contractVal),coApproved?'+'+fm(coApproved)+' approved COs':'')
+    html+='</div>'
+
+    // Labor budget bar
+    if(laborBudget>0){
+      html+='<div style="margin-bottom:14px">'
+      html+='<div style="display:flex;justify-content:space-between;font-size:11px;color:#8a96ab;margin-bottom:4px"><span>Labor Burn</span><span>'+fh(hoursBurned)+' / '+fh(laborBudget)+' hrs</span></div>'
+      html+='<div style="height:10px;background:#060a10;border-radius:5px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,laborPct)+'%;background:'+laborColor+'"></div></div>'
+      if(laborPct>100)html+='<div style="font-size:11px;color:#dc2626;margin-top:3px">⚠ Over labor budget by '+fh(hoursBurned-laborBudget)+' hours</div>'
+      html+='</div>'
+    }
+
+    // Quick facts row
+    html+='<div style="background:#060a10;border-radius:9px;padding:12px 15px;font-size:12px;line-height:1.8">'
+    html+='<div style="font-weight:600;color:#8a96ab;margin-bottom:6px;font-size:11px;text-transform:uppercase">Quick Facts</div>'
+    if(j.job_number)html+='<div><span style="color:#414e63">Job #:</span> '+j.job_number+'</div>'
+    if(j.gc_company)html+='<div><span style="color:#414e63">GC:</span> '+j.gc_company+'</div>'
+    if(j.project_manager)html+='<div><span style="color:#414e63">PM:</span> '+j.project_manager+'</div>'
+    if(j.address)html+='<div><span style="color:#414e63">Address:</span> '+j.address+(j.city?', '+j.city:'')+'</div>'
+    if(j.due_date)html+='<div><span style="color:#414e63">Due:</span> '+fd(j.due_date)+(isOD(j.due_date,j.phase)?' <span style="color:#dc2626">(overdue)</span>':'')+'</div>'
+    if(j.projected_start)html+='<div><span style="color:#414e63">Projected Start:</span> '+fd(j.projected_start)+'</div>'
+    html+='</div>'
+
+    var body=document.getElementById('jobdash-body')
+    if(body)body.innerHTML=html
+  }catch(e){
+    var body=document.getElementById('jobdash-body')
+    if(body)body.innerHTML='<div style="color:#dc2626;font-size:13px">Could not load dashboard: '+(e.message||e)+'</div>'
+  }
+}
 
 // INFO TAB
 function renderInfoTab(el,j){
@@ -2113,7 +2224,7 @@ function renderScopeTab(el,j){
   <div class="fg"><label class="fl">Install Notes</label><textarea class="ft" id="sc-notes">\${j.install_notes||''}</textarea></div>
   <div class="fg"><label class="fl">Job Walk Notes</label><textarea class="ft" id="sc-jwn">\${j.job_walk_notes||''}</textarea></div>
   <div class="two"><div class="fg"><label class="fl">Job Walk By</label><input class="fi" id="sc-jwb" value="\${j.job_walk_by||''}"></div><div class="fg"><label class="fl">Job Walk Date</label><input class="fi" type="date" id="sc-jwd" value="\${j.job_walk_date||''}"></div></div>
-  <button class="btn btn-p" onclick="saveScope()">Save</button>\`
+  <div style="font-size:11px;color:#414e63;margin-top:4px">Use the <strong>Save Changes</strong> button at the top to save.</div>\`
   setTimeout(function(){_dirtyAttach(['sc-scope','sc-notes','sc-jwn','sc-jwb','sc-jwd'],'scope',saveScope)},50)
 }
 async function saveScope(){
@@ -3556,6 +3667,12 @@ function filterDailyReports(){
 async function editDailyReport(id){
   var r2=await sb.from('daily_reports').select('*').eq('id',id).single()
   var r=r2.data;if(!r){toast('Report not found','error');return}
+  // Remember where we were launched from. If we're inside a job detail view
+  // (currentJobId is set AND the job tabs are present), we return to the
+  // Daily Reports tab of that job after saving. Otherwise we go back to the
+  // global Daily Reports page.
+  var launchedFromJob=!!(currentJobId&&document.getElementById('jt-content'))
+  var launchedJobId=currentJobId
   var jobName=(_drJobs&&_drJobs[r.job_id])||''
   var h='<div class="two"><div class="fg"><label class="fl">Report Date</label><input class="fi" type="date" id="edr-date" value="'+(r.report_date||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Submitted By</label><input class="fi" id="edr-by" value="'+(r.submitted_by||'')+'"></div></div>'
@@ -3591,12 +3708,17 @@ async function editDailyReport(id){
     var res=await sb.from('daily_reports').update(update).eq('id',id)
     if(res.error){toast(res.error.message,'error');return}
     closeModal();toast('Report updated')
-    // Refresh whichever view is active
-    if(document.getElementById('jt-daily'))loadJT('jt-daily')
-    else if(typeof pgDaily==='function')pgDaily()
-    // Update _drAll cache if on daily ops page
-    if(_drAll){var idx=_drAll.findIndex(function(x){return x.id===id});if(idx>=0)Object.assign(_drAll[idx],update)}
-    filterDailyReports&&filterDailyReports()
+    // Return to wherever the edit was launched from.
+    if(launchedFromJob){
+      // Make sure the job context is still set, then reload its Daily tab.
+      if(launchedJobId)currentJobId=launchedJobId
+      loadJT('jt-daily')
+    }else{
+      // Global daily reports page
+      if(_drAll){var idx=_drAll.findIndex(function(x){return x.id===id});if(idx>=0)Object.assign(_drAll[idx],update)}
+      if(typeof pgDaily==='function')pgDaily()
+      filterDailyReports&&filterDailyReports()
+    }
   },'Save Changes')
 }
 async function deleteDailyReport(id){
@@ -5083,9 +5205,10 @@ var FORECAST_PHASE_WEIGHTS={
   trimmed:0.25,
   ready_for_pretest:0.10,
   ready_for_final:0.05,
+  callback_warranty:0.00,
   complete:0.00
 }
-var FORECAST_PHASE_ORDER=['not_started','make_safe','prewire','roughed_in','trimmed','ready_for_pretest','ready_for_final','complete']
+var FORECAST_PHASE_ORDER=['not_started','make_safe','prewire','roughed_in','trimmed','ready_for_pretest','ready_for_final','callback_warranty','complete']
 
 function _forecastSettings(){
   // Stored in localStorage — easy upgrade to a Supabase 'app_settings' row later
@@ -14489,14 +14612,22 @@ const server = http.createServer(async (req, res) => {
   }
 
   if(p==='/api/force-logout'&&method==='POST'){
-    const u=await getUser(req);if(!requireAuth(res,u))return
-    const body=await readBody(req)
-    const{user_id}=body
-    if(!user_id)return json(res,400,{error:'user_id required'})
-    const serviceKey=SB_SERVICE||SB_ANON
-    const logoutRes=await sbFetch('POST','/auth/v1/admin/users/'+user_id+'/logout',{scope:'global'},serviceKey)
-    if(logoutRes.error)return json(res,400,{error:logoutRes.error.message||'Could not force logout'})
-    return json(res,200,{success:true})
+    try{
+      const u=await getUser(req);if(!requireAuth(res,u))return
+      const meRole=String(u.role||'').toLowerCase()
+      if(meRole!=='admin')return json(res,403,{error:'Admin role required'})
+      const body=await readBody(req)
+      const{user_id}=body
+      if(!user_id)return json(res,400,{error:'user_id required'})
+      const serviceKey=SB_SERVICE||SB_ANON
+      if(!SB_SERVICE)return json(res,500,{error:'SUPABASE_SERVICE_KEY not configured'})
+      const logoutRes=await sbFetch('POST','/auth/v1/admin/users/'+user_id+'/logout',{scope:'global'},serviceKey)
+      if(logoutRes&&logoutRes.error)return json(res,400,{error:logoutRes.error.message||logoutRes.msg||'Could not force logout'})
+      return json(res,200,{success:true})
+    }catch(err){
+      console.error('[force-logout] uncaught:',err&&err.stack||err)
+      return json(res,500,{error:'Server error: '+(err&&err.message||String(err))})
+    }
   }
 
   if(p==='/api/delete-user'&&method==='POST'){
