@@ -6835,7 +6835,79 @@ async function pgSettings(){
   h+='</div>'
   h+='</div>'
 
+  // ── Worker Consent (BIPA / Location) ───────────────────────
+  h+='<div class="card" style="margin-bottom:14px;border:1px solid rgba(167,139,250,.2)">'
+  h+='<div class="card-title" style="margin-bottom:4px">📍 Worker Location Consent (BIPA)</div>'
+  h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">Workers must agree to location tracking before any GPS data is collected. Required for compliance, especially in Illinois and other states with location-privacy laws. Edit the consent language below; bumping the version re-prompts everyone.</div>'
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
+  h+='<button class="btn btn-sm" onclick="loadConsentStatus()">👥 View Who Consented</button>'
+  h+='<button class="btn btn-sm" onclick="editConsentText()">✎ Edit Consent Text</button>'
+  h+='</div>'
+  h+='<div id="consent-status-box" style="font-size:12px;color:#414e63"></div>'
+  h+='</div>'
+
   document.getElementById('page-area').innerHTML=h
+}
+
+// ── Worker consent admin helpers ─────────────────────────────
+async function loadConsentStatus(){
+  var box=document.getElementById('consent-status-box')
+  if(box)box.innerHTML='<span style="color:#60a5fa">Loading…</span>'
+  try{
+    var ctRes=await sb.from('consent_texts').select('*').eq('consent_type','location').eq('is_active',true).order('version',{ascending:false}).limit(1)
+    var ct=ctRes.data&&ctRes.data[0]
+    var activeVer=ct?ct.version:1
+    // All active workers
+    var wRes=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
+    var workers=wRes.data||[]
+    // All consent records for the active version
+    var cRes=await sb.from('worker_consents').select('worker_id,agreed,signed_at,version').eq('consent_type','location')
+    var consents=cRes.data||[]
+    var byWorker={}
+    consents.forEach(function(c){
+      // keep the latest record per worker for the active version
+      if(c.version!==activeVer)return
+      if(!byWorker[c.worker_id]||new Date(c.signed_at)>new Date(byWorker[c.worker_id].signed_at))byWorker[c.worker_id]=c
+    })
+    var rows=workers.map(function(w){
+      var c=byWorker[w.id]
+      var status,color
+      if(!c){status='Not signed';color='#d97706'}
+      else if(c.agreed){status='✓ Agreed '+fd(c.signed_at);color='#16a34a'}
+      else{status='✗ Declined '+fd(c.signed_at);color='#dc2626'}
+      return '<tr><td style="font-size:12px">'+w.full_name+'</td><td><span class="badge bg-gray" style="font-size:10px">'+roleLabel(w.role)+'</span></td><td style="font-size:11px;color:'+color+'">'+status+'</td></tr>'
+    }).join('')
+    var signedCount=Object.values(byWorker).filter(function(c){return c.agreed}).length
+    if(box)box.innerHTML='<div style="margin-bottom:8px;color:#8a96ab">Active consent version: <strong>'+activeVer+'</strong> · '+signedCount+' of '+workers.length+' workers agreed</div>'
+      +'<table class="tbl" style="width:100%"><thead><tr><th>Worker</th><th>Role</th><th>Location Consent</th></tr></thead><tbody>'+(rows||'<tr><td colspan="3" style="color:#414e63">No active workers</td></tr>')+'</tbody></table>'
+  }catch(e){
+    if(box)box.innerHTML='<span style="color:#dc2626">Error: '+(e.message||e)+'</span>'
+  }
+}
+async function editConsentText(){
+  var ctRes=await sb.from('consent_texts').select('*').eq('consent_type','location').eq('is_active',true).order('version',{ascending:false}).limit(1)
+  var ct=ctRes.data&&ctRes.data[0]
+  var curVer=ct?ct.version:0
+  var h='<div class="fg"><label class="fl">Title</label><input class="fi" id="ct-title" value="'+_escAttr(ct?ct.title:'Location Tracking Consent')+'"></div>'
+  h+='<div class="fg"><label class="fl">Consent Text</label><textarea class="ft" id="ct-body" style="min-height:240px;font-size:12px">'+(ct?ct.body:'')+'</textarea></div>'
+  h+='<label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-top:6px"><input type="checkbox" id="ct-bump"> Bump version (re-prompts ALL workers to re-consent)</label>'
+  h+='<div style="font-size:11px;color:#414e63;margin-top:4px">Current version: '+curVer+'. Check the box above only if this is a material change that requires everyone to agree again.</div>'
+  modal('Edit Location Consent', h, async function(){
+    var title=document.getElementById('ct-title').value||'Location Tracking Consent'
+    var body=document.getElementById('ct-body').value||''
+    var bump=document.getElementById('ct-bump').checked
+    if(bump||!ct){
+      // Deactivate old, insert a new active version
+      if(ct)await sb.from('consent_texts').update({is_active:false}).eq('id',ct.id)
+      await sb.from('consent_texts').insert({consent_type:'location',version:(curVer+1)||1,title:title,body:body,is_active:true,created_at:new Date().toISOString()})
+      toast('Consent updated — version '+((curVer+1)||1)+' active. Workers will be re-prompted.')
+    }else{
+      // Edit in place (minor wording, no re-prompt)
+      await sb.from('consent_texts').update({title:title,body:body,updated_at:new Date().toISOString()}).eq('id',ct.id)
+      toast('Consent text updated (same version)')
+    }
+    closeModal()
+  },'Save')
 }
 
 // ── Orphan cleanup helpers ───────────────────────────────────
@@ -12569,12 +12641,80 @@ window.addEventListener('load', async () => {
   document.getElementById('pf-name').textContent = name
   document.getElementById('pf-role').textContent = profile?.role || ''
   document.getElementById('pf-company').textContent = profile?.companies?.name || 'Internal'
-  startGPS()
+  // ── BIPA / location-consent gate ──────────────────────────────────────
+  // Do NOT start GPS until the worker has signed the active location consent.
+  var consentOk = await ensureLocationConsent()
+  if (consentOk) startGPS()
   await loadJobs()
   await checkActiveCheckins()
   loadNotifBadge()
   loadSafetyBadge()
 })
+
+// Returns true if the worker has a valid consent for the active location
+// consent version (or signs it now). Returns false if they decline — in which
+// case GPS is not started and location-based check-in is disabled.
+async function ensureLocationConsent(){
+  try{
+    // Fetch the active location consent text
+    var ctRes = await sb.from('consent_texts').select('*').eq('consent_type','location').eq('is_active',true).order('version',{ascending:false}).limit(1)
+    var ct = ctRes.data && ctRes.data[0]
+    if(!ct) return true  // no consent configured → don't block (admin hasn't set one up)
+    // Has this worker already signed THIS version?
+    var wcRes = await sb.from('worker_consents').select('id').eq('worker_id',MY.id).eq('consent_type','location').eq('version',ct.version).eq('agreed',true).limit(1)
+    if(wcRes.data && wcRes.data.length) return true  // already consented
+    // Otherwise show the consent screen and wait for a decision
+    return await showConsentModal(ct)
+  }catch(e){
+    console.warn('Consent check failed:', e.message)
+    return true  // fail open so a transient error doesn't lock workers out; admin can audit
+  }
+}
+function showConsentModal(ct){
+  return new Promise(function(resolve){
+    var overlay = document.createElement('div')
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(6,10,16,.97);display:flex;align-items:center;justify-content:center;padding:18px;overflow-y:auto'
+    var bodyHtml = (ct.body||'').split('\\n').map(function(line){
+      var t=line.trim()
+      if(!t) return '<div style="height:8px"></div>'
+      return '<div style="margin-bottom:6px">'+_escapeConsent(t)+'</div>'
+    }).join('')
+    overlay.innerHTML =
+      '<div style="max-width:520px;width:100%;background:#0c1220;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:22px;max-height:90vh;display:flex;flex-direction:column">'
+      +'<div style="font-size:17px;font-weight:700;margin-bottom:4px">'+_escapeConsent(ct.title||'Consent Required')+'</div>'
+      +'<div style="font-size:11px;color:#414e63;margin-bottom:14px">Please review and agree before continuing. Version '+ct.version+'.</div>'
+      +'<div style="font-size:13px;color:#c7d0dd;line-height:1.6;overflow-y:auto;flex:1;padding-right:6px;margin-bottom:16px">'+bodyHtml+'</div>'
+      +'<label style="display:flex;align-items:flex-start;gap:9px;font-size:13px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="consent-cb" style="margin-top:3px;width:17px;height:17px;flex-shrink:0"><span>I have read and agree to the above. I consent to the collection of my location data as described.</span></label>'
+      +'<div style="display:flex;gap:8px">'
+      +'<button id="consent-agree" style="flex:1;background:#16a34a;color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;opacity:.5" disabled>Agree &amp; Continue</button>'
+      +'<button id="consent-decline" style="background:#131c2e;color:#8a96ab;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 16px;font-size:14px;cursor:pointer">Decline</button>'
+      +'</div>'
+      +'<div style="font-size:10px;color:#414e63;margin-top:10px">If you decline, you can still use the app, but location-based check-in will be unavailable. Contact your administrator with questions.</div>'
+      +'</div>'
+    document.body.appendChild(overlay)
+    var cb = overlay.querySelector('#consent-cb')
+    var agree = overlay.querySelector('#consent-agree')
+    var decline = overlay.querySelector('#consent-decline')
+    cb.addEventListener('change', function(){ agree.disabled=!cb.checked; agree.style.opacity=cb.checked?'1':'.5' })
+    agree.addEventListener('click', async function(){
+      agree.disabled=true; agree.textContent='Saving…'
+      try{
+        await sb.from('worker_consents').insert({
+          worker_id: MY.id, consent_type:'location', version: ct.version,
+          agreed:true, signed_at:new Date().toISOString(),
+          user_agent: navigator.userAgent.slice(0,300)
+        })
+      }catch(e){ console.warn('Consent save failed:', e.message) }
+      overlay.remove(); resolve(true)
+    })
+    decline.addEventListener('click', function(){
+      // Record the decline too (agreed=false) for the compliance record
+      try{ sb.from('worker_consents').insert({worker_id:MY.id,consent_type:'location',version:ct.version,agreed:false,signed_at:new Date().toISOString(),user_agent:navigator.userAgent.slice(0,300)}) }catch(e){}
+      overlay.remove(); resolve(false)
+    })
+  })
+}
+function _escapeConsent(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
 // ── GPS ──────────────────────────────────
 function startGPS() {
