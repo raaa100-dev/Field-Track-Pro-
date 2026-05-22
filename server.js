@@ -1791,8 +1791,12 @@ async function openJob(id){
   sb.from('daily_reports').select('total_man_hours,hours_worked').eq('job_id',id).then(function(res){
     var hrs=(res.data||[]).reduce(function(s,r){return s+(r.total_man_hours||(r.hours_worked||0))},0)
     if(currentJob)currentJob._cachedHrs=hrs
+    window._jobLoggedHours=hrs
     var el=document.getElementById('ed-hrs-display')
     if(el){el.textContent=hrs>0?hrs.toFixed(1)+' hrs on site':'No hours logged';el.style.color=hrs>0?'#e8edf5':'#414e63'}
+    // If the budget builder is already rendered, refresh it so labor cost
+    // reflects the logged hours.
+    if(typeof _drawBudgetBuilder==='function'&&document.getElementById('ed-budget-builder'))_drawBudgetBuilder()
   })
   currentJobId=id
   _clearDirty()
@@ -2056,8 +2060,12 @@ function renderInfoTab(el,j){
     <div class="two"><div class="fg"><label class="fl">Current Contract $</label><input class="fi" type="number" id="ed-cv" value="\${j.contract_value||''}"></div><div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="ed-lr" value="\${j.labor_rate||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Labor Budget (hrs)</label><input class="fi" type="number" id="ed-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="ed-mb" value="\${j.material_budget||''}"></div></div>
     <div class="fg"><label class="fl">Hours Logged on Job</label><div class="fi" style="background:rgba(255,255,255,.03);cursor:default;color:#8a96ab" id="ed-hrs-display">Loading...</div></div>
+    <div class="two"><div class="fg"><label class="fl">Expected Labor Hours</label><input class="fi" type="number" id="ed-exph" value="\${j.expected_labor_hours||''}" placeholder="whole-job estimate"></div><div class="fg"><label class="fl">Manual Hours (no daily report)</label><input class="fi" type="number" id="ed-manh" value="\${j.manual_labor_hours||''}" placeholder="hours added by hand"></div></div>
+    <div class="fg"><label class="fl">Burden Rate $/hr <span style="color:#414e63;font-weight:400;font-size:10px">(blank = company default)</span></label><input class="fi" type="number" id="ed-burden" value="\${j.burden_rate||''}" placeholder="e.g. 65"></div>
   </div>
   </div>
+  <div class="sec-hdr" style="margin-top:14px">Budget Line Items &amp; Actuals</div>
+  <div id="ed-budget-builder" style="background:#0a1019;border-radius:9px;padding:12px">Loading budget…</div>
   <div class="sec-hdr" style="margin-top:14px">Permit Status</div>
   <div class="two" style="margin-bottom:4px">
     <div class="fg"><label class="fl">Permit Status</label>
@@ -2122,14 +2130,147 @@ function renderInfoTab(el,j){
       h+='</div>'
       el.innerHTML=h
     })
+    renderBudgetBuilder()
   },50)
   var ps=document.getElementById('ed-permit-status')
   if(ps)ps.value=j.permit_status||'not_required'
   // Register info-tab fields for unsaved-changes tracking
   setTimeout(function(){
-    var ids=['ed-name','ed-jobnum','ed-trade','ed-estimator','ed-addr','ed-city','ed-state','ed-zip','ed-lat','ed-lng','ed-rad','ed-gc','ed-gcc','ed-gcp','ed-gce','ed-sup','ed-supp','ed-pm','ed-pmschedule','ed-pmvisit','ed-due','ed-proj-start','ed-proj-close','ed-dc','ed-eos','ed-nvd','ed-dco','ed-dr','ed-dt','ed-di','ed-comp','ed-ocv','ed-cv','ed-lr','ed-lb','ed-mb','ed-permit-status','ed-permit-number']
+    var ids=['ed-name','ed-jobnum','ed-trade','ed-estimator','ed-addr','ed-city','ed-state','ed-zip','ed-lat','ed-lng','ed-rad','ed-gc','ed-gcc','ed-gcp','ed-gce','ed-sup','ed-supp','ed-pm','ed-pmschedule','ed-pmvisit','ed-due','ed-proj-start','ed-proj-close','ed-dc','ed-eos','ed-nvd','ed-dco','ed-dr','ed-dt','ed-di','ed-comp','ed-ocv','ed-cv','ed-lr','ed-lb','ed-mb','ed-exph','ed-manh','ed-burden','ed-permit-status','ed-permit-number']
     _dirtyAttach(ids,'info',saveInfoTab)
   },100)
+}
+// ── BUDGET BUILDER (line items + actuals + labor cost) ─────────────────────
+var _budgetLines=[]
+var _companyBurdenDefault=65
+async function renderBudgetBuilder(){
+  var host=document.getElementById('ed-budget-builder')
+  if(!host)return
+  var jobId=currentJobId
+  if(!jobId){host.innerHTML='<div style="font-size:12px;color:#414e63">Save the job first to add budget lines.</div>';return}
+  try{
+    var results=await Promise.all([
+      sb.from('job_budget_lines').select('*').eq('job_id',jobId).order('sort_order'),
+      sb.from('company_settings').select('default_burden_rate').limit(1)
+    ])
+    _budgetLines=results[0].data||[]
+    if(results[1]&&results[1].data&&results[1].data[0]&&results[1].data[0].default_burden_rate!=null){
+      _companyBurdenDefault=Number(results[1].data[0].default_burden_rate)||65
+    }
+  }catch(e){_budgetLines=[]}
+  _drawBudgetBuilder()
+}
+function _effectiveBurden(){
+  var j=currentJob||{}
+  var override=document.getElementById('ed-burden')?document.getElementById('ed-burden').value:''
+  if(override!==''&&override!=null&&!isNaN(parseFloat(override)))return parseFloat(override)
+  if(j.burden_rate!=null&&!isNaN(parseFloat(j.burden_rate)))return parseFloat(j.burden_rate)
+  return _companyBurdenDefault
+}
+function _effectiveBurdenIsDefault(){
+  var override=document.getElementById('ed-burden')?document.getElementById('ed-burden').value:''
+  var j=currentJob||{}
+  if(override!==''&&!isNaN(parseFloat(override)))return false
+  if(j.burden_rate!=null&&!isNaN(parseFloat(j.burden_rate)))return false
+  return true
+}
+function _loggedHours(){return Number(window._jobLoggedHours||0)}
+function _manualHours(){var m=document.getElementById('ed-manh');return m&&m.value?parseFloat(m.value)||0:0}
+function _escAttr(s){return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function _drawBudgetBuilder(){
+  var host=document.getElementById('ed-budget-builder')
+  if(!host)return
+  var j=currentJob||{}
+  var burden=_effectiveBurden()
+  var contract=Number(j.contract_value||j.original_contract_value||0)
+  var budgetTotal=_budgetLines.reduce(function(s,l){return s+(Number(l.budget_amount)||0)},0)
+  var actualTotal=_budgetLines.reduce(function(s,l){return s+(Number(l.actual_amount)||0)},0)
+  var loggedHrs=_loggedHours()
+  var manualHrs=_manualHours()
+  var totalHrs=loggedHrs+manualHrs
+  var laborCost=totalHrs*burden
+  var h=''
+  h+='<table class="tbl" style="width:100%"><thead><tr>'
+  h+='<th style="width:40%">Description</th><th>Category</th><th style="text-align:right">Budget $</th><th style="text-align:right">Actual $</th><th style="text-align:right">Variance</th><th></th>'
+  h+='</tr></thead><tbody>'
+  if(!_budgetLines.length){
+    h+='<tr><td colspan="6" style="text-align:center;color:#414e63;font-size:12px;padding:14px">No line items yet. Add your first budget line below.</td></tr>'
+  }
+  _budgetLines.forEach(function(l){
+    var variance=(Number(l.budget_amount)||0)-(Number(l.actual_amount)||0)
+    var vColor=variance>=0?'#16a34a':'#dc2626'
+    h+='<tr>'
+    h+='<td><input class="fi" style="font-size:12px;padding:4px 7px" value="'+_escAttr(l.description||'')+'" onchange="updateBudgetLine(\\''+l.id+'\\',\\'description\\',this.value)"></td>'
+    h+='<td><select class="fs" style="font-size:11px;padding:4px 6px" onchange="updateBudgetLine(\\''+l.id+'\\',\\'category\\',this.value)">'
+    ;['material','labor','sub','equipment','other'].forEach(function(c){
+      h+='<option value="'+c+'"'+(l.category===c?' selected':'')+'>'+c.charAt(0).toUpperCase()+c.slice(1)+'</option>'
+    })
+    h+='</select></td>'
+    h+='<td style="text-align:right"><input class="fi" type="number" style="font-size:12px;padding:4px 7px;text-align:right;max-width:110px" value="'+(l.budget_amount||'')+'" onchange="updateBudgetLine(\\''+l.id+'\\',\\'budget_amount\\',this.value)"></td>'
+    h+='<td style="text-align:right"><input class="fi" type="number" style="font-size:12px;padding:4px 7px;text-align:right;max-width:110px" value="'+(l.actual_amount||'')+'" onchange="updateBudgetLine(\\''+l.id+'\\',\\'actual_amount\\',this.value)"></td>'
+    h+='<td style="text-align:right;font-size:12px;font-weight:600;color:'+vColor+'">'+(variance>=0?'+':'')+fm(variance)+'</td>'
+    h+='<td style="text-align:center"><button class="btn btn-sm" style="color:#dc2626;font-size:10px;padding:2px 6px" onclick="deleteBudgetLine(\\''+l.id+'\\')">✕</button></td>'
+    h+='</tr>'
+  })
+  if(_budgetLines.length){
+    var totVar=budgetTotal-actualTotal
+    h+='<tr style="border-top:2px solid rgba(255,255,255,.1);font-weight:700">'
+    h+='<td colspan="2" style="font-size:12px">TOTALS</td>'
+    h+='<td style="text-align:right;font-size:13px">'+fm(budgetTotal)+'</td>'
+    h+='<td style="text-align:right;font-size:13px">'+fm(actualTotal)+'</td>'
+    h+='<td style="text-align:right;font-size:13px;color:'+(totVar>=0?'#16a34a':'#dc2626')+'">'+(totVar>=0?'+':'')+fm(totVar)+'</td>'
+    h+='<td></td></tr>'
+  }
+  h+='</tbody></table>'
+  h+='<button class="btn btn-sm" style="margin-top:8px" onclick="addBudgetLine()">+ Add Line Item</button>'
+  if(contract>0){
+    var diff=contract-budgetTotal
+    h+='<div style="margin-top:12px;padding:10px 13px;background:#0c1220;border-radius:8px;font-size:12px;display:flex;justify-content:space-between;align-items:center">'
+    h+='<span style="color:#8a96ab">Line items vs Contract ('+fm(contract)+')</span>'
+    h+='<span style="font-weight:700;color:'+(Math.abs(diff)<0.01?'#16a34a':diff>0?'#60a5fa':'#dc2626')+'">'
+    if(Math.abs(diff)<0.01)h+='✓ Balanced'
+    else if(diff>0)h+=fm(diff)+' under contract'
+    else h+=fm(-diff)+' OVER contract'
+    h+='</span></div>'
+  }
+  h+='<div style="margin-top:12px;padding:12px 14px;background:#0c1220;border:1px solid rgba(96,165,250,.2);border-radius:8px">'
+  h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#60a5fa;margin-bottom:8px">Labor Cost (independent of line items)</div>'
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">'
+  h+='<div style="color:#8a96ab">Hours logged (daily reports)</div><div style="text-align:right;font-family:\\'DM Mono\\',monospace">'+fh(loggedHrs)+'</div>'
+  h+='<div style="color:#8a96ab">Manual hours added</div><div style="text-align:right;font-family:\\'DM Mono\\',monospace">'+fh(manualHrs)+'</div>'
+  h+='<div style="color:#8a96ab;border-top:1px solid rgba(255,255,255,.08);padding-top:6px">Total hours</div><div style="text-align:right;font-family:\\'DM Mono\\',monospace;border-top:1px solid rgba(255,255,255,.08);padding-top:6px;font-weight:700">'+fh(totalHrs)+'</div>'
+  h+='<div style="color:#8a96ab">Burden rate</div><div style="text-align:right;font-family:\\'DM Mono\\',monospace">'+fm(burden)+'/hr'+(_effectiveBurdenIsDefault()?' <span style=\\"color:#414e63;font-size:10px\\">(default)</span>':'')+'</div>'
+  h+='<div style="color:#e8edf5;font-weight:700;border-top:1px solid rgba(255,255,255,.1);padding-top:6px">Total Labor Cost</div><div style="text-align:right;font-family:\\'DM Mono\\',monospace;font-weight:700;font-size:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:6px;color:#60a5fa">'+fm(laborCost)+'</div>'
+  h+='</div>'
+  h+='<div style="font-size:10px;color:#414e63;margin-top:6px">Labor cost = (logged + manual hours) × burden rate. Edit hours and burden in the fields above, then click Save Changes.</div>'
+  h+='</div>'
+  host.innerHTML=h
+}
+async function addBudgetLine(){
+  if(!currentJobId){toast('Save the job first','error');return}
+  var maxSort=_budgetLines.reduce(function(m,l){return Math.max(m,l.sort_order||0)},0)
+  var{data,error}=await sb.from('job_budget_lines').insert({job_id:currentJobId,description:'',category:'material',budget_amount:0,actual_amount:0,sort_order:maxSort+1}).select()
+  if(error){toast(error.message,'error');return}
+  if(data&&data[0])_budgetLines.push(data[0])
+  _drawBudgetBuilder()
+}
+async function updateBudgetLine(id,field,value){
+  var line=_budgetLines.find(function(l){return l.id===id})
+  if(!line)return
+  var val=value
+  if(field==='budget_amount'||field==='actual_amount'){val=parseFloat(value)||0}
+  line[field]=val
+  var patch={};patch[field]=val;patch.updated_at=new Date().toISOString()
+  var{error}=await sb.from('job_budget_lines').update(patch).eq('id',id)
+  if(error){toast(error.message,'error');return}
+  if(field==='budget_amount'||field==='actual_amount'||field==='category')_drawBudgetBuilder()
+}
+async function deleteBudgetLine(id){
+  if(!confirm('Delete this budget line?'))return
+  var{error}=await sb.from('job_budget_lines').delete().eq('id',id)
+  if(error){toast(error.message,'error');return}
+  _budgetLines=_budgetLines.filter(function(l){return l.id!==id})
+  _drawBudgetBuilder()
 }
 async function saveInfoTab(){
   // ── Guardrail #1: form must be rendered.
@@ -2181,7 +2322,10 @@ async function saveInfoTab(){
     ['ed-cv','contract_value','num'],
     ['ed-lr','labor_rate','num'],
     ['ed-lb','labor_budget','num'],
-    ['ed-mb','material_budget','num']
+    ['ed-mb','material_budget','num'],
+    ['ed-exph','expected_labor_hours','num'],
+    ['ed-manh','manual_labor_hours','num'],
+    ['ed-burden','burden_rate','num']
   ]
   var u={}
   fieldMap.forEach(function(tup){
@@ -6505,6 +6649,7 @@ async function pgSettings(){
   h+='<div class="fg"><label class="fl">ZIP</label><input class="fi" id="co-zip" value="'+(co.zip||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Website</label><input class="fi" id="co-web" value="'+(co.website||'')+'"></div>'
   h+='</div>'
+  h+='<div class="fg"><label class="fl">Default Burden Rate $/hr <span style="color:#414e63;font-weight:400;font-size:10px">(used for labor cost on jobs without an override)</span></label><input class="fi" type="number" id="co-burden" value="'+(co.default_burden_rate!=null?co.default_burden_rate:65)+'" placeholder="65"></div>'
   h+='<button class="btn btn-p" onclick="saveCompanySettings()" style="margin-top:10px">💾 Save Company Info</button>'
   h+='</div>'
 
@@ -6813,6 +6958,9 @@ async function saveCompanySettings(){
     website:document.getElementById('co-web').value||null,
     updated_at:new Date().toISOString()
   }
+  // Burden rate (only if the field is present)
+  var burdenEl=document.getElementById('co-burden')
+  if(burdenEl){var br=parseFloat(burdenEl.value);data.default_burden_rate=isNaN(br)?65:br}
   // Upsert - use id=1 as singleton
   data.id='00000000-0000-0000-0000-000000000001'
   var res=await sb.from('company_settings').upsert(data,{onConflict:'id'})
