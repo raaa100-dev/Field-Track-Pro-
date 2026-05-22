@@ -3321,10 +3321,11 @@ async function renderCOTab(el){
       if(isApproved&&co.approved_date)h+='<div style="font-size:11px;color:#16a34a;margin-top:1px">✓ Approved: '+fd(co.approved_date)+'</div>'
       h+='</div>'
       h+='<div style="text-align:right;flex-shrink:0"><span class="badge '+g.badge+'">'+co.status.replace(/_/g,' ')+'</span>'
-      h+='<div style="font-size:15px;font-weight:600;color:'+(isApproved?'#16a34a':isCanceled?'#414e63':'#d97706')+';margin-top:5px">'+(co.value>=0?'+':'')+fm(co.value)+'</div></div></div>'
+      h+='<div style="font-size:15px;font-weight:600;color:'+(isApproved?'#16a34a':isCanceled?'#414e63':'#d97706')+';margin-top:5px">'+(co.value>=0?'+':'')+fm(co.value)+'</div>'+(co.added_hours?'<div style="font-size:10px;color:#414e63">'+fh(co.added_hours)+' hrs</div>':'')+'</div></div>'
       if(co.description)h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:8px">'+co.description+'</div>'
       if(co.days_added)h+='<div style="font-size:11px;color:#414e63;margin-bottom:6px">+'+co.days_added+' days added to schedule</div>'
       h+='<div style="display:flex;gap:6px;flex-wrap:wrap">'
+      h+='<button class="btn btn-sm" data-coid="'+co.id+'" data-conum="'+(co.co_number||'')+'" data-cotitle="'+(co.title||'').replace(/"/g,'&quot;')+'" onclick="openCOLines(this.dataset.coid,this.dataset.conum,this.dataset.cotitle)">📋 Line Items</button>'
       if(!isApproved&&!isCanceled){
         h+='<button class="btn btn-sm btn-g" data-coid="'+co.id+'" onclick="approveCO(this)">✓ Approve</button>'
         h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" data-coid="'+co.id+'" onclick="cancelCO(this)">✕ Cancel</button>'
@@ -3344,16 +3345,105 @@ async function newCO(){
   var today=new Date().toISOString().split('T')[0]
   var h='<div class="fg"><label class="fl">Title *</label><input class="fi" id="co-t" placeholder="Scope addition, Owner request..."></div>'
   h+='<div class="fg"><label class="fl">Description</label><textarea class="ft" id="co-d" style="min-height:70px"></textarea></div>'
-  h+='<div class="two"><div class="fg"><label class="fl">Value ($) *</label><input class="fi" type="number" id="co-v" step="0.01" placeholder="0.00"></div>'
-  h+='<div class="fg"><label class="fl">Days Added</label><input class="fi" type="number" id="co-dy" value="0"></div></div>'
-  h+='<div class="fg"><label class="fl">Date Submitted to Customer</label><input class="fi" type="date" id="co-sub" value="'+today+'"></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Days Added</label><input class="fi" type="number" id="co-dy" value="0"></div>'
+  h+='<div class="fg"><label class="fl">Date Submitted to Customer</label><input class="fi" type="date" id="co-sub" value="'+today+'"></div></div>'
+  h+='<div style="font-size:11px;color:#414e63;margin-top:4px">After you create the CO, you\\'ll add line items (with amounts and hours). The CO total is the sum of those lines.</div>'
   modal('New Change Order — '+num, h, async function(){
     var t=(document.getElementById('co-t').value||'').trim()
     if(!t){toast('Title required','error');return}
-    var res=await sb.from('change_orders').insert({id:uuid(),job_id:currentJobId,co_number:num,title:t,description:document.getElementById('co-d').value||null,value:parseFloat(document.getElementById('co-v').value)||0,days_added:parseInt(document.getElementById('co-dy').value)||0,status:'pending',submitted_date:document.getElementById('co-sub').value||null,created_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString()})
+    var newId=uuid()
+    var res=await sb.from('change_orders').insert({id:newId,job_id:currentJobId,co_number:num,title:t,description:document.getElementById('co-d').value||null,value:0,added_hours:0,days_added:parseInt(document.getElementById('co-dy').value)||0,status:'pending',submitted_date:document.getElementById('co-sub').value||null,created_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString()})
     if(res.error){toast(res.error.message,'error');return}
-    closeModal();loadJT('jt-co');toast('Change order created')
+    closeModal()
+    toast('Change order created — now add line items')
+    // Immediately open the line-item builder for the new CO
+    openCOLines(newId,num,t)
   },'Create CO')
+}
+
+// ── CO LINE ITEM BUILDER ───────────────────────────────────────────────────
+var _coLines=[]
+var _coLinesCoId=null
+async function openCOLines(coId,coNum,coTitle){
+  _coLinesCoId=coId
+  var r=await sb.from('co_budget_lines').select('*').eq('co_id',coId).order('sort_order')
+  _coLines=r.data||[]
+  var title='Line Items — '+(coNum||'CO')+(coTitle?' · '+coTitle:'')
+  modal(title,'<div id="co-lines-host" style="min-height:160px">'+ld()+'</div>',function(){closeModal();loadJT('jt-co')},'Done')
+  _drawCOLines()
+}
+function _drawCOLines(){
+  var host=document.getElementById('co-lines-host')
+  if(!host)return
+  var amtTotal=_coLines.reduce(function(s,l){return s+(Number(l.amount)||0)},0)
+  var hrsTotal=_coLines.reduce(function(s,l){return s+(Number(l.expected_hours)||0)},0)
+  var h=''
+  h+='<table class="tbl" style="width:100%"><thead><tr>'
+  h+='<th style="width:38%">Description</th><th>Category</th><th style="text-align:right">Amount $</th><th style="text-align:right">Hours</th><th></th>'
+  h+='</tr></thead><tbody>'
+  if(!_coLines.length){
+    h+='<tr><td colspan="5" style="text-align:center;color:#414e63;font-size:12px;padding:14px">No line items yet. Add the first one below.</td></tr>'
+  }
+  _coLines.forEach(function(l){
+    h+='<tr>'
+    h+='<td><input class="fi" style="font-size:12px;padding:4px 7px" value="'+_escAttr(l.description||'')+'" onchange="updateCOLine(\\''+l.id+'\\',\\'description\\',this.value)"></td>'
+    h+='<td><select class="fs" style="font-size:11px;padding:4px 6px" onchange="updateCOLine(\\''+l.id+'\\',\\'category\\',this.value)">'
+    ;['material','labor','sub','equipment','other'].forEach(function(c){
+      h+='<option value="'+c+'"'+(l.category===c?' selected':'')+'>'+c.charAt(0).toUpperCase()+c.slice(1)+'</option>'
+    })
+    h+='</select></td>'
+    h+='<td style="text-align:right"><input class="fi" type="number" style="font-size:12px;padding:4px 7px;text-align:right;max-width:100px" value="'+(l.amount||'')+'" onchange="updateCOLine(\\''+l.id+'\\',\\'amount\\',this.value)"></td>'
+    h+='<td style="text-align:right"><input class="fi" type="number" style="font-size:12px;padding:4px 7px;text-align:right;max-width:80px" value="'+(l.expected_hours||'')+'" onchange="updateCOLine(\\''+l.id+'\\',\\'expected_hours\\',this.value)"></td>'
+    h+='<td style="text-align:center"><button class="btn btn-sm" style="color:#dc2626;font-size:10px;padding:2px 6px" onclick="deleteCOLine(\\''+l.id+'\\')">✕</button></td>'
+    h+='</tr>'
+  })
+  if(_coLines.length){
+    h+='<tr style="border-top:2px solid rgba(255,255,255,.1);font-weight:700">'
+    h+='<td colspan="2" style="font-size:12px">CO TOTAL</td>'
+    h+='<td style="text-align:right;font-size:13px;color:#16a34a">'+fm(amtTotal)+'</td>'
+    h+='<td style="text-align:right;font-size:13px">'+fh(hrsTotal)+'</td>'
+    h+='<td></td></tr>'
+  }
+  h+='</tbody></table>'
+  h+='<button class="btn btn-sm" style="margin-top:8px" onclick="addCOLine()">+ Add Line Item</button>'
+  h+='<div style="font-size:11px;color:#414e63;margin-top:8px">This CO will add <strong style="color:#16a34a">'+fm(amtTotal)+'</strong> to the contract when approved'+(hrsTotal?', plus '+fh(hrsTotal)+' labor hours':'')+'.</div>'
+  host.innerHTML=h
+}
+async function addCOLine(){
+  if(!_coLinesCoId){toast('No CO selected','error');return}
+  var maxSort=_coLines.reduce(function(m,l){return Math.max(m,l.sort_order||0)},0)
+  var{data,error}=await sb.from('co_budget_lines').insert({co_id:_coLinesCoId,job_id:currentJobId,description:'',category:'material',amount:0,expected_hours:0,sort_order:maxSort+1}).select()
+  if(error){toast(error.message,'error');return}
+  if(data&&data[0])_coLines.push(data[0])
+  _drawCOLines()
+  _syncCOTotal()
+}
+async function updateCOLine(id,field,value){
+  var line=_coLines.find(function(l){return l.id===id})
+  if(!line)return
+  var val=value
+  if(field==='amount'||field==='expected_hours')val=parseFloat(value)||0
+  line[field]=val
+  var patch={};patch[field]=val;patch.updated_at=new Date().toISOString()
+  var{error}=await sb.from('co_budget_lines').update(patch).eq('id',id)
+  if(error){toast(error.message,'error');return}
+  if(field==='amount'||field==='expected_hours'){_drawCOLines();_syncCOTotal()}
+}
+async function deleteCOLine(id){
+  var{error}=await sb.from('co_budget_lines').delete().eq('id',id)
+  if(error){toast(error.message,'error');return}
+  _coLines=_coLines.filter(function(l){return l.id!==id})
+  _drawCOLines()
+  _syncCOTotal()
+}
+// Keep the CO's value + added_hours synced to the sum of its line items, then
+// refresh the job contract (since approved COs roll into contract_value).
+async function _syncCOTotal(){
+  if(!_coLinesCoId)return
+  var amtTotal=_coLines.reduce(function(s,l){return s+(Number(l.amount)||0)},0)
+  var hrsTotal=_coLines.reduce(function(s,l){return s+(Number(l.expected_hours)||0)},0)
+  await sb.from('change_orders').update({value:amtTotal,added_hours:hrsTotal,updated_at:new Date().toISOString()}).eq('id',_coLinesCoId)
+  await updateJobContractValue()
 }
 async function approveCO(btn){
   var id=btn.getAttribute('data-coid')
@@ -3384,15 +3474,18 @@ async function editCO(btn){
   var co=r.data;if(!co)return
   var h='<div class="fg"><label class="fl">Title *</label><input class="fi" id="eco-t" value="'+(co.title||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Description</label><textarea class="ft" id="eco-d">'+(co.description||'')+'</textarea></div>'
-  h+='<div class="two"><div class="fg"><label class="fl">Value ($)</label><input class="fi" type="number" id="eco-v" value="'+(co.value||0)+'"></div>'
+  // Value is now computed from line items — show it read-only with a button to edit lines
+  h+='<div class="two"><div class="fg"><label class="fl">CO Total <span style="color:#414e63;font-weight:400;font-size:10px">(from line items)</span></label><div class="fi" style="background:rgba(255,255,255,.03);cursor:default;color:#16a34a;font-weight:600">'+fm(co.value||0)+(co.added_hours?' · '+fh(co.added_hours)+' hrs':'')+'</div></div>'
   h+='<div class="fg"><label class="fl">Days Added</label><input class="fi" type="number" id="eco-dy" value="'+(co.days_added||0)+'"></div></div>'
+  h+='<button class="btn btn-sm btn-p" style="margin-bottom:10px" data-coid="'+id+'" data-conum="'+_escAttr(co.co_number||'')+'" data-cotitle="'+_escAttr(co.title||'')+'" onclick="closeModal();openCOLines(this.dataset.coid,this.dataset.conum,this.dataset.cotitle)">✎ Edit Line Items</button>'
   h+='<div class="two"><div class="fg"><label class="fl">Submitted Date</label><input class="fi" type="date" id="eco-sub" value="'+(co.submitted_date?co.submitted_date.split('T')[0]:'')+'"></div>'
   h+='<div class="fg"><label class="fl">Approved Date</label><input class="fi" type="date" id="eco-app" value="'+(co.approved_date?co.approved_date.split('T')[0]:'')+'"></div></div>'
   if(ME&&ME.role==='admin')h+='<div style="padding-top:10px;border-top:1px solid rgba(255,255,255,.06)"><button class="btn btn-ghost btn-sm" style="color:#dc2626" data-coid="'+id+'" onclick="deleteCO(this.dataset.coid)">Delete Change Order</button></div>'
   modal('Edit '+co.co_number, h, async function(){
     var t=(document.getElementById('eco-t').value||'').trim()
     if(!t){toast('Title required','error');return}
-    await sb.from('change_orders').update({title:t,description:document.getElementById('eco-d').value||null,value:parseFloat(document.getElementById('eco-v').value)||0,days_added:parseInt(document.getElementById('eco-dy').value)||0,submitted_date:document.getElementById('eco-sub').value||null,approved_date:document.getElementById('eco-app').value||null,updated_at:new Date().toISOString()}).eq('id',id)
+    // Note: value is NOT written here — it's maintained by the line-item sync.
+    await sb.from('change_orders').update({title:t,description:document.getElementById('eco-d').value||null,days_added:parseInt(document.getElementById('eco-dy').value)||0,submitted_date:document.getElementById('eco-sub').value||null,approved_date:document.getElementById('eco-app').value||null,updated_at:new Date().toISOString()}).eq('id',id)
     await updateJobContractValue()
     closeModal();loadJT('jt-co');toast('Saved')
   },'Save')
