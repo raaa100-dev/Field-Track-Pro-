@@ -484,6 +484,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
     <div class="nav-item" onclick="P('jobs',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>All Jobs</div>
     <div class="nav-item" onclick="P('newjob',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/></svg>New Job</div>
     <div class="nav-item" onclick="P('schedule',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>Schedule</div>
+    <div class="nav-item" onclick="P('calendar',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4M5 10h2M9 10h2"/></svg>Calendar</div>
     <div class="nav-item" onclick="P('dispatch',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="6" height="5" rx="1"/><rect x="9" y="4" width="6" height="5" rx="1"/><path d="M4 9v4M12 9v4M1 13h6M9 13h6"/></svg>Dispatch Board</div>
     <div class="nav-item" onclick="pgJobMap()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 3l4 1.5L9 3l6 2v8l-6-2-4 1.5L1 11V3z"/><path d="M5 4.5v9M9 3v9"/></svg>Job Map</div>
     <div class="nav-section">Daily Ops</div>
@@ -756,7 +757,7 @@ async function deleteJobConfirm(){
 function doSignOut(){sb.auth.signOut().then(function(){location.href='index.html?signout=1'})}
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const PAGE_TITLES={tasks:'Tasks',today:'Today',settings:'Settings',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',forecast:'Labor Forecast',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail',email_review:'Email Review'}
+const PAGE_TITLES={tasks:'Tasks',today:'Today',calendar:'Calendar',settings:'Settings',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',forecast:'Labor Forecast',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail',email_review:'Email Review'}
 function P(page,navEl){
   // Guard against losing unsaved changes
   if(_isDirty()){
@@ -775,7 +776,7 @@ function _proceedToPage(page,navEl){
   document.getElementById('topbar-actions').innerHTML=''
   const a=document.getElementById('page-area')
   a.innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
-  const map={dashboard:pgDash,today:pgToday,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,forecast:pgForecast,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications,settings:pgSettings,email_review:pgEmailReview}
+  const map={dashboard:pgDash,today:pgToday,calendar:pgCalendar,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,forecast:pgForecast,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications,settings:pgSettings,email_review:pgEmailReview}
   if(map[page])map[page]()
   else a.innerHTML='<div class="empty">Coming soon</div>'
 }
@@ -4335,6 +4336,173 @@ async function submitNewJob(){
 // ══════════════════════════════════════════
 // SCHEDULE PAGE
 // ══════════════════════════════════════════
+// ── CALENDAR ───────────────────────────────────────────────────────────────
+var _calView='month'         // 'month' | 'week'
+var _calCursor=new Date()    // anchor date for the displayed period
+var _calFilters=null         // set of enabled event-type keys
+var _calEvents=[]            // gathered events cache
+// Event type definitions: key, label, color, icon
+var CAL_TYPES=[
+  {key:'due',label:'Job Due Dates',color:'#dc2626',icon:'⚑'},
+  {key:'pm_visit',label:'PM Visits',color:'#d97706',icon:'👷'},
+  {key:'task',label:'Tasks',color:'#2563eb',icon:'✓'},
+  {key:'followup',label:'Comm Follow-ups',color:'#a78bfa',icon:'📞'},
+  {key:'inspection',label:'Inspections',color:'#16a34a',icon:'🔍'},
+  {key:'projected_start',label:'Projected Starts',color:'#0ea5e9',icon:'🚀'},
+  {key:'projected_closeout',label:'Projected Closeouts',color:'#14b8a6',icon:'🏁'},
+  {key:'milestone',label:'Rough-in / Trim / etc.',color:'#fb923c',icon:'🔨'}
+]
+async function pgCalendar(){
+  document.getElementById('topbar-actions').innerHTML=''
+  // Default filters: the important ones on, milestones off (to reduce noise)
+  if(!_calFilters){_calFilters={};CAL_TYPES.forEach(function(t){_calFilters[t.key]=(t.key!=='milestone')})}
+  var el=document.getElementById('page-area')
+  el.innerHTML='<div style="padding:20px">'+ld()+'</div>'
+  await calGatherEvents()
+  renderCalendar()
+}
+async function calGatherEvents(){
+  var events=[]
+  // Jobs (with all their date fields)
+  var jobsData=[],from=0
+  while(true){
+    var r=await sb.from('jobs').select('id,name,phase,due_date,projected_start,projected_closeout,next_pm_visit,expected_onsite_date,date_roughin,date_trimout,date_inspection,date_closeout').eq('archived',false).range(from,from+999)
+    jobsData=jobsData.concat(r.data||[])
+    if(!r.data||r.data.length<1000)break
+    from+=1000
+  }
+  jobsData.forEach(function(j){
+    if(j.due_date)events.push({type:'due',date:j.due_date,title:j.name,sub:'Due date',jobId:j.id})
+    if(j.next_pm_visit)events.push({type:'pm_visit',date:j.next_pm_visit,title:j.name,sub:'PM visit',jobId:j.id})
+    if(j.projected_start)events.push({type:'projected_start',date:j.projected_start,title:j.name,sub:'Projected start',jobId:j.id})
+    if(j.projected_closeout)events.push({type:'projected_closeout',date:j.projected_closeout,title:j.name,sub:'Projected closeout',jobId:j.id})
+    if(j.date_inspection)events.push({type:'inspection',date:j.date_inspection,title:j.name,sub:'Inspection',jobId:j.id})
+    if(j.date_roughin)events.push({type:'milestone',date:j.date_roughin,title:j.name,sub:'Rough-in',jobId:j.id})
+    if(j.date_trimout)events.push({type:'milestone',date:j.date_trimout,title:j.name,sub:'Trim-out',jobId:j.id})
+    if(j.date_closeout)events.push({type:'milestone',date:j.date_closeout,title:j.name,sub:'Closeout',jobId:j.id})
+    if(j.expected_onsite_date)events.push({type:'milestone',date:j.expected_onsite_date,title:j.name,sub:'Expected on site',jobId:j.id})
+  })
+  // Tasks with due dates
+  try{
+    var tr=await sb.from('job_tasks').select('id,job_id,job_name,title,due_date,status,assigned_name').in('status',['open','in_progress']).not('due_date','is',null)
+    ;(tr.data||[]).forEach(function(t){events.push({type:'task',date:t.due_date,title:t.title,sub:(t.job_name||'')+(t.assigned_name?' · '+t.assigned_name:''),jobId:t.job_id,taskId:t.id})})
+  }catch(e){}
+  // Communication follow-ups
+  try{
+    var cr=await sb.from('job_communications').select('id,job_id,summary,follow_up_date,with_who').not('follow_up_date','is',null)
+    ;(cr.data||[]).forEach(function(c){events.push({type:'followup',date:c.follow_up_date,title:'Follow up: '+(c.summary?c.summary.slice(0,40):(c.with_who||'communication')),sub:c.with_who||'',jobId:c.job_id})})
+  }catch(e){}
+  // CRM inspections due
+  try{
+    var ir=await sb.from('crm_inspections').select('id,account_id,next_due,inspection_type,system_type').not('next_due','is',null)
+    ;(ir.data||[]).forEach(function(i){events.push({type:'inspection',date:i.next_due,title:(i.inspection_type||i.system_type||'Inspection')+' due',sub:'CRM inspection',accountId:i.account_id})})
+  }catch(e){}
+  _calEvents=events
+}
+function _calDateKey(d){var x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')}
+function calSetView(v){_calView=v;renderCalendar()}
+function calPrev(){if(_calView==='month')_calCursor.setMonth(_calCursor.getMonth()-1);else _calCursor.setDate(_calCursor.getDate()-7);renderCalendar()}
+function calNext(){if(_calView==='month')_calCursor.setMonth(_calCursor.getMonth()+1);else _calCursor.setDate(_calCursor.getDate()+7);renderCalendar()}
+function calToday(){_calCursor=new Date();renderCalendar()}
+function calToggleFilter(key){_calFilters[key]=!_calFilters[key];renderCalendar()}
+function calEventColor(type){var t=CAL_TYPES.find(function(x){return x.key===type});return t?t.color:'#8a96ab'}
+function calEventIcon(type){var t=CAL_TYPES.find(function(x){return x.key===type});return t?t.icon:'•'}
+function calOpenEvent(jobId,taskId,accountId){
+  if(taskId){P('tasks',null);return}
+  if(jobId){openJob(jobId);return}
+  if(accountId){crmOpenAccount(accountId);return}
+}
+function renderCalendar(){
+  var el=document.getElementById('page-area')
+  if(!el)return
+  // Filter events by enabled types
+  var visible=_calEvents.filter(function(e){return _calFilters[e.type]})
+  var byDate={}
+  visible.forEach(function(e){var k=_calDateKey(e.date);(byDate[k]=byDate[k]||[]).push(e)})
+
+  var h='<div style="padding:16px 20px;max-width:1000px;margin:0 auto">'
+  // Header: title + nav + view toggle
+  var monthName=_calCursor.toLocaleDateString('en-US',{month:'long',year:'numeric'})
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">'
+  h+='<div style="display:flex;align-items:center;gap:8px">'
+  h+='<button class="btn btn-sm" onclick="calPrev()">‹</button>'
+  h+='<button class="btn btn-sm" onclick="calToday()">Today</button>'
+  h+='<button class="btn btn-sm" onclick="calNext()">›</button>'
+  h+='<span style="font-size:17px;font-weight:700;margin-left:6px">'+monthName+'</span>'
+  h+='</div>'
+  h+='<div style="display:flex;background:#0c1220;border-radius:8px;padding:3px">'
+  h+='<button onclick="calSetView(\\'month\\')" style="border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;'+(_calView==='month'?'background:#2563eb;color:#fff':'background:transparent;color:#8a96ab')+'">Month</button>'
+  h+='<button onclick="calSetView(\\'week\\')" style="border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;'+(_calView==='week'?'background:#2563eb;color:#fff':'background:transparent;color:#8a96ab')+'">Week</button>'
+  h+='</div></div>'
+
+  // Filter checkboxes
+  h+='<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;padding:10px 12px;background:#0a1019;border-radius:9px">'
+  CAL_TYPES.forEach(function(t){
+    h+='<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:'+(_calFilters[t.key]?'#e8edf5':'#414e63')+'">'
+    h+='<input type="checkbox" '+(_calFilters[t.key]?'checked':'')+' onchange="calToggleFilter(\\''+t.key+'\\')" style="accent-color:'+t.color+'">'
+    h+='<span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:'+t.color+'"></span>'+t.label+'</label>'
+  })
+  h+='</div>'
+
+  if(_calView==='month')h+=_calMonthGrid(byDate)
+  else h+=_calWeekAgenda(byDate)
+  h+='</div>'
+  el.innerHTML=h
+}
+function _calMonthGrid(byDate){
+  var year=_calCursor.getFullYear(),month=_calCursor.getMonth()
+  var first=new Date(year,month,1)
+  var startDay=first.getDay() // 0=Sun
+  var daysInMonth=new Date(year,month+1,0).getDate()
+  var todayKey=_calDateKey(new Date())
+  var h='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:rgba(255,255,255,.05);border-radius:9px;overflow:hidden">'
+  ;['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(function(d){h+='<div style="background:#0c1220;padding:7px;text-align:center;font-size:10px;font-weight:600;color:#8a96ab;text-transform:uppercase">'+d+'</div>'})
+  // Leading blanks
+  for(var b=0;b<startDay;b++)h+='<div style="background:#060a10;min-height:90px"></div>'
+  for(var day=1;day<=daysInMonth;day++){
+    var key=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0')
+    var evs=byDate[key]||[]
+    var isToday=key===todayKey
+    h+='<div style="background:#0a1019;min-height:90px;padding:5px 6px;'+(isToday?'box-shadow:inset 0 0 0 2px #2563eb':'')+'">'
+    h+='<div style="font-size:11px;font-weight:'+(isToday?'700':'500')+';color:'+(isToday?'#60a5fa':'#8a96ab')+';margin-bottom:3px">'+day+'</div>'
+    evs.slice(0,4).forEach(function(e){
+      h+='<div onclick="calOpenEvent(\\''+(e.jobId||'')+'\\',\\''+(e.taskId||'')+'\\',\\''+(e.accountId||'')+'\\')" style="font-size:9px;padding:2px 4px;margin-bottom:2px;border-radius:3px;background:'+calEventColor(e.type)+'22;border-left:2px solid '+calEventColor(e.type)+';cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+_escAttr(e.title+' — '+(e.sub||''))+'">'+calEventIcon(e.type)+' '+_escapeHTML(e.title)+'</div>'
+    })
+    if(evs.length>4)h+='<div style="font-size:9px;color:#414e63">+'+(evs.length-4)+' more</div>'
+    h+='</div>'
+  }
+  h+='</div>'
+  // Legend hint
+  h+='<div style="font-size:11px;color:#414e63;margin-top:10px;text-align:center">Click any event to open its job, task, or account.</div>'
+  return h
+}
+function _calWeekAgenda(byDate){
+  // Show the week containing the cursor, as a day-by-day agenda
+  var c=new Date(_calCursor)
+  var weekStart=new Date(c);weekStart.setDate(c.getDate()-c.getDay());weekStart.setHours(0,0,0,0)
+  var todayKey=_calDateKey(new Date())
+  var h=''
+  for(var i=0;i<7;i++){
+    var d=new Date(weekStart);d.setDate(weekStart.getDate()+i)
+    var key=_calDateKey(d)
+    var evs=(byDate[key]||[]).sort(function(a,b){return 0})
+    var isToday=key===todayKey
+    h+='<div style="margin-bottom:10px">'
+    h+='<div style="font-size:13px;font-weight:'+(isToday?'700':'600')+';color:'+(isToday?'#60a5fa':'#e8edf5')+';margin-bottom:6px;display:flex;align-items:center;gap:8px">'+d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})+(isToday?' <span class="badge bg-blue" style="font-size:9px">Today</span>':'')+'</div>'
+    if(!evs.length){h+='<div style="font-size:11px;color:#414e63;padding-left:4px">—</div>'}
+    else{
+      evs.forEach(function(e){
+        h+='<div onclick="calOpenEvent(\\''+(e.jobId||'')+'\\',\\''+(e.taskId||'')+'\\',\\''+(e.accountId||'')+'\\')" style="display:flex;align-items:center;gap:9px;padding:8px 11px;background:#0a1019;border-left:3px solid '+calEventColor(e.type)+';border-radius:7px;margin-bottom:5px;cursor:pointer">'
+        h+='<span style="font-size:13px">'+calEventIcon(e.type)+'</span>'
+        h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">'+_escapeHTML(e.title)+'</div>'
+        if(e.sub)h+='<div style="font-size:10px;color:#414e63">'+_escapeHTML(e.sub)+'</div>'
+        h+='</div></div>'
+      })
+    }
+    h+='</div>'
+  }
+  return h
+}
 async function pgSchedule(){
   var allJobsData=[],ajFrom2=0
   while(true){
