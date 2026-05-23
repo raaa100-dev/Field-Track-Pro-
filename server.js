@@ -3198,6 +3198,7 @@ async function renderJobDailyTab(el){
     html+='<td>'+(hasIssues?'<span class="badge bg-red">Yes</span>':'<span style="font-size:11px;color:#414e63">—</span>')+'</td>'
     html+='<td style="display:flex;gap:4px" onclick="event.stopPropagation()">'
     html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="dlDailyReportById(this.dataset.rid)">⬇</button>'
+    html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="generateDailyReportPdf(this.dataset.rid)">📄 PDF</button>'
     html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="emailDrById(this.dataset.rid)">📧</button>'
     if(ME&&['admin','pm'].includes(ME.role))html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="editDailyReport(this.dataset.rid)">Edit</button>'
     html+='</td></tr>'
@@ -3868,6 +3869,195 @@ async function approveInsp(id){await sb.from('pm_inspections').update({approved_
 async function rejectInsp(id){const r=prompt('Reason:');if(!r)return;await sb.from('pm_inspections').update({rejected_at:new Date().toISOString(),rejection_reason:r}).eq('id',id);toast('Rejected','warn');loadJT('jt-pm')}
 
 // CHANGE ORDERS TAB
+// ── DOCUMENT GENERATION (print view + PDF download) ────────────────────────
+// Opens a new window with a styled document, a Print/Save-as-PDF button, and a
+// direct Download PDF button (jsPDF + html2canvas from CDN). Logo-ready: pass
+// opts.logoUrl to show an image, else the company name renders as text.
+function _docCompanyHeader(co){
+  co=co||{}
+  var coName=co.company_name||co.name||'Your Company'
+  // If a full letterhead banner is set, use it as the entire header.
+  if(co.letterhead_url){
+    return '<div style="margin-bottom:22px;border-bottom:2px solid #111;padding-bottom:14px"><img src="'+co.letterhead_url+'" style="max-width:100%;max-height:120px;object-fit:contain;display:block"></div>'
+  }
+  var addrLine=[co.address,[co.city,co.state].filter(Boolean).join(', '),co.zip].filter(Boolean).join(co.address?' · ':'')
+  var contactLine=[co.phone,co.email,co.website].filter(Boolean).join('  ·  ')
+  var licLine=co.license_number?'Lic# '+co.license_number:''
+  var logo=co.logo_url?'<img src="'+co.logo_url+'" style="max-height:64px;max-width:240px;object-fit:contain">':'<div style="font-size:24px;font-weight:800;color:#111;letter-spacing:-.02em">'+coName+'</div>'
+  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #111;padding-bottom:14px;margin-bottom:22px">'
+    +'<div>'+logo+(co.logo_url?'<div style="font-size:13px;font-weight:700;margin-top:4px">'+coName+'</div>':'')+'</div>'
+    +'<div style="text-align:right;font-size:11px;color:#444;line-height:1.6">'+(addrLine?'<div>'+addrLine+'</div>':'')+(contactLine?'<div>'+contactLine+'</div>':'')+(licLine?'<div>'+licLine+'</div>':'')+'</div>'
+    +'</div>'
+}
+function openPrintDoc(title,bodyHtml,filename){
+  var w=window.open('','_blank')
+  if(!w){toast('Pop-up blocked — allow pop-ups to generate documents','error');return}
+  var safeFile=(filename||'document').replace(/[^a-z0-9_\\-]/gi,'_')
+  var doc='<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+title+'</title>'
+  doc+='<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\\/script>'
+  doc+='<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\\/script>'
+  doc+='<style>'
+  doc+='*{box-sizing:border-box;margin:0;padding:0}'
+  doc+='body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#1a1a1a;background:#e8e8e8;padding:24px}'
+  doc+='.toolbar{position:fixed;top:0;left:0;right:0;background:#1a1a1a;padding:10px 18px;display:flex;gap:10px;justify-content:center;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,.2)}'
+  doc+='.toolbar button{background:#2563eb;color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer}'
+  doc+='.toolbar button.sec{background:#374151}'
+  doc+='.page{background:#fff;max-width:780px;margin:60px auto 24px;padding:48px 52px;box-shadow:0 1px 6px rgba(0,0,0,.15);min-height:1000px}'
+  doc+='table{width:100%;border-collapse:collapse}'
+  doc+='@media print{body{background:#fff;padding:0}.toolbar{display:none}.page{box-shadow:none;margin:0;max-width:100%;padding:0.5in;min-height:auto}}'
+  doc+='</style></head><body>'
+  doc+='<div class="toolbar"><button onclick="window.print()">🖨 Print / Save as PDF</button><button class="sec" onclick="dlPdf()">⬇ Download PDF</button><button class="sec" onclick="window.close()">Close</button></div>'
+  doc+='<div class="page" id="docpage">'+bodyHtml+'</div>'
+  doc+='<script>'
+  doc+='function dlPdf(){var el=document.getElementById("docpage");html2canvas(el,{scale:2,backgroundColor:"#ffffff"}).then(function(canvas){var img=canvas.toDataURL("image/png");var pdf=new jspdf.jsPDF("p","pt","letter");var pw=pdf.internal.pageSize.getWidth();var ph=pdf.internal.pageSize.getHeight();var iw=pw;var ih=canvas.height*iw/canvas.width;var y=0;if(ih<=ph){pdf.addImage(img,"PNG",0,0,iw,ih)}else{var left=ih;var pos=0;while(left>0){pdf.addImage(img,"PNG",0,pos,iw,ih);left-=ph;if(left>0){pdf.addPage();pos-=ph}}}pdf.save("'+safeFile+'.pdf")}).catch(function(e){alert("PDF generation failed: "+e.message+". Use Print / Save as PDF instead.")})}'
+  doc+='<\\/script>'
+  doc+='</body></html>'
+  w.document.write(doc)
+  w.document.close()
+}
+async function generateCOPdf(coId){
+  toast('Building document…')
+  // Gather CO, its job, line items, company settings
+  var[coRes,coLinesRes,coSettingsRes]=await Promise.all([
+    sb.from('change_orders').select('*').eq('id',coId).single(),
+    sb.from('co_budget_lines').select('*').eq('co_id',coId).order('sort_order'),
+    sb.from('company_settings').select('*').limit(1).single()
+  ])
+  var co=coRes.data;if(!co){toast('CO not found','error');return}
+  var lines=coLinesRes.data||[]
+  var company=coSettingsRes.data||{}
+  var jobRes=await sb.from('jobs').select('name,job_number,address,city,state,zip,gc_company,contract_value,original_contract_value').eq('id',co.job_id).single()
+  var job=jobRes.data||{}
+
+  // Contract impact math
+  var origContract=Number(job.original_contract_value||job.contract_value||0)
+  var coValue=Number(co.value||0)
+  // New total = current contract (which already includes approved COs) — show orig + this CO
+  var newTotal=origContract+coValue
+
+  var h=_docCompanyHeader(company)
+  // Title block
+  h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">'
+  h+='<div><div style="font-size:26px;font-weight:800;letter-spacing:-.02em">CHANGE ORDER</div>'
+  h+='<div style="font-size:14px;color:#555;margin-top:2px">'+(co.co_number||'')+'</div></div>'
+  h+='<div style="text-align:right;font-size:12px;color:#444;line-height:1.7">'
+  h+='<div><strong>Date:</strong> '+(co.submitted_date?fd(co.submitted_date):fd(co.created_at))+'</div>'
+  h+='<div><strong>Status:</strong> '+(co.status||'pending').toUpperCase()+'</div>'
+  if(co.days_added)h+='<div><strong>Schedule Impact:</strong> +'+co.days_added+' days</div>'
+  h+='</div></div>'
+
+  // Project / GC info
+  h+='<div style="background:#f5f5f5;border-radius:6px;padding:14px 16px;margin-bottom:20px;font-size:12px;line-height:1.8">'
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px">'
+  h+='<div><span style="color:#888">Project:</span> <strong>'+(job.name||'')+'</strong></div>'
+  if(job.job_number)h+='<div><span style="color:#888">Job #:</span> '+job.job_number+'</div>'
+  if(job.gc_company)h+='<div><span style="color:#888">General Contractor:</span> '+job.gc_company+'</div>'
+  var jAddr=[job.address,job.city,job.state,job.zip].filter(Boolean).join(', ')
+  if(jAddr)h+='<div><span style="color:#888">Location:</span> '+jAddr+'</div>'
+  h+='</div></div>'
+
+  // Title + description
+  h+='<div style="font-size:15px;font-weight:700;margin-bottom:6px">'+(co.title||'Change Order')+'</div>'
+  if(co.description)h+='<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:20px">'+String(co.description).replace(/</g,'&lt;').replace(/\\n/g,'<br>')+'</div>'
+
+  // Line items table
+  h+='<table style="margin-bottom:8px;font-size:12px"><thead><tr style="border-bottom:2px solid #111">'
+  h+='<th style="text-align:left;padding:8px 6px">Description</th>'
+  h+='<th style="text-align:left;padding:8px 6px;width:90px">Category</th>'
+  h+='<th style="text-align:right;padding:8px 6px;width:70px">Hours</th>'
+  h+='<th style="text-align:right;padding:8px 6px;width:100px">Amount</th></tr></thead><tbody>'
+  if(!lines.length){
+    h+='<tr><td colspan="4" style="padding:10px 6px;color:#888;text-align:center">No line items — total below</td></tr>'
+  }else{
+    lines.forEach(function(l){
+      h+='<tr style="border-bottom:1px solid #e0e0e0">'
+      h+='<td style="padding:7px 6px">'+(l.description||'').replace(/</g,'&lt;')+'</td>'
+      h+='<td style="padding:7px 6px;color:#555;text-transform:capitalize">'+(l.category||'')+'</td>'
+      h+='<td style="padding:7px 6px;text-align:right">'+(l.expected_hours?Number(l.expected_hours).toFixed(1):'—')+'</td>'
+      h+='<td style="padding:7px 6px;text-align:right">'+fm(l.amount||0)+'</td></tr>'
+    })
+  }
+  h+='</tbody></table>'
+
+  // CO total
+  h+='<div style="display:flex;justify-content:flex-end;margin-bottom:24px">'
+  h+='<div style="width:280px;font-size:13px">'
+  h+='<div style="display:flex;justify-content:space-between;padding:8px 6px;border-top:2px solid #111;font-weight:800;font-size:15px"><span>CHANGE ORDER TOTAL</span><span>'+fm(coValue)+'</span></div>'
+  if(co.added_hours)h+='<div style="display:flex;justify-content:space-between;padding:2px 6px;color:#555;font-size:11px"><span>Added labor hours</span><span>'+Number(co.added_hours).toFixed(1)+'</span></div>'
+  h+='</div></div>'
+
+  // Contract impact summary
+  h+='<div style="background:#f5f5f5;border-radius:6px;padding:14px 16px;margin-bottom:28px;font-size:13px">'
+  h+='<div style="font-weight:700;margin-bottom:8px;font-size:12px;text-transform:uppercase;color:#666">Contract Summary</div>'
+  h+='<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Original Contract Value</span><span>'+fm(origContract)+'</span></div>'
+  h+='<div style="display:flex;justify-content:space-between;padding:3px 0"><span>This Change Order</span><span>'+(coValue>=0?'+':'')+fm(coValue)+'</span></div>'
+  h+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #ccc;margin-top:4px;font-weight:800"><span>Revised Contract Value</span><span>'+fm(newTotal)+'</span></div>'
+  h+='</div>'
+
+  // Signature block
+  h+='<div style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px">'
+  h+='<div><div style="border-bottom:1px solid #111;height:40px"></div><div style="font-size:11px;color:#666;margin-top:4px">Contractor Signature / Date</div></div>'
+  h+='<div><div style="border-bottom:1px solid #111;height:40px"></div><div style="font-size:11px;color:#666;margin-top:4px">Owner / GC Approval / Date</div></div>'
+  h+='</div>'
+
+  // Footer
+  h+='<div style="margin-top:36px;padding-top:12px;border-top:1px solid #ddd;font-size:10px;color:#999;text-align:center">Generated '+fd(new Date().toISOString())+(company.company_name||company.name?' · '+(company.company_name||company.name):'')+'</div>'
+
+  openPrintDoc('Change Order '+(co.co_number||''),h,'CO_'+(co.co_number||coId)+'_'+(job.name||'').replace(/[^a-z0-9]/gi,'_'))
+}
+async function generateDailyReportPdf(reportId){
+  toast('Building document…')
+  var[rRes,coSettingsRes]=await Promise.all([
+    sb.from('daily_reports').select('*').eq('id',reportId).single(),
+    sb.from('company_settings').select('*').limit(1).single()
+  ])
+  var r=rRes.data;if(!r){toast('Report not found','error');return}
+  var company=coSettingsRes.data||{}
+  var jobRes=await sb.from('jobs').select('name,job_number,address,city,state,zip,gc_company').eq('id',r.job_id).single()
+  var job=jobRes.data||{}
+
+  var h=_docCompanyHeader(company)
+  // Title block
+  h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">'
+  h+='<div><div style="font-size:26px;font-weight:800;letter-spacing:-.02em">DAILY REPORT</div>'
+  h+='<div style="font-size:14px;color:#555;margin-top:2px">'+(job.name||'')+(job.job_number?' · '+job.job_number:'')+'</div></div>'
+  h+='<div style="text-align:right;font-size:13px;color:#444;line-height:1.7"><div style="font-size:16px;font-weight:700;color:#111">'+fd(r.report_date)+'</div>'
+  if(r.submitted_by)h+='<div style="font-size:11px">Submitted by '+r.submitted_by+'</div>'
+  h+='</div></div>'
+
+  // Project/GC strip
+  if(job.gc_company||job.address){
+    h+='<div style="background:#f5f5f5;border-radius:6px;padding:12px 16px;margin-bottom:20px;font-size:12px;line-height:1.7">'
+    if(job.gc_company)h+='<div><span style="color:#888">General Contractor:</span> '+job.gc_company+'</div>'
+    var jAddr=[job.address,job.city,job.state,job.zip].filter(Boolean).join(', ')
+    if(jAddr)h+='<div><span style="color:#888">Location:</span> '+jAddr+'</div>'
+    h+='</div>'
+  }
+
+  // Summary tiles: crew / hours / weather
+  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px">'
+  var tile=function(label,val){return '<div style="background:#f5f5f5;border-radius:6px;padding:12px 14px"><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.04em">'+label+'</div><div style="font-size:20px;font-weight:700;margin-top:3px">'+val+'</div></div>'}
+  h+=tile('Crew Size',(r.crew_count!=null?r.crew_count:'—'))
+  h+=tile('Hours Worked',(r.hours_worked!=null?Number(r.hours_worked).toFixed(1):'—'))
+  h+=tile('Weather',(r.weather||'—')+(r.temp_high?' '+r.temp_high+'°':''))
+  h+='</div>'
+
+  // Sections
+  var section=function(title,content){
+    return '<div style="margin-bottom:18px"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#666;border-bottom:1px solid #ddd;padding-bottom:4px;margin-bottom:7px">'+title+'</div>'
+      +'<div style="font-size:13px;line-height:1.6;color:#222;white-space:pre-wrap">'+(content&&String(content).trim()?String(content).replace(/</g,'&lt;'):'<span style="color:#aaa">—</span>')+'</div></div>'
+  }
+  h+=section('Work Performed',r.work_performed)
+  h+=section('Materials Used',r.materials_used)
+  h+=section('Equipment Used',r.equipment_used)
+  h+=section('Issues / Delays',r.issues||'None reported')
+  h+=section('Visitors',r.visitors||'None')
+
+  // Footer
+  h+='<div style="margin-top:36px;padding-top:12px;border-top:1px solid #ddd;font-size:10px;color:#999;text-align:center">Generated '+fd(new Date().toISOString())+(company.company_name||company.name?' · '+(company.company_name||company.name):'')+'</div>'
+
+  openPrintDoc('Daily Report '+fd(r.report_date),h,'DailyReport_'+(r.report_date||'')+'_'+(job.name||'').replace(/[^a-z0-9]/gi,'_'))
+}
 async function renderCOTab(el){
   var res=await sb.from('change_orders').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
   var cos=res.data||[]
@@ -3906,6 +4096,7 @@ async function renderCOTab(el){
       if(co.days_added)h+='<div style="font-size:11px;color:#414e63;margin-bottom:6px">+'+co.days_added+' days added to schedule</div>'
       h+='<div style="display:flex;gap:6px;flex-wrap:wrap">'
       h+='<button class="btn btn-sm" data-coid="'+co.id+'" data-conum="'+(co.co_number||'')+'" data-cotitle="'+(co.title||'').replace(/"/g,'&quot;')+'" onclick="openCOLines(this.dataset.coid,this.dataset.conum,this.dataset.cotitle)">📋 Line Items</button>'
+      h+='<button class="btn btn-sm" data-coid="'+co.id+'" onclick="generateCOPdf(this.dataset.coid)">📄 PDF</button>'
       if(!isApproved&&!isCanceled){
         h+='<button class="btn btn-sm btn-g" data-coid="'+co.id+'" onclick="approveCO(this)">✓ Approve</button>'
         h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" data-coid="'+co.id+'" onclick="cancelCO(this)">✕ Cancel</button>'
@@ -4684,6 +4875,7 @@ function filterDailyReports(){
     html+='<td>'+(hasIssues?'<span class="badge bg-red">Yes</span>':'<span style="font-size:11px;color:#414e63">—</span>')+'</td>'
     html+='<td style="display:flex;gap:4px" onclick="event.stopPropagation()">'
     html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="dlDailyReportById(this.dataset.rid)">⬇</button>'
+    html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="generateDailyReportPdf(this.dataset.rid)">📄 PDF</button>'
     html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="emailDrById(this.dataset.rid)">📧</button>'
     if(ME&&['admin','pm'].includes(ME.role))html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="editDailyReport(this.dataset.rid)">Edit</button>'
     html+='</td></tr>'
@@ -7534,7 +7726,27 @@ async function pgSettings(){
   h+='<div class="fg"><label class="fl">Website</label><input class="fi" id="co-web" value="'+(co.website||'')+'"></div>'
   h+='</div>'
   h+='<div class="fg"><label class="fl">Default Burden Rate $/hr <span style="color:#414e63;font-weight:400;font-size:10px">(used for labor cost on jobs without an override)</span></label><input class="fi" type="number" id="co-burden" value="'+(co.default_burden_rate!=null?co.default_burden_rate:65)+'" placeholder="65"></div>'
-  h+='<button class="btn btn-p" onclick="saveCompanySettings()" style="margin-top:10px">💾 Save Company Info</button>'
+  h+='<div class="fg"><label class="fl">Contractor License #</label><input class="fi" id="co-license" value="'+(co.license_number||'')+'"></div>'
+  // ── Branding: logo + letterhead ──
+  h+='<div class="sec-hdr" style="margin-top:16px">Document Branding</div>'
+  h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">These appear on generated Change Orders and Daily Reports. Logo shows in the document header; the letterhead banner (if set) replaces the header entirely with your own image.</div>'
+  // Logo
+  h+='<div class="fg"><label class="fl">Company Logo <span style="color:#414e63;font-weight:400;font-size:10px">(square or wordmark, PNG/JPG)</span></label>'
+  h+='<div style="display:flex;align-items:center;gap:12px">'
+  h+='<div id="co-logo-preview" style="width:90px;height:60px;background:#0a1019;border:1px solid rgba(255,255,255,.08);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden">'+(co.logo_url?'<img src="'+co.logo_url+'" style="max-width:100%;max-height:100%;object-fit:contain">':'<span style="font-size:10px;color:#414e63">No logo</span>')+'</div>'
+  h+='<label class="btn btn-sm" style="cursor:pointer">⬆ Upload Logo<input type="file" accept="image/*" style="display:none" onchange="uploadBrandImage(this.files[0],\\'logo\\')"></label>'
+  if(co.logo_url)h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="clearBrandImage(\\'logo\\')">Remove</button>'
+  h+='<input type="hidden" id="co-logo-url" value="'+(co.logo_url||'')+'">'
+  h+='</div></div>'
+  // Letterhead
+  h+='<div class="fg"><label class="fl">Letterhead Banner <span style="color:#414e63;font-weight:400;font-size:10px">(optional full-width header image)</span></label>'
+  h+='<div style="display:flex;align-items:center;gap:12px">'
+  h+='<div id="co-lh-preview" style="width:160px;height:50px;background:#0a1019;border:1px solid rgba(255,255,255,.08);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden">'+(co.letterhead_url?'<img src="'+co.letterhead_url+'" style="max-width:100%;max-height:100%;object-fit:contain">':'<span style="font-size:10px;color:#414e63">No letterhead</span>')+'</div>'
+  h+='<label class="btn btn-sm" style="cursor:pointer">⬆ Upload Letterhead<input type="file" accept="image/*" style="display:none" onchange="uploadBrandImage(this.files[0],\\'letterhead\\')"></label>'
+  if(co.letterhead_url)h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="clearBrandImage(\\'letterhead\\')">Remove</button>'
+  h+='<input type="hidden" id="co-lh-url" value="'+(co.letterhead_url||'')+'">'
+  h+='</div></div>'
+  h+='<button class="btn btn-p" onclick="saveCompanySettings()" style="margin-top:14px">💾 Save Company Info</button>'
   h+='</div>'
 
   // ── Database Backup ──────────────────────────────────────────
@@ -7901,6 +8113,27 @@ async function testEmailIngest(){
     if(res)res.innerHTML='<span style="color:#dc2626">✗ Error: '+e.message+'</span>'
   }
 }
+async function uploadBrandImage(file,kind){
+  if(!file)return
+  toast('Uploading…')
+  try{
+    var res=await uploadToCloudinary(file,'fieldaxishq/branding')
+    var url=res.url
+    if(kind==='logo'){
+      document.getElementById('co-logo-url').value=url
+      var p=document.getElementById('co-logo-preview');if(p)p.innerHTML='<img src="'+url+'" style="max-width:100%;max-height:100%;object-fit:contain">'
+    }else{
+      document.getElementById('co-lh-url').value=url
+      var p2=document.getElementById('co-lh-preview');if(p2)p2.innerHTML='<img src="'+url+'" style="max-width:100%;max-height:100%;object-fit:contain">'
+    }
+    toast('Uploaded — click Save Company Info to keep it')
+  }catch(e){toast('Upload failed: '+(e.message||e),'error')}
+}
+function clearBrandImage(kind){
+  if(kind==='logo'){var u=document.getElementById('co-logo-url');if(u)u.value='';var p=document.getElementById('co-logo-preview');if(p)p.innerHTML='<span style="font-size:10px;color:#414e63">No logo</span>'}
+  else{var u2=document.getElementById('co-lh-url');if(u2)u2.value='';var p2=document.getElementById('co-lh-preview');if(p2)p2.innerHTML='<span style="font-size:10px;color:#414e63">No letterhead</span>'}
+  toast('Removed — click Save Company Info to keep')
+}
 async function saveCompanySettings(){
   var data={
     company_name:document.getElementById('co-name').value||null,
@@ -7914,6 +8147,9 @@ async function saveCompanySettings(){
     website:document.getElementById('co-web').value||null,
     updated_at:new Date().toISOString()
   }
+  // Branding images (only if those fields are present)
+  var logoEl=document.getElementById('co-logo-url');if(logoEl)data.logo_url=logoEl.value||null
+  var lhEl=document.getElementById('co-lh-url');if(lhEl)data.letterhead_url=lhEl.value||null
   // Burden rate (only if the field is present)
   var burdenEl=document.getElementById('co-burden')
   if(burdenEl){var br=parseFloat(burdenEl.value);data.default_burden_rate=isNaN(br)?65:br}
