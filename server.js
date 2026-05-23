@@ -593,6 +593,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   // Delay badge load slightly to ensure ME is set
   setTimeout(function(){if(typeof ME!=='undefined'&&ME)loadMyTasksBadge()},500)
   setTimeout(function(){if(typeof updateTodayBadge==='function')updateTodayBadge()},800)
+  setTimeout(function(){if(typeof maybeMorningDigest==='function')maybeMorningDigest()},1200)
   // Mobile: show hamburger on small screens
   initMobileLayout()
 })
@@ -3288,6 +3289,7 @@ async function logCommGlobal(){
       })
       if(!tres.error){
         await sb.from('job_communications').update({task_id:taskId,updated_at:new Date().toISOString()}).eq('id',commId)
+        await notify(assigneeId,'task','New task assigned',('Follow up: '+(summary?summary.slice(0,60):'communication'))+(jobName?' · '+jobName:''),{jobId:jobId,taskId:taskId})
         toast('Logged and assigned to '+(u?u.full_name:'someone'))
       }else{toast('Logged (task assignment failed: '+tres.error.message+')','warn')}
     }else{toast('Communication logged')}
@@ -3356,6 +3358,8 @@ async function convertCommToTask(commId){
       created_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()
     })
     if(res.error){toast(res.error.message,'error');return}
+    // Notify the assignee
+    if(assigneeId)await notify(assigneeId,'task','New task assigned',title+(jr.data&&jr.data.name?' · '+jr.data.name:''),{jobId:currentJobId,taskId:taskId})
     // Link the comm to the task and mark responded
     await sb.from('job_communications').update({task_id:taskId,responded:true,updated_at:new Date().toISOString()}).eq('id',commId)
     closeModal();renderCommsSection();toast('Task created'+(assigneeName?' and assigned to '+assigneeName:''))
@@ -9064,9 +9068,61 @@ async function logPmVisitModal(){
 // ══════════════════════════════════════════
 // NOTIFICATIONS PAGE + BADGE
 // ══════════════════════════════════════════
+// Once per day on first login, create a "your plate today" digest notification.
+async function maybeMorningDigest(){
+  try{
+    var myId=ME&&ME.id
+    if(!myId)return
+    var todayStr=new Date().toISOString().slice(0,10)
+    // Already have a digest for today?
+    var existing=await sb.from('notifications').select('id').eq('user_id',myId).eq('type','digest').gte('created_at',todayStr+'T00:00:00').limit(1)
+    if(existing.data&&existing.data.length)return
+    // Compute the plate: my open tasks (overdue + due today) + my comms awaiting response
+    var today=new Date();today.setHours(0,0,0,0)
+    var now=new Date()
+    var res=await Promise.allSettled([
+      sb.from('job_tasks').select('id,due_date,status').eq('assigned_to',myId).in('status',['open','in_progress']),
+      sb.from('job_communications').select('id,occurred_at,needs_response,responded').eq('needs_response',true).eq('responded',false)
+    ])
+    var tasks=res[0].status==='fulfilled'?(res[0].value.data||[]):[]
+    var comms=res[1].status==='fulfilled'?(res[1].value.data||[]):[]
+    var overdue=0,dueToday=0
+    tasks.forEach(function(t){if(t.due_date){var d=new Date(t.due_date);d.setHours(0,0,0,0);if(d<today)overdue++;else if(d.getTime()===today.getTime())dueToday++}})
+    var openTasks=tasks.length
+    var waitingComms=comms.length
+    // Only create a digest if there's actually something on the plate
+    if(openTasks===0&&waitingComms===0)return
+    var parts=[]
+    if(overdue)parts.push(overdue+' overdue task'+(overdue>1?'s':''))
+    if(dueToday)parts.push(dueToday+' due today')
+    if(openTasks-overdue-dueToday>0)parts.push((openTasks-overdue-dueToday)+' other open')
+    if(waitingComms)parts.push(waitingComms+' communication'+(waitingComms>1?'s':'')+' awaiting response')
+    var msg='You have '+parts.join(', ')+'. Open the Today page to see them.'
+    await notify(myId,'digest','☀️ Good morning — your day',msg,{})
+    loadNotifBadge()
+  }catch(e){console.warn('digest failed:',e.message)}
+}
+// Write a user-targeted in-app notification. Safe no-op on failure.
+async function notify(userId,type,title,message,opts){
+  if(!userId)return
+  opts=opts||{}
+  try{
+    await sb.from('notifications').insert({
+      id:uuid(),user_id:userId,type:type||'general',title:title||'',message:message||'',
+      read:false,
+      link_job_id:opts.jobId||null,link_task_id:opts.taskId||null,
+      meta:opts.meta||(opts.jobId?{job_id:opts.jobId}:null),
+      created_at:new Date().toISOString()
+    })
+  }catch(e){console.warn('notify failed:',e.message)}
+}
 async function loadNotifBadge(){
   try{
-    const{count}=await sb.from('notifications').select('id',{count:'exact',head:true}).eq('read',false)
+    var myId=ME&&ME.id
+    var q=sb.from('notifications').select('id',{count:'exact',head:true}).eq('read',false)
+    // Scope to my notifications (plus broadcast ones with null user_id).
+    if(myId)q=q.or('user_id.eq.'+myId+',user_id.is.null')
+    const{count}=await q
     const el=document.getElementById('notif-badge')
     if(el){el.textContent=count||0;el.style.display=(count||0)>0?'block':'none'}
   }catch(e){}
@@ -9074,12 +9130,16 @@ async function loadNotifBadge(){
 
 async function pgNotifications(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm btn-ghost" onclick="markAllNotifsRead()">Mark all read</button>'
-  const{data:notifs}=await sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(100)
+  var myId=ME&&ME.id
+  var q=sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(100)
+  if(myId)q=q.or('user_id.eq.'+myId+',user_id.is.null')
+  const{data:notifs}=await q
   const el=document.getElementById('page-area')
   if(!(notifs||[]).length){el.innerHTML=empty('🔔','No notifications');return}
-  const groups={parts_variance:[],safety:[],general:[]}
+  const groups={tasks:[],parts_variance:[],safety:[],general:[]}
   ;(notifs||[]).forEach(n=>{
-    if(n.type==='parts_variance')groups.parts_variance.push(n)
+    if(n.type==='task')groups.tasks.push(n)
+    else if(n.type==='parts_variance')groups.parts_variance.push(n)
     else if(n.type?.includes('safety'))groups.safety.push(n)
     else groups.general.push(n)
   })
@@ -9087,22 +9147,27 @@ async function pgNotifications(){
   const renderGroup=(title,icon,items)=>{
     if(!items.length)return''
     return '<div class="card" style="margin-bottom:13px"><div class="card-title">'+icon+' '+title+' ('+items.length+')</div>'+
-      items.map(n=>'<div style="display:flex;gap:11px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start;opacity:'+(n.read?.7:1)+'">'+'<div style="flex-shrink:0;margin-top:2px"><div style="width:8px;height:8px;border-radius:50%;background:'+(n.read?'#414e63':'#dc2626')+'"></div></div>'+
+      items.map(n=>{
+        var jobLink=n.link_job_id||(n.meta&&n.meta.job_id)
+        return '<div style="display:flex;gap:11px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start;opacity:'+(n.read?.7:1)+'">'+'<div style="flex-shrink:0;margin-top:2px"><div style="width:8px;height:8px;border-radius:50%;background:'+(n.read?'#414e63':'#dc2626')+'"></div></div>'+
         '<div style="flex:1"><div style="font-size:13px;font-weight:'+(n.read?400:600)+'">'+n.title+'</div>'+
-        '<div style="font-size:12px;color:#8a96ab;margin-top:3px">'+n.message+'</div>'+
+        '<div style="font-size:12px;color:#8a96ab;margin-top:3px">'+(n.message||'')+'</div>'+
         '<div style="font-size:10px;color:#414e63;margin-top:4px">'+fdt(n.created_at)+'</div>'+
-        (n.meta?.job_id?'<button class="btn btn-sm" style="margin-top:6px" onclick="openJob(\\''+n.meta.job_id+'\\')">View Job →</button>':'')+
+        (jobLink?'<button class="btn btn-sm" style="margin-top:6px" onclick="openJob(\\''+jobLink+'\\')">View Job →</button>':'')+
         '</div>'+
         (!n.read?'<button class="btn btn-sm btn-ghost" onclick="markNotifRead(\\''+n.id+'\\')" style="flex-shrink:0">✓</button>':'')+
-        '</div>').join('')+
+        '</div>'}).join('')+
       '</div>'
   }
+  html+=renderGroup('Tasks','✓',groups.tasks)
   html+=renderGroup('Parts Variance','⚠',groups.parts_variance)
   html+=renderGroup('Safety','🛡',groups.safety)
   html+=renderGroup('General','🔔',groups.general)
   el.innerHTML=html||empty('🔔','No notifications')
-  // Mark all as read after viewing
-  await sb.from('notifications').update({read:true}).eq('read',false)
+  // Mark the user's own unread as read after viewing
+  var uq=sb.from('notifications').update({read:true}).eq('read',false)
+  if(myId)uq=uq.eq('user_id',myId)
+  await uq
   loadNotifBadge()
 }
 
@@ -11025,7 +11090,9 @@ async function toggleUrgent(){
     await sb.from('jobs').update({is_urgent:true,urgent_note:note,urgent_assigned_to:assignTo,urgent_assigned_name:assignName,urgent_priority:priority,urgent_flagged_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',j.id)
     currentJob.is_urgent=true;currentJob.urgent_note=note;currentJob.urgent_assigned_to=assignTo;currentJob.urgent_assigned_name=assignName;currentJob.urgent_priority=priority;currentJob.urgent_flagged_at=new Date().toISOString()
     // Create task
-    await sb.from('job_tasks').insert({id:uuid(),job_id:j.id,job_name:j.name||'',title:'URGENT: '+note,description:note,assigned_to:assignTo,assigned_name:assignName,priority:priority,status:'open',source:'urgent_flag',created_by:(typeof ME!=='undefined'?ME.full_name||'':''),created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    var urgTid=uuid()
+    await sb.from('job_tasks').insert({id:urgTid,job_id:j.id,job_name:j.name||'',title:'URGENT: '+note,description:note,assigned_to:assignTo,assigned_name:assignName,priority:priority,status:'open',source:'urgent_flag',created_by:(typeof ME!=='undefined'?ME.full_name||'':''),created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    if(assignTo)await notify(assignTo,'task','🚨 Urgent task assigned',(note||'')+(j.name?' · '+j.name:''),{jobId:j.id,taskId:urgTid})
     closeModal();renderJobDetail();toast('Job flagged as urgent and task assigned to '+assignName,'warn')
   },'Flag Urgent')
 }
@@ -11308,7 +11375,9 @@ async function newTaskModal(){
     var jobVal=document.getElementById('ntk-job').value
     var jobId='',jobName=''
     if(jobVal){var parts=jobVal.split('|');jobId=parts[0];jobName=parts.slice(1).join('|')}
-    await sb.from('job_tasks').insert({id:uuid(),job_id:jobId||null,job_name:jobName,title:title,description:document.getElementById('ntk-desc').value||title,assigned_to:assignTo,assigned_name:assignName,priority:document.getElementById('ntk-pri').value,status:'open',source:'manual',created_by:(typeof ME!=='undefined'?ME.full_name||'':''),created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    var newTid=uuid()
+    await sb.from('job_tasks').insert({id:newTid,job_id:jobId||null,job_name:jobName,title:title,description:document.getElementById('ntk-desc').value||title,assigned_to:assignTo,assigned_name:assignName,priority:document.getElementById('ntk-pri').value,status:'open',source:'manual',created_by:(typeof ME!=='undefined'?ME.full_name||'':''),created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    if(assignTo)await notify(assignTo,'task','New task assigned',title+(jobName?' · '+jobName:''),{jobId:jobId||null,taskId:newTid})
     closeModal();pgTasks();toast('Task created and assigned to '+assignName)
   },'Create Task')
 }
