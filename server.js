@@ -2909,8 +2909,9 @@ async function renderJobDailyTab(el){
         +'</div>'
     }
   }catch(e){/* table missing — fall through */}
-  let html=pendingBanner+'<div style="margin-bottom:12px"><button class="btn btn-p btn-sm" data-jid="'+currentJobId+'" onclick="newDailyModal(this.dataset.jid)">+ New Daily Report</button></div>'
-  if(!rows.length){el.innerHTML=html+empty('📋','No daily reports for this job');return}
+  let html=pendingBanner+'<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p btn-sm" data-jid="'+currentJobId+'" onclick="newDailyModal(this.dataset.jid)">+ New Daily Report</button><button class="btn btn-sm" onclick="logCommModal()">📞 Log Communication</button></div>'
+  html+='<div id="comms-section"></div>'
+  if(!rows.length){el.innerHTML=html+empty('📋','No daily reports for this job');renderCommsSection();return}
   html+='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr>'
   html+='<th>Date</th><th>Submitted By</th><th>Crew</th><th>Hours</th><th>Weather</th><th>Issues</th><th></th>'
   html+='</tr></thead><tbody>'
@@ -2931,6 +2932,154 @@ async function renderJobDailyTab(el){
   }
   html+='</tbody></table></div>'
   el.innerHTML=html
+  renderCommsSection()
+}
+
+// ── JOB COMMUNICATIONS LOG ─────────────────────────────────────────────────
+var COMM_TYPE_ICONS={call:'📞',email:'✉️',meeting:'🤝',text:'💬',other:'📋'}
+async function renderCommsSection(){
+  var host=document.getElementById('comms-section')
+  if(!host)return
+  var r=await sb.from('job_communications').select('*').eq('job_id',currentJobId).order('occurred_at',{ascending:false})
+  var comms=r.data||[]
+  // Resolve contact names for any linked contacts
+  var contactIds=comms.map(function(c){return c.contact_id}).filter(Boolean)
+  var contactNames={}
+  if(contactIds.length){
+    var cr=await sb.from('crm_contacts').select('id,name').in('id',contactIds)
+    ;(cr.data||[]).forEach(function(c){contactNames[c.id]=c.name})
+  }
+  var openResp=comms.filter(function(c){return c.needs_response&&!c.responded})
+  var h='<div class="card" style="margin-bottom:14px">'
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+  h+='<div class="card-title" style="margin-bottom:0">📞 Communications ('+comms.length+')</div>'
+  if(openResp.length)h+='<span class="badge bg-amber" style="font-size:10px">'+openResp.length+' awaiting response</span>'
+  h+='</div>'
+  if(!comms.length){
+    h+='<div style="font-size:12px;color:#414e63;padding:4px 0">No communications logged. Use <strong>📞 Log Communication</strong> to record a call, email, or meeting.</div>'
+  }else{
+    comms.slice(0,30).forEach(function(c){
+      var who=c.contact_id&&contactNames[c.contact_id]?contactNames[c.contact_id]:(c.with_who||'Unknown')
+      var icon=COMM_TYPE_ICONS[c.comm_type]||'📋'
+      var dirArrow=c.direction==='outbound'?'↗ to':'↙ from'
+      var needsResp=c.needs_response&&!c.responded
+      h+='<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05)">'
+      h+='<div style="display:flex;align-items:flex-start;gap:9px">'
+      h+='<span style="font-size:16px;flex-shrink:0">'+icon+'</span>'
+      h+='<div style="flex:1;min-width:0">'
+      h+='<div style="font-size:12px"><span style="font-weight:600">'+dirArrow+' '+_escapeHTML(who)+'</span> <span style="color:#414e63;font-size:11px">· '+fd(c.occurred_at)+' '+ft(c.occurred_at)+'</span></div>'
+      if(c.summary)h+='<div style="font-size:12px;color:#c7d0dd;margin-top:3px">'+_escapeHTML(c.summary)+'</div>'
+      var tags=''
+      if(needsResp)tags+='<span class="badge bg-amber" style="font-size:9px">Needs response</span> '
+      if(c.responded)tags+='<span class="badge bg-green" style="font-size:9px">Responded</span> '
+      if(c.follow_up_date)tags+='<span class="badge bg-gray" style="font-size:9px">Follow up '+fd(c.follow_up_date)+'</span> '
+      if(c.task_id)tags+='<span class="badge bg-blue" style="font-size:9px">→ Task created</span> '
+      if(tags)h+='<div style="margin-top:5px">'+tags+'</div>'
+      h+='</div>'
+      h+='<div style="display:flex;gap:4px;flex-shrink:0">'
+      if(needsResp)h+='<button class="btn btn-sm" data-cid="'+c.id+'" onclick="markCommResponded(this.dataset.cid)" style="font-size:10px;padding:2px 7px" title="Mark responded">✓</button>'
+      if(!c.task_id)h+='<button class="btn btn-sm" data-cid="'+c.id+'" onclick="convertCommToTask(this.dataset.cid)" style="font-size:10px;padding:2px 7px" title="Convert to task">→ Task</button>'
+      h+='<button class="btn btn-sm" data-cid="'+c.id+'" onclick="editCommModal(this.dataset.cid)" style="font-size:10px;padding:2px 7px">✎</button>'
+      h+='</div></div></div>'
+    })
+  }
+  h+='</div>'
+  host.innerHTML=h
+}
+async function logCommModal(commId){
+  // Load this job's CRM contacts (via its account) for the contact dropdown
+  var contacts=[]
+  try{
+    var jr=await sb.from('jobs').select('account_id').eq('id',currentJobId).single()
+    if(jr.data&&jr.data.account_id){
+      var cr=await sb.from('crm_contacts').select('id,name,title').eq('account_id',jr.data.account_id).order('name')
+      contacts=cr.data||[]
+    }
+  }catch(e){}
+  var existing=null
+  if(commId){var er=await sb.from('job_communications').select('*').eq('id',commId).single();existing=er.data}
+  var now=new Date()
+  var localDt=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,16)
+  var occVal=existing&&existing.occurred_at?new Date(new Date(existing.occurred_at).getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,16):localDt
+  var h='<div class="two"><div class="fg"><label class="fl">Type</label><select class="fs" id="cm-type">'
+  ;['call','email','meeting','text','other'].forEach(function(t){h+='<option value="'+t+'"'+(existing&&existing.comm_type===t?' selected':'')+'>'+COMM_TYPE_ICONS[t]+' '+t.charAt(0).toUpperCase()+t.slice(1)+'</option>'})
+  h+='</select></div><div class="fg"><label class="fl">Direction</label><select class="fs" id="cm-dir"><option value="inbound"'+(existing&&existing.direction==='inbound'?' selected':'')+'>↙ Inbound (they contacted us)</option><option value="outbound"'+(existing&&existing.direction==='outbound'?' selected':'')+'>↗ Outbound (we contacted them)</option></select></div></div>'
+  // Contact: dropdown of CRM contacts + free text fallback
+  h+='<div class="fg"><label class="fl">Contact</label><select class="fs" id="cm-contact" onchange="document.getElementById(\\'cm-who\\').style.display=this.value?\\'none\\':\\'block\\'"><option value="">— type name below —</option>'
+  contacts.forEach(function(c){h+='<option value="'+c.id+'"'+(existing&&existing.contact_id===c.id?' selected':'')+'>'+c.name+(c.title?' ('+c.title+')':'')+'</option>'})
+  h+='</select></div>'
+  h+='<div class="fg"><input class="fi" id="cm-who" placeholder="Or type who you spoke with" value="'+(existing&&!existing.contact_id?_escAttr(existing.with_who||''):'')+'" style="'+(existing&&existing.contact_id?'display:none':'')+'"></div>'
+  h+='<div class="fg"><label class="fl">When</label><input class="fi" type="datetime-local" id="cm-when" value="'+occVal+'"></div>'
+  h+='<div class="fg"><label class="fl">Summary / Notes</label><textarea class="ft" id="cm-summary" style="min-height:90px" placeholder="What was discussed?">'+(existing?_escapeHTML(existing.summary||''):'')+'</textarea></div>'
+  h+='<div class="two"><div class="fg"><label class="fl" style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="cm-needs" '+(existing&&existing.needs_response?'checked':'')+'> Needs response</label></div>'
+  h+='<div class="fg"><label class="fl">Follow-up date</label><input class="fi" type="date" id="cm-followup" value="'+(existing&&existing.follow_up_date?existing.follow_up_date:'')+'"></div></div>'
+  modal(commId?'Edit Communication':'Log Communication',h,async function(){
+    var data={
+      job_id:currentJobId,
+      comm_type:document.getElementById('cm-type').value,
+      direction:document.getElementById('cm-dir').value,
+      contact_id:document.getElementById('cm-contact').value||null,
+      with_who:document.getElementById('cm-contact').value?null:(document.getElementById('cm-who').value||null),
+      occurred_at:document.getElementById('cm-when').value?new Date(document.getElementById('cm-when').value).toISOString():new Date().toISOString(),
+      summary:document.getElementById('cm-summary').value||null,
+      needs_response:document.getElementById('cm-needs').checked,
+      follow_up_date:document.getElementById('cm-followup').value||null,
+      updated_at:new Date().toISOString()
+    }
+    if(commId){
+      await sb.from('job_communications').update(data).eq('id',commId)
+    }else{
+      data.id=uuid();data.logged_by=(ME&&ME.full_name)||'';data.created_at=new Date().toISOString()
+      await sb.from('job_communications').insert(data)
+    }
+    closeModal();renderCommsSection();toast('Communication logged')
+  },'Save')
+}
+function editCommModal(id){logCommModal(id)}
+async function markCommResponded(id){
+  await sb.from('job_communications').update({responded:true,updated_at:new Date().toISOString()}).eq('id',id)
+  renderCommsSection();toast('Marked as responded')
+}
+async function convertCommToTask(commId){
+  var cr=await sb.from('job_communications').select('*').eq('id',commId).single()
+  var c=cr.data;if(!c){toast('Not found','error');return}
+  // Resolve who-with for the task title
+  var who=c.with_who||''
+  if(c.contact_id){var ct=await sb.from('crm_contacts').select('name').eq('id',c.contact_id).single();if(ct.data)who=ct.data.name}
+  // Load assignable users
+  var ur=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
+  var users=ur.data||[]
+  var typeLabel=(c.comm_type||'call')
+  var h='<div style="font-size:12px;color:#8a96ab;margin-bottom:10px;padding:9px 12px;background:#0c1220;border-radius:7px">From '+typeLabel+(who?' with '+_escapeHTML(who):'')+' on '+fd(c.occurred_at)+(c.summary?':<br><span style="color:#c7d0dd">'+_escapeHTML(c.summary)+'</span>':'')+'</div>'
+  h+='<div class="fg"><label class="fl">Task Title *</label><input class="fi" id="ct-title" value="'+_escAttr('Follow up: '+(c.summary?c.summary.slice(0,60):typeLabel+(who?' with '+who:'')))+'"></div>'
+  h+='<div class="fg"><label class="fl">Details</label><textarea class="ft" id="ct-desc" style="min-height:70px">'+_escapeHTML(c.summary||'')+'</textarea></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Assign To</label><select class="fs" id="ct-assignee"><option value="">— Unassigned —</option>'
+  users.forEach(function(u){h+='<option value="'+u.id+'">'+u.full_name+' ('+roleLabel(u.role)+')</option>'})
+  h+='</select></div>'
+  h+='<div class="fg"><label class="fl">Priority</label><select class="fs" id="ct-priority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></div></div>'
+  h+='<div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="ct-due" value="'+(c.follow_up_date||'')+'"></div>'
+  modal('Convert to Task',h,async function(){
+    var title=(document.getElementById('ct-title').value||'').trim()
+    if(!title){toast('Title required','error');return}
+    var assigneeId=document.getElementById('ct-assignee').value||null
+    var assigneeName=''
+    if(assigneeId){var u=users.find(function(x){return x.id===assigneeId});assigneeName=u?u.full_name:''}
+    var taskId=uuid()
+    var jr=await sb.from('jobs').select('name').eq('id',currentJobId).single()
+    var res=await sb.from('job_tasks').insert({
+      id:taskId,job_id:currentJobId,job_name:jr.data?jr.data.name:'',
+      title:title,description:document.getElementById('ct-desc').value||null,
+      assigned_to:assigneeId,assigned_name:assigneeName||null,
+      priority:document.getElementById('ct-priority').value||'normal',
+      status:'open',source:'communication',
+      due_date:document.getElementById('ct-due').value||null,
+      created_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()
+    })
+    if(res.error){toast(res.error.message,'error');return}
+    // Link the comm to the task and mark responded
+    await sb.from('job_communications').update({task_id:taskId,responded:true,updated_at:new Date().toISOString()}).eq('id',commId)
+    closeModal();renderCommsSection();toast('Task created'+(assigneeName?' and assigned to '+assigneeName:''))
+  },'Create Task')
 }
 function dlDailyReport(r){
   const jobName=_drJobs&&_drJobs[r.job_id]?_drJobs[r.job_id]:currentJob?.name||r.job_id||'Unknown'
