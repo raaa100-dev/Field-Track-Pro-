@@ -2033,6 +2033,7 @@ function renderJobDetail(){
     <div class="tab" onclick="JT(this,'jt-workers')">Workers</div>
     <div class="tab" onclick="JT(this,'jt-parts')">Parts</div>
     <div class="tab" onclick="JT(this,'jt-daily')">Daily Reports</div>
+    <div class="tab" onclick="JT(this,'jt-tasks')">Tasks</div>
     <div class="tab" onclick="JT(this,'jt-walks')">Job Walks</div>
     <div class="tab" onclick="JT(this,'jt-photos')">Photos</div>
     <div class="tab" onclick="JT(this,'jt-checklist')">Checklist</div>
@@ -2087,6 +2088,7 @@ async function loadJT(id){
   else if(id==='jt-workers') await renderWorkersTab(el)
   else if(id==='jt-parts') await renderPartsTab(el)
   else if(id==='jt-daily') await renderJobDailyTab(el)
+  else if(id==='jt-tasks') await renderJobTasksTab(el)
   else if(id==='jt-walks') await renderJobWalksTab(el)
   else if(id==='jt-photos') await renderPhotosTab(el)
   else if(id==='jt-checklist') await renderChecklistTab(el)
@@ -2119,7 +2121,9 @@ async function openJobDashboard(){
       sb.from('job_parts').select('id,status').eq('job_id',jobId),
       sb.from('job_photos').select('id').eq('job_id',jobId),
       sb.from('job_walks').select('id,status').eq('job_id',jobId),
-      sb.from('job_workers').select('id,worker_id,is_active').eq('job_id',jobId)
+      sb.from('job_workers').select('id,worker_id,is_active').eq('job_id',jobId),
+      sb.from('job_tasks').select('id,title,assigned_name,due_date,priority,status').eq('job_id',jobId).in('status',['open','in_progress']).order('due_date',{ascending:true}),
+      sb.from('job_communications').select('id,comm_type,summary,occurred_at,needs_response,responded,with_who').eq('job_id',jobId).order('occurred_at',{ascending:false}).limit(5)
     ])
     var reports=results[0].data||[]
     var punch=results[1].data||[]
@@ -2128,6 +2132,8 @@ async function openJobDashboard(){
     var photos=results[4].data||[]
     var walks=results[5].data||[]
     var workers=results[6].data||[]
+    var jdTasks=results[7].data||[]
+    var jdComms=results[8].data||[]
 
     // Compute stats
     var hoursBurned=reports.reduce(function(s,r){return s+(Number(r.total_man_hours)||0)},0)
@@ -2192,6 +2198,38 @@ async function openJobDashboard(){
     if(j.address)html+='<div><span style="color:#414e63">Address:</span> '+j.address+(j.city?', '+j.city:'')+'</div>'
     if(j.due_date)html+='<div><span style="color:#414e63">Due:</span> '+fd(j.due_date)+(isOD(j.due_date,j.phase)?' <span style="color:#dc2626">(overdue)</span>':'')+'</div>'
     if(j.projected_start)html+='<div><span style="color:#414e63">Projected Start:</span> '+fd(j.projected_start)+'</div>'
+    html+='</div>'
+
+    // Open Tasks
+    html+='<div style="background:#060a10;border-radius:9px;padding:12px 15px;margin-top:10px">'
+    html+='<div style="font-weight:600;color:#8a96ab;margin-bottom:8px;font-size:11px;text-transform:uppercase">Open Tasks ('+jdTasks.length+')</div>'
+    if(!jdTasks.length){html+='<div style="font-size:12px;color:#414e63">No open tasks</div>'}
+    else{
+      jdTasks.slice(0,6).forEach(function(t){
+        var od=t.due_date&&isOD(t.due_date,'')
+        html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+        html+='<span style="font-size:12px;flex-shrink:0">'+(t.priority==='high'?'🔴':'✓')+'</span>'
+        html+='<div style="flex:1;min-width:0"><div style="font-size:12px">'+_escapeHTML(t.title||'')+'</div>'
+        html+='<div style="font-size:10px;color:#414e63">'+(t.assigned_name||'Unassigned')+(t.due_date?' · due '+fd(t.due_date):'')+(od?' <span style="color:#dc2626">overdue</span>':'')+'</div></div></div>'
+      })
+      if(jdTasks.length>6)html+='<div style="font-size:11px;color:#414e63;padding-top:4px">+ '+(jdTasks.length-6)+' more</div>'
+    }
+    html+='</div>'
+
+    // Recent Communications
+    html+='<div style="background:#060a10;border-radius:9px;padding:12px 15px;margin-top:10px">'
+    var openResp=jdComms.filter(function(c){return c.needs_response&&!c.responded}).length
+    html+='<div style="font-weight:600;color:#8a96ab;margin-bottom:8px;font-size:11px;text-transform:uppercase">Recent Communications'+(openResp?' · <span style="color:#d97706">'+openResp+' awaiting response</span>':'')+'</div>'
+    if(!jdComms.length){html+='<div style="font-size:12px;color:#414e63">No communications logged</div>'}
+    else{
+      jdComms.forEach(function(c){
+        var icon=(typeof COMM_TYPE_ICONS!=='undefined'&&COMM_TYPE_ICONS[c.comm_type])||'📞'
+        html+='<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+        html+='<span style="font-size:12px;flex-shrink:0">'+icon+'</span>'
+        html+='<div style="flex:1;min-width:0"><div style="font-size:12px">'+_escapeHTML((c.with_who||'')+(c.summary?' — '+c.summary.slice(0,50):''))+'</div>'
+        html+='<div style="font-size:10px;color:#414e63">'+fd(c.occurred_at)+(c.needs_response&&!c.responded?' · <span style="color:#d97706">needs response</span>':'')+'</div></div></div>'
+      })
+    }
     html+='</div>'
 
     var body=document.getElementById('jobdash-body')
@@ -3066,6 +3104,66 @@ function buildPartsTable(parts){
 // renderPartsTab moved to parts_features.js
 
 // DAILY REPORTS TAB (per job)
+// ── JOB TASKS TAB ──────────────────────────────────────────────────────────
+async function renderJobTasksTab(el){
+  var r=await sb.from('job_tasks').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
+  var tasks=r.data||[]
+  var open=tasks.filter(function(t){return t.status==='open'||t.status==='in_progress'})
+  var done=tasks.filter(function(t){return t.status==='complete'||t.status==='resolved'})
+  var h='<div style="margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="newTaskForJob()">+ New Task</button></div>'
+  if(!tasks.length){el.innerHTML=h+empty('✓','No tasks for this job yet');return}
+  function row(t){
+    var od=t.due_date&&(t.status==='open'||t.status==='in_progress')&&isOD(t.due_date,'')
+    var isDone=t.status==='complete'||t.status==='resolved'
+    var src=t.source==='communication'?'📞 ':t.source==='urgent_flag'?'🚨 ':t.source==='labor_alert'?'📊 ':''
+    var x='<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)">'
+    x+='<span style="font-size:14px;flex-shrink:0">'+(isDone?'✅':t.priority==='high'?'🔴':'⬜')+'</span>'
+    x+='<div style="flex:1;min-width:0"><div style="font-size:13px;'+(isDone?'text-decoration:line-through;color:#414e63':'font-weight:500')+'">'+src+_escapeHTML(t.title||'')+'</div>'
+    x+='<div style="font-size:11px;color:#414e63;margin-top:2px">'+(t.assigned_name||'Unassigned')+(t.due_date?' · due '+fd(t.due_date):'')+(od?' <span style="color:#dc2626">overdue</span>':'')+'</div></div>'
+    if(!isDone)x+='<button class="btn btn-sm" data-tid="'+t.id+'" onclick="completeJobTask(this.dataset.tid)" style="font-size:10px;padding:3px 9px">Done</button>'
+    else x+='<button class="btn btn-sm btn-ghost" data-tid="'+t.id+'" onclick="reopenJobTask(this.dataset.tid)" style="font-size:10px;padding:3px 9px">Reopen</button>'
+    x+='</div>'
+    return x
+  }
+  h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Open ('+open.length+')</div>'
+  h+=open.length?open.map(row).join(''):'<div style="font-size:12px;color:#414e63">No open tasks</div>'
+  h+='</div>'
+  if(done.length){
+    h+='<div class="card"><div class="card-title">Completed ('+done.length+')</div>'
+    h+=done.slice(0,20).map(row).join('')
+    h+='</div>'
+  }
+  el.innerHTML=h
+}
+async function newTaskForJob(){
+  var ur=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
+  var users=ur.data||[]
+  var h='<div class="fg"><label class="fl">Task Title *</label><input class="fi" id="njt-title"></div>'
+  h+='<div class="fg"><label class="fl">Details</label><textarea class="ft" id="njt-desc" style="min-height:70px"></textarea></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Assign To</label><select class="fs" id="njt-assignee"><option value="">— Unassigned —</option>'
+  users.forEach(function(u){h+='<option value="'+u.id+'">'+_escapeHTML(u.full_name)+' ('+roleLabel(u.role)+')</option>'})
+  h+='</select></div><div class="fg"><label class="fl">Priority</label><select class="fs" id="njt-pri"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></div></div>'
+  h+='<div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="njt-due"></div>'
+  modal('New Task — '+(currentJob?currentJob.name:''),h,async function(){
+    var title=(document.getElementById('njt-title').value||'').trim()
+    if(!title){toast('Title required','error');return}
+    var assigneeId=document.getElementById('njt-assignee').value||null
+    var assigneeName='';if(assigneeId){var u=users.find(function(x){return x.id===assigneeId});assigneeName=u?u.full_name:''}
+    var taskId=uuid()
+    var res=await sb.from('job_tasks').insert({id:taskId,job_id:currentJobId,job_name:currentJob?currentJob.name:'',title:title,description:document.getElementById('njt-desc').value||null,assigned_to:assigneeId,assigned_name:assigneeName||null,priority:document.getElementById('njt-pri').value,status:'open',source:'manual',due_date:document.getElementById('njt-due').value||null,created_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    if(res.error){toast(res.error.message,'error');return}
+    if(assigneeId)await notify(assigneeId,'task','New task assigned',title+(currentJob?' · '+currentJob.name:''),{jobId:currentJobId,taskId:taskId})
+    closeModal();loadJT('jt-tasks');toast('Task created'+(assigneeName?' · assigned to '+assigneeName:''))
+  },'Create Task')
+}
+async function completeJobTask(id){
+  await sb.from('job_tasks').update({status:'complete',resolved_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id)
+  loadJT('jt-tasks');toast('Task completed')
+}
+async function reopenJobTask(id){
+  await sb.from('job_tasks').update({status:'open',resolved_at:null,updated_at:new Date().toISOString()}).eq('id',id)
+  loadJT('jt-tasks');toast('Task reopened')
+}
 async function renderJobDailyTab(el){
   const{data:reports}=await sb.from('daily_reports').select('*').eq('job_id',currentJobId).order('report_date',{ascending:false})
   const rows=reports||[]
@@ -3304,6 +3402,14 @@ async function lcgJobChanged(){
   if(accId){document.getElementById('lcg-account').value=accId;await lcgLoadContacts(accId)}
 }
 async function lcgAccountChanged(){await lcgLoadContacts(document.getElementById('lcg-account').value)}
+// Open the communication logger pre-selected to a specific account (from the account page).
+async function logCommForAccount(accId){
+  await logCommGlobal()
+  setTimeout(async function(){
+    var sel=document.getElementById('lcg-account')
+    if(sel){sel.value=accId;await lcgAccountChanged()}
+  },150)
+}
 async function lcgLoadContacts(accId){
   var dd=document.getElementById('lcg-contact')
   if(!dd)return
@@ -12080,15 +12186,28 @@ async function crmOpenAccount(id){
   var res=await sb.from('crm_accounts').select('*').eq('id',id).single()
   var a=res.data
   if(!a){toast('Account not found','error');return}
-  var [contRes,bldRes,agrRes,actRes,inspRes,jobRes,quoteRes]=await Promise.all([
+  var [contRes,bldRes,agrRes,actRes,inspRes,jobRes,quoteRes,acctCommRes]=await Promise.all([
     sb.from('crm_contacts').select('*').eq('account_id',id).order('name'),
     sb.from('crm_buildings').select('*').eq('account_id',id).order('name'),
     sb.from('crm_agreements').select('*').eq('account_id',id).order('created_at',{ascending:false}),
     sb.from('crm_activities').select('*').eq('account_id',id).order('activity_date',{ascending:false}).limit(20),
     sb.from('crm_inspections').select('*').eq('account_id',id).order('next_due',{ascending:true}),
     sb.from('jobs').select('id,name,job_number,phase,contract_value,created_at,account_id,gc_company,gc_pm_contact_id,gc_super_contact_id').or('account_id.eq.'+id+',and(account_id.is.null,gc_company.eq.'+JSON.stringify(a.name).slice(1,-1)+')').order('created_at',{ascending:false}).limit(50),
-    sb.from('fax_bids').select('id,number,project_name,total,status:fax_bid_recipients(status)').eq('project_name',a.name).order('created_at',{ascending:false}).limit(10)
+    sb.from('fax_bids').select('id,number,project_name,total,status:fax_bid_recipients(status)').eq('project_name',a.name).order('created_at',{ascending:false}).limit(10),
+    sb.from('job_communications').select('id,job_id,account_id,comm_type,direction,summary,occurred_at,needs_response,responded,with_who,phone').eq('account_id',id).order('occurred_at',{ascending:false}).limit(50)
   ])
+  // Gather communications linked to this account's jobs too (not just account-linked)
+  var jobIdList=(jobRes.data||[]).map(function(j){return j.id})
+  var jobComms=[]
+  if(jobIdList.length){
+    try{
+      var jcRes=await sb.from('job_communications').select('id,job_id,account_id,comm_type,direction,summary,occurred_at,needs_response,responded,with_who,phone').in('job_id',jobIdList).order('occurred_at',{ascending:false}).limit(50)
+      jobComms=jcRes.data||[]
+    }catch(e){}
+  }
+  // Merge account-linked + job-linked comms, dedupe by id
+  var commsRaw=((acctCommRes&&acctCommRes.data)||[]).concat(jobComms)
+  var _seen={};var allComms=commsRaw.filter(function(c){if(_seen[c.id])return false;_seen[c.id]=true;return true})
   window._crmOpenAccount=a
   window._crmOpenId=id
   document.getElementById('topbar-actions').innerHTML=crmOpenAccountTopbar()
@@ -12189,6 +12308,49 @@ async function crmOpenAccount(id){
     if(jobs.length>20)h+='<div style="font-size:11px;color:#414e63;padding-top:6px">+ '+(jobs.length-20)+' more</div>'
   }else{
     h+='<div style="font-size:12px;color:#414e63;padding:4px 0">No jobs yet for this contractor. Click <strong>+ New Job</strong> to create one.</div>'
+  }
+  h+='</div>'
+  // ── Merged Activity Timeline ────────────────────────────────
+  h+='<div class="card" style="margin-bottom:13px">'
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+  h+='<div class="card-title" style="margin-bottom:0">Activity Timeline</div>'
+  h+='<button class="btn btn-sm" data-acc="'+id+'" onclick="logCommForAccount(this.dataset.acc)" style="padding:4px 10px;font-size:11px">📞 Log Communication</button>'
+  h+='</div>'
+  // Build unified event list
+  var events=[]
+  ;(allComms||[]).forEach(function(c){
+    var icon=(typeof COMM_TYPE_ICONS!=='undefined'&&COMM_TYPE_ICONS[c.comm_type])||'📞'
+    var who=c.with_who||'contact'
+    var dir=c.direction==='outbound'?'to':'from'
+    events.push({date:c.occurred_at,icon:icon,
+      title:(c.comm_type||'call').charAt(0).toUpperCase()+(c.comm_type||'call').slice(1)+' '+dir+' '+who,
+      detail:c.summary||'',
+      badge:(c.needs_response&&!c.responded)?'<span class="badge bg-amber" style="font-size:9px">Needs response</span>':'',
+      jobId:c.job_id})
+  })
+  ;(jobs||[]).forEach(function(j){
+    events.push({date:j.created_at,icon:'🏗',title:'Job created: '+j.name,detail:(j.job_number?j.job_number+' · ':'')+(j.contract_value?fm(j.contract_value):''),jobId:j.id})
+  })
+  ;((quoteRes&&quoteRes.data)||[]).forEach(function(q){
+    events.push({date:q.created_at||q.date,icon:'📄',title:'Quote '+(q.number||'')+': '+(q.project_name||''),detail:q.total?fm(q.total):''})
+  })
+  ;((actRes&&actRes.data)||[]).forEach(function(ac){
+    events.push({date:ac.activity_date||ac.created_at,icon:'📌',title:ac.activity_type||ac.type||'Activity',detail:ac.notes||ac.description||ac.summary||''})
+  })
+  // Sort newest first, drop undated
+  events=events.filter(function(e){return e.date}).sort(function(x,y){return new Date(y.date)-new Date(x.date)})
+  if(!events.length){
+    h+='<div style="font-size:12px;color:#414e63;padding:4px 0">No activity yet. Logged calls, jobs, and quotes will appear here.</div>'
+  }else{
+    events.slice(0,40).forEach(function(e){
+      h+='<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);'+(e.jobId?'cursor:pointer':'')+'"'+(e.jobId?' onclick="openJob(\\''+e.jobId+'\\')"':'')+'>'
+      h+='<span style="font-size:14px;flex-shrink:0">'+e.icon+'</span>'
+      h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">'+_escapeHTML(e.title)+(e.badge?' '+e.badge:'')+'</div>'
+      if(e.detail)h+='<div style="font-size:11px;color:#8a96ab;margin-top:2px">'+_escapeHTML(String(e.detail).slice(0,120))+'</div>'
+      h+='<div style="font-size:10px;color:#414e63;margin-top:2px">'+fd(e.date)+'</div>'
+      h+='</div></div>'
+    })
+    if(events.length>40)h+='<div style="font-size:11px;color:#414e63;padding-top:6px">+ '+(events.length-40)+' older</div>'
   }
   h+='</div>'
   // Follow-up reminder
