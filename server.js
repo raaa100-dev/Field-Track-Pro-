@@ -1022,7 +1022,7 @@ async function pgDash(){
   // Refresh check-in status on every dashboard load
   if(ME)adminCheckInInit()
 
-  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="P(\\'newjob\\',null)">+ New Job</button>'
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="logCommGlobal()" style="margin-right:6px">📞 Log Communication</button><button class="btn btn-p btn-sm" onclick="P(\\'newjob\\',null)">+ New Job</button>'
   try {
   // Run queries individually so one failure doesn't break everything
   const {data:jobs,error:jobsError} = await sb.from('jobs').select('*').order('created_at',{ascending:false})
@@ -1208,6 +1208,7 @@ async function pgJobs(){
     <button class="btn btn-sm btn-ghost" onclick="downloadJobTemplate()">📋 Template</button>
     <label class="btn btn-sm" style="cursor:pointer">⬆ Import Excel<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importJobsExcel(this)"></label>
     <button class="btn btn-sm" onclick="exportJobsExcel()">⬆ Export</button>
+    <button class="btn btn-sm" onclick="logCommGlobal()">📞 Log Communication</button>
     <button class="btn btn-p btn-sm" onclick="P('newjob',null)">+ New Job</button>\`
   try {
     const{data:jobs,error}=await sb.from('jobs').select('*').order('created_at',{ascending:false})
@@ -3039,6 +3040,114 @@ function editCommModal(id){logCommModal(id)}
 async function markCommResponded(id){
   await sb.from('job_communications').update({responded:true,updated_at:new Date().toISOString()}).eq('id',id)
   renderCommsSection();toast('Marked as responded')
+}
+// Dashboard-level communication logger. Works without a job context: pick a
+// job OR a customer (account), record a phone number, auto-timestamp, and
+// assign to someone's tasks inline if a response is needed.
+async function logCommGlobal(){
+  var[jr,ar,ur]=await Promise.all([
+    sb.from('jobs').select('id,name,job_number,account_id').eq('archived',false).order('created_at',{ascending:false}).limit(500),
+    sb.from('crm_accounts').select('id,name').order('name'),
+    sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
+  ])
+  var jobs=jr.data||[],accounts=ar.data||[],users=ur.data||[]
+  window._lcgJobs=jobs;window._lcgAccounts=accounts;window._lcgUsers=users
+  var now=new Date()
+  var localDt=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,16)
+  var h=''
+  h+='<div style="font-size:11px;color:#414e63;margin-bottom:10px">Link this conversation to a job or a customer (or both). Entry is timestamped automatically.</div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Type</label><select class="fs" id="lcg-type">'
+  ;['call','email','meeting','text','other'].forEach(function(t){h+='<option value="'+t+'">'+COMM_TYPE_ICONS[t]+' '+t.charAt(0).toUpperCase()+t.slice(1)+'</option>'})
+  h+='</select></div><div class="fg"><label class="fl">Direction</label><select class="fs" id="lcg-dir"><option value="inbound">↙ Inbound (they called us)</option><option value="outbound">↗ Outbound (we called them)</option></select></div></div>'
+  h+='<div class="fg"><label class="fl">Link to Job <span style="color:#414e63;font-weight:400;font-size:10px">(optional)</span></label><select class="fs" id="lcg-job" onchange="lcgJobChanged()"><option value="">— none —</option>'
+  jobs.forEach(function(j){h+='<option value="'+j.id+'" data-acc="'+(j.account_id||'')+'">'+(j.job_number?j.job_number+' · ':'')+_escapeHTML(j.name||'')+'</option>'})
+  h+='</select></div>'
+  h+='<div class="fg"><label class="fl">Link to Customer / Account <span style="color:#414e63;font-weight:400;font-size:10px">(optional)</span></label><select class="fs" id="lcg-account" onchange="lcgAccountChanged()"><option value="">— none —</option>'
+  accounts.forEach(function(a){h+='<option value="'+a.id+'">'+_escapeHTML(a.name||'')+'</option>'})
+  h+='</select></div>'
+  h+='<div class="fg"><label class="fl">Contact</label><select class="fs" id="lcg-contact" onchange="lcgContactChanged()"><option value="">— type name below —</option></select></div>'
+  h+='<div class="two"><div class="fg"><input class="fi" id="lcg-who" placeholder="Who you spoke with"></div>'
+  h+='<div class="fg"><input class="fi" id="lcg-phone" placeholder="Phone number" type="tel"></div></div>'
+  h+='<div class="fg"><label class="fl">When</label><input class="fi" type="datetime-local" id="lcg-when" value="'+localDt+'"></div>'
+  h+='<div class="fg"><label class="fl">Summary / Notes</label><textarea class="ft" id="lcg-summary" style="min-height:80px" placeholder="What was discussed?"></textarea></div>'
+  h+='<div class="fg"><label class="fl" style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="lcg-needs" onchange="document.getElementById(\\'lcg-assign-box\\').style.display=this.checked?\\'block\\':\\'none\\'"> Needs a response (assign to someone)</label></div>'
+  h+='<div id="lcg-assign-box" style="display:none;padding:10px 12px;background:#0c1220;border-radius:8px;margin-top:4px">'
+  h+='<div class="two"><div class="fg"><label class="fl">Assign Task To</label><select class="fs" id="lcg-assignee"><option value="">— Unassigned —</option>'
+  users.forEach(function(u){h+='<option value="'+u.id+'">'+_escapeHTML(u.full_name)+' ('+roleLabel(u.role)+')</option>'})
+  h+='</select></div><div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="lcg-due"></div></div>'
+  h+='<div style="font-size:10px;color:#414e63">Creates a task in the assignee\\'s list, linked to this conversation.</div>'
+  h+='</div>'
+  modal('📞 Log Communication',h,async function(){
+    var jobId=document.getElementById('lcg-job').value||null
+    var accId=document.getElementById('lcg-account').value||null
+    var contactId=document.getElementById('lcg-contact').value||null
+    var needs=document.getElementById('lcg-needs').checked
+    var summary=document.getElementById('lcg-summary').value||null
+    var whenVal=document.getElementById('lcg-when').value
+    var occurredAt=whenVal?new Date(whenVal).toISOString():new Date().toISOString()
+    var commId=uuid()
+    var rec={
+      id:commId,job_id:jobId,account_id:accId,
+      comm_type:document.getElementById('lcg-type').value,
+      direction:document.getElementById('lcg-dir').value,
+      contact_id:contactId,
+      with_who:contactId?null:(document.getElementById('lcg-who').value||null),
+      phone:document.getElementById('lcg-phone').value||null,
+      occurred_at:occurredAt,summary:summary,needs_response:needs,
+      follow_up_date:document.getElementById('lcg-due')?(document.getElementById('lcg-due').value||null):null,
+      logged_by:(ME&&ME.full_name)||'',
+      created_at:new Date().toISOString(),updated_at:new Date().toISOString()
+    }
+    var ins=await sb.from('job_communications').insert(rec)
+    if(ins.error){toast(ins.error.message,'error');return}
+    var assigneeId=needs?(document.getElementById('lcg-assignee').value||null):null
+    if(assigneeId){
+      var u=(window._lcgUsers||[]).find(function(x){return x.id===assigneeId})
+      var jobName=''
+      if(jobId){var jj=(window._lcgJobs||[]).find(function(x){return x.id===jobId});jobName=jj?jj.name:''}
+      var who=document.getElementById('lcg-who').value||''
+      var taskId=uuid()
+      var tres=await sb.from('job_tasks').insert({
+        id:taskId,job_id:jobId,job_name:jobName,
+        title:'Follow up: '+(summary?summary.slice(0,60):'communication'+(who?' with '+who:'')),
+        description:summary||null,assigned_to:assigneeId,assigned_name:u?u.full_name:null,
+        priority:'normal',status:'open',source:'communication',
+        due_date:document.getElementById('lcg-due').value||null,
+        created_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()
+      })
+      if(!tres.error){
+        await sb.from('job_communications').update({task_id:taskId,updated_at:new Date().toISOString()}).eq('id',commId)
+        toast('Logged and assigned to '+(u?u.full_name:'someone'))
+      }else{toast('Logged (task assignment failed: '+tres.error.message+')','warn')}
+    }else{toast('Communication logged')}
+    closeModal()
+    if(typeof renderCommsSection==='function'&&document.getElementById('comms-section'))renderCommsSection()
+  },'Save')
+}
+async function lcgJobChanged(){
+  var jobSel=document.getElementById('lcg-job')
+  var opt=jobSel.options[jobSel.selectedIndex]
+  var accId=opt?opt.getAttribute('data-acc'):''
+  if(accId){document.getElementById('lcg-account').value=accId;await lcgLoadContacts(accId)}
+}
+async function lcgAccountChanged(){await lcgLoadContacts(document.getElementById('lcg-account').value)}
+async function lcgLoadContacts(accId){
+  var dd=document.getElementById('lcg-contact')
+  if(!dd)return
+  if(!accId){dd.innerHTML='<option value="">— type name below —</option>';return}
+  var r=await sb.from('crm_contacts').select('id,name,title,phone').eq('account_id',accId).order('name')
+  var contacts=r.data||[]
+  dd.innerHTML='<option value="">— type name below —</option>'+contacts.map(function(c){return '<option value="'+c.id+'" data-phone="'+_escAttr(c.phone||'')+'">'+_escapeHTML(c.name)+(c.title?' ('+c.title+')':'')+'</option>'}).join('')
+}
+function lcgContactChanged(){
+  var dd=document.getElementById('lcg-contact')
+  var opt=dd.options[dd.selectedIndex]
+  var phone=opt?opt.getAttribute('data-phone'):''
+  var phoneEl=document.getElementById('lcg-phone')
+  var whoEl=document.getElementById('lcg-who')
+  if(phone&&phoneEl&&!phoneEl.value)phoneEl.value=phone
+  if(dd.value&&whoEl)whoEl.style.display='none'
+  else if(whoEl)whoEl.style.display=''
 }
 async function convertCommToTask(commId){
   var cr=await sb.from('job_communications').select('*').eq('id',commId).single()
