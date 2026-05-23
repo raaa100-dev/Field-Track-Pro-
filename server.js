@@ -1042,7 +1042,7 @@ async function renderToday(){
 
   // Gather everything in parallel
   var results=await Promise.allSettled([
-    sb.from('job_communications').select('id,job_id,account_id,summary,occurred_at,needs_response,responded,with_who,contact_id').eq('needs_response',true).eq('responded',false).order('occurred_at',{ascending:true}),
+    sb.from('job_communications').select('id,job_id,account_id,summary,occurred_at,needs_response,responded,with_who,contact_id,logged_by').eq('needs_response',true).eq('responded',false).order('occurred_at',{ascending:true}),
     sb.from('job_tasks').select('id,job_id,job_name,title,assigned_to,assigned_name,due_date,priority,status,created_by').in('status',['open','in_progress']).order('due_date',{ascending:true}),
     sb.from('jobs').select('id,name,job_number,phase,project_manager,labor_budget,next_pm_visit,due_date,archived').eq('archived',false),
     sb.from('change_orders').select('id,job_id,co_number,title,value,status,created_at').eq('status','pending').order('created_at',{ascending:true}),
@@ -1063,7 +1063,7 @@ async function renderToday(){
   function jobIsMine(jid){var j=jobById[jid];return j&&myName&&j.project_manager===myName}
   if(mine){
     tasks=tasks.filter(function(t){return t.assigned_to===myId||t.created_by===myName})
-    comms=comms.filter(function(c){return jobIsMine(c.job_id)})
+    comms=comms.filter(function(c){return c.logged_by===myName||jobIsMine(c.job_id)})
     cos=cos.filter(function(c){return jobIsMine(c.job_id)})
   }
 
@@ -3387,7 +3387,7 @@ async function logCommGlobal(){
         created_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()
       })
       if(!tres.error){
-        await sb.from('job_communications').update({task_id:taskId,updated_at:new Date().toISOString()}).eq('id',commId)
+        await sb.from('job_communications').update({task_id:taskId,responded:true,updated_at:new Date().toISOString()}).eq('id',commId)
         await notify(assigneeId,'task','New task assigned',('Follow up: '+(summary?summary.slice(0,60):'communication'))+(jobName?' · '+jobName:''),{jobId:jobId,taskId:taskId})
         toast('Logged and assigned to '+(u?u.full_name:'someone'))
       }else{toast('Logged (task assignment failed: '+tres.error.message+')','warn')}
