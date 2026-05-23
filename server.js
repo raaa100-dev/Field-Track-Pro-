@@ -3875,7 +3875,7 @@ async function rejectInsp(id){const r=prompt('Reason:');if(!r)return;await sb.fr
 // opts.logoUrl to show an image, else the company name renders as text.
 function _docCompanyHeader(co){
   co=co||{}
-  var coName=co.company_name||co.name||'Your Company'
+  var coName=co.name||co.company_name||'Your Company'
   // If a full letterhead banner is set, use it as the entire header.
   if(co.letterhead_url){
     return '<div style="margin-bottom:22px;border-bottom:2px solid #111;padding-bottom:14px"><img src="'+co.letterhead_url+'" style="max-width:100%;max-height:120px;object-fit:contain;display:block"></div>'
@@ -7699,8 +7699,14 @@ async function pgSettings(){
   // Load company info if saved
   var co={}
   try{
-    var coRes=await sb.from('company_settings').select('*').limit(1).single()
-    if(coRes.data)co=coRes.data
+    // Prefer the singleton row that saveCompanySettings writes to.
+    var coRes=await sb.from('company_settings').select('*').eq('id','00000000-0000-0000-0000-000000000001').maybeSingle()
+    if(coRes&&coRes.data){co=coRes.data}
+    else{
+      // Fall back to the most recently updated row (legacy data), if any.
+      var legacy=await sb.from('company_settings').select('*').order('updated_at',{ascending:false}).limit(1)
+      if(legacy.data&&legacy.data[0])co=legacy.data[0]
+    }
   }catch(e){}
 
   var h=''
@@ -7709,7 +7715,7 @@ async function pgSettings(){
   h+='<div class="card" style="margin-bottom:14px">'
   h+='<div class="card-title" style="margin-bottom:12px">🏢 Company Information</div>'
   h+='<div class="two">'
-  h+='<div class="fg"><label class="fl">Company Name</label><input class="fi" id="co-name" value="'+(co.company_name||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Company Name</label><input class="fi" id="co-name" value="'+(co.name||'')+'"></div>'
   h+='<div class="fg"><label class="fl">License / Contractor #</label><input class="fi" id="co-license" value="'+(co.license_number||'')+'"></div>'
   h+='</div>'
   h+='<div class="two">'
@@ -7726,7 +7732,6 @@ async function pgSettings(){
   h+='<div class="fg"><label class="fl">Website</label><input class="fi" id="co-web" value="'+(co.website||'')+'"></div>'
   h+='</div>'
   h+='<div class="fg"><label class="fl">Default Burden Rate $/hr <span style="color:#414e63;font-weight:400;font-size:10px">(used for labor cost on jobs without an override)</span></label><input class="fi" type="number" id="co-burden" value="'+(co.default_burden_rate!=null?co.default_burden_rate:65)+'" placeholder="65"></div>'
-  h+='<div class="fg"><label class="fl">Contractor License #</label><input class="fi" id="co-license" value="'+(co.license_number||'')+'"></div>'
   // ── Branding: logo + letterhead ──
   h+='<div class="sec-hdr" style="margin-top:16px">Document Branding</div>'
   h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">These appear on generated Change Orders and Daily Reports. Logo shows in the document header; the letterhead banner (if set) replaces the header entirely with your own image.</div>'
@@ -8136,7 +8141,7 @@ function clearBrandImage(kind){
 }
 async function saveCompanySettings(){
   var data={
-    company_name:document.getElementById('co-name').value||null,
+    name:document.getElementById('co-name').value||null,
     license_number:document.getElementById('co-license').value||null,
     phone:document.getElementById('co-phone').value||null,
     email:document.getElementById('co-email').value||null,
@@ -8153,8 +8158,14 @@ async function saveCompanySettings(){
   // Burden rate (only if the field is present)
   var burdenEl=document.getElementById('co-burden')
   if(burdenEl){var br=parseFloat(burdenEl.value);data.default_burden_rate=isNaN(br)?65:br}
-  // Upsert - use id=1 as singleton
-  data.id='00000000-0000-0000-0000-000000000001'
+  // Find an existing row to update (any id), so we never create duplicates.
+  // Fall back to the singleton id if the table is empty.
+  var existingId='00000000-0000-0000-0000-000000000001'
+  try{
+    var ex=await sb.from('company_settings').select('id').order('updated_at',{ascending:false}).limit(1)
+    if(ex.data&&ex.data[0]&&ex.data[0].id)existingId=ex.data[0].id
+  }catch(e){}
+  data.id=existingId
   var res=await sb.from('company_settings').upsert(data,{onConflict:'id'})
   if(res.error){toast(res.error.message,'error');return}
   toast('Company info saved ✓')
