@@ -2039,8 +2039,11 @@ function renderInfoTab(el,j){
     <div class="three"><div class="fg"><label class="fl">City</label><input class="fi" id="ed-city" value="\${j.city||''}"></div><div class="fg"><label class="fl">State</label><input class="fi" id="ed-state" value="\${j.state||''}" style="max-width:80px"></div><div class="fg"><label class="fl">Zip</label><input class="fi" id="ed-zip" value="\${j.zip||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">GPS Lat</label><input class="fi" id="ed-lat" value="\${j.gps_lat||''}" style="font-size:11px"></div><div class="fg"><label class="fl">GPS Lng</label><input class="fi" id="ed-lng" value="\${j.gps_lng||''}" style="font-size:11px"></div></div>
     <div class="fg"><label class="fl">Check-in Radius</label><select class="fs" id="ed-rad"><option value="100">100ft</option><option value="250">250ft</option><option value="500">500ft</option><option value="750">750ft</option><option value="1000">1000ft</option></select></div>
+    <div class="fg"><label class="fl">Contractor / Account <span style="color:#414e63;font-weight:400;font-size:10px">(from CRM)</span></label><select class="fs" id="ed-account" onchange="edAccountChanged()"><option value="">— none —</option></select></div>
+    <div class="two"><div class="fg"><label class="fl">GC Project Manager</label><select class="fs" id="ed-gcpm"><option value="">— pick account —</option></select></div>
+    <div class="fg"><label class="fl">GC Superintendent</label><select class="fs" id="ed-gcsuper"><option value="">— pick account —</option></select></div></div>
     <div class="fg"><label class="fl">GC Company</label><input class="fi" id="ed-gc" value="\${j.gc_company||''}"></div>
-    <div class="two"><div class="fg"><label class="fl">GC Contact</label><input class="fi" id="ed-gcc" value="\${j.gc_contact||''}"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="ed-gcp" value="\${j.gc_phone||''}"></div></div>
+    <div class="two"><div class="fg"><label class="fl">GC Contact (free text)</label><input class="fi" id="ed-gcc" value="\${j.gc_contact||''}"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="ed-gcp" value="\${j.gc_phone||''}"></div></div>
     <div class="fg"><label class="fl">GC Email</label><input class="fi" id="ed-gce" value="\${j.gc_email||''}" type="email"></div>
     <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="ed-sup" value="\${j.super_name||''}"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="ed-supp" value="\${j.super_phone||''}"></div></div>
     <div class="fg"><label class="fl">Project Manager (Internal)</label><select class="fs" id="ed-pm"><option value="">— Unassigned —</option></select></div>
@@ -2134,11 +2137,45 @@ function renderInfoTab(el,j){
   },50)
   var ps=document.getElementById('ed-permit-status')
   if(ps)ps.value=j.permit_status||'not_required'
+  // Populate account + GC contact dropdowns for the Info tab
+  edLoadAccountDropdowns(j)
   // Register info-tab fields for unsaved-changes tracking
   setTimeout(function(){
-    var ids=['ed-name','ed-jobnum','ed-trade','ed-estimator','ed-addr','ed-city','ed-state','ed-zip','ed-lat','ed-lng','ed-rad','ed-gc','ed-gcc','ed-gcp','ed-gce','ed-sup','ed-supp','ed-pm','ed-pmschedule','ed-pmvisit','ed-due','ed-proj-start','ed-proj-close','ed-dc','ed-eos','ed-nvd','ed-dco','ed-dr','ed-dt','ed-di','ed-comp','ed-ocv','ed-cv','ed-lr','ed-lb','ed-mb','ed-exph','ed-manh','ed-burden','ed-permit-status','ed-permit-number']
+    var ids=['ed-name','ed-jobnum','ed-trade','ed-estimator','ed-addr','ed-city','ed-state','ed-zip','ed-lat','ed-lng','ed-rad','ed-account','ed-gcpm','ed-gcsuper','ed-gc','ed-gcc','ed-gcp','ed-gce','ed-sup','ed-supp','ed-pm','ed-pmschedule','ed-pmvisit','ed-due','ed-proj-start','ed-proj-close','ed-dc','ed-eos','ed-nvd','ed-dco','ed-dr','ed-dt','ed-di','ed-comp','ed-ocv','ed-cv','ed-lr','ed-lb','ed-mb','ed-exph','ed-manh','ed-burden','ed-permit-status','ed-permit-number']
     _dirtyAttach(ids,'info',saveInfoTab)
   },100)
+}
+// Load CRM accounts into the Info-tab account dropdown, preselect the job's
+// account, and load that account's contacts into the GC PM/Super dropdowns.
+async function edLoadAccountDropdowns(j){
+  var accSel=document.getElementById('ed-account')
+  if(!accSel)return
+  var r=await sb.from('crm_accounts').select('id,name').order('name')
+  var accounts=r.data||[]
+  window._edAccounts=accounts
+  accSel.innerHTML='<option value="">— none —</option>'+accounts.map(function(a){return '<option value="'+a.id+'"'+(j.account_id===a.id?' selected':'')+'>'+a.name+'</option>'}).join('')
+  if(j.account_id){
+    await edAccountChanged(j.gc_pm_contact_id,j.gc_super_contact_id)
+  }
+}
+async function edAccountChanged(preselectPm,preselectSuper){
+  var accSel=document.getElementById('ed-account')
+  var accId=accSel?accSel.value:''
+  var pmDd=document.getElementById('ed-gcpm')
+  var supDd=document.getElementById('ed-gcsuper')
+  var gcName=document.getElementById('ed-gc')
+  if(!accId){
+    if(pmDd)pmDd.innerHTML='<option value="">— pick account —</option>'
+    if(supDd)supDd.innerHTML='<option value="">— pick account —</option>'
+    return
+  }
+  var acc=(window._edAccounts||[]).find(function(a){return a.id===accId})
+  if(acc&&gcName&&!gcName.value)gcName.value=acc.name
+  var r=await sb.from('crm_contacts').select('id,name,title').eq('account_id',accId).order('name')
+  var contacts=r.data||[]
+  function opts(sel){return '<option value="">— none —</option>'+contacts.map(function(c){return '<option value="'+c.id+'"'+(sel===c.id?' selected':'')+'>'+c.name+(c.title?' ('+c.title+')':'')+'</option>'}).join('')}
+  if(pmDd)pmDd.innerHTML=opts(preselectPm)
+  if(supDd)supDd.innerHTML=opts(preselectSuper)
 }
 // ── BUDGET BUILDER (line items + actuals + labor cost) ─────────────────────
 var _budgetLines=[]
@@ -2325,7 +2362,10 @@ async function saveInfoTab(){
     ['ed-mb','material_budget','num'],
     ['ed-exph','expected_labor_hours','num'],
     ['ed-manh','manual_labor_hours','num'],
-    ['ed-burden','burden_rate','num']
+    ['ed-burden','burden_rate','num'],
+    ['ed-account','account_id','strOrNull'],
+    ['ed-gcpm','gc_pm_contact_id','strOrNull'],
+    ['ed-gcsuper','gc_super_contact_id','strOrNull']
   ]
   var u={}
   fieldMap.forEach(function(tup){
@@ -3630,8 +3670,41 @@ async function addLog(){const c=v('log-txt').trim();if(!c)return;await sb.from('
 // ══════════════════════════════════════════
 // NEW JOB PAGE
 // ══════════════════════════════════════════
+// When an account is picked on the New Job form, load that account's contacts
+// into the GC PM / Superintendent dropdowns and auto-fill the GC Company name.
+async function njAccountChanged(){
+  var sel=document.getElementById('nj-account')
+  var accId=sel?sel.value:''
+  var pmDd=document.getElementById('nj-gcpm')
+  var supDd=document.getElementById('nj-gcsuper')
+  var gcName=document.getElementById('nj-gc')
+  if(!accId){
+    if(pmDd)pmDd.innerHTML='<option value="">— pick account first —</option>'
+    if(supDd)supDd.innerHTML='<option value="">— pick account first —</option>'
+    return
+  }
+  // Auto-fill GC company name from the account
+  var acc=(window._njAccounts||[]).find(function(a){return a.id===accId})
+  if(acc&&gcName&&!gcName.value)gcName.value=acc.name
+  // Load the account's contacts
+  var r=await sb.from('crm_contacts').select('id,name,title').eq('account_id',accId).order('name')
+  var contacts=r.data||[]
+  var opts='<option value="">— none —</option>'+contacts.map(function(c){return '<option value="'+c.id+'">'+c.name+(c.title?' ('+c.title+')':'')+'</option>'}).join('')
+  if(pmDd)pmDd.innerHTML=opts
+  if(supDd)supDd.innerHTML=opts
+}
+// Open the New Job form pre-selecting a given account (called from account page).
+async function newJobForAccount(accId){
+  await P('newjob',null)
+  // Wait for the form to render, then select the account and trigger contact load
+  setTimeout(async function(){
+    var sel=document.getElementById('nj-account')
+    if(sel){sel.value=accId;await njAccountChanged()}
+  },200)
+}
 async function pgNewJob(){
-  const[{data:companies},{data:pmUsers}]=await Promise.all([sb.from('companies').select('id,name').eq('is_active',true).order('name'),sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')])
+  const[{data:companies},{data:pmUsers},{data:crmAccounts}]=await Promise.all([sb.from('companies').select('id,name').eq('is_active',true).order('name'),sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name'),sb.from('crm_accounts').select('id,name').order('name')])
+  window._njAccounts=crmAccounts||[]
   document.getElementById('page-area').innerHTML=\`<div class="two">
   <div>
     <div class="card">
@@ -3653,8 +3726,11 @@ async function pgNewJob(){
       <div class="three"><div class="fg"><label class="fl">Original Contract $</label><input class="fi" type="number" id="nj-cv"></div>
       <div class="fg"><label class="fl">Labor Budget (hrs)</label><input class="fi" type="number" id="nj-lb"></div>
       <div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="nj-lr"></div></div>
-      <div class="fg"><label class="fl">GC Company</label><input class="fi" id="nj-gc"></div>
-      <div class="two"><div class="fg"><label class="fl">GC Contact</label><input class="fi" id="nj-gcc"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="nj-gcp"></div></div>
+      <div class="fg"><label class="fl">Contractor / Account <span style="color:#414e63;font-weight:400;font-size:10px">(from CRM)</span></label><select class="fs" id="nj-account" onchange="njAccountChanged()"><option value="">— Select account —</option>\${(crmAccounts||[]).map(function(a){return '<option value="'+a.id+'">'+a.name+'</option>'}).join('')}</select></div>
+      <div class="two"><div class="fg"><label class="fl">GC Project Manager</label><select class="fs" id="nj-gcpm"><option value="">— pick account first —</option></select></div>
+      <div class="fg"><label class="fl">GC Superintendent</label><select class="fs" id="nj-gcsuper"><option value="">— pick account first —</option></select></div></div>
+      <div class="fg"><label class="fl">GC Company <span style="color:#414e63;font-weight:400;font-size:10px">(auto-fills from account, or type for non-CRM)</span></label><input class="fi" id="nj-gc"></div>
+      <div class="two"><div class="fg"><label class="fl">GC Contact (free text)</label><input class="fi" id="nj-gcc"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="nj-gcp"></div></div>
       <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="nj-sup"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="nj-supp"></div></div>
       <div class="fg"><label class="fl">Project Manager (Internal)</label><select class="fs" id="nj-pm"><option value="">— Assign PM —</option></select></div>
       <div class="fg"><label class="fl">Estimator</label><select class="fs" id="nj-estimator"><option value="">— Assign Estimator —</option></select></div>
@@ -3710,7 +3786,7 @@ async function submitNewJob(){
   const btn=document.getElementById('nj-btn');btn.disabled=true;btn.textContent='Creating…'
   let lat=parseFloat(v('nj-lat'))||null,lng=parseFloat(v('nj-lng'))||null
   if(!lat&&v('nj-addr')){try{const r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(v('nj-addr'))+'&format=json&limit=1',{headers:{'User-Agent':'FieldAxisHQ/1.0'}});const j=await r.json();if(j[0]){lat=parseFloat(j[0].lat);lng=parseFloat(j[0].lon)}}catch{}}
-  const job={id:uuid(),name,address:v('nj-addr'),city:v('nj-city')||null,state:v('nj-state')||null,zip:v('nj-zip')||null,gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,projected_start:v('nj-proj-start')||null,projected_closeout:v('nj-proj-close')||null,job_number:v('nj-jobid')||null,estimator:v('nj-estimator')||null,original_contract_value:fN('nj-cv'),contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),trade:v('nj-trade')||null,gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),project_manager:v('nj-pm')||null,pm_visit_schedule:v('nj-pmschedule')||'none',next_pm_visit:v('nj-pmvisit')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
+  const job={id:uuid(),name,address:v('nj-addr'),city:v('nj-city')||null,state:v('nj-state')||null,zip:v('nj-zip')||null,gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,projected_start:v('nj-proj-start')||null,projected_closeout:v('nj-proj-close')||null,job_number:v('nj-jobid')||null,estimator:v('nj-estimator')||null,original_contract_value:fN('nj-cv'),contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),trade:v('nj-trade')||null,account_id:v('nj-account')||null,gc_pm_contact_id:v('nj-gcpm')||null,gc_super_contact_id:v('nj-gcsuper')||null,gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),project_manager:v('nj-pm')||null,pm_visit_schedule:v('nj-pmschedule')||'none',next_pm_visit:v('nj-pmvisit')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
   const{data:created,error}=await sb.from('jobs').insert(job).select().single()
   if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Create Job';return}
   document.querySelectorAll('#nj-workers input[type=checkbox]:checked').forEach(async cb=>await sb.from('job_workers').insert({id:uuid(),job_id:created.id,worker_id:cb.value,is_active:true,added_by:ME?.full_name,added_at:new Date().toISOString()}))
@@ -11512,7 +11588,7 @@ async function crmOpenAccount(id){
     sb.from('crm_agreements').select('*').eq('account_id',id).order('created_at',{ascending:false}),
     sb.from('crm_activities').select('*').eq('account_id',id).order('activity_date',{ascending:false}).limit(20),
     sb.from('crm_inspections').select('*').eq('account_id',id).order('next_due',{ascending:true}),
-    sb.from('jobs').select('id,name,phase,created_at').eq('gc_company',a.name).order('created_at',{ascending:false}).limit(10),
+    sb.from('jobs').select('id,name,job_number,phase,contract_value,created_at,account_id,gc_company,gc_pm_contact_id,gc_super_contact_id').or('account_id.eq.'+id+',and(account_id.is.null,gc_company.eq.'+JSON.stringify(a.name).slice(1,-1)+')').order('created_at',{ascending:false}).limit(50),
     sb.from('fax_bids').select('id,number,project_name,total,status:fax_bid_recipients(status)').eq('project_name',a.name).order('created_at',{ascending:false}).limit(10)
   ])
   window._crmOpenAccount=a
@@ -11595,15 +11671,28 @@ async function crmOpenAccount(id){
   h+='</div>'
   // Linked Jobs
   var jobs=jobRes.data||[]
+  h+='<div class="card" style="margin-bottom:13px">'
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+  h+='<div class="card-title" style="margin-bottom:0">Jobs ('+jobs.length+')</div>'
+  h+='<button class="btn btn-sm btn-p" data-acc="'+id+'" onclick="newJobForAccount(this.dataset.acc)" style="padding:4px 10px;font-size:11px">+ New Job</button>'
+  h+='</div>'
   if(jobs.length){
-    h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Linked Jobs ('+jobs.length+')</div>'
-    jobs.slice(0,5).forEach(function(j){
-      h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" data-jid="'+j.id+'" onclick="openJobFromJid(this)">'
-      h+='<div style="flex:1;font-size:12px;font-weight:500">'+j.name+'</div>'
+    var activeJobs=jobs.filter(function(j){return j.phase!=='complete'})
+    var doneJobs=jobs.filter(function(j){return j.phase==='complete'})
+    var totalVal=jobs.reduce(function(s,j){return s+(Number(j.contract_value)||0)},0)
+    h+='<div style="font-size:11px;color:#8a96ab;margin-bottom:8px">'+activeJobs.length+' active · '+doneJobs.length+' complete'+(totalVal>0?' · '+fm(totalVal)+' total contract value':'')+'</div>'
+    jobs.slice(0,20).forEach(function(j){
+      var notLinked=!j.account_id
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" data-jid="'+j.id+'" onclick="openJobFromJid(this)">'
+      h+='<div style="flex:1"><div style="font-size:12px;font-weight:500">'+j.name+(notLinked?' <span style="font-size:9px;color:#d97706" title="Matched by name, not yet linked">⚠ unlinked</span>':'')+'</div>'
+      h+='<div style="font-size:10px;color:#414e63">'+(j.job_number?j.job_number+' · ':'')+(j.contract_value?fm(j.contract_value):'')+'</div></div>'
       h+=stageBadge(j.phase)+'</div>'
     })
-    h+='</div>'
+    if(jobs.length>20)h+='<div style="font-size:11px;color:#414e63;padding-top:6px">+ '+(jobs.length-20)+' more</div>'
+  }else{
+    h+='<div style="font-size:12px;color:#414e63;padding:4px 0">No jobs yet for this contractor. Click <strong>+ New Job</strong> to create one.</div>'
   }
+  h+='</div>'
   // Follow-up reminder
   if(a.next_followup){
     var fo=new Date(a.next_followup)
