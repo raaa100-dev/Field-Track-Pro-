@@ -480,6 +480,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
   <div style="flex:1;padding:4px 0;overflow-y:auto">
     <div class="nav-section">Overview</div>
     <div class="nav-item active" onclick="P('dashboard',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="1.5" width="5" height="5" rx="1"/><rect x="9.5" y="1.5" width="5" height="5" rx="1"/><rect x="1.5" y="9.5" width="5" height="5" rx="1"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/></svg>Dashboard</div>
+    <div class="nav-item" onclick="P('today',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.5 1.5"/></svg>Today <span id="today-nav-badge" style="display:none;background:#dc2626;color:#fff;font-size:9px;border-radius:8px;padding:1px 6px;margin-left:auto"></span></div>
     <div class="nav-item" onclick="P('jobs',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>All Jobs</div>
     <div class="nav-item" onclick="P('newjob',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/></svg>New Job</div>
     <div class="nav-item" onclick="P('schedule',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>Schedule</div>
@@ -591,6 +592,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   checkSafetyBadge()
   // Delay badge load slightly to ensure ME is set
   setTimeout(function(){if(typeof ME!=='undefined'&&ME)loadMyTasksBadge()},500)
+  setTimeout(function(){if(typeof updateTodayBadge==='function')updateTodayBadge()},800)
   // Mobile: show hamburger on small screens
   initMobileLayout()
 })
@@ -753,7 +755,7 @@ async function deleteJobConfirm(){
 function doSignOut(){sb.auth.signOut().then(function(){location.href='index.html?signout=1'})}
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const PAGE_TITLES={tasks:'Tasks',settings:'Settings',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',forecast:'Labor Forecast',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail',email_review:'Email Review'}
+const PAGE_TITLES={tasks:'Tasks',today:'Today',settings:'Settings',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',forecast:'Labor Forecast',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail',email_review:'Email Review'}
 function P(page,navEl){
   // Guard against losing unsaved changes
   if(_isDirty()){
@@ -772,7 +774,7 @@ function _proceedToPage(page,navEl){
   document.getElementById('topbar-actions').innerHTML=''
   const a=document.getElementById('page-area')
   a.innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
-  const map={dashboard:pgDash,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,forecast:pgForecast,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications,settings:pgSettings,email_review:pgEmailReview}
+  const map={dashboard:pgDash,today:pgToday,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,forecast:pgForecast,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications,settings:pgSettings,email_review:pgEmailReview}
   if(map[page])map[page]()
   else a.innerHTML='<div class="empty">Coming soon</div>'
 }
@@ -1018,6 +1020,175 @@ function ld(){return'<div class="loading"><div class="spin"></div> Loading…</d
 // ══════════════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════════════
+// ── TODAY / ATTENTION FEED ─────────────────────────────────────────────────
+var _todayScope='mine'  // 'mine' | 'all'
+async function pgToday(){
+  document.getElementById('topbar-actions').innerHTML=''
+  var el=document.getElementById('page-area')
+  el.innerHTML='<div style="padding:20px">'+ld()+'</div>'
+  // Scope toggle defaults: admins/PMs default to 'all', others to 'mine'
+  if(!window._todayScopeSet){_todayScope=(ME&&ME.isPm)?'all':'mine';window._todayScopeSet=true}
+  await renderToday()
+}
+async function setTodayScope(s){_todayScope=s;await renderToday()}
+async function renderToday(){
+  var el=document.getElementById('page-area')
+  if(!el)return
+  el.innerHTML='<div style="padding:20px">'+ld()+'</div>'
+  var myId=ME&&ME.id
+  var mine=_todayScope==='mine'
+
+  // Gather everything in parallel
+  var results=await Promise.allSettled([
+    sb.from('job_communications').select('id,job_id,account_id,summary,occurred_at,needs_response,responded,with_who,contact_id').eq('needs_response',true).eq('responded',false).order('occurred_at',{ascending:true}),
+    sb.from('job_tasks').select('id,job_id,job_name,title,assigned_to,assigned_name,due_date,priority,status,created_by').in('status',['open','in_progress']).order('due_date',{ascending:true}),
+    sb.from('jobs').select('id,name,job_number,phase,project_manager,labor_budget,next_pm_visit,due_date,archived').eq('archived',false),
+    sb.from('change_orders').select('id,job_id,co_number,title,value,status,created_at').eq('status','pending').order('created_at',{ascending:true}),
+    sb.from('daily_reports').select('job_id,report_date').order('report_date',{ascending:false})
+  ])
+  var comms=results[0].status==='fulfilled'?(results[0].value.data||[]):[]
+  var tasks=results[1].status==='fulfilled'?(results[1].value.data||[]):[]
+  var jobs=results[2].status==='fulfilled'?(results[2].value.data||[]):[]
+  var cos=results[3].status==='fulfilled'?(results[3].value.data||[]):[]
+  var reports=results[4].status==='fulfilled'?(results[4].value.data||[]):[]
+
+  // Build a job lookup + latest report date per job
+  var jobById={};jobs.forEach(function(j){jobById[j.id]=j})
+  var lastReport={};reports.forEach(function(r){if(!lastReport[r.job_id])lastReport[r.job_id]=r.report_date})
+
+  // Filter to "mine" if scoped: my assigned tasks, jobs I'm PM on, etc.
+  var myName=ME&&ME.full_name
+  function jobIsMine(jid){var j=jobById[jid];return j&&myName&&j.project_manager===myName}
+  if(mine){
+    tasks=tasks.filter(function(t){return t.assigned_to===myId||t.created_by===myName})
+    comms=comms.filter(function(c){return jobIsMine(c.job_id)})
+    cos=cos.filter(function(c){return jobIsMine(c.job_id)})
+  }
+
+  var today=new Date();today.setHours(0,0,0,0)
+  var now=new Date()
+
+  // Categorize into buckets
+  var overdue=[],soon=[],watch=[]
+
+  // Tasks
+  tasks.forEach(function(t){
+    var item={kind:'task',id:t.id,job_id:t.job_id,title:t.title,sub:(t.job_name||'')+(t.assigned_name?' · '+t.assigned_name:''),due:t.due_date,priority:t.priority}
+    if(t.due_date){
+      var d=new Date(t.due_date);d.setHours(0,0,0,0)
+      if(d<today){item.tag='Overdue '+_daysAgo(t.due_date);overdue.push(item)}
+      else if(d.getTime()===today.getTime()){item.tag='Due today';soon.push(item)}
+      else if((d-today)/(1000*3600*24)<=3){item.tag='Due '+fd(t.due_date);soon.push(item)}
+      else{item.tag='Due '+fd(t.due_date);/* not urgent enough to show */}
+    }else{
+      item.tag=t.priority==='high'?'High priority':'No due date';if(t.priority==='high')soon.push(item)
+    }
+  })
+
+  // Comms awaiting response
+  comms.forEach(function(c){
+    var j=jobById[c.job_id]
+    var who=c.with_who||'someone'
+    var ageDays=(now-new Date(c.occurred_at))/(1000*3600*24)
+    var item={kind:'comm',id:c.id,job_id:c.job_id,title:'Response needed: '+(c.summary?c.summary.slice(0,70):'communication with '+who),sub:(j?j.name:'')+' · '+fd(c.occurred_at),tag:ageDays>=2?'Waiting '+Math.floor(ageDays)+'d':'Awaiting response'}
+    if(ageDays>=2)overdue.push(item);else soon.push(item)
+  })
+
+  // COs pending
+  cos.forEach(function(c){
+    var j=jobById[c.job_id]
+    var ageDays=(now-new Date(c.created_at))/(1000*3600*24)
+    var item={kind:'co',id:c.job_id,job_id:c.job_id,title:'CO pending approval: '+(c.co_number||'')+' '+(c.title||''),sub:(j?j.name:'')+' · '+fm(c.value||0),tag:Math.floor(ageDays)+'d pending'}
+    if(ageDays>=3)overdue.push(item);else soon.push(item)
+  })
+
+  // Jobs going dark + labor over budget + upcoming PM visits (job-level scan)
+  var scanJobs=mine?jobs.filter(function(j){return jobIsMine(j.id)}):jobs
+  scanJobs.forEach(function(j){
+    if(j.phase==='complete'||j.phase==='not_started')return
+    // Going dark: active job, no daily report in 5+ days
+    var lr=lastReport[j.id]
+    if(lr){
+      var daysSince=(now-new Date(lr))/(1000*3600*24)
+      if(daysSince>=5)overdue.push({kind:'job',id:j.id,job_id:j.id,title:'No daily report in '+Math.floor(daysSince)+' days',sub:j.name+' · '+(STAGE_LABELS[j.phase]||j.phase),tag:'Going dark'})
+    }
+    // Upcoming PM visit
+    if(j.next_pm_visit){
+      var pv=new Date(j.next_pm_visit);pv.setHours(0,0,0,0)
+      var dd=(pv-today)/(1000*3600*24)
+      if(dd<0)overdue.push({kind:'job',id:j.id,job_id:j.id,title:'PM visit overdue',sub:j.name+' · was '+fd(j.next_pm_visit),tag:'Overdue'})
+      else if(dd<=3)soon.push({kind:'job',id:j.id,job_id:j.id,title:'PM visit '+(dd===0?'today':'due '+fd(j.next_pm_visit)),sub:j.name,tag:dd===0?'Today':'Soon'})
+    }
+  })
+
+  // Render
+  var h='<div style="padding:18px 20px;max-width:880px;margin:0 auto">'
+  // Header + toggle
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:10px">'
+  h+='<div><div style="font-size:22px;font-weight:700">Today</div><div style="font-size:12px;color:#8a96ab">'+now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+'</div></div>'
+  h+='<div style="display:flex;background:#0c1220;border-radius:8px;padding:3px">'
+  h+='<button onclick="setTodayScope(\\'mine\\')" style="border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;'+(mine?'background:#2563eb;color:#fff':'background:transparent;color:#8a96ab')+'">Mine</button>'
+  h+='<button onclick="setTodayScope(\\'all\\')" style="border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;'+(!mine?'background:#2563eb;color:#fff':'background:transparent;color:#8a96ab')+'">Everything</button>'
+  h+='</div></div>'
+
+  var totalItems=overdue.length+soon.length+watch.length
+  if(totalItems===0){
+    h+='<div style="text-align:center;padding:60px 20px;color:#414e63"><div style="font-size:40px;margin-bottom:10px">✓</div><div style="font-size:16px;font-weight:600;color:#16a34a">All clear</div><div style="font-size:13px;margin-top:4px">Nothing needs your attention right now.</div></div>'
+  }else{
+    h+=_todaySection('🔴 Overdue',overdue,'#dc2626')
+    h+=_todaySection('🟡 Today &amp; Soon',soon,'#d97706')
+    h+=_todaySection('🔵 Watch',watch,'#60a5fa')
+  }
+  h+='</div>'
+  el.innerHTML=h
+  // Update nav badge with overdue count
+  var badge=document.getElementById('today-nav-badge')
+  if(badge){if(overdue.length){badge.style.display='inline-block';badge.textContent=overdue.length}else badge.style.display='none'}
+}
+function _todaySection(title,items,color){
+  if(!items.length)return ''
+  var h='<div style="margin-top:18px"><div style="font-size:12px;font-weight:700;color:'+color+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">'+title+' ('+items.length+')</div>'
+  items.forEach(function(it){
+    var icon=it.kind==='task'?'✓':it.kind==='comm'?'📞':it.kind==='co'?'📝':'🏗'
+    h+='<div onclick="todayOpen(\\''+it.kind+'\\',\\''+(it.job_id||'')+'\\',\\''+(it.id||'')+'\\')" style="display:flex;align-items:center;gap:11px;padding:11px 13px;background:#0a1019;border:1px solid rgba(255,255,255,.05);border-radius:9px;margin-bottom:7px;cursor:pointer">'
+    h+='<span style="font-size:15px;flex-shrink:0">'+icon+'</span>'
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+_escapeHTML(it.title)+'</div>'
+    if(it.sub)h+='<div style="font-size:11px;color:#414e63;margin-top:2px">'+_escapeHTML(it.sub)+'</div>'
+    h+='</div>'
+    if(it.tag)h+='<span style="font-size:10px;color:'+color+';font-weight:600;white-space:nowrap;flex-shrink:0">'+it.tag+'</span>'
+    h+='</div>'
+  })
+  h+='</div>'
+  return h
+}
+function todayOpen(kind,jobId,id){
+  if(kind==='task'){P('tasks',null);return}
+  if(jobId){openJob(jobId);return}
+  P('dashboard',null)
+}
+function _daysAgo(dateStr){var d=Math.floor((new Date()-new Date(dateStr))/(1000*3600*24));return d<=0?'today':d+'d ago'}
+// Lightweight overdue count for the nav badge (doesn't render the full page).
+async function updateTodayBadge(){
+  try{
+    var myId=ME&&ME.id,myName=ME&&ME.full_name
+    var today=new Date();today.setHours(0,0,0,0)
+    var now=new Date()
+    var res=await Promise.allSettled([
+      sb.from('job_tasks').select('id,due_date,assigned_to,created_by').in('status',['open','in_progress']),
+      sb.from('job_communications').select('id,occurred_at').eq('needs_response',true).eq('responded',false)
+    ])
+    var tasks=res[0].status==='fulfilled'?(res[0].value.data||[]):[]
+    var comms=res[1].status==='fulfilled'?(res[1].value.data||[]):[]
+    var mine=(ME&&ME.isPm)?false:true  // non-PMs default to mine-only
+    if(mine)tasks=tasks.filter(function(t){return t.assigned_to===myId||t.created_by===myName})
+    var overdue=0
+    tasks.forEach(function(t){if(t.due_date){var d=new Date(t.due_date);d.setHours(0,0,0,0);if(d<today)overdue++}})
+    comms.forEach(function(c){if((now-new Date(c.occurred_at))/(1000*3600*24)>=2)overdue++})
+    var badge=document.getElementById('today-nav-badge')
+    if(badge){if(overdue>0){badge.style.display='inline-block';badge.textContent=overdue}else badge.style.display='none'}
+  }catch(e){}
+}
+
 async function pgDash(){
   // Refresh check-in status on every dashboard load
   if(ME)adminCheckInInit()
