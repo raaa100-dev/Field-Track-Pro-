@@ -3543,6 +3543,12 @@ async function savePermitDetails(){
       toast('Save failed: '+res.error.message,'error');return
     }
   }
+  // Keep the in-memory currentJob in sync so the Financials tab reflects changes
+  if(typeof currentJob==='object'&&currentJob){
+    currentJob.permit_number=num
+    currentJob.permit_expires_on=exp
+    if(!feeColMissing)currentJob.permit_fee=fee
+  }
   if(feeColMissing){
     toast('Number & expiration saved, but the permit_fee column is missing — run migration-018 in Supabase to enable fee tracking.','warn')
     loadJT('jt-permit');return
@@ -3574,6 +3580,7 @@ async function clearPermitFee(){
   if(!confirm('Clear the permit fee and remove its budget line?'))return
   await sb.from('jobs').update({permit_fee:null,updated_at:new Date().toISOString()}).eq('id',currentJobId)
   try{await sb.from('job_budget_lines').delete().eq('job_id',currentJobId).eq('description','Permit Fee Paid')}catch(e){}
+  if(typeof currentJob==='object'&&currentJob)currentJob.permit_fee=null
   toast('Permit fee cleared')
   loadJT('jt-permit')
 }
@@ -4797,6 +4804,8 @@ async function schedulePmReviewTask(job,reason){
 async function renderJobFinTab(el){
   // Daily reports are the single source of truth for hours
   const{data:dr}=await sb.from('daily_reports').select('*').eq('job_id',currentJobId)
+  // Refresh permit_fee from DB so it reflects any clear/edit in the pipeline
+  try{var pfr=await sb.from('jobs').select('permit_fee').eq('id',currentJobId).single();if(pfr&&pfr.data&&currentJob)currentJob.permit_fee=pfr.data.permit_fee}catch(e){}
   const hrs=(dr||[]).reduce((s,r)=>s+(r.total_man_hours||r.hours_worked||r.hours||0),0)
   if(currentJob)currentJob._cachedHrs=hrs
   var hrsEl=document.getElementById('ed-hrs-display')
