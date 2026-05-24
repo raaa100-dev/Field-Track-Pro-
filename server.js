@@ -2035,6 +2035,7 @@ function renderJobDetail(){
     <div class="tab" onclick="JT(this,'jt-parts')">Parts</div>
     <div class="tab" onclick="JT(this,'jt-daily')">Daily Reports</div>
     <div class="tab" onclick="JT(this,'jt-tasks')">Tasks</div>
+    <div class="tab" onclick="JT(this,'jt-permit')">Design &amp; Permitting</div>
     <div class="tab" onclick="JT(this,'jt-walks')">Job Walks</div>
     <div class="tab" onclick="JT(this,'jt-photos')">Photos</div>
     <div class="tab" onclick="JT(this,'jt-checklist')">Checklist</div>
@@ -2090,6 +2091,7 @@ async function loadJT(id){
   else if(id==='jt-parts') await renderPartsTab(el)
   else if(id==='jt-daily') await renderJobDailyTab(el)
   else if(id==='jt-tasks') await renderJobTasksTab(el)
+  else if(id==='jt-permit') await renderPermitTab(el)
   else if(id==='jt-walks') await renderJobWalksTab(el)
   else if(id==='jt-photos') await renderPhotosTab(el)
   else if(id==='jt-checklist') await renderChecklistTab(el)
@@ -3106,6 +3108,199 @@ function buildPartsTable(parts){
 
 // DAILY REPORTS TAB (per job)
 // ── JOB TASKS TAB ──────────────────────────────────────────────────────────
+// ── DESIGN & PERMITTING PIPELINE ───────────────────────────────────────────
+var PERMIT_PATHS={none:'Not Required',otc:'OTC — Permit, No Design',full:'Full Design + Permit'}
+// Step definitions per path (key, label)
+var PERMIT_STEPS_FULL=[
+  ['create_design','Create Design'],
+  ['architect_review','Architect Review'],
+  ['customer_review','Customer Review'],
+  ['design_approved','Design Approved'],
+  ['submit_city','Submit to City'],
+  ['city_approved','City Approved'],
+  ['permit_issued','Permit Issued']
+]
+var PERMIT_STEPS_OTC=[
+  ['submit_city','Submit to City'],
+  ['permit_issued','Permit Issued']
+]
+function permitStepsForPath(path){return path==='full'?PERMIT_STEPS_FULL:path==='otc'?PERMIT_STEPS_OTC:[]}
+var PERMIT_STEP_STATUS={not_started:'Not Started',in_progress:'In Progress',done:'Done',blocked:'Blocked',na:'N/A'}
+var PERMIT_STEP_COLORS={not_started:'#414e63',in_progress:'#d97706',done:'#16a34a',blocked:'#dc2626',na:'#8a96ab'}
+
+async function renderPermitTab(el){
+  el.innerHTML='<div style="padding:14px">'+ld()+'</div>'
+  var jr=await sb.from('jobs').select('id,name,permit_path,permit_status,permit_number,permit_expires_on,date_permit,permit_triaged_by,permit_triaged_at').eq('id',currentJobId).single()
+  var job=jr.data||{}
+  window._permitJob=job
+  var path=job.permit_path||null
+  var sr=await sb.from('job_permit_steps').select('*').eq('job_id',currentJobId).order('sort_order')
+  var steps=sr.data||[]
+  window._permitSteps=steps
+
+  var h='<div style="max-width:760px">'
+
+  // ── Triage ──
+  h+='<div class="card" style="margin-bottom:14px"><div class="card-title">Triage — Does this job need design or a permit?</div>'
+  h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:10px">A designer or PM sets the path. This controls which steps appear below.</div>'
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap">'
+  Object.keys(PERMIT_PATHS).forEach(function(k){
+    var active=path===k
+    h+='<button class="btn btn-sm'+(active?' btn-p':'')+'" onclick="setPermitPath(\\''+k+'\\')" style="'+(active?'':'opacity:.7')+'">'+PERMIT_PATHS[k]+'</button>'
+  })
+  h+='</div>'
+  if(job.permit_triaged_by)h+='<div style="font-size:10px;color:#414e63;margin-top:8px">Path set by '+_escapeHTML(job.permit_triaged_by)+(job.permit_triaged_at?' · '+fd(job.permit_triaged_at):'')+'</div>'
+  h+='</div>'
+
+  if(!path){
+    h+=empty('🧭','Set the triage path above to begin tracking design &amp; permitting')
+    h+='</div>';el.innerHTML=h;return
+  }
+  if(path==='none'){
+    h+='<div class="card"><div style="text-align:center;padding:30px 20px"><div style="font-size:32px;margin-bottom:8px">✓</div><div style="font-weight:600;color:#16a34a">No Design or Permit Required</div><div style="font-size:12px;color:#8a96ab;margin-top:4px">This job is cleared to proceed without design or permitting.</div></div></div>'
+    h+='</div>';el.innerHTML=h;return
+  }
+
+  // ── Progress roll-up ──
+  var defs=permitStepsForPath(path)
+  var doneCount=steps.filter(function(s){return s.status==='done'}).length
+  var total=defs.length
+  var pct=total?Math.round(doneCount/total*100):0
+  h+='<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-weight:600;font-size:13px">Pipeline Progress</span><span style="font-size:12px;color:'+(pct===100?'#16a34a':'#d97706')+';font-weight:700">'+doneCount+' / '+total+' steps</span></div>'
+  h+='<div style="height:8px;background:#0c1220;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+(pct===100?'#16a34a':'#2563eb')+';transition:width .3s"></div></div></div>'
+
+  // ── Steps ──
+  h+='<div class="card" style="margin-bottom:14px"><div class="card-title">Pipeline Steps</div>'
+  defs.forEach(function(def,i){
+    var key=def[0],label=def[1]
+    var step=steps.find(function(s){return s.step_key===key})||{step_key:key,status:'not_started'}
+    var color=PERMIT_STEP_COLORS[step.status]||'#414e63'
+    var icon=step.status==='done'?'✅':step.status==='in_progress'?'🔄':step.status==='blocked'?'⛔':step.status==='na'?'➖':'⬜'
+    h+='<div style="display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.05)">'
+    h+='<span style="font-size:16px;flex-shrink:0;margin-top:1px">'+icon+'</span>'
+    h+='<div style="flex:1;min-width:0">'
+    h+='<div style="font-size:13px;font-weight:600">'+label+' <span style="font-size:10px;color:'+color+';font-weight:600">· '+(PERMIT_STEP_STATUS[step.status]||step.status)+'</span></div>'
+    var meta=[]
+    if(step.assigned_name)meta.push('👤 '+step.assigned_name)
+    if(step.external_party)meta.push('🏛 '+step.external_party)
+    if(step.target_date)meta.push('🎯 '+fd(step.target_date))
+    if(step.completed_date)meta.push('✓ '+fd(step.completed_date))
+    if(meta.length)h+='<div style="font-size:10px;color:#414e63;margin-top:2px">'+meta.join(' · ')+'</div>'
+    if(step.notes)h+='<div style="font-size:11px;color:#8a96ab;margin-top:3px">'+_escapeHTML(step.notes)+'</div>'
+    if(step.doc_url)h+='<a href="'+step.doc_url+'" target="_blank" style="font-size:11px;color:#60a5fa;margin-top:3px;display:inline-block">📎 '+_escapeHTML(step.doc_name||'View document')+'</a>'
+    h+='</div>'
+    h+='<button class="btn btn-sm" onclick="editPermitStep(\\''+key+'\\',\\''+_escAttr(label)+'\\')" style="flex-shrink:0">Edit</button>'
+    h+='</div>'
+  })
+  h+='</div>'
+
+  // ── Permit details (number + expiration) ──
+  h+='<div class="card"><div class="card-title">Permit Details</div>'
+  h+='<div class="two">'
+  h+='<div class="fg"><label class="fl">Permit Number</label><input class="fi" id="pmt-number" value="'+_escAttr(job.permit_number||'')+'" placeholder="e.g. E-2024-001"></div>'
+  h+='<div class="fg"><label class="fl">Expiration Date</label><input class="fi" type="date" id="pmt-expires" value="'+(job.permit_expires_on||'')+'"></div>'
+  h+='</div>'
+  // Expiration alert
+  if(job.permit_expires_on){
+    var exp=new Date(job.permit_expires_on);exp.setHours(0,0,0,0)
+    var today=new Date();today.setHours(0,0,0,0)
+    var days=Math.round((exp-today)/(1000*3600*24))
+    if(days<0)h+='<div style="background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.25);border-radius:7px;padding:8px 12px;font-size:12px;color:#dc2626;margin-bottom:8px">⚠ Permit EXPIRED '+Math.abs(days)+' days ago</div>'
+    else if(days<=30)h+='<div style="background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.25);border-radius:7px;padding:8px 12px;font-size:12px;color:#d97706;margin-bottom:8px">⏰ Permit expires in '+days+' days</div>'
+  }
+  h+='<button class="btn btn-p btn-sm" onclick="savePermitDetails()">💾 Save Permit Details</button>'
+  h+='</div>'
+
+  h+='</div>'
+  el.innerHTML=h
+}
+
+async function setPermitPath(path){
+  var job=window._permitJob||{}
+  await sb.from('jobs').update({permit_path:path,permit_triaged_by:(ME&&ME.full_name)||'',permit_triaged_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',currentJobId)
+  // Seed steps for the chosen path if not already present
+  if(path==='full'||path==='otc'){
+    var existing=await sb.from('job_permit_steps').select('step_key').eq('job_id',currentJobId)
+    var have=(existing.data||[]).map(function(s){return s.step_key})
+    var defs=permitStepsForPath(path)
+    for(var i=0;i<defs.length;i++){
+      if(have.indexOf(defs[i][0])>=0)continue
+      await sb.from('job_permit_steps').insert({id:uuid(),job_id:currentJobId,step_key:defs[i][0],step_label:defs[i][1],sort_order:i,status:'not_started',created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    }
+  }
+  toast('Path set: '+PERMIT_PATHS[path])
+  loadJT('jt-permit')
+}
+
+async function editPermitStep(stepKey,label){
+  var steps=window._permitSteps||[]
+  var step=steps.find(function(s){return s.step_key===stepKey})||{step_key:stepKey}
+  // Load users for assignment
+  var ur=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
+  var users=ur.data||[]
+  var h='<div class="fg"><label class="fl">Status</label><select class="fs" id="ps-status">'
+  Object.keys(PERMIT_STEP_STATUS).forEach(function(k){h+='<option value="'+k+'"'+(step.status===k?' selected':'')+'>'+PERMIT_STEP_STATUS[k]+'</option>'})
+  h+='</select></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Target Date</label><input class="fi" type="date" id="ps-target" value="'+(step.target_date||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Completed Date</label><input class="fi" type="date" id="ps-completed" value="'+(step.completed_date||'')+'"></div></div>'
+  h+='<div class="fg"><label class="fl">Assigned To (internal)</label><select class="fs" id="ps-user"><option value="">— None —</option>'
+  users.forEach(function(u){h+='<option value="'+u.id+'"'+(step.assigned_to===u.id?' selected':'')+'>'+_escapeHTML(u.full_name)+'</option>'})
+  h+='</select></div>'
+  h+='<div class="fg"><label class="fl">External Party <span style="color:#414e63;font-weight:400;font-size:10px">(architect, city, etc.)</span></label><input class="fi" id="ps-external" value="'+_escAttr(step.external_party||'')+'" placeholder="e.g. City of Phoenix"></div>'
+  h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ps-notes" style="min-height:55px">'+_escapeHTML(step.notes||'')+'</textarea></div>'
+  // Document
+  h+='<div class="fg"><label class="fl">Document <span style="color:#414e63;font-weight:400;font-size:10px">(drawing, permit PDF, etc.)</span></label>'
+  h+='<div style="display:flex;align-items:center;gap:10px">'
+  h+='<div id="ps-doc-status" style="font-size:11px;color:#8a96ab;flex:1">'+(step.doc_url?'📎 '+_escapeHTML(step.doc_name||'attached'):'No document')+'</div>'
+  h+='<label class="btn btn-sm" style="cursor:pointer">⬆ Upload<input type="file" style="display:none" onchange="uploadPermitDoc(this.files[0])"></label>'
+  h+='</div><input type="hidden" id="ps-doc-url" value="'+_escAttr(step.doc_url||'')+'"><input type="hidden" id="ps-doc-name" value="'+_escAttr(step.doc_name||'')+'"></div>'
+  modal('Step: '+label,h,async function(){
+    var status=document.getElementById('ps-status').value
+    var assignedTo=document.getElementById('ps-user').value||null
+    var assignedName='';if(assignedTo){var u=users.find(function(x){return x.id===assignedTo});assignedName=u?u.full_name:''}
+    var completed=document.getElementById('ps-completed').value||null
+    // Auto-set completed date when marking done if not provided
+    if(status==='done'&&!completed)completed=new Date().toISOString().split('T')[0]
+    var data={
+      job_id:currentJobId,step_key:stepKey,step_label:label,status:status,
+      target_date:document.getElementById('ps-target').value||null,
+      completed_date:completed,
+      assigned_to:assignedTo,assigned_name:assignedName||null,
+      external_party:document.getElementById('ps-external').value||null,
+      notes:document.getElementById('ps-notes').value||null,
+      doc_url:document.getElementById('ps-doc-url').value||null,
+      doc_name:document.getElementById('ps-doc-name').value||null,
+      updated_at:new Date().toISOString()
+    }
+    var res
+    if(step.id){res=await sb.from('job_permit_steps').update(data).eq('id',step.id)}
+    else{data.id=uuid();data.created_at=new Date().toISOString();res=await sb.from('job_permit_steps').insert(data)}
+    if(res.error){toast(res.error.message,'error');return}
+    // Notify assignee if newly assigned
+    if(assignedTo&&assignedTo!==step.assigned_to)await notify(assignedTo,'task','Permit step assigned',label+(window._permitJob?' · '+window._permitJob.name:''),{jobId:currentJobId})
+    closeModal();toast('Step updated');loadJT('jt-permit')
+  },'Save Step')
+}
+async function uploadPermitDoc(file){
+  if(!file)return
+  toast('Uploading…')
+  try{
+    var res=await uploadToCloudinary(file,'fieldaxishq/permits')
+    document.getElementById('ps-doc-url').value=res.url
+    document.getElementById('ps-doc-name').value=file.name
+    var st=document.getElementById('ps-doc-status');if(st)st.innerHTML='📎 '+_escapeHTML(file.name)
+    toast('Uploaded — Save Step to keep')
+  }catch(e){toast('Upload failed: '+(e.message||e),'error')}
+}
+async function savePermitDetails(){
+  var num=document.getElementById('pmt-number').value||null
+  var exp=document.getElementById('pmt-expires').value||null
+  var res=await sb.from('jobs').update({permit_number:num,permit_expires_on:exp,updated_at:new Date().toISOString()}).eq('id',currentJobId)
+  if(res.error){toast(res.error.message,'error');return}
+  toast('Permit details saved ✓')
+  loadJT('jt-permit')
+}
+
 async function renderJobTasksTab(el){
   var r=await sb.from('job_tasks').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
   var tasks=r.data||[]
