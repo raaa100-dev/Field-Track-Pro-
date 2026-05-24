@@ -8158,16 +8158,32 @@ async function saveCompanySettings(){
   // Burden rate (only if the field is present)
   var burdenEl=document.getElementById('co-burden')
   if(burdenEl){var br=parseFloat(burdenEl.value);data.default_burden_rate=isNaN(br)?65:br}
-  // Find an existing row to update (any id), so we never create duplicates.
-  // Fall back to the singleton id if the table is empty.
-  var existingId='00000000-0000-0000-0000-000000000001'
+  // Find an existing row. If one exists, UPDATE it by id; otherwise INSERT.
+  // (Explicit update/insert is more predictable under RLS than upsert.)
+  var existingRow=null
   try{
     var ex=await sb.from('company_settings').select('id').order('updated_at',{ascending:false}).limit(1)
-    if(ex.data&&ex.data[0]&&ex.data[0].id)existingId=ex.data[0].id
+    if(ex.data&&ex.data[0])existingRow=ex.data[0]
   }catch(e){}
-  data.id=existingId
-  var res=await sb.from('company_settings').upsert(data,{onConflict:'id'})
-  if(res.error){toast(res.error.message,'error');return}
+  var res
+  if(existingRow){
+    res=await sb.from('company_settings').update(data).eq('id',existingRow.id).select()
+  }else{
+    data.id='00000000-0000-0000-0000-000000000001'
+    res=await sb.from('company_settings').insert(data).select()
+  }
+  if(res.error){
+    var msg=res.error.message||'Unknown error'
+    if(/policy|permission|rls|row-level/i.test(msg))msg='Save blocked by permissions (RLS). Your account may not have admin rights on company_settings. ['+msg+']'
+    toast('Save failed: '+msg,'error')
+    console.error('[saveCompanySettings] error:',res.error)
+    return
+  }
+  if(!res.data||!res.data.length){
+    toast('Save did not persist — likely an RLS permissions block. Check the browser console.','error')
+    console.error('[saveCompanySettings] write returned no rows — RLS likely blocked it. Attempted:',data)
+    return
+  }
   toast('Company info saved ✓')
 }
 
@@ -9624,17 +9640,23 @@ async function maybeMorningDigest(){
   }catch(e){console.warn('digest failed:',e.message)}
 }
 // Write a user-targeted in-app notification. Safe no-op on failure.
+function _isUuid(v){return typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)}
 async function notify(userId,type,title,message,opts){
-  if(!userId)return
+  if(!_isUuid(userId)){console.warn('notify skipped — invalid userId:',userId);return}
   opts=opts||{}
   try{
-    await sb.from('notifications').insert({
+    var rec={
       id:uuid(),user_id:userId,type:type||'general',title:title||'',message:message||'',
       read:false,
-      link_job_id:opts.jobId||null,link_task_id:opts.taskId||null,
-      meta:opts.meta||(opts.jobId?{job_id:opts.jobId}:null),
       created_at:new Date().toISOString()
-    })
+    }
+    // Only include link UUIDs if they're valid (avoids 400 on uuid columns)
+    if(_isUuid(opts.jobId))rec.link_job_id=opts.jobId
+    if(_isUuid(opts.taskId))rec.link_task_id=opts.taskId
+    if(opts.meta&&typeof opts.meta==='object')rec.meta=opts.meta
+    else if(_isUuid(opts.jobId))rec.meta={job_id:opts.jobId}
+    var res=await sb.from('notifications').insert(rec)
+    if(res&&res.error)console.error('notify insert error:',res.error.message,'record:',rec)
   }catch(e){console.warn('notify failed:',e.message)}
 }
 async function loadNotifBadge(){
