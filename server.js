@@ -5863,11 +5863,11 @@ async function generatePickSheet(jobId,warehouse){
   var company=(coR&&coR.data)||{}
   var bigId=job.job_number||job.name||jobId.slice(0,8)
   var h=_docCompanyHeader(company)
-  h+='<div style="text-align:center;margin-bottom:18px">'
-  h+='<div style="font-size:13px;color:#888;text-transform:uppercase;letter-spacing:.1em">Parts Pick Sheet</div>'
-  h+='<div style="font-size:46px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin:6px 0">'+_escapeHTML(String(bigId))+'</div>'
-  h+='<div style="font-size:16px;color:#333">'+_escapeHTML(job.name||'')+'</div>'
-  h+='<div style="font-size:13px;color:#666;margin-top:4px">📍 Warehouse: <strong>'+_escapeHTML(warehouse||'—')+'</strong> · '+fd(new Date().toISOString())+'</div>'
+  h+='<div style="margin-bottom:22px;padding:18px 0;border-top:3px solid #111;border-bottom:3px solid #111">'
+  h+='<div style="font-size:14px;color:#888;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:4px">Parts Pick Sheet</div>'
+  h+='<div style="font-size:80px;font-weight:800;letter-spacing:-.03em;line-height:.95;margin:8px 0">'+_escapeHTML(String(bigId))+'</div>'
+  h+='<div style="font-size:32px;font-weight:800;line-height:1.05;color:#111;margin-top:6px">'+_escapeHTML(job.name||'')+'</div>'
+  h+='<div style="font-size:15px;color:#555;margin-top:10px">📍 Warehouse: <strong>'+_escapeHTML(warehouse||'—')+'</strong> &nbsp;·&nbsp; '+fd(new Date().toISOString())+'</div>'
   h+='</div>'
   // Parts table
   h+='<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px"><thead><tr style="border-bottom:2px solid #111">'
