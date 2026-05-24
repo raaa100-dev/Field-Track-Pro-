@@ -485,6 +485,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
     <div class="nav-item" onclick="P('newjob',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/></svg>New Job</div>
     <div class="nav-item" onclick="P('schedule',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>Schedule</div>
     <div class="nav-item" onclick="P('calendar',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4M5 10h2M9 10h2"/></svg>Calendar</div>
+    <div class="nav-item" onclick="P('design',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L8 2l6 10M4.5 8h7"/><circle cx="8" cy="13.5" r="1"/></svg>Design</div>
     <div class="nav-item" onclick="P('dispatch',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="6" height="5" rx="1"/><rect x="9" y="4" width="6" height="5" rx="1"/><path d="M4 9v4M12 9v4M1 13h6M9 13h6"/></svg>Dispatch Board</div>
     <div class="nav-item" onclick="pgJobMap()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 3l4 1.5L9 3l6 2v8l-6-2-4 1.5L1 11V3z"/><path d="M5 4.5v9M9 3v9"/></svg>Job Map</div>
     <div class="nav-section">Daily Ops</div>
@@ -757,7 +758,7 @@ async function deleteJobConfirm(){
 function doSignOut(){sb.auth.signOut().then(function(){location.href='index.html?signout=1'})}
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const PAGE_TITLES={tasks:'Tasks',today:'Today',calendar:'Calendar',settings:'Settings',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',forecast:'Labor Forecast',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail',email_review:'Email Review'}
+const PAGE_TITLES={tasks:'Tasks',today:'Today',calendar:'Calendar',design:'Design & Permitting',settings:'Settings',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',forecast:'Labor Forecast',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail',email_review:'Email Review'}
 function P(page,navEl){
   // Guard against losing unsaved changes
   if(_isDirty()){
@@ -776,7 +777,7 @@ function _proceedToPage(page,navEl){
   document.getElementById('topbar-actions').innerHTML=''
   const a=document.getElementById('page-area')
   a.innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
-  const map={dashboard:pgDash,today:pgToday,calendar:pgCalendar,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,forecast:pgForecast,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications,settings:pgSettings,email_review:pgEmailReview}
+  const map={dashboard:pgDash,today:pgToday,calendar:pgCalendar,design:pgDesign,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,forecast:pgForecast,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications,settings:pgSettings,email_review:pgEmailReview}
   if(map[page])map[page]()
   else a.innerHTML='<div class="empty">Coming soon</div>'
 }
@@ -4936,6 +4937,140 @@ var CAL_TYPES=[
   {key:'projected_closeout',label:'Projected Closeouts',color:'#14b8a6',icon:'🏁'},
   {key:'milestone',label:'Rough-in / Trim / etc.',color:'#fb923c',icon:'🔨'}
 ]
+// ── DESIGN & PERMITTING DASHBOARD ──────────────────────────────────────────
+var _designStallDays=7  // days without movement = stalled
+async function pgDesign(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="pgDesign()">↻ Refresh</button>'
+  var el=document.getElementById('page-area')
+  el.innerHTML='<div style="padding:20px">'+ld()+'</div>'
+
+  // Gather all non-archived jobs that have a permit path set (in the pipeline)
+  var jr=await sb.from('jobs').select('id,name,job_number,permit_path,permit_number,permit_expires_on,project_manager,archived').eq('archived',false)
+  var jobs=(jr.data||[]).filter(function(j){return j.permit_path&&j.permit_path!=='none'})
+  if(!jobs.length){
+    el.innerHTML='<div style="padding:20px">'+empty('📐','No jobs in the design/permitting pipeline yet. Triage a job\\'s Design &amp; Permitting tab to add it here.')+'</div>'
+    return
+  }
+  var jobIds=jobs.map(function(j){return j.id})
+  // Batch load steps + walks
+  var allSteps=[],allWalks=[]
+  for(var i=0;i<jobIds.length;i+=200){
+    var batch=jobIds.slice(i,i+200)
+    try{var sr=await sb.from('job_permit_steps').select('job_id,step_key,step_label,status,target_date,assigned_name,external_party,updated_at').in('job_id',batch);allSteps=allSteps.concat(sr.data||[])}catch(e){}
+    try{var wr=await sb.from('job_walks').select('job_id,status').in('job_id',batch);allWalks=allWalks.concat(wr.data||[])}catch(e){}
+  }
+  var stepsByJob={},walksByJob={}
+  allSteps.forEach(function(s){(stepsByJob[s.job_id]=stepsByJob[s.job_id]||[]).push(s)})
+  allWalks.forEach(function(w){(walksByJob[w.job_id]=walksByJob[w.job_id]||[]).push(w)})
+
+  var today=new Date();today.setHours(0,0,0,0)
+  var now=new Date()
+  // Compute per-job current stage + follow-up flags
+  var jobState={}
+  var followups={expiring:[],stalled:[],overdue:[]}
+  jobs.forEach(function(j){
+    var path=j.permit_path
+    var steps=stepsByJob[j.id]||[]
+    var walks=walksByJob[j.id]||[]
+    var walkComplete=walks.some(function(w){return w.status==='complete'})
+    var hasWalk=walks.length>0
+    var defs=permitStepsForPath(path)
+    function done(key,st){if(key==='site_walk_complete')return walkComplete;if(key==='assign_site_walk')return hasWalk;return st&&st.status==='done'}
+    var currentKey=null,currentLabel='Issued',allDone=true,lastMove=null
+    for(var k=0;k<defs.length;k++){
+      var key=defs[k][0],label=defs[k][1]
+      var st=steps.find(function(s){return s.step_key===key})
+      if(st&&st.updated_at){var u=new Date(st.updated_at);if(!lastMove||u>lastMove)lastMove=u}
+      if(!done(key,st)&&allDone){currentKey=key;currentLabel=label;allDone=false}
+    }
+    if(allDone){currentKey='permit_issued';currentLabel='Issued'}
+    jobState[j.id]={job:j,currentKey:currentKey,currentLabel:currentLabel,allDone:allDone,steps:steps}
+    // Follow-up: expiring permit
+    if(j.permit_expires_on){
+      var exp=new Date(j.permit_expires_on);exp.setHours(0,0,0,0)
+      var days=Math.round((exp-today)/(1000*3600*24))
+      if(days<0)followups.expiring.push({job:j,days:days,label:'Expired '+Math.abs(days)+'d ago'})
+      else if(days<=30)followups.expiring.push({job:j,days:days,label:'Expires in '+days+'d'})
+    }
+    // Follow-up: stalled (no step movement in N days, and not fully done)
+    if(!allDone&&lastMove){
+      var stallDays=Math.floor((now-lastMove)/(1000*3600*24))
+      if(stallDays>=_designStallDays)followups.stalled.push({job:j,days:stallDays,label:'No movement '+stallDays+'d · '+currentLabel})
+    }
+    // Follow-up: overdue target dates on incomplete steps
+    steps.forEach(function(st){
+      if(st.status!=='done'&&st.target_date){
+        var td=new Date(st.target_date);td.setHours(0,0,0,0)
+        if(td<today)followups.overdue.push({job:j,label:(st.step_label||st.step_key)+' overdue '+fd(st.target_date)})
+      }
+    })
+  })
+
+  var h='<div style="padding:16px 20px">'
+  // ── Follow-up banner ──
+  var totalFollow=followups.expiring.length+followups.stalled.length+followups.overdue.length
+  if(totalFollow){
+    h+='<div style="background:#0a1019;border:1px solid rgba(217,119,6,.25);border-radius:11px;padding:14px 16px;margin-bottom:18px">'
+    h+='<div style="font-size:13px;font-weight:700;color:#d97706;margin-bottom:10px">⚠ Needs Follow-Up ('+totalFollow+')</div>'
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">'
+    h+=_designFollowCol('🎫 Permits Expiring',followups.expiring,'#dc2626')
+    h+=_designFollowCol('🐌 Stalled Jobs',followups.stalled,'#d97706')
+    h+=_designFollowCol('🎯 Overdue Steps',followups.overdue,'#a78bfa')
+    h+='</div></div>'
+  }else{
+    h+='<div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:11px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:#16a34a">✓ Nothing needs follow-up — pipeline is healthy.</div>'
+  }
+
+  // ── Pipeline board ──
+  // Build columns from the full path (union of all steps) — use full-design defs as the master column set.
+  var columns=PERMIT_STEPS_FULL.slice()
+  h+='<div style="font-size:13px;font-weight:700;margin-bottom:10px">Pipeline Board <span style="font-size:11px;color:#414e63;font-weight:400">· '+jobs.length+' jobs</span></div>'
+  h+='<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:12px">'
+  columns.forEach(function(col){
+    var colKey=col[0],colLabel=col[1]
+    var jobsHere=Object.keys(jobState).filter(function(jid){return jobState[jid].currentKey===colKey&&!jobState[jid].allDone})
+    // Issued column collects all done jobs
+    if(colKey==='permit_issued')jobsHere=Object.keys(jobState).filter(function(jid){return jobState[jid].allDone})
+    h+='<div style="flex:0 0 220px;background:#0a1019;border-radius:10px;padding:10px">'
+    h+='<div style="font-size:11px;font-weight:700;color:#8a96ab;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;display:flex;justify-content:space-between">'+colLabel+'<span style="color:#414e63">'+jobsHere.length+'</span></div>'
+    if(!jobsHere.length){h+='<div style="font-size:11px;color:#2a3444;padding:6px 0">—</div>'}
+    jobsHere.forEach(function(jid){
+      var s=jobState[jid],j=s.job
+      var st=s.steps.find(function(x){return x.step_key===s.currentKey})
+      h+='<div onclick="designOpenJob(\\''+j.id+'\\')" style="background:#0c1424;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:9px 10px;margin-bottom:7px;cursor:pointer">'
+      h+='<div style="font-size:12px;font-weight:600;line-height:1.2">'+_escapeHTML(j.name)+'</div>'
+      if(j.job_number)h+='<div style="font-size:10px;color:#414e63">#'+_escapeHTML(j.job_number)+'</div>'
+      var meta=[]
+      if(st&&st.assigned_name)meta.push('👤 '+st.assigned_name)
+      if(st&&st.external_party)meta.push('🏛 '+st.external_party)
+      if(j.project_manager&&!meta.length)meta.push('PM '+j.project_manager)
+      if(meta.length)h+='<div style="font-size:10px;color:#8a96ab;margin-top:3px">'+_escapeHTML(meta.join(' · '))+'</div>'
+      if(colKey==='permit_issued'&&j.permit_number)h+='<div style="font-size:10px;color:#16a34a;margin-top:2px">🎫 '+_escapeHTML(j.permit_number)+'</div>'
+      h+='</div>'
+    })
+    h+='</div>'
+  })
+  h+='</div></div>'
+  el.innerHTML=h
+}
+function _designFollowCol(title,items,color){
+  var h='<div><div style="font-size:11px;font-weight:600;color:'+color+';margin-bottom:6px">'+title+' ('+items.length+')</div>'
+  if(!items.length){h+='<div style="font-size:11px;color:#2a3444">None</div>'}
+  else{
+    items.slice(0,8).forEach(function(it){
+      h+='<div onclick="designOpenJob(\\''+it.job.id+'\\')" style="font-size:11px;padding:4px 0;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04)"><span style="color:#e8edf5">'+_escapeHTML(it.job.name)+'</span> <span style="color:'+color+'">· '+_escapeHTML(it.label)+'</span></div>'
+    })
+    if(items.length>8)h+='<div style="font-size:10px;color:#414e63;padding-top:4px">+ '+(items.length-8)+' more</div>'
+  }
+  h+='</div>'
+  return h
+}
+function designOpenJob(jobId){
+  openJob(jobId)
+  // Jump to the Design & Permitting tab after the job loads
+  setTimeout(function(){if(typeof loadJT==='function')loadJT('jt-permit')},400)
+}
+
 async function pgCalendar(){
   document.getElementById('topbar-actions').innerHTML=''
   // Default filters: the important ones on, milestones off (to reduce noise)
