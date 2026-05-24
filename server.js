@@ -5254,10 +5254,11 @@ function newDailyModal(jobIdOverride){
     }
     // Update job_parts installed_qty and subtract from available
     for(const ip of installedParts){
-      const{data:part}=await sb.from('job_parts').select('id,installed_qty,assigned_qty').eq('job_id',jobId).eq('part_id',ip.part_id).single()
+      const{data:part}=await sb.from('job_parts').select('id,installed_qty,assigned_qty,taken_qty').eq('job_id',jobId).eq('part_id',ip.part_id).single()
       if(part){
         const newInstalled=(part.installed_qty||0)+ip.installed_qty
-        const newStatus=newInstalled>=part.assigned_qty?'installed':'partial_install'
+        const deliveredBasis=(part.taken_qty!=null&&part.taken_qty>0)?part.taken_qty:(part.assigned_qty||0)
+        const newStatus=newInstalled>=deliveredBasis?'installed':'partial_install'
         await sb.from('job_parts').update({installed_qty:newInstalled,status:newStatus,updated_at:new Date().toISOString()}).eq('id',part.id)
       }
     }
@@ -5271,24 +5272,38 @@ function newDailyModal(jobIdOverride){
 
 async function drLoadParts(jobId){
   const wrap=document.getElementById('dr-parts-wrap');if(!wrap)return
-  if(!jobId){wrap.innerHTML='<div style="font-size:11px;color:#414e63">Select a job to see staged parts</div>';return}
+  if(!jobId){wrap.innerHTML='<div style="font-size:11px;color:#414e63">Select a job to see parts</div>';return}
   wrap.innerHTML='<div style="font-size:11px;color:#414e63">Loading parts…</div>'
-  const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',jobId).in('status',['staged','signed_out','partial_install'])
-  if(!parts?.length){wrap.innerHTML='<div style="font-size:11px;color:#414e63;padding:8px 0">No staged parts on this job yet</div>';return}
-  let html='<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Parts Staged on Job — Enter Qty Installed Today</div>'
+  // Only parts delivered to the site can be installed (signed_out / partial_install).
+  const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',jobId).in('status',['signed_out','partial_install','staged'])
+  if(!parts?.length){wrap.innerHTML='<div style="font-size:11px;color:#414e63;padding:8px 0">No parts delivered to this job yet</div>';return}
+  // Compute remaining = taken/delivered − installed (countdown target)
+  let html='<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Parts On Site — Enter Qty Installed Today</div>'
   html+='<div style="background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;overflow:hidden">'
+  var anyRow=false
   for(const p of parts){
-    const available=p.assigned_qty-(p.installed_qty||0)
-    if(available<=0) continue
-    html+='<div class="dr-part-row" data-part-id="'+p.part_id+'" data-part-name="'+p.part_name+'" data-available="'+available+'" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04)">'
-    html+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.part_name+'</div>'
-    html+='<div style="font-size:10px;color:#414e63">'+p.part_id+' · '+available+' available ('+( p.installed_qty||0)+' already installed)</div></div>'
-    html+='<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
-    html+='<button onclick="this.nextElementSibling.value=Math.max(0,parseInt(this.nextElementSibling.value||0)-1)" style="width:24px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:14px">−</button>'
-    html+='<input type="number" class="dr-part-qty fi" value="0" min="0" max="'+available+'" style="width:60px;text-align:center;padding:4px 6px">'
-    html+='<button onclick="this.previousElementSibling.value=Math.min('+available+',parseInt(this.previousElementSibling.value||0)+1)" style="width:24px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:14px">+</button>'
-    html+='</div></div>'
+    // "Delivered to site" basis: taken_qty if present, else assigned_qty
+    const delivered=(p.taken_qty!=null&&p.taken_qty>0)?p.taken_qty:(p.assigned_qty||0)
+    const installed=p.installed_qty||0
+    const remaining=delivered-installed
+    if(remaining<=0&&installed===0) continue
+    anyRow=true
+    const allIn=remaining<=0
+    html+='<div class="dr-part-row" data-part-id="'+p.part_id+'" data-part-name="'+_escAttr(p.part_name)+'" data-available="'+Math.max(0,remaining)+'" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04)'+(allIn?';opacity:.55':'')+'">'
+    html+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_escapeHTML(p.part_name)+(allIn?' ✅':'')+'</div>'
+    html+='<div style="font-size:10px;color:#414e63">'+delivered+' delivered · '+installed+' installed · <span style="color:'+(allIn?'#16a34a':'#d97706')+';font-weight:600">'+Math.max(0,remaining)+' remaining</span></div></div>'
+    if(!allIn){
+      html+='<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
+      html+='<button onclick="this.nextElementSibling.value=Math.max(0,parseInt(this.nextElementSibling.value||0)-1)" style="width:24px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:14px">−</button>'
+      html+='<input type="number" class="dr-part-qty fi" value="0" min="0" max="'+remaining+'" style="width:60px;text-align:center;padding:4px 6px">'
+      html+='<button onclick="this.previousElementSibling.value=Math.min('+remaining+',parseInt(this.previousElementSibling.value||0)+1)" style="width:24px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:14px">+</button>'
+      html+='</div>'
+    }else{
+      html+='<span style="font-size:11px;color:#16a34a;font-weight:600;flex-shrink:0">All installed</span>'
+    }
+    html+='</div>'
   }
+  if(!anyRow)html+='<div style="font-size:11px;color:#16a34a;padding:10px 12px">✅ All delivered parts have been installed.</div>'
   html+='</div>'
   wrap.innerHTML=html
 }
@@ -12362,9 +12377,57 @@ async function renderPartsTab(el){
     h+='</div>'
   }
 
+  // Leftover / Returns section — parts delivered to site but not fully installed
+  var returnable=parts.filter(function(p){
+    var taken=(p.taken_qty!=null&&p.taken_qty>0)?p.taken_qty:0
+    var inst=p.installed_qty||0
+    return (p.status==='signed_out'||p.status==='partial_install'||p.status==='installed')&&taken>inst
+  })
+  if(returnable.length){
+    h+='<div class="card" style="margin-top:13px;border:1px solid rgba(217,119,6,.25)"><div class="card-title" style="color:#d97706">↩️ Leftover Parts — Return to Warehouse ('+returnable.length+')</div>'
+    h+='<div style="font-size:11px;color:#8a96ab;margin-bottom:8px">These were delivered to site but not fully installed. Process a return to send the extras back to a warehouse.</div>'
+    returnable.forEach(function(p){
+      var taken=(p.taken_qty!=null&&p.taken_qty>0)?p.taken_qty:0
+      var inst=p.installed_qty||0
+      var leftover=taken-inst
+      h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+      h+='<div style="flex:1"><div style="font-size:13px;font-weight:500">'+_escapeHTML(p.part_name)+'</div>'
+      h+='<div style="font-size:10px;color:#414e63">'+taken+' delivered · '+inst+' installed · <span style="color:#d97706;font-weight:600">'+leftover+' leftover</span></div></div>'
+      h+='<select class="fs" id="ret-wh-'+p.id+'" style="width:auto;padding:4px 8px;font-size:11px"><option value="Gilbert">Gilbert</option><option value="Phoenix">Phoenix</option></select>'
+      h+='<button class="btn btn-sm btn-b" data-pid="'+p.id+'" data-pname="'+_escAttr(p.part_name)+'" data-qty="'+leftover+'" onclick="processReturn(this)">Return '+leftover+'</button>'
+      h+='</div>'
+    })
+    h+='</div>'
+  }
+
   // Full parts table
   h+='<div class="card" style="padding:0;overflow:hidden">'+buildPartsTable(parts)+'</div>'
   el.innerHTML=h
+}
+// Process a return: leftover parts go back to a warehouse, logged as a return movement.
+async function processReturn(btn){
+  var id=btn.getAttribute('data-pid')
+  var name=btn.getAttribute('data-pname')||'part'
+  var qty=parseInt(btn.getAttribute('data-qty'))||0
+  var whEl=document.getElementById('ret-wh-'+id)
+  var warehouse=whEl?whEl.value:'Gilbert'
+  if(!qty){toast('Nothing to return','warn');return}
+  if(!confirm('Return '+qty+' × '+name+' to '+warehouse+' warehouse?'))return
+  var parts=window._currentJobParts||[]
+  var p=parts.find(function(x){return x.id===id})
+  if(!p)return
+  var inst=p.installed_qty||0
+  // The returned portion goes back to 'staged' at the warehouse; the installed portion stays recorded.
+  // Reduce this line to the installed amount (mark installed/complete), and create a returned line back at the warehouse.
+  var now=new Date().toISOString()
+  // Update the on-site line to reflect only what was installed
+  await sb.from('job_parts').update({taken_qty:inst,assigned_qty:inst,status:inst>0?'installed':'returned',updated_at:now}).eq('id',id)
+  // Create a returned/staged line back at the warehouse for the leftover qty
+  await sb.from('job_parts').insert({id:uuid(),job_id:currentJobId,part_id:p.part_id,part_name:p.part_name,barcode:p.barcode||'',ordered_qty:0,assigned_qty:qty,taken_qty:0,installed_qty:0,status:'staged',warehouse_location:warehouse,notes:'Returned from site — leftover',staged_by:(ME&&ME.full_name)||'',staged_at:now,created_at:now,updated_at:now})
+  // Audit movement: site → warehouse
+  try{await sb.from('part_movements').insert({id:uuid(),job_part_id:id,job_id:currentJobId,part_name:name,movement_type:'return',qty:qty,from_location:'Job Site',to_location:warehouse,performed_by:(ME&&ME.full_name)||'',created_at:now})}catch(e){}
+  toast('↩️ Returned '+qty+' × '+name+' to '+warehouse)
+  loadJT('jt-parts')
 }
 
 async function movePartToStaged(btn){
