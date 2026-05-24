@@ -3492,21 +3492,38 @@ async function savePermitDetails(){
   var feeRaw=document.getElementById('pmt-fee').value
   var fee=feeRaw!==''&&feeRaw!=null?parseFloat(feeRaw):null
   if(fee!=null&&isNaN(fee))fee=null
+  // Try the full update (with permit_fee). If the column is missing, retry without it.
   var res=await sb.from('jobs').update({permit_number:num,permit_expires_on:exp,permit_fee:fee,updated_at:new Date().toISOString()}).eq('id',currentJobId)
-  if(res.error){toast(res.error.message,'error');return}
+  var feeColMissing=false
+  if(res.error){
+    if(/permit_fee/i.test(res.error.message||'')){
+      feeColMissing=true
+      // Retry without permit_fee so number + expiration still save
+      res=await sb.from('jobs').update({permit_number:num,permit_expires_on:exp,updated_at:new Date().toISOString()}).eq('id',currentJobId)
+      if(res.error){toast('Save failed: '+res.error.message,'error');return}
+    }else{
+      toast('Save failed: '+res.error.message,'error');return
+    }
+  }
+  if(feeColMissing){
+    toast('Number & expiration saved, but the permit_fee column is missing — run migration-018 in Supabase to enable fee tracking.','warn')
+    loadJT('jt-permit');return
+  }
   // Flow the permit fee into the job budget as a "Permit Fee Paid" line item
   if(fee!=null&&fee>0){
+    var bres=null
     try{
       var existing=await sb.from('job_budget_lines').select('id').eq('job_id',currentJobId).eq('description','Permit Fee Paid').limit(1)
       if(existing.data&&existing.data[0]){
-        await sb.from('job_budget_lines').update({category:'permit',budget_amount:fee,actual_amount:fee}).eq('id',existing.data[0].id)
+        bres=await sb.from('job_budget_lines').update({category:'permit',budget_amount:fee,actual_amount:fee}).eq('id',existing.data[0].id)
       }else{
         var mx=await sb.from('job_budget_lines').select('sort_order').eq('job_id',currentJobId).order('sort_order',{ascending:false}).limit(1)
         var nextSort=(mx.data&&mx.data[0]?mx.data[0].sort_order:0)+1
-        await sb.from('job_budget_lines').insert({job_id:currentJobId,description:'Permit Fee Paid',category:'permit',budget_amount:fee,actual_amount:fee,sort_order:nextSort})
+        bres=await sb.from('job_budget_lines').insert({job_id:currentJobId,description:'Permit Fee Paid',category:'permit',budget_amount:fee,actual_amount:fee,sort_order:nextSort})
       }
-      toast('Permit details saved ✓ · Fee added to budget')
-    }catch(e){toast('Permit saved, but budget line failed: '+(e.message||e),'warn')}
+      if(bres&&bres.error){toast('Permit saved, but budget line failed: '+bres.error.message,'warn');console.error('[permit fee budget line]',bres.error)}
+      else toast('Permit details saved ✓ · Fee added to budget')
+    }catch(e){toast('Permit saved, but budget line failed: '+(e.message||e),'warn');console.error('[permit fee budget line]',e)}
   }else{
     toast('Permit details saved ✓')
   }
