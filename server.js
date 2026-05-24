@@ -3926,8 +3926,13 @@ async function generateCOPdf(coId){
   var co=coRes.data;if(!co){toast('CO not found','error');return}
   var lines=coLinesRes.data||[]
   var company=coSettingsRes.data||{}
-  var jobRes=await sb.from('jobs').select('name,job_number,address,city,state,zip,gc_company,contract_value,original_contract_value').eq('id',co.job_id).single()
+  var jobRes=await sb.from('jobs').select('name,job_number,address,city,state,zip,gc_company,contract_value,original_contract_value,account_id').eq('id',co.job_id).single()
   var job=jobRes.data||{}
+  // Pull the GC account's office address (separate from the job site)
+  var gcAccount=null
+  if(job.account_id){
+    try{var acctR=await sb.from('crm_accounts').select('name,address,city,state,zip,phone').eq('id',job.account_id).single();gcAccount=acctR.data}catch(e){}
+  }
 
   // Contract impact math
   var origContract=Number(job.original_contract_value||job.contract_value||0)
@@ -3951,9 +3956,21 @@ async function generateCOPdf(coId){
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px">'
   h+='<div><span style="color:#888">Project:</span> <strong>'+(job.name||'')+'</strong></div>'
   if(job.job_number)h+='<div><span style="color:#888">Job #:</span> '+job.job_number+'</div>'
-  if(job.gc_company)h+='<div><span style="color:#888">General Contractor:</span> '+job.gc_company+'</div>'
-  var jAddr=[job.address,job.city,job.state,job.zip].filter(Boolean).join(', ')
-  if(jAddr)h+='<div><span style="color:#888">Location:</span> '+jAddr+'</div>'
+  h+='</div>'
+  // Two distinct addresses, side by side
+  var siteAddr=[job.address,[job.city,job.state].filter(Boolean).join(', '),job.zip].filter(Boolean).join(' · ')
+  var gcName=(gcAccount&&gcAccount.name)||job.gc_company||''
+  var gcAddr=gcAccount?[gcAccount.address,[gcAccount.city,gcAccount.state].filter(Boolean).join(', '),gcAccount.zip].filter(Boolean).join(' · '):''
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px;padding-top:10px;border-top:1px solid #ddd">'
+  // Job site
+  h+='<div><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Job Site</div>'
+  h+='<div style="font-size:12px;color:#222">'+(siteAddr||'—')+'</div></div>'
+  // GC office
+  h+='<div><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">General Contractor</div>'
+  h+='<div style="font-size:12px;color:#222">'+(gcName?'<strong>'+gcName+'</strong>':'—')
+  if(gcAddr)h+='<br>'+gcAddr
+  if(gcAccount&&gcAccount.phone)h+='<br>'+gcAccount.phone
+  h+='</div></div>'
   h+='</div></div>'
 
   // Title + description
@@ -12605,6 +12622,7 @@ function crmNewAccount(){
   h+='<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="ca-phone" type="tel"></div>'
   h+='<div class="fg"><label class="fl">Email</label><input class="fi" id="ca-email" type="email"></div></div>'
   h+='<div class="fg"><label class="fl">Website</label><input class="fi" id="ca-web" placeholder="https://..."></div>'
+  h+='<div class="fg"><label class="fl">Street Address <span style="color:#414e63;font-weight:400;font-size:10px">(GC office — separate from job site)</span></label><input class="fi" id="ca-addr" placeholder="123 Main St, Suite 100"></div>'
   h+='<div class="three"><div class="fg"><label class="fl">City</label><input class="fi" id="ca-city"></div>'
   h+='<div class="fg"><label class="fl">State</label><input class="fi" id="ca-state" style="width:80px"></div>'
   h+='<div class="fg"><label class="fl">Zip</label><input class="fi" id="ca-zip" style="width:90px"></div></div>'
@@ -12613,7 +12631,7 @@ function crmNewAccount(){
   modal('New Account', h, async function(){
     var name=(document.getElementById('ca-name').value||'').trim()
     if(!name){toast('Name required','error');return}
-    var res=await sb.from('crm_accounts').insert({id:uuid(),name,type:document.getElementById('ca-type').value,phone:document.getElementById('ca-phone').value||null,email:document.getElementById('ca-email').value||null,website:document.getElementById('ca-web').value||null,city:document.getElementById('ca-city').value||null,state:document.getElementById('ca-state').value||null,zip:document.getElementById('ca-zip').value||null,primary_contact:document.getElementById('ca-primary').value||null,notes:document.getElementById('ca-notes').value||null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    var res=await sb.from('crm_accounts').insert({id:uuid(),name,type:document.getElementById('ca-type').value,phone:document.getElementById('ca-phone').value||null,email:document.getElementById('ca-email').value||null,website:document.getElementById('ca-web').value||null,address:document.getElementById('ca-addr').value||null,city:document.getElementById('ca-city').value||null,state:document.getElementById('ca-state').value||null,zip:document.getElementById('ca-zip').value||null,primary_contact:document.getElementById('ca-primary').value||null,notes:document.getElementById('ca-notes').value||null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
     if(res.error){toast(res.error.message,'error');return}
     closeModal();pgCrmAccounts();toast('Account created')
   },'Create Account')
@@ -12656,7 +12674,7 @@ async function crmOpenAccount(id){
   // Account info card
   h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Account Info</div>'
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">'
-  ;[['Type',typeLabel],['Phone',a.phone||'—'],['Email',a.email||'—'],['Website',a.website||'—'],['City/State',(a.city||'')+(a.city&&a.state?', ':'')+( a.state||'')||'—'],['Primary Contact',a.primary_contact||'—']].forEach(function(r){
+  ;[['Type',typeLabel],['Phone',a.phone||'—'],['Email',a.email||'—'],['Website',a.website||'—'],['Address',a.address||'—'],['City/State',(a.city||'')+(a.city&&a.state?', ':'')+( a.state||'')||'—'],['Primary Contact',a.primary_contact||'—']].forEach(function(r){
     h+='<div><div style="font-size:10px;color:#414e63;text-transform:uppercase;font-weight:600;margin-bottom:2px">'+r[0]+'</div><div>'+r[1]+'</div></div>'
   })
   h+='</div>'
@@ -12820,6 +12838,7 @@ async function crmEditAccount(id){
   h+='<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="ea-phone" value="'+(a.phone||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Email</label><input class="fi" id="ea-email" value="'+(a.email||'')+'"></div></div>'
   h+='<div class="fg"><label class="fl">Website</label><input class="fi" id="ea-web" value="'+(a.website||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Street Address <span style="color:#414e63;font-weight:400;font-size:10px">(GC office)</span></label><input class="fi" id="ea-addr" value="'+(a.address||'').replace(/"/g,'&quot;')+'"></div>'
   h+='<div class="three"><div class="fg"><label class="fl">City</label><input class="fi" id="ea-city" value="'+(a.city||'')+'"></div>'
   h+='<div class="fg"><label class="fl">State</label><input class="fi" id="ea-state" value="'+(a.state||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Zip</label><input class="fi" id="ea-zip" value="'+(a.zip||'')+'"></div></div>'
@@ -12829,7 +12848,7 @@ async function crmEditAccount(id){
   modal('Edit Account', h, async function(){
     var name=(document.getElementById('ea-name').value||'').trim()
     if(!name){toast('Name required','error');return}
-    var res=await sb.from('crm_accounts').update({name,type:document.getElementById('ea-type').value,phone:document.getElementById('ea-phone').value||null,email:document.getElementById('ea-email').value||null,website:document.getElementById('ea-web').value||null,city:document.getElementById('ea-city').value||null,state:document.getElementById('ea-state').value||null,zip:document.getElementById('ea-zip').value||null,primary_contact:document.getElementById('ea-primary').value||null,notes:document.getElementById('ea-notes').value||null,updated_at:new Date().toISOString()}).eq('id',id)
+    var res=await sb.from('crm_accounts').update({name,type:document.getElementById('ea-type').value,phone:document.getElementById('ea-phone').value||null,email:document.getElementById('ea-email').value||null,website:document.getElementById('ea-web').value||null,address:document.getElementById('ea-addr').value||null,city:document.getElementById('ea-city').value||null,state:document.getElementById('ea-state').value||null,zip:document.getElementById('ea-zip').value||null,primary_contact:document.getElementById('ea-primary').value||null,notes:document.getElementById('ea-notes').value||null,updated_at:new Date().toISOString()}).eq('id',id)
     if(res.error){toast(res.error.message,'error');return}
     closeModal();crmOpenAccount(id);toast('Account updated')
   },'Save')
