@@ -1045,7 +1045,7 @@ async function renderToday(){
   var results=await Promise.allSettled([
     sb.from('job_communications').select('id,job_id,account_id,summary,occurred_at,needs_response,responded,with_who,contact_id,logged_by').eq('needs_response',true).eq('responded',false).order('occurred_at',{ascending:true}),
     sb.from('job_tasks').select('id,job_id,job_name,title,assigned_to,assigned_name,due_date,priority,status,created_by').in('status',['open','in_progress']).order('due_date',{ascending:true}),
-    sb.from('jobs').select('id,name,job_number,phase,project_manager,labor_budget,next_pm_visit,due_date,archived').eq('archived',false),
+    sb.from('jobs').select('id,name,job_number,phase,project_manager,labor_budget,next_pm_visit,due_date,archived,permit_expires_on,permit_number').eq('archived',false),
     sb.from('change_orders').select('id,job_id,co_number,title,value,status,created_at').eq('status','pending').order('created_at',{ascending:true}),
     sb.from('daily_reports').select('job_id,report_date').order('report_date',{ascending:false})
   ])
@@ -1121,6 +1121,14 @@ async function renderToday(){
       var dd=(pv-today)/(1000*3600*24)
       if(dd<0)overdue.push({kind:'job',id:j.id,job_id:j.id,title:'PM visit overdue',sub:j.name+' · was '+fd(j.next_pm_visit),tag:'Overdue'})
       else if(dd<=3)soon.push({kind:'job',id:j.id,job_id:j.id,title:'PM visit '+(dd===0?'today':'due '+fd(j.next_pm_visit)),sub:j.name,tag:dd===0?'Today':'Soon'})
+    }
+    // Permit expiration
+    if(j.permit_expires_on){
+      var pe=new Date(j.permit_expires_on);pe.setHours(0,0,0,0)
+      var ped=Math.round((pe-today)/(1000*3600*24))
+      if(ped<0)overdue.push({kind:'job',id:j.id,job_id:j.id,title:'🎫 Permit EXPIRED'+(j.permit_number?' ('+j.permit_number+')':''),sub:j.name+' · expired '+fd(j.permit_expires_on),tag:'Expired'})
+      else if(ped<=14)overdue.push({kind:'job',id:j.id,job_id:j.id,title:'🎫 Permit expiring'+(j.permit_number?' ('+j.permit_number+')':''),sub:j.name+' · expires '+fd(j.permit_expires_on),tag:ped+'d left'})
+      else if(ped<=30)soon.push({kind:'job',id:j.id,job_id:j.id,title:'🎫 Permit expiring soon',sub:j.name+' · expires '+fd(j.permit_expires_on),tag:ped+'d left'})
     }
   })
 
@@ -3453,6 +3461,15 @@ async function editPermitStep(stepKey,label){
     if(step.id){res=await sb.from('job_permit_steps').update(data).eq('id',step.id)}
     else{data.id=uuid();data.created_at=new Date().toISOString();res=await sb.from('job_permit_steps').insert(data)}
     if(res.error){toast(res.error.message,'error');return}
+    // Track stage entry time + city submission date for cycle-time metrics
+    try{
+      if(status==='in_progress'&&step.status!=='in_progress'){
+        await sb.from('job_permit_steps').update({entered_at:new Date().toISOString()}).eq('job_id',currentJobId).eq('step_key',stepKey)
+      }
+      if(stepKey==='submit_city'&&status==='done'){
+        await sb.from('jobs').update({submitted_to_city_date:(completed||new Date().toISOString().split('T')[0])}).eq('id',currentJobId)
+      }
+    }catch(e){}
     // Notify assignee if newly assigned
     if(assignedTo&&assignedTo!==step.assigned_to)await notify(assignedTo,'task','Permit step assigned',label+(window._permitJob?' · '+window._permitJob.name:''),{jobId:currentJobId})
     closeModal();toast('Step updated');loadJT('jt-permit')
@@ -4959,7 +4976,9 @@ var CAL_TYPES=[
 // ── DESIGN & PERMITTING DASHBOARD ──────────────────────────────────────────
 var _designStallDays=7  // days without movement = stalled
 var _designExpWindow='all'  // expiration filter window
+var _designPmFilter='all'   // filter board by PM/responsible person
 var DESIGN_EXP_WINDOWS=[['7','7 days'],['30','30 days'],['90','90 days'],['180','180 days'],['365','1 year'],['730','2 years'],['all','Everything']]
+function setDesignPmFilter(v){_designPmFilter=v;pgDesign()}
 function setDesignExpWindow(v){_designExpWindow=v;pgDesign()}
 function _designWindowLabel(){var f=DESIGN_EXP_WINDOWS.find(function(w){return w[0]===_designExpWindow});return f?f[1]:'Everything'}
 function _designFilterBar(){
@@ -4979,7 +4998,7 @@ async function pgDesign(){
   el.innerHTML='<div style="padding:20px">'+ld()+'</div>'
 
   // Gather all non-archived jobs that have a permit path set (in the pipeline)
-  var jr=await sb.from('jobs').select('id,name,job_number,permit_path,permit_number,permit_expires_on,permit_fee,project_manager,archived').eq('archived',false)
+  var jr=await sb.from('jobs').select('id,name,job_number,permit_path,permit_number,permit_expires_on,permit_fee,submitted_to_city_date,project_manager,archived').eq('archived',false)
   var jobs=(jr.data||[]).filter(function(j){return j.permit_path&&j.permit_path!=='none'})
   // Apply expiration-window filter
   var _allPipelineCount=jobs.length
@@ -5007,7 +5026,7 @@ async function pgDesign(){
   var allSteps=[],allWalks=[]
   for(var i=0;i<jobIds.length;i+=200){
     var batch=jobIds.slice(i,i+200)
-    try{var sr=await sb.from('job_permit_steps').select('job_id,step_key,step_label,status,target_date,assigned_name,external_party,updated_at').in('job_id',batch);allSteps=allSteps.concat(sr.data||[])}catch(e){}
+    try{var sr=await sb.from('job_permit_steps').select('job_id,step_key,step_label,status,target_date,assigned_name,external_party,updated_at,entered_at,completed_date,created_at').in('job_id',batch);allSteps=allSteps.concat(sr.data||[])}catch(e){}
     try{var wr=await sb.from('job_walks').select('job_id,status').in('job_id',batch);allWalks=allWalks.concat(wr.data||[])}catch(e){}
   }
   var stepsByJob={},walksByJob={}
@@ -5035,7 +5054,26 @@ async function pgDesign(){
       if(!done(key,st)&&allDone){currentKey=key;currentLabel=label;allDone=false}
     }
     if(allDone){currentKey='permit_issued';currentLabel='Issued'}
-    jobState[j.id]={job:j,currentKey:currentKey,currentLabel:currentLabel,allDone:allDone,steps:steps}
+    // Time in current stage: from the current step's entered_at (or created_at), else lastMove
+    var curStep=steps.find(function(s){return s.step_key===currentKey})
+    var stageStart=curStep&&(curStep.entered_at||curStep.created_at)?new Date(curStep.entered_at||curStep.created_at):lastMove
+    var daysInStage=stageStart?Math.floor((now-stageStart)/(1000*3600*24)):null
+    // Days in city review: from submitted_to_city_date until city_approved is done (or now)
+    var daysInReview=null
+    if(j.submitted_to_city_date){
+      var cityApprovedStep=steps.find(function(s){return s.step_key==='city_approved'})
+      var reviewEnd=(cityApprovedStep&&cityApprovedStep.status==='done'&&cityApprovedStep.completed_date)?new Date(cityApprovedStep.completed_date):now
+      daysInReview=Math.floor((reviewEnd-new Date(j.submitted_to_city_date))/(1000*3600*24))
+    }
+    // Cycle time: from earliest step created_at to permit issued completed_date (if done)
+    var cycleDays=null
+    if(allDone){
+      var firstCreated=null,issuedStep=steps.find(function(s){return s.step_key==='permit_issued'})
+      steps.forEach(function(s){if(s.created_at){var c=new Date(s.created_at);if(!firstCreated||c<firstCreated)firstCreated=c}})
+      var issuedDate=(issuedStep&&issuedStep.completed_date)?new Date(issuedStep.completed_date):lastMove
+      if(firstCreated&&issuedDate)cycleDays=Math.floor((issuedDate-firstCreated)/(1000*3600*24))
+    }
+    jobState[j.id]={job:j,currentKey:currentKey,currentLabel:currentLabel,allDone:allDone,steps:steps,daysInStage:daysInStage,daysInReview:daysInReview,cycleDays:cycleDays}
     // Follow-up: expiring permit
     if(j.permit_expires_on){
       var exp=new Date(j.permit_expires_on);exp.setHours(0,0,0,0)
@@ -5057,8 +5095,39 @@ async function pgDesign(){
     })
   })
 
+  // Compute aggregate stats (across all jobs in current view, before PM filter)
+  var cycleVals=[],reviewVals=[],inReviewNow=0
+  Object.keys(jobState).forEach(function(jid){
+    var s=jobState[jid]
+    if(s.cycleDays!=null)cycleVals.push(s.cycleDays)
+    if(s.currentKey==='city_approved'||(s.job.submitted_to_city_date&&!s.allDone&&s.daysInReview!=null)){
+      if(s.daysInReview!=null){reviewVals.push(s.daysInReview);if(!s.allDone)inReviewNow++}
+    }
+  })
+  function _avg(a){return a.length?Math.round(a.reduce(function(s,v){return s+v},0)/a.length):null}
+  var avgCycle=_avg(cycleVals),avgReview=_avg(reviewVals)
+
+  // Build PM list for the filter
+  var pmSet={};Object.keys(jobState).forEach(function(jid){var pm=jobState[jid].job.project_manager;if(pm)pmSet[pm]=true})
+  var pmList=Object.keys(pmSet).sort()
+
   var h='<div style="padding:16px 20px">'
   h+=_designFilterBar()
+  // PM filter
+  if(pmList.length>1){
+    h+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px"><span style="font-size:12px;color:#8a96ab">👤 Responsible:</span>'
+    h+='<div style="display:flex;background:#0c1220;border-radius:8px;padding:3px;flex-wrap:wrap">'
+    h+='<button onclick="setDesignPmFilter(\\'all\\')" style="border:none;border-radius:6px;padding:5px 11px;font-size:11px;cursor:pointer;'+(_designPmFilter==='all'?'background:#2563eb;color:#fff':'background:transparent;color:#8a96ab')+'">All</button>'
+    pmList.forEach(function(pm){h+='<button onclick="setDesignPmFilter(\\''+_escAttr(pm)+'\\')" style="border:none;border-radius:6px;padding:5px 11px;font-size:11px;cursor:pointer;'+(_designPmFilter===pm?'background:#2563eb;color:#fff':'background:transparent;color:#8a96ab')+'">'+_escapeHTML(pm)+'</button>'})
+    h+='</div></div>'
+  }
+  // Stats bar
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px">'
+  h+=_designStat('Avg Time to Permit',avgCycle!=null?avgCycle+' days':'—','#60a5fa')
+  h+=_designStat('Avg City Review',avgReview!=null?avgReview+' days':'—','#a78bfa')
+  h+=_designStat('In City Review',inReviewNow,'#d97706')
+  h+=_designStat('Total Permit Fees',fm(jobs.reduce(function(s,j){return s+(Number(j.permit_fee)||0)},0)),'#16a34a')
+  h+='</div>'
   // ── Follow-up banner ──
   var totalFollow=followups.expiring.length+followups.stalled.length+followups.overdue.length
   if(totalFollow){
@@ -5081,9 +5150,10 @@ async function pgDesign(){
   h+='<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:12px">'
   columns.forEach(function(col){
     var colKey=col[0],colLabel=col[1]
-    var jobsHere=Object.keys(jobState).filter(function(jid){return jobState[jid].currentKey===colKey&&!jobState[jid].allDone})
+    function pmMatch(jid){return _designPmFilter==='all'||jobState[jid].job.project_manager===_designPmFilter}
+    var jobsHere=Object.keys(jobState).filter(function(jid){return jobState[jid].currentKey===colKey&&!jobState[jid].allDone&&pmMatch(jid)})
     // Issued column collects all done jobs
-    if(colKey==='permit_issued')jobsHere=Object.keys(jobState).filter(function(jid){return jobState[jid].allDone})
+    if(colKey==='permit_issued')jobsHere=Object.keys(jobState).filter(function(jid){return jobState[jid].allDone&&pmMatch(jid)})
     h+='<div style="flex:0 0 220px;background:#0a1019;border-radius:10px;padding:10px">'
     h+='<div style="font-size:11px;font-weight:700;color:#8a96ab;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;display:flex;justify-content:space-between">'+colLabel+'<span style="color:#414e63">'+jobsHere.length+'</span></div>'
     if(!jobsHere.length){h+='<div style="font-size:11px;color:#2a3444;padding:6px 0">—</div>'}
@@ -5098,13 +5168,28 @@ async function pgDesign(){
       if(st&&st.external_party)meta.push('🏛 '+st.external_party)
       if(j.project_manager&&!meta.length)meta.push('PM '+j.project_manager)
       if(meta.length)h+='<div style="font-size:10px;color:#8a96ab;margin-top:3px">'+_escapeHTML(meta.join(' · '))+'</div>'
-      if(colKey==='permit_issued'&&j.permit_number)h+='<div style="font-size:10px;color:#16a34a;margin-top:2px">🎫 '+_escapeHTML(j.permit_number)+(j.permit_fee?' · '+fm(j.permit_fee):'')+'</div>'
+      // Time-in-stage (amber if long) — not shown on issued
+      if(!s.allDone&&s.daysInStage!=null){
+        var tisColor=s.daysInStage>=_designStallDays?'#d97706':'#414e63'
+        h+='<div style="font-size:10px;color:'+tisColor+';margin-top:2px">⏱ '+s.daysInStage+'d in stage</div>'
+      }
+      // Days in city review (only relevant at/after submit)
+      if(!s.allDone&&s.daysInReview!=null&&(colKey==='city_approved'||colKey==='submit_city')){
+        h+='<div style="font-size:10px;color:#a78bfa;margin-top:2px">🏛 '+s.daysInReview+'d in review</div>'
+      }
+      if(colKey==='permit_issued'){
+        if(j.permit_number)h+='<div style="font-size:10px;color:#16a34a;margin-top:2px">🎫 '+_escapeHTML(j.permit_number)+(j.permit_fee?' · '+fm(j.permit_fee):'')+'</div>'
+        if(s.cycleDays!=null)h+='<div style="font-size:10px;color:#60a5fa;margin-top:2px">✓ '+s.cycleDays+'d total</div>'
+      }
       h+='</div>'
     })
     h+='</div>'
   })
   h+='</div></div>'
   el.innerHTML=h
+}
+function _designStat(label,val,color){
+  return '<div style="background:#0a1019;border-radius:9px;padding:11px 13px"><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.04em">'+label+'</div><div style="font-size:18px;font-weight:700;color:'+color+';margin-top:3px">'+val+'</div></div>'
 }
 function _designFollowCol(title,items,color){
   var h='<div><div style="font-size:11px;font-weight:600;color:'+color+';margin-bottom:6px">'+title+' ('+items.length+')</div>'
