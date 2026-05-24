@@ -2283,27 +2283,8 @@ function renderInfoTab(el,j){
   </div>
   <div class="sec-hdr" style="margin-top:14px">Budget Line Items &amp; Actuals</div>
   <div id="ed-budget-builder" style="background:#0a1019;border-radius:9px;padding:12px">Loading budget…</div>
-  <div class="sec-hdr" style="margin-top:14px">Permit Status</div>
-  <div class="two" style="margin-bottom:4px">
-    <div class="fg"><label class="fl">Permit Status</label>
-      <select class="fs" id="ed-permit-status">
-        <option value="not_required">Not Required</option>
-        <option value="needs_cads">Needs CADs</option>
-        <option value="needs_job_walk">Needs Job Walk</option>
-        <option value="pending">Pending</option>
-        <option value="submitted">Submitted</option>
-        <option value="otc">OTC (Over the Counter)</option>
-        <option value="approved">Approved</option>
-        <option value="issued">Issued</option>
-        <option value="rejected">Rejected</option>
-        <option value="failed">Failed</option>
-        <option value="expired">Expired</option>
-      </select>
-    </div>
-    <div class="fg"><label class="fl">Permit Number</label>
-      <input class="fi" id="ed-permit-number" placeholder="e.g. E-2024-001" value="\${j.permit_number||''}">
-    </div>
-  </div>
+  <div class="sec-hdr" style="margin-top:14px">Design &amp; Permitting</div>
+  <div id="ed-permit-summary" style="background:#0a1019;border-radius:9px;padding:12px">Loading…</div>
   \`
   setTimeout(async()=>{
     document.getElementById('ed-rad').value=j.gps_radius_ft||250
@@ -2349,8 +2330,8 @@ function renderInfoTab(el,j){
     })
     renderBudgetBuilder()
   },50)
-  var ps=document.getElementById('ed-permit-status')
-  if(ps)ps.value=j.permit_status||'not_required'
+  // Render the pipeline-driven Design & Permitting summary
+  renderInfoPermitSummary(j)
   // Populate account + GC contact dropdowns for the Info tab
   edLoadAccountDropdowns(j)
   // Register info-tab fields for unsaved-changes tracking
@@ -2556,8 +2537,6 @@ async function saveInfoTab(){
     ['ed-pm','project_manager','str'],
     ['ed-pmschedule','pm_visit_schedule','str'],
     ['ed-pmvisit','next_pm_visit','date'],
-    ['ed-permit-status','permit_status','str'],
-    ['ed-permit-number','permit_number','strOrNull'],
     ['ed-due','due_date','date'],
     ['ed-proj-start','projected_start','date'],
     ['ed-proj-close','projected_closeout','date'],
@@ -3110,6 +3089,72 @@ function buildPartsTable(parts){
 // ── JOB TASKS TAB ──────────────────────────────────────────────────────────
 // ── DESIGN & PERMITTING PIPELINE ───────────────────────────────────────────
 var PERMIT_PATHS={none:'Not Required',otc:'OTC — Permit, No Design',full:'Full Design + Permit'}
+// Derive a human-readable current status from the pipeline for the Info summary.
+async function renderInfoPermitSummary(j){
+  var box=document.getElementById('ed-permit-summary');if(!box)return
+  var jobId=j.id||currentJobId
+  try{
+    var jr=await sb.from('jobs').select('permit_path,permit_number,permit_expires_on').eq('id',jobId).single()
+    var job=jr.data||{}
+    var path=job.permit_path||null
+    if(!path){
+      box.innerHTML='<div style="font-size:12px;color:#8a96ab">Not yet triaged. <a onclick="loadJT(\\'jt-permit\\')" style="color:#60a5fa;cursor:pointer">Open Design &amp; Permitting →</a></div>'
+      return
+    }
+    if(path==='none'){
+      box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#16a34a;font-weight:600">✓ No design or permit required</span><button class="btn btn-sm" onclick="loadJT(\\'jt-permit\\')">Open Pipeline</button></div>'
+      return
+    }
+    // Load steps + walks to find the current status
+    var sr=await sb.from('job_permit_steps').select('step_key,step_label,status,sort_order').eq('job_id',jobId).order('sort_order')
+    var steps=sr.data||[]
+    var wr=await sb.from('job_walks').select('status').eq('job_id',jobId)
+    var walks=wr.data||[]
+    var walkComplete=walks.some(function(w){return w.status==='complete'})
+    var hasWalk=walks.length>0
+    var defs=permitStepsForPath(path)
+    // Determine effective done-ness per step (mirror pipeline logic)
+    function done(key,st){
+      if(key==='site_walk_complete')return walkComplete
+      if(key==='assign_site_walk')return hasWalk
+      return st&&st.status==='done'
+    }
+    var doneCount=0,currentLabel='Not started',allDone=true
+    for(var i=0;i<defs.length;i++){
+      var key=defs[i][0],label=defs[i][1]
+      var st=steps.find(function(s){return s.step_key===key})
+      if(done(key,st)){doneCount++}
+      else if(allDone){currentLabel=label;allDone=false}
+    }
+    var statusText,statusColor
+    if(allDone){statusText='Permit Issued ✓';statusColor='#16a34a'}
+    else{statusText='In progress — '+currentLabel;statusColor='#d97706'}
+    var pct=defs.length?Math.round(doneCount/defs.length*100):0
+    var h=''
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
+    h+='<div><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.05em">Status</div>'
+    h+='<div style="font-size:14px;font-weight:700;color:'+statusColor+'">'+statusText+'</div>'
+    h+='<div style="font-size:11px;color:#8a96ab;margin-top:1px">'+PERMIT_PATHS[path]+' · '+doneCount+'/'+defs.length+' steps</div></div>'
+    h+='<button class="btn btn-sm" onclick="loadJT(\\'jt-permit\\')">Open Pipeline</button>'
+    h+='</div>'
+    h+='<div style="height:6px;background:#0c1220;border-radius:3px;overflow:hidden;margin-bottom:10px"><div style="height:100%;width:'+pct+'%;background:'+(pct===100?'#16a34a':'#2563eb')+'"></div></div>'
+    // Permit number + expiration
+    h+='<div class="two">'
+    h+='<div><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.05em">Permit Number</div><div style="font-size:13px;font-weight:600">'+(job.permit_number?_escapeHTML(job.permit_number):'<span style="color:#414e63;font-weight:400">— not issued yet —</span>')+'</div></div>'
+    var expHtml='<span style="color:#414e63;font-weight:400">— none —</span>'
+    if(job.permit_expires_on){
+      var exp=new Date(job.permit_expires_on);exp.setHours(0,0,0,0)
+      var today=new Date();today.setHours(0,0,0,0)
+      var days=Math.round((exp-today)/(1000*3600*24))
+      var ec=days<0?'#dc2626':days<=30?'#d97706':'#e8edf5'
+      expHtml='<span style="color:'+ec+'">'+fd(job.permit_expires_on)+(days<0?' (expired)':days<=30?' ('+days+'d)':'')+'</span>'
+    }
+    h+='<div><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.05em">Expiration</div><div style="font-size:13px;font-weight:600">'+expHtml+'</div></div>'
+    h+='</div>'
+    box.innerHTML=h
+  }catch(e){box.innerHTML='<div style="font-size:12px;color:#8a96ab">Open the <a onclick="loadJT(\\'jt-permit\\')" style="color:#60a5fa;cursor:pointer">Design &amp; Permitting</a> tab to set this up.</div>'}
+}
+
 // Step definitions per path (key, label)
 var PERMIT_STEPS_FULL=[
   ['request_cads','Request CADs'],
@@ -3204,7 +3249,7 @@ async function renderPermitTab(el){
   function _stepDone(key){
     var st=steps.find(function(s){return s.step_key===key})
     if(key==='site_walk_complete')return _walkComplete
-    if(key==='assign_site_walk')return _hasWalk||(st&&st.status==='done')
+    if(key==='assign_site_walk')return _hasWalk
     return st&&st.status==='done'
   }
   var doneCount=defs.filter(function(d){return _stepDone(d[0])}).length
@@ -3223,9 +3268,10 @@ async function renderPermitTab(el){
     var key=def[0],label=def[1]
     var step=steps.find(function(s){return s.step_key===key})||{step_key:key,status:'not_started'}
     var isWalkStep=(key==='assign_site_walk'||key==='site_walk_complete')
-    // Effective status: walk steps reflect the real Job Walks data
+    // Walk steps reflect the real Job Walks data ONLY — never a stale stored status.
+    // (If all walks are deleted, these revert to not_started.)
     var effStatus=step.status
-    if(key==='assign_site_walk'&&hasWalk&&effStatus==='not_started')effStatus=walkComplete?'done':'in_progress'
+    if(key==='assign_site_walk')effStatus=walkComplete?'done':(hasWalk?'in_progress':'not_started')
     if(key==='site_walk_complete')effStatus=walkComplete?'done':(hasWalk?'in_progress':'not_started')
     var color=PERMIT_STEP_COLORS[effStatus]||'#414e63'
     var icon=effStatus==='done'?'✅':effStatus==='in_progress'?'🔄':effStatus==='blocked'?'⛔':effStatus==='na'?'➖':'⬜'
@@ -3283,13 +3329,10 @@ async function renderPermitTab(el){
 
 // Open the real Job Walks form (same one under the Job Walks tab) from the pipeline.
 // The walk is stored in job_walks, so it appears in the Job Walks tab AND the
-// pipeline's site-walk steps reflect its status automatically.
+// pipeline's site-walk steps reflect its status automatically. We do NOT store a
+// status on the step itself — it's derived live from the walks — so deleting all
+// walks correctly reverts the step to "not started".
 async function assignSiteWalkFromPipeline(){
-  try{
-    var steps=window._permitSteps||[]
-    var st=steps.find(function(s){return s.step_key==='assign_site_walk'})
-    if(st&&st.status==='not_started')await sb.from('job_permit_steps').update({status:'in_progress',updated_at:new Date().toISOString()}).eq('id',st.id)
-  }catch(e){}
   newWalkModal(currentJobId)
 }
 
