@@ -3168,6 +3168,10 @@ async function renderPermitTab(el){
     }
   }
   window._permitSteps=steps
+  // Load job walks so the site-walk pipeline steps can mirror the real Job Walks system
+  var walksRes=await sb.from('job_walks').select('id,walk_date,status,walked_by,assigned_name').eq('job_id',currentJobId).order('walk_date',{ascending:false})
+  var jobWalks=walksRes.data||[]
+  window._permitWalks=jobWalks
 
   var h='<div style="max-width:760px">'
 
@@ -3194,23 +3198,41 @@ async function renderPermitTab(el){
 
   // ── Progress roll-up ──
   var defs=permitStepsForPath(path)
-  var doneCount=steps.filter(function(s){return s.status==='done'}).length
+  var _walks=window._permitWalks||[]
+  var _walkComplete=_walks.some(function(w){return w.status==='complete'})
+  var _hasWalk=_walks.length>0
+  function _stepDone(key){
+    var st=steps.find(function(s){return s.step_key===key})
+    if(key==='site_walk_complete')return _walkComplete
+    if(key==='assign_site_walk')return _hasWalk||(st&&st.status==='done')
+    return st&&st.status==='done'
+  }
+  var doneCount=defs.filter(function(d){return _stepDone(d[0])}).length
   var total=defs.length
   var pct=total?Math.round(doneCount/total*100):0
   h+='<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-weight:600;font-size:13px">Pipeline Progress</span><span style="font-size:12px;color:'+(pct===100?'#16a34a':'#d97706')+';font-weight:700">'+doneCount+' / '+total+' steps</span></div>'
   h+='<div style="height:8px;background:#0c1220;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+(pct===100?'#16a34a':'#2563eb')+';transition:width .3s"></div></div></div>'
 
   // ── Steps ──
+  // Derive site-walk status from the real Job Walks system
+  var walks=window._permitWalks||[]
+  var hasWalk=walks.length>0
+  var walkComplete=walks.some(function(w){return w.status==='complete'})
   h+='<div class="card" style="margin-bottom:14px"><div class="card-title">Pipeline Steps</div>'
   defs.forEach(function(def,i){
     var key=def[0],label=def[1]
     var step=steps.find(function(s){return s.step_key===key})||{step_key:key,status:'not_started'}
-    var color=PERMIT_STEP_COLORS[step.status]||'#414e63'
-    var icon=step.status==='done'?'✅':step.status==='in_progress'?'🔄':step.status==='blocked'?'⛔':step.status==='na'?'➖':'⬜'
+    var isWalkStep=(key==='assign_site_walk'||key==='site_walk_complete')
+    // Effective status: walk steps reflect the real Job Walks data
+    var effStatus=step.status
+    if(key==='assign_site_walk'&&hasWalk&&effStatus==='not_started')effStatus=walkComplete?'done':'in_progress'
+    if(key==='site_walk_complete')effStatus=walkComplete?'done':(hasWalk?'in_progress':'not_started')
+    var color=PERMIT_STEP_COLORS[effStatus]||'#414e63'
+    var icon=effStatus==='done'?'✅':effStatus==='in_progress'?'🔄':effStatus==='blocked'?'⛔':effStatus==='na'?'➖':'⬜'
     h+='<div style="display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.05)">'
     h+='<span style="font-size:16px;flex-shrink:0;margin-top:1px">'+icon+'</span>'
     h+='<div style="flex:1;min-width:0">'
-    h+='<div style="font-size:13px;font-weight:600">'+label+' <span style="font-size:10px;color:'+color+';font-weight:600">· '+(PERMIT_STEP_STATUS[step.status]||step.status)+'</span></div>'
+    h+='<div style="font-size:13px;font-weight:600">'+label+' <span style="font-size:10px;color:'+color+';font-weight:600">· '+(PERMIT_STEP_STATUS[effStatus]||effStatus)+'</span></div>'
     var meta=[]
     if(step.assigned_name)meta.push('👤 '+step.assigned_name)
     if(step.external_party)meta.push('🏛 '+step.external_party)
@@ -3219,8 +3241,21 @@ async function renderPermitTab(el){
     if(meta.length)h+='<div style="font-size:10px;color:#414e63;margin-top:2px">'+meta.join(' · ')+'</div>'
     if(step.notes)h+='<div style="font-size:11px;color:#8a96ab;margin-top:3px">'+_escapeHTML(step.notes)+'</div>'
     if(step.doc_url)h+='<a href="'+step.doc_url+'" target="_blank" style="font-size:11px;color:#60a5fa;margin-top:3px;display:inline-block">📎 '+_escapeHTML(step.doc_name||'View document')+'</a>'
+    // For walk steps, show the linked walks inline (same data as Job Walks tab)
+    if(isWalkStep&&hasWalk){
+      walks.forEach(function(w){
+        h+='<div onclick="openJobWalk(\\''+w.id+'\\')" style="display:inline-flex;align-items:center;gap:6px;margin-top:5px;margin-right:6px;padding:3px 9px;background:#0c1220;border:1px solid rgba(255,255,255,.08);border-radius:6px;font-size:11px;cursor:pointer">🚶 '+fd(w.walk_date)+' · '+(w.assigned_name||w.walked_by||'—')+' <span style="color:'+(w.status==='complete'?'#16a34a':'#d97706')+'">'+w.status+'</span></div>'
+      })
+    }
     h+='</div>'
-    h+='<button class="btn btn-sm" onclick="editPermitStep(\\''+key+'\\',\\''+_escAttr(label)+'\\')" style="flex-shrink:0">Edit</button>'
+    // Action button: walk steps open the real Job Walks form; others use the generic editor
+    if(key==='assign_site_walk'){
+      h+='<button class="btn btn-sm btn-p" onclick="assignSiteWalkFromPipeline()" style="flex-shrink:0">'+(hasWalk?'+ Walk':'Assign Walk')+'</button>'
+    }else if(key==='site_walk_complete'){
+      h+='<button class="btn btn-sm" onclick="loadJT(\\'jt-walks\\')" style="flex-shrink:0">View Walks</button>'
+    }else{
+      h+='<button class="btn btn-sm" onclick="editPermitStep(\\''+key+'\\',\\''+_escAttr(label)+'\\')" style="flex-shrink:0">Edit</button>'
+    }
     h+='</div>'
   })
   h+='</div>'
@@ -3244,6 +3279,18 @@ async function renderPermitTab(el){
 
   h+='</div>'
   el.innerHTML=h
+}
+
+// Open the real Job Walks form (same one under the Job Walks tab) from the pipeline.
+// The walk is stored in job_walks, so it appears in the Job Walks tab AND the
+// pipeline's site-walk steps reflect its status automatically.
+async function assignSiteWalkFromPipeline(){
+  try{
+    var steps=window._permitSteps||[]
+    var st=steps.find(function(s){return s.step_key==='assign_site_walk'})
+    if(st&&st.status==='not_started')await sb.from('job_permit_steps').update({status:'in_progress',updated_at:new Date().toISOString()}).eq('id',st.id)
+  }catch(e){}
+  newWalkModal(currentJobId)
 }
 
 async function setPermitPath(path){
