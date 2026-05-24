@@ -5785,12 +5785,123 @@ function scanToCatalog(code){
 }
 
 // ══════════════════════════════════════════
+// STAGED PARTS — warehouse waiting list + pick sheets (Phase 2)
+// ══════════════════════════════════════════
+async function pgStagedParts(){
+  document.getElementById('page-title').textContent='Staged Parts'
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="pgStagedParts()">↻ Refresh</button>'
+  var el=document.getElementById('page-area')
+  el.innerHTML='<div style="padding:20px">'+ld()+'</div>'
+  // Gather all staged parts (waiting at a warehouse for pickup)
+  var pr=await sb.from('job_parts').select('id,job_id,part_name,part_id,barcode,assigned_qty,ordered_qty,warehouse_location,status,staged_at').eq('status','staged').order('warehouse_location')
+  var parts=pr.data||[]
+  if(!parts.length){el.innerHTML='<div style="padding:20px">'+empty('📦','No parts currently staged and waiting for pickup')+'</div>';return}
+  // Resolve job names
+  var jobIds=Array.from(new Set(parts.map(function(p){return p.job_id}).filter(Boolean)))
+  var jobsById={}
+  if(jobIds.length){
+    var jr=await sb.from('jobs').select('id,name,job_number').in('id',jobIds)
+    ;(jr.data||[]).forEach(function(j){jobsById[j.id]=j})
+  }
+  // Group: warehouse → job → parts
+  var byWh={}
+  parts.forEach(function(p){
+    var wh=p.warehouse_location||'Unassigned'
+    byWh[wh]=byWh[wh]||{}
+    byWh[wh][p.job_id]=byWh[wh][p.job_id]||[]
+    byWh[wh][p.job_id].push(p)
+  })
+  window._stagedPartsCache=parts
+  window._stagedJobsById=jobsById
+  var whOrder=['Gilbert','Phoenix','Unassigned']
+  var whNames=Object.keys(byWh).sort(function(a,b){return whOrder.indexOf(a)-whOrder.indexOf(b)})
+  var h='<div style="padding:16px 20px;max-width:1000px;margin:0 auto">'
+  h+='<div style="font-size:13px;color:#8a96ab;margin-bottom:16px">Jobs with parts staged and waiting for pickup, grouped by warehouse. Print a pick sheet for the crew picking up.</div>'
+  whNames.forEach(function(wh){
+    var whColor=wh==='Gilbert'?'#60a5fa':wh==='Phoenix'?'#a78bfa':'#8a96ab'
+    var jobsInWh=byWh[wh]
+    var jobCount=Object.keys(jobsInWh).length
+    h+='<div style="margin-bottom:22px">'
+    h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="width:12px;height:12px;border-radius:3px;background:'+whColor+'"></span>'
+    h+='<span style="font-size:16px;font-weight:700">📍 '+wh+'</span><span style="font-size:12px;color:#414e63">'+jobCount+' job'+(jobCount!==1?'s':'')+' waiting</span></div>'
+    Object.keys(jobsInWh).forEach(function(jid){
+      var job=jobsById[jid]||{name:'Unknown job',job_number:''}
+      var jparts=jobsInWh[jid]
+      var totalQty=jparts_total(jparts)
+      h+='<div class="card" style="margin-bottom:10px">'
+      h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
+      h+='<div><div style="font-size:15px;font-weight:700">'+_escapeHTML(job.name)+'</div>'
+      h+='<div style="font-size:11px;color:#414e63">'+(job.job_number?'Job #'+job.job_number+' · ':'')+jparts.length+' line items · '+totalQty+' total units</div></div>'
+      h+='<button class="btn btn-sm btn-p" data-jid="'+jid+'" data-wh="'+_escAttr(wh)+'" onclick="generatePickSheet(this.dataset.jid,this.dataset.wh)">🖨 Pick Sheet</button>'
+      h+='</div>'
+      h+='<table class="tbl" style="font-size:12px"><thead><tr><th>Part</th><th>Part #</th><th style="text-align:right">Qty</th></tr></thead><tbody>'
+      jparts.forEach(function(p){
+        h+='<tr><td>'+_escapeHTML(p.part_name||'')+'</td><td style="color:#8a96ab;font-size:11px">'+(p.part_id||p.barcode||'—')+'</td><td style="text-align:right;font-weight:600">'+(p.assigned_qty||0)+'</td></tr>'
+      })
+      h+='</tbody></table>'
+      h+='</div>'
+    })
+    h+='</div>'
+  })
+  h+='</div>'
+  el.innerHTML=h
+}
+function jparts_total(arr){return arr.reduce(function(s,p){return s+(Number(p.assigned_qty)||0)},0)}
+
+// Printable pick sheet — large Job ID, parts, quantities, part numbers, signature/date.
+async function generatePickSheet(jobId,warehouse){
+  var parts=(window._stagedPartsCache||[]).filter(function(p){return p.job_id===jobId&&(!warehouse||p.warehouse_location===warehouse||warehouse==='Unassigned'&&!p.warehouse_location)})
+  var job=(window._stagedJobsById||{})[jobId]
+  if(!job){
+    var jr=await sb.from('jobs').select('id,name,job_number').eq('id',jobId).single();job=jr.data||{name:'',job_number:''}
+  }
+  if(!parts.length){
+    var pr=await sb.from('job_parts').select('*').eq('job_id',jobId).eq('status','staged');parts=pr.data||[]
+    if(warehouse&&warehouse!=='Unassigned')parts=parts.filter(function(p){return p.warehouse_location===warehouse})
+  }
+  var coR=await sb.from('company_settings').select('*').limit(1).maybeSingle().catch(function(){return{data:{}}})
+  var company=(coR&&coR.data)||{}
+  var bigId=job.job_number||job.name||jobId.slice(0,8)
+  var h=_docCompanyHeader(company)
+  h+='<div style="text-align:center;margin-bottom:18px">'
+  h+='<div style="font-size:13px;color:#888;text-transform:uppercase;letter-spacing:.1em">Parts Pick Sheet</div>'
+  h+='<div style="font-size:46px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin:6px 0">'+_escapeHTML(String(bigId))+'</div>'
+  h+='<div style="font-size:16px;color:#333">'+_escapeHTML(job.name||'')+'</div>'
+  h+='<div style="font-size:13px;color:#666;margin-top:4px">📍 Warehouse: <strong>'+_escapeHTML(warehouse||'—')+'</strong> · '+fd(new Date().toISOString())+'</div>'
+  h+='</div>'
+  // Parts table
+  h+='<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px"><thead><tr style="border-bottom:2px solid #111">'
+  h+='<th style="text-align:left;padding:9px 6px;width:40px">✓</th>'
+  h+='<th style="text-align:left;padding:9px 6px">Part Name</th>'
+  h+='<th style="text-align:left;padding:9px 6px;width:140px">Part # / UPC</th>'
+  h+='<th style="text-align:right;padding:9px 6px;width:70px">Qty</th></tr></thead><tbody>'
+  var total=0
+  parts.forEach(function(p){
+    total+=Number(p.assigned_qty)||0
+    h+='<tr style="border-bottom:1px solid #ddd">'
+    h+='<td style="padding:11px 6px"><div style="width:18px;height:18px;border:1.5px solid #333;border-radius:3px"></div></td>'
+    h+='<td style="padding:11px 6px;font-weight:500">'+_escapeHTML(p.part_name||'')+'</td>'
+    h+='<td style="padding:11px 6px;color:#555;font-family:monospace;font-size:12px">'+(p.part_id||p.barcode||'—')+'</td>'
+    h+='<td style="padding:11px 6px;text-align:right;font-size:16px;font-weight:700">'+(p.assigned_qty||0)+'</td></tr>'
+  })
+  h+='</tbody><tfoot><tr style="border-top:2px solid #111"><td colspan="3" style="padding:9px 6px;text-align:right;font-weight:700">TOTAL UNITS</td><td style="padding:9px 6px;text-align:right;font-weight:800;font-size:16px">'+total+'</td></tr></tfoot></table>'
+  // Signature block
+  h+='<div style="margin-top:50px;display:grid;grid-template-columns:1fr 1fr;gap:40px">'
+  h+='<div><div style="border-bottom:1px solid #111;height:44px"></div><div style="font-size:12px;color:#666;margin-top:4px">Picked up by (print &amp; sign)</div></div>'
+  h+='<div><div style="border-bottom:1px solid #111;height:44px"></div><div style="font-size:12px;color:#666;margin-top:4px">Date</div></div>'
+  h+='</div>'
+  h+='<div style="margin-top:24px;font-size:11px;color:#999;text-align:center">All parts verified present and correct at pickup. Retain for records.</div>'
+  openPrintDoc('Pick Sheet — '+bigId,h,'PickSheet_'+(job.job_number||jobId)+'_'+(warehouse||''))
+}
+
+// ══════════════════════════════════════════
 async function pgCatalog(){
   document.getElementById('topbar-actions').innerHTML=\`
     <label class="btn btn-sm" style="cursor:pointer">⬆ Import<input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importCatalogCSV(this)"></label>
     <button class="btn btn-sm" onclick="exportCatalogCSV()">⬇ Export CSV</button>
     <button class="btn btn-sm btn-ghost" onclick="downloadCatalogTemplate()">📋 Template</button>
     <button class="btn btn-sm" onclick="startScanToCatalog()">📷 Scan to Add</button>
+    <button class="btn btn-sm btn-b" onclick="pgStagedParts()">📦 Staged Parts</button>
     <button class="btn btn-p btn-sm" onclick="addCatalogModal()">+ Add Part</button>\`
   const{data:cat}=await sb.from('catalog').select('*').order('name')
   allCatalog=cat||[]
@@ -12203,14 +12314,15 @@ async function renderPartsTab(el){
     if(isAdmin)h+='<button class="btn btn-sm btn-p" style="margin-left:auto" onclick="stageAllOrdered()">Stage All</button>'
     h+='</div>'
     h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0 10px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:6px">'
-    h+='<span style="font-size:11px;color:#8a96ab">Stage into warehouse:</span>'
-    h+='<select class="fs" id="stage-warehouse" style="width:auto;padding:5px 10px;font-size:12px"><option value="Gilbert">Gilbert</option><option value="Phoenix">Phoenix</option></select>'
+    h+='<span style="font-size:11px;color:#8a96ab">Default warehouse for "Stage All":</span>'
+    h+='<select class="fs" id="stage-warehouse" style="width:auto;padding:5px 10px;font-size:12px" onchange="syncRowWarehouses(this.value)"><option value="Gilbert">Gilbert</option><option value="Phoenix">Phoenix</option></select>'
     h+='</div>'
     ordered.forEach(function(p){
       h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
       h+='<div style="flex:1"><div style="font-size:13px;font-weight:500">'+p.part_name+'</div>'
       h+='<div style="font-size:10px;color:#414e63">Ordered: '+(p.ordered_qty||p.assigned_qty||0)+'</div></div>'
       h+='<div style="display:flex;align-items:center;gap:5px">'
+      h+='<select class="fs rowwh" id="whq-'+p.id+'" style="width:auto;padding:4px 8px;font-size:11px" title="Warehouse for this part"><option value="Gilbert">Gilbert</option><option value="Phoenix">Phoenix</option></select>'
       h+='<button class="btn btn-sm" data-pid="'+p.id+'" onclick="adjustStageQty(this,-1)">−</button>'
       h+='<input class="fi" type="number" id="stq-'+p.id+'" value="'+(p.ordered_qty||p.assigned_qty||0)+'" min="0" style="width:55px;text-align:center;padding:4px">'
       h+='<button class="btn btn-sm" data-pid="'+p.id+'" onclick="adjustStageQty(this,1)">+</button>'
@@ -12317,6 +12429,10 @@ function adjustCheckQty(btn,delta){
   if(!inp)return
   inp.value=Math.max(0,(parseInt(inp.value)||0)+delta)
 }
+// When the default warehouse changes, set all per-row dropdowns to match (convenience).
+function syncRowWarehouses(val){
+  document.querySelectorAll('.rowwh').forEach(function(s){s.value=val})
+}
 // Move a staged part between Gilbert and Phoenix.
 async function transferWarehouse(btn){
   var id=btn.getAttribute('data-pid')
@@ -12337,8 +12453,9 @@ async function stageOneIn(btn){
   var inp=document.getElementById('stq-'+id)
   var qty=inp?parseInt(inp.value)||0:0
   if(!qty){toast('Quantity must be > 0','error');return}
+  var rowWh=document.getElementById('whq-'+id)
   var whEl=document.getElementById('stage-warehouse')
-  var warehouse=whEl?whEl.value:'Gilbert'
+  var warehouse=(rowWh&&rowWh.value)||(whEl&&whEl.value)||'Gilbert'
   var parts=window._currentJobParts||[]
   var p=parts.find(function(x){return x.id===id})
   if(!p)return
@@ -12377,9 +12494,11 @@ async function stageAllOrdered(){
   for(var i=0;i<ordered.length;i++){
     var p=ordered[i]
     var qty=p.ordered_qty||p.assigned_qty||0
-    var res=await sb.from('job_parts').update({status:'staged',assigned_qty:qty,warehouse_location:warehouse,staged_by:(typeof ME!=='undefined'?ME.full_name||'':''),staged_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',p.id)
+    var rowWh=document.getElementById('whq-'+p.id)
+    var partWh=(rowWh&&rowWh.value)||warehouse
+    var res=await sb.from('job_parts').update({status:'staged',assigned_qty:qty,warehouse_location:partWh,staged_by:(typeof ME!=='undefined'?ME.full_name||'':''),staged_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',p.id)
     if(res.error)errors++
-    else{try{await sb.from('part_movements').insert({id:uuid(),job_part_id:p.id,job_id:currentJobId,part_name:p.part_name,movement_type:'stage',qty:qty,to_location:warehouse,performed_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString()})}catch(e){}}
+    else{try{await sb.from('part_movements').insert({id:uuid(),job_part_id:p.id,job_id:currentJobId,part_name:p.part_name,movement_type:'stage',qty:qty,to_location:partWh,performed_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString()})}catch(e){}}
   }
   if(!errors){
     await sb.from('jobs').update({staging_status:'complete',updated_at:new Date().toISOString()}).eq('id',currentJobId)
