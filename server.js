@@ -12202,6 +12202,10 @@ async function renderPartsTab(el){
     h+='<div class="card"><div class="card-title">📦 Ordered — Stage These In ('+ordered.length+' items)'
     if(isAdmin)h+='<button class="btn btn-sm btn-p" style="margin-left:auto" onclick="stageAllOrdered()">Stage All</button>'
     h+='</div>'
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0 10px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:6px">'
+    h+='<span style="font-size:11px;color:#8a96ab">Stage into warehouse:</span>'
+    h+='<select class="fs" id="stage-warehouse" style="width:auto;padding:5px 10px;font-size:12px"><option value="Gilbert">Gilbert</option><option value="Phoenix">Phoenix</option></select>'
+    h+='</div>'
     ordered.forEach(function(p){
       h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
       h+='<div style="flex:1"><div style="font-size:13px;font-weight:500">'+p.part_name+'</div>'
@@ -12222,10 +12226,13 @@ async function renderPartsTab(el){
     if(isAdmin)h+='<button class="btn btn-sm btn-p" style="margin-left:auto" onclick="checkOutAllStaged()">Check Out All</button>'
     h+='</div>'
     staged.forEach(function(p){
+      var loc=p.warehouse_location||'—'
+      var locColor=p.warehouse_location==='Gilbert'?'#60a5fa':p.warehouse_location==='Phoenix'?'#a78bfa':'#414e63'
       h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
       h+='<div style="flex:1"><div style="font-size:13px;font-weight:500">'+p.part_name+'</div>'
-      h+='<div style="font-size:10px;color:#414e63">Staged qty: '+(p.assigned_qty||0)+'</div></div>'
+      h+='<div style="font-size:10px;color:#414e63">Staged qty: '+(p.assigned_qty||0)+' · <span style="color:'+locColor+'">📍 '+loc+'</span></div></div>'
       h+='<div style="display:flex;align-items:center;gap:5px">'
+      h+='<button class="btn btn-sm" data-pid="'+p.id+'" data-pname="'+_escAttr(p.part_name||'')+'" data-loc="'+(p.warehouse_location||'')+'" onclick="transferWarehouse(this)" title="Move to other warehouse">↔ WH</button>'
       h+='<button class="btn btn-sm" data-pid="'+p.id+'" onclick="adjustCheckQty(this,-1)">−</button>'
       h+='<input class="fi" type="number" id="ckq-'+p.id+'" value="'+(p.assigned_qty||0)+'" min="0" style="width:55px;text-align:center;padding:4px">'
       h+='<button class="btn btn-sm" data-pid="'+p.id+'" onclick="adjustCheckQty(this,1)">+</button>'
@@ -12310,6 +12317,19 @@ function adjustCheckQty(btn,delta){
   if(!inp)return
   inp.value=Math.max(0,(parseInt(inp.value)||0)+delta)
 }
+// Move a staged part between Gilbert and Phoenix.
+async function transferWarehouse(btn){
+  var id=btn.getAttribute('data-pid')
+  var name=btn.getAttribute('data-pname')||'part'
+  var fromLoc=btn.getAttribute('data-loc')||''
+  var toLoc=fromLoc==='Gilbert'?'Phoenix':'Gilbert'
+  if(!confirm('Move "'+name+'" from '+(fromLoc||'(unset)')+' to '+toLoc+'?'))return
+  var res=await sb.from('job_parts').update({warehouse_location:toLoc,updated_at:new Date().toISOString()}).eq('id',id)
+  if(res.error){toast(res.error.message,'error');return}
+  try{await sb.from('part_movements').insert({id:uuid(),job_part_id:id,job_id:currentJobId,part_name:name,movement_type:'transfer',from_location:fromLoc||null,to_location:toLoc,performed_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString()})}catch(e){}
+  toast('Moved '+name+' to '+toLoc)
+  loadJT('jt-parts')
+}
 
 async function stageOneIn(btn){
   var id=btn.getAttribute('data-pid')
@@ -12317,18 +12337,22 @@ async function stageOneIn(btn){
   var inp=document.getElementById('stq-'+id)
   var qty=inp?parseInt(inp.value)||0:0
   if(!qty){toast('Quantity must be > 0','error');return}
+  var whEl=document.getElementById('stage-warehouse')
+  var warehouse=whEl?whEl.value:'Gilbert'
   var parts=window._currentJobParts||[]
   var p=parts.find(function(x){return x.id===id})
   if(!p)return
   var orderedQty=p.ordered_qty||p.assigned_qty||0
   var extra=qty-orderedQty
-  var res=await sb.from('job_parts').update({status:'staged',assigned_qty:qty,staged_by:(typeof ME!=='undefined'?ME.full_name||'':''),staged_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id)
+  var res=await sb.from('job_parts').update({status:'staged',assigned_qty:qty,warehouse_location:warehouse,staged_by:(typeof ME!=='undefined'?ME.full_name||'':''),staged_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id)
   if(res.error){toast(res.error.message,'error');return}
+  // Audit movement
+  try{await sb.from('part_movements').insert({id:uuid(),job_part_id:id,job_id:currentJobId,part_name:name,movement_type:'stage',qty:qty,to_location:warehouse,performed_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString()})}catch(e){}
   if(extra>0){
     toast('⚠ Alert: '+extra+' extra '+name+' staged beyond ordered qty!','warn')
     setTimeout(function(){toast('⚠ Extra Parts: '+extra+' extra '+name+' staged beyond ordered qty of '+orderedQty,'warn')},200)
   }else{
-    toast('✓ Staged: '+name+' (×'+qty+')')
+    toast('✓ Staged: '+name+' (×'+qty+') at '+warehouse)
   }
   // Check if all parts are now staged
   var updatedParts=await sb.from('job_parts').select('status').eq('job_id',currentJobId)
@@ -12346,16 +12370,20 @@ async function stageAllOrdered(){
   var parts=window._currentJobParts||[]
   var ordered=parts.filter(function(p){return p.status==='ordered'||p.status==='pending'||!p.status})
   if(!ordered.length){toast('No ordered parts to stage','warn');return}
-  if(!confirm('Stage in all '+ordered.length+' ordered items at their ordered quantities?'))return
+  var whEl=document.getElementById('stage-warehouse')
+  var warehouse=whEl?whEl.value:'Gilbert'
+  if(!confirm('Stage in all '+ordered.length+' ordered items at their ordered quantities, into '+warehouse+'?'))return
   var errors=0
   for(var i=0;i<ordered.length;i++){
     var p=ordered[i]
-    var res=await sb.from('job_parts').update({status:'staged',assigned_qty:p.ordered_qty||p.assigned_qty||0,staged_by:(typeof ME!=='undefined'?ME.full_name||'':''),staged_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',p.id)
+    var qty=p.ordered_qty||p.assigned_qty||0
+    var res=await sb.from('job_parts').update({status:'staged',assigned_qty:qty,warehouse_location:warehouse,staged_by:(typeof ME!=='undefined'?ME.full_name||'':''),staged_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',p.id)
     if(res.error)errors++
+    else{try{await sb.from('part_movements').insert({id:uuid(),job_part_id:p.id,job_id:currentJobId,part_name:p.part_name,movement_type:'stage',qty:qty,to_location:warehouse,performed_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString()})}catch(e){}}
   }
   if(!errors){
     await sb.from('jobs').update({staging_status:'complete',updated_at:new Date().toISOString()}).eq('id',currentJobId)
-    toast('🎉 All parts staged complete!')
+    toast('🎉 All parts staged complete at '+warehouse+'!')
   }else{
     toast('Staged with '+errors+' errors','warn')
   }
