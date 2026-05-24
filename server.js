@@ -1387,6 +1387,8 @@ async function pgJobs(){
     const{data:jobs,error}=await sb.from('jobs').select('*').order('created_at',{ascending:false})
     if(error) throw error
     allJobs=jobs||[]
+    // Batch-load permit steps + walks once, build per-job derived status map
+    await buildPermitStatusMap(allJobs)
     renderJobsTable('')
   } catch(e) {
     const errMsg=e.message||String(e)
@@ -1395,6 +1397,52 @@ async function pgJobs(){
 }
 
 // ── JOB STATUS HELPERS ────────────────────────────────────────
+// Builds a per-job permit/design status from the pipeline (batched, one pass).
+async function buildPermitStatusMap(jobs){
+  window._permitStatusMap={}
+  var ids=(jobs||[]).map(function(j){return j.id})
+  if(!ids.length)return
+  var allSteps=[],allWalks=[]
+  // Batch in chunks to stay within query limits
+  for(var i=0;i<ids.length;i+=200){
+    var batch=ids.slice(i,i+200)
+    try{var sr=await sb.from('job_permit_steps').select('job_id,step_key,status').in('job_id',batch);allSteps=allSteps.concat(sr.data||[])}catch(e){}
+    try{var wr=await sb.from('job_walks').select('job_id,status').in('job_id',batch);allWalks=allWalks.concat(wr.data||[])}catch(e){}
+  }
+  var stepsByJob={},walksByJob={}
+  allSteps.forEach(function(s){(stepsByJob[s.job_id]=stepsByJob[s.job_id]||[]).push(s)})
+  allWalks.forEach(function(w){(walksByJob[w.job_id]=walksByJob[w.job_id]||[]).push(w)})
+  ;(jobs||[]).forEach(function(j){
+    var path=j.permit_path||null
+    if(!path){window._permitStatusMap[j.id]={label:'Not Triaged',color:'bg-gray'};return}
+    if(path==='none'){window._permitStatusMap[j.id]={label:'Not Required',color:'bg-gray'};return}
+    var steps=stepsByJob[j.id]||[]
+    var walks=walksByJob[j.id]||[]
+    var walkComplete=walks.some(function(w){return w.status==='complete'})
+    var hasWalk=walks.length>0
+    var defs=permitStepsForPath(path)
+    function done(key,st){
+      if(key==='site_walk_complete')return walkComplete
+      if(key==='assign_site_walk')return hasWalk
+      return st&&st.status==='done'
+    }
+    var doneCount=0,currentLabel='Not started',allDone=true
+    for(var k=0;k<defs.length;k++){
+      var key=defs[k][0],label=defs[k][1]
+      var st=steps.find(function(s){return s.step_key===key})
+      if(done(key,st))doneCount++
+      else if(allDone){currentLabel=label;allDone=false}
+    }
+    if(allDone)window._permitStatusMap[j.id]={label:'Issued ✓',color:'bg-green'}
+    else window._permitStatusMap[j.id]={label:currentLabel,color:'bg-amber'}
+  })
+}
+function permitDerivedBadge(jobId){
+  var m=(window._permitStatusMap||{})[jobId]
+  if(!m)return '<span class="badge bg-gray">—</span>'
+  return '<span class="badge '+m.color+'" style="font-size:10px">'+_escapeHTML(m.label)+'</span>'
+}
+
 // Returns parts status badge for a job based on cached job_parts data
 // We store a snapshot on the job object itself for fast table rendering
 function jobPartsStatus(j){
@@ -1640,7 +1688,7 @@ function renderJobsTable(q){
       <td style="font-size:11px;color:#8a96ab;white-space:nowrap">\${j.job_number||'\u2014'}</td>
       <td>\${stageBadge(j.phase)}</td>
       <td>\${ps.badge}</td>
-      <td><span class="badge \${PERMIT_STATUS_COLORS[permit]||'bg-gray'}">\${PERMIT_STATUS_LABELS[permit]||permit}</span></td>
+      <td>\${permitDerivedBadge(j.id)}</td>
       <td style="font-size:12px">\${j.project_manager||'—'}</td>
       <td style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">\${j.due_date?fd(j.due_date):'—'}</td>
       <td><div style="display:flex;align-items:center;gap:5px"><div class="pbar"><div class="pb" style="width:\${j.pct_complete||0}%"></div></div><span style="font-size:10px">\${j.pct_complete||0}%</span></div></td>
