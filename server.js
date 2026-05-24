@@ -3151,7 +3151,7 @@ async function renderInfoPermitSummary(j){
   var box=document.getElementById('ed-permit-summary');if(!box)return
   var jobId=j.id||currentJobId
   try{
-    var jr=await sb.from('jobs').select('permit_path,permit_number,permit_expires_on').eq('id',jobId).single()
+    var jr=await sb.from('jobs').select('permit_path,permit_number,permit_expires_on,permit_fee').eq('id',jobId).single()
     var job=jr.data||{}
     var path=job.permit_path||null
     if(!path){
@@ -3236,7 +3236,7 @@ var PERMIT_STEP_COLORS={not_started:'#414e63',in_progress:'#d97706',done:'#16a34
 
 async function renderPermitTab(el){
   el.innerHTML='<div style="padding:14px">'+ld()+'</div>'
-  var jr=await sb.from('jobs').select('id,name,permit_path,permit_status,permit_number,permit_expires_on,date_permit,permit_triaged_by,permit_triaged_at').eq('id',currentJobId).single()
+  var jr=await sb.from('jobs').select('id,name,permit_path,permit_status,permit_number,permit_expires_on,permit_fee,date_permit,permit_triaged_by,permit_triaged_at').eq('id',currentJobId).single()
   var job=jr.data||{}
   window._permitJob=job
   var path=job.permit_path||null
@@ -3276,6 +3276,44 @@ async function renderPermitTab(el){
   window._permitWalks=jobWalks
 
   var h='<div style="max-width:760px">'
+  // ── Sub-job (multi-building) permit roll-up ──
+  var kids=[]
+  try{var kr=await sb.from('jobs').select('id,name,job_number,permit_path,permit_number,permit_expires_on,permit_fee').eq('parent_job_id',currentJobId).eq('archived',false).order('created_at');kids=kr.data||[]}catch(e){}
+  if(kids.length){
+    // Gather each kid's pipeline status
+    var kidIds=kids.map(function(k){return k.id})
+    var kStepsRes=await sb.from('job_permit_steps').select('job_id,step_key,status').in('job_id',kidIds)
+    var kWalksRes=await sb.from('job_walks').select('job_id,status').in('job_id',kidIds)
+    var kSteps={},kWalks={}
+    ;(kStepsRes.data||[]).forEach(function(s){(kSteps[s.job_id]=kSteps[s.job_id]||[]).push(s)})
+    ;(kWalksRes.data||[]).forEach(function(w){(kWalks[w.job_id]=kWalks[w.job_id]||[]).push(w)})
+    var feeTotal=0
+    h+='<div class="card" style="margin-bottom:14px;border:1px solid rgba(96,165,250,.25)"><div class="card-title" style="color:#60a5fa">📂 Building Permits Roll-Up ('+kids.length+')</div>'
+    h+='<div style="font-size:11px;color:#8a96ab;margin-bottom:10px">Each building is a sub-job with its own pipeline. Click to open.</div>'
+    h+='<table class="tbl" style="font-size:12px"><thead><tr><th>Building</th><th>Status</th><th>Permit #</th><th>Expires</th><th style="text-align:right">Fee</th></tr></thead><tbody>'
+    kids.forEach(function(k){
+      feeTotal+=Number(k.permit_fee)||0
+      var path=k.permit_path
+      var statusLabel='Not triaged',statusColor='#414e63'
+      if(path==='none'){statusLabel='Not required';statusColor='#8a96ab'}
+      else if(path){
+        var st=kSteps[k.id]||[],wk=kWalks[k.id]||[]
+        var wc=wk.some(function(w){return w.status==='complete'}),hw=wk.length>0
+        var defs=permitStepsForPath(path)
+        function kdone(key,s){if(key==='site_walk_complete')return wc;if(key==='assign_site_walk')return hw;return s&&s.status==='done'}
+        var allDone=true,cur='Issued'
+        for(var i=0;i<defs.length;i++){var s=st.find(function(x){return x.step_key===defs[i][0]});if(!kdone(defs[i][0],s)&&allDone){cur=defs[i][1];allDone=false}}
+        statusLabel=allDone?'Issued ✓':cur;statusColor=allDone?'#16a34a':'#d97706'
+      }
+      h+='<tr style="cursor:pointer" onclick="openJob(\\''+k.id+'\\')"><td>'+_escapeHTML(k.name)+'</td>'
+      h+='<td><span style="color:'+statusColor+';font-weight:600">'+statusLabel+'</span></td>'
+      h+='<td style="color:#8a96ab">'+(k.permit_number||'—')+'</td>'
+      h+='<td style="color:#8a96ab">'+(k.permit_expires_on?fd(k.permit_expires_on):'—')+'</td>'
+      h+='<td style="text-align:right">'+(k.permit_fee?fm(k.permit_fee):'—')+'</td></tr>'
+    })
+    h+='</tbody><tfoot><tr style="border-top:2px solid rgba(255,255,255,.1)"><td colspan="4" style="text-align:right;font-weight:700;padding-top:6px">Total Permit Fees</td><td style="text-align:right;font-weight:800;padding-top:6px">'+fm(feeTotal)+'</td></tr></tfoot></table>'
+    h+='</div>'
+  }
 
   // ── Triage ──
   h+='<div class="card" style="margin-bottom:14px"><div class="card-title">Triage — Does this job need design or a permit?</div>'
@@ -3369,7 +3407,7 @@ async function renderPermitTab(el){
   h+='<div class="fg"><label class="fl">Permit Number</label><input class="fi" id="pmt-number" value="'+_escAttr(job.permit_number||'')+'" placeholder="e.g. E-2024-001"></div>'
   h+='<div class="fg"><label class="fl">Expiration Date</label><input class="fi" type="date" id="pmt-expires" value="'+(job.permit_expires_on||'')+'"></div>'
   h+='</div>'
-  h+='<div class="fg"><label class="fl">Permit Fee <span style="color:#414e63;font-weight:400;font-size:10px">(actual cost — adds a "Permit Fee Paid" line to the job budget)</span></label><input class="fi" type="number" step="0.01" id="pmt-fee" value="'+(job.permit_fee!=null?job.permit_fee:'')+'" placeholder="0.00"></div>'
+  h+='<div class="fg"><label class="fl">Permit Fee <span style="color:#414e63;font-weight:400;font-size:10px">(actual cost — adds a "Permit Fee Paid" line to the job budget)</span></label><div style="display:flex;gap:8px;align-items:center"><input class="fi" type="number" step="0.01" id="pmt-fee" value="'+(job.permit_fee!=null?job.permit_fee:'')+'" placeholder="0.00" style="flex:1">'+(job.permit_fee!=null&&job.permit_fee!==''?'<button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="clearPermitFee()">Clear</button>':'')+'</div></div>'
   // Expiration alert
   if(job.permit_expires_on){
     var exp=new Date(job.permit_expires_on);exp.setHours(0,0,0,0)
@@ -3525,8 +3563,18 @@ async function savePermitDetails(){
       else toast('Permit details saved ✓ · Fee added to budget')
     }catch(e){toast('Permit saved, but budget line failed: '+(e.message||e),'warn');console.error('[permit fee budget line]',e)}
   }else{
+    // Fee cleared or zero — remove any existing Permit Fee Paid budget line
+    try{await sb.from('job_budget_lines').delete().eq('job_id',currentJobId).eq('description','Permit Fee Paid')}catch(e){}
     toast('Permit details saved ✓')
   }
+  loadJT('jt-permit')
+}
+// Clear the permit fee and its budget line.
+async function clearPermitFee(){
+  if(!confirm('Clear the permit fee and remove its budget line?'))return
+  await sb.from('jobs').update({permit_fee:null,updated_at:new Date().toISOString()}).eq('id',currentJobId)
+  try{await sb.from('job_budget_lines').delete().eq('job_id',currentJobId).eq('description','Permit Fee Paid')}catch(e){}
+  toast('Permit fee cleared')
   loadJT('jt-permit')
 }
 
@@ -5016,8 +5064,11 @@ async function pgDesign(){
   el.innerHTML='<div style="padding:20px">'+ld()+'</div>'
 
   // Gather all non-archived jobs that have a permit path set (in the pipeline)
-  var jr=await sb.from('jobs').select('id,name,job_number,permit_path,permit_number,permit_expires_on,permit_fee,submitted_to_city_date,project_manager,archived').eq('archived',false)
+  var jr=await sb.from('jobs').select('id,name,job_number,permit_path,permit_number,permit_expires_on,permit_fee,submitted_to_city_date,project_manager,parent_job_id,archived').eq('archived',false)
   var jobs=(jr.data||[]).filter(function(j){return j.permit_path&&j.permit_path!=='none'})
+  // Parent-name lookup so sub-job cards can show which complex they belong to
+  var _allJobsById={};(jr.data||[]).forEach(function(j){_allJobsById[j.id]=j})
+  window._designParentName=function(pid){return pid&&_allJobsById[pid]?_allJobsById[pid].name:null}
   // Apply expiration-window filter
   var _allPipelineCount=jobs.length
   if(_designExpWindow!=='all'){
@@ -5180,6 +5231,8 @@ async function pgDesign(){
       var st=s.steps.find(function(x){return x.step_key===s.currentKey})
       h+='<div onclick="designOpenJob(\\''+j.id+'\\')" style="background:#0c1424;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:9px 10px;margin-bottom:7px;cursor:pointer">'
       h+='<div style="font-size:12px;font-weight:600;line-height:1.2">'+_escapeHTML(j.name)+'</div>'
+      var _pn=window._designParentName?window._designParentName(j.parent_job_id):null
+      if(_pn)h+='<div style="font-size:9px;color:#60a5fa">📂 '+_escapeHTML(_pn)+'</div>'
       if(j.job_number)h+='<div style="font-size:10px;color:#414e63">#'+_escapeHTML(j.job_number)+'</div>'
       var meta=[]
       if(st&&st.assigned_name)meta.push('👤 '+st.assigned_name)
