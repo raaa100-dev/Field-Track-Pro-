@@ -4755,7 +4755,7 @@ async function renderJobFinTab(el){
   if(hrsEl)hrsEl.textContent=fh(hrs)+' hrs on site'
   const j=currentJob
   const labor=hrs*(j.labor_rate||0)
-  const totalCost=labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0)
+  const totalCost=labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0)+(j.permit_fee||0)
   const profit=(j.contract_value||0)-totalCost
   const margin=j.contract_value>0?profit/j.contract_value*100:null
   // Labor budget threshold logic
@@ -4786,7 +4786,8 @@ async function renderJobFinTab(el){
   +'<div class="fin-row"><span style="color:#8a96ab">Shipping</span><span>'+fm(j.shipping_cost||0)+'</span></div>'
   +'<div class="fin-row"><span style="color:#8a96ab">Equipment Rental</span><span>'+fm(j.equipment_rental_cost||0)+'</span></div>'
   +'<div class="fin-row"><span style="color:#8a96ab">Tariff / Misc</span><span>'+fm(j.misc_cost||0)+'</span></div>'
-  +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0))+'</span></div>'
+  +(j.permit_fee?'<div class="fin-row"><span style="color:#8a96ab">Permit Fee</span><span>'+fm(j.permit_fee)+'</span></div>':'')
+  +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0)+(j.permit_fee||0))+'</span></div>'
   +'<button class="btn btn-sm" style="margin-top:8px" onclick="editJobCosts()">+ Edit Costs</button></div>'
   +'</div>'
   +'</div>'
