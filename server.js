@@ -3165,6 +3165,12 @@ async function reopenJobTask(id){
   await sb.from('job_tasks').update({status:'open',resolved_at:null,updated_at:new Date().toISOString()}).eq('id',id)
   loadJT('jt-tasks');toast('Task reopened')
 }
+// Small badge identifying how a daily report was created (delivery, email, etc).
+function _drSourceBadge(source){
+  if(source==='parts_delivery')return ' <span style="font-size:9px;background:rgba(37,99,235,.18);color:#60a5fa;border-radius:4px;padding:1px 5px;font-weight:600;white-space:nowrap">🚚 Delivery</span>'
+  if(source==='email')return ' <span style="font-size:9px;background:rgba(168,85,247,.18);color:#a78bfa;border-radius:4px;padding:1px 5px;font-weight:600;white-space:nowrap">📧 Email</span>'
+  return ''
+}
 async function renderJobDailyTab(el){
   const{data:reports}=await sb.from('daily_reports').select('*').eq('job_id',currentJobId).order('report_date',{ascending:false})
   const rows=reports||[]
@@ -3190,7 +3196,7 @@ async function renderJobDailyTab(el){
   for(const r of rows){
     const hasIssues=r.issues&&r.issues.trim()
     html+='<tr data-rid="'+r.id+'" onclick="viewDailyReport(this.dataset.rid)" style="cursor:pointer">'
-    html+='<td style="font-weight:500;white-space:nowrap">'+fd(r.report_date)+'</td>'
+    html+='<td style="font-weight:500;white-space:nowrap">'+fd(r.report_date)+_drSourceBadge(r.source)+'</td>'
     html+='<td style="font-size:12px">'+(r.submitted_by||'—')+'</td>'
     html+='<td>'+r.crew_count+'</td>'
     html+='<td>'+fh(r.hours_worked)+'</td>'
@@ -4882,7 +4888,7 @@ function filterDailyReports(){
     const jobNum=jobObj&&jobObj.job_number?jobObj.job_number:'—'
     const hasIssues=r.issues&&r.issues.trim()
     html+='<tr data-rid="'+r.id+'" onclick="viewDailyReport(this.dataset.rid)" style="cursor:pointer">'
-    html+='<td style="font-weight:500;white-space:nowrap">'+fd(r.report_date)+'</td>'
+    html+='<td style="font-weight:500;white-space:nowrap">'+fd(r.report_date)+_drSourceBadge(r.source)+'</td>'
     html+='<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+jobName+'</td>'
     html+='<td style="font-size:11px;color:#8a96ab;white-space:nowrap">'+jobNum+'</td>'
     html+='<td style="font-size:12px">'+(r.submitted_by||'—')+'</td>'
@@ -4970,6 +4976,7 @@ async function deleteDailyReport(id){
 async function viewDailyReport(id){
   const{data:r}=await sb.from('daily_reports').select('*').eq('id',id).single()
   modal('Daily Report — '+fd(r.report_date),\`
+  \${r.source==='parts_delivery'?'<div style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.2);border-radius:7px;padding:8px 11px;margin-bottom:12px;font-size:12px;color:#60a5fa">🚚 This report was auto-generated from a parts delivery to the site.</div>':r.source==='email'?'<div style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2);border-radius:7px;padding:8px 11px;margin-bottom:12px;font-size:12px;color:#a78bfa">📧 This report was created from an emailed update.</div>':''}
   <div class="two" style="margin-bottom:12px">
     <div><div class="fl">JOB</div><div style="font-weight:500">\${_drJobs[r.job_id]||r.job_id||'—'}</div></div>
     <div><div class="fl">DATE</div><div style="font-weight:500">\${fd(r.report_date)}</div></div>
