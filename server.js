@@ -3361,6 +3361,7 @@ async function renderPermitTab(el){
   h+='<div class="fg"><label class="fl">Permit Number</label><input class="fi" id="pmt-number" value="'+_escAttr(job.permit_number||'')+'" placeholder="e.g. E-2024-001"></div>'
   h+='<div class="fg"><label class="fl">Expiration Date</label><input class="fi" type="date" id="pmt-expires" value="'+(job.permit_expires_on||'')+'"></div>'
   h+='</div>'
+  h+='<div class="fg"><label class="fl">Permit Fee <span style="color:#414e63;font-weight:400;font-size:10px">(actual cost — adds a "Permit Fee Paid" line to the job budget)</span></label><input class="fi" type="number" step="0.01" id="pmt-fee" value="'+(job.permit_fee!=null?job.permit_fee:'')+'" placeholder="0.00"></div>'
   // Expiration alert
   if(job.permit_expires_on){
     var exp=new Date(job.permit_expires_on);exp.setHours(0,0,0,0)
@@ -3471,9 +3472,27 @@ async function uploadPermitDoc(file){
 async function savePermitDetails(){
   var num=document.getElementById('pmt-number').value||null
   var exp=document.getElementById('pmt-expires').value||null
-  var res=await sb.from('jobs').update({permit_number:num,permit_expires_on:exp,updated_at:new Date().toISOString()}).eq('id',currentJobId)
+  var feeRaw=document.getElementById('pmt-fee').value
+  var fee=feeRaw!==''&&feeRaw!=null?parseFloat(feeRaw):null
+  if(fee!=null&&isNaN(fee))fee=null
+  var res=await sb.from('jobs').update({permit_number:num,permit_expires_on:exp,permit_fee:fee,updated_at:new Date().toISOString()}).eq('id',currentJobId)
   if(res.error){toast(res.error.message,'error');return}
-  toast('Permit details saved ✓')
+  // Flow the permit fee into the job budget as a "Permit Fee Paid" line item
+  if(fee!=null&&fee>0){
+    try{
+      var existing=await sb.from('job_budget_lines').select('id').eq('job_id',currentJobId).eq('description','Permit Fee Paid').limit(1)
+      if(existing.data&&existing.data[0]){
+        await sb.from('job_budget_lines').update({category:'permit',budget_amount:fee,actual_amount:fee}).eq('id',existing.data[0].id)
+      }else{
+        var mx=await sb.from('job_budget_lines').select('sort_order').eq('job_id',currentJobId).order('sort_order',{ascending:false}).limit(1)
+        var nextSort=(mx.data&&mx.data[0]?mx.data[0].sort_order:0)+1
+        await sb.from('job_budget_lines').insert({job_id:currentJobId,description:'Permit Fee Paid',category:'permit',budget_amount:fee,actual_amount:fee,sort_order:nextSort})
+      }
+      toast('Permit details saved ✓ · Fee added to budget')
+    }catch(e){toast('Permit saved, but budget line failed: '+(e.message||e),'warn')}
+  }else{
+    toast('Permit details saved ✓')
+  }
   loadJT('jt-permit')
 }
 
@@ -4960,7 +4979,7 @@ async function pgDesign(){
   el.innerHTML='<div style="padding:20px">'+ld()+'</div>'
 
   // Gather all non-archived jobs that have a permit path set (in the pipeline)
-  var jr=await sb.from('jobs').select('id,name,job_number,permit_path,permit_number,permit_expires_on,project_manager,archived').eq('archived',false)
+  var jr=await sb.from('jobs').select('id,name,job_number,permit_path,permit_number,permit_expires_on,permit_fee,project_manager,archived').eq('archived',false)
   var jobs=(jr.data||[]).filter(function(j){return j.permit_path&&j.permit_path!=='none'})
   // Apply expiration-window filter
   var _allPipelineCount=jobs.length
@@ -5057,7 +5076,8 @@ async function pgDesign(){
   // ── Pipeline board ──
   // Build columns from the full path (union of all steps) — use full-design defs as the master column set.
   var columns=PERMIT_STEPS_FULL.slice()
-  h+='<div style="font-size:13px;font-weight:700;margin-bottom:10px">Pipeline Board <span style="font-size:11px;color:#414e63;font-weight:400">· '+jobs.length+' jobs</span></div>'
+  var totalFees=jobs.reduce(function(s,j){return s+(Number(j.permit_fee)||0)},0)
+  h+='<div style="font-size:13px;font-weight:700;margin-bottom:10px">Pipeline Board <span style="font-size:11px;color:#414e63;font-weight:400">· '+jobs.length+' jobs'+(totalFees>0?' · '+fm(totalFees)+' total permit fees':'')+'</span></div>'
   h+='<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:12px">'
   columns.forEach(function(col){
     var colKey=col[0],colLabel=col[1]
@@ -5078,7 +5098,7 @@ async function pgDesign(){
       if(st&&st.external_party)meta.push('🏛 '+st.external_party)
       if(j.project_manager&&!meta.length)meta.push('PM '+j.project_manager)
       if(meta.length)h+='<div style="font-size:10px;color:#8a96ab;margin-top:3px">'+_escapeHTML(meta.join(' · '))+'</div>'
-      if(colKey==='permit_issued'&&j.permit_number)h+='<div style="font-size:10px;color:#16a34a;margin-top:2px">🎫 '+_escapeHTML(j.permit_number)+'</div>'
+      if(colKey==='permit_issued'&&j.permit_number)h+='<div style="font-size:10px;color:#16a34a;margin-top:2px">🎫 '+_escapeHTML(j.permit_number)+(j.permit_fee?' · '+fm(j.permit_fee):'')+'</div>'
       h+='</div>'
     })
     h+='</div>'
