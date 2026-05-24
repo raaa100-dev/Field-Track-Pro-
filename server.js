@@ -4939,6 +4939,21 @@ var CAL_TYPES=[
 ]
 // ── DESIGN & PERMITTING DASHBOARD ──────────────────────────────────────────
 var _designStallDays=7  // days without movement = stalled
+var _designExpWindow='all'  // expiration filter window
+var DESIGN_EXP_WINDOWS=[['7','7 days'],['30','30 days'],['90','90 days'],['180','180 days'],['365','1 year'],['730','2 years'],['all','Everything']]
+function setDesignExpWindow(v){_designExpWindow=v;pgDesign()}
+function _designWindowLabel(){var f=DESIGN_EXP_WINDOWS.find(function(w){return w[0]===_designExpWindow});return f?f[1]:'Everything'}
+function _designFilterBar(){
+  var h='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px">'
+  h+='<span style="font-size:12px;color:#8a96ab">🎫 Permits expiring within:</span>'
+  h+='<div style="display:flex;background:#0c1220;border-radius:8px;padding:3px;flex-wrap:wrap">'
+  DESIGN_EXP_WINDOWS.forEach(function(w){
+    var active=_designExpWindow===w[0]
+    h+='<button onclick="setDesignExpWindow(\\''+w[0]+'\\')" style="border:none;border-radius:6px;padding:5px 11px;font-size:11px;cursor:pointer;'+(active?'background:#2563eb;color:#fff':'background:transparent;color:#8a96ab')+'">'+w[1]+'</button>'
+  })
+  h+='</div></div>'
+  return h
+}
 async function pgDesign(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="pgDesign()">↻ Refresh</button>'
   var el=document.getElementById('page-area')
@@ -4947,8 +4962,25 @@ async function pgDesign(){
   // Gather all non-archived jobs that have a permit path set (in the pipeline)
   var jr=await sb.from('jobs').select('id,name,job_number,permit_path,permit_number,permit_expires_on,project_manager,archived').eq('archived',false)
   var jobs=(jr.data||[]).filter(function(j){return j.permit_path&&j.permit_path!=='none'})
+  // Apply expiration-window filter
+  var _allPipelineCount=jobs.length
+  if(_designExpWindow!=='all'){
+    var winDays=parseInt(_designExpWindow)
+    var todayMs=new Date();todayMs.setHours(0,0,0,0)
+    jobs=jobs.filter(function(j){
+      if(!j.permit_expires_on)return false
+      var exp=new Date(j.permit_expires_on);exp.setHours(0,0,0,0)
+      var days=Math.round((exp-todayMs)/(1000*3600*24))
+      return days<=winDays  // expires within the window (includes already-expired)
+    })
+  }
   if(!jobs.length){
-    el.innerHTML='<div style="padding:20px">'+empty('📐','No jobs in the design/permitting pipeline yet. Triage a job\\'s Design &amp; Permitting tab to add it here.')+'</div>'
+    var filterBar=_designFilterBar()
+    if(_allPipelineCount>0&&_designExpWindow!=='all'){
+      el.innerHTML='<div style="padding:16px 20px">'+filterBar+empty('🎫','No permits expiring within '+_designWindowLabel()+'. Try a wider window.')+'</div>'
+    }else{
+      el.innerHTML='<div style="padding:20px">'+empty('📐','No jobs in the design/permitting pipeline yet. Triage a job\\'s Design &amp; Permitting tab to add it here.')+'</div>'
+    }
     return
   }
   var jobIds=jobs.map(function(j){return j.id})
@@ -5007,6 +5039,7 @@ async function pgDesign(){
   })
 
   var h='<div style="padding:16px 20px">'
+  h+=_designFilterBar()
   // ── Follow-up banner ──
   var totalFollow=followups.expiring.length+followups.stalled.length+followups.overdue.length
   if(totalFollow){
