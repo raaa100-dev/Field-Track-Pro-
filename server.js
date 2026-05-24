@@ -2029,13 +2029,13 @@ function renderJobDetail(){
   <div class="tab-bar">
     <div class="tab active" onclick="JT(this,'jt-info')">Info</div>
     <div class="tab" onclick="JT(this,'jt-scope')">Scope</div>
+    <div class="tab" onclick="JT(this,'jt-permit')">📐 Design &amp; Permitting</div>
     <div class="tab" onclick="JT(this,'jt-subprojects')">Sub-Projects</div>
     <div class="tab" onclick="JT(this,'jt-labormix')">Labor Mix</div>
     <div class="tab" onclick="JT(this,'jt-workers')">Workers</div>
     <div class="tab" onclick="JT(this,'jt-parts')">Parts</div>
     <div class="tab" onclick="JT(this,'jt-daily')">Daily Reports</div>
     <div class="tab" onclick="JT(this,'jt-tasks')">Tasks</div>
-    <div class="tab" onclick="JT(this,'jt-permit')">Design &amp; Permitting</div>
     <div class="tab" onclick="JT(this,'jt-walks')">Job Walks</div>
     <div class="tab" onclick="JT(this,'jt-photos')">Photos</div>
     <div class="tab" onclick="JT(this,'jt-checklist')">Checklist</div>
@@ -3112,6 +3112,10 @@ function buildPartsTable(parts){
 var PERMIT_PATHS={none:'Not Required',otc:'OTC — Permit, No Design',full:'Full Design + Permit'}
 // Step definitions per path (key, label)
 var PERMIT_STEPS_FULL=[
+  ['request_cads','Request CADs'],
+  ['cads_received','CADs Received'],
+  ['assign_site_walk','Assign Site Walk'],
+  ['site_walk_complete','Site Walk Completed'],
   ['create_design','Create Design'],
   ['architect_review','Architect Review'],
   ['customer_review','Customer Review'],
@@ -3136,6 +3140,33 @@ async function renderPermitTab(el){
   var path=job.permit_path||null
   var sr=await sb.from('job_permit_steps').select('*').eq('job_id',currentJobId).order('sort_order')
   var steps=sr.data||[]
+  // Auto-seed any steps that are missing from the current path definition
+  // (so jobs triaged before new steps were added pick them up automatically).
+  if(path==='full'||path==='otc'){
+    var defs=permitStepsForPath(path)
+    var haveKeys=steps.map(function(s){return s.step_key})
+    var seeded=false
+    for(var si=0;si<defs.length;si++){
+      if(haveKeys.indexOf(defs[si][0])<0){
+        await sb.from('job_permit_steps').insert({id:uuid(),job_id:currentJobId,step_key:defs[si][0],step_label:defs[si][1],sort_order:si,status:'not_started',created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+        seeded=true
+      }
+    }
+    if(seeded){
+      // Re-sync every step's sort_order to match current definition order
+      var orderMap={};defs.forEach(function(d,idx){orderMap[d[0]]=idx})
+      var cur=await sb.from('job_permit_steps').select('id,step_key,sort_order').eq('job_id',currentJobId)
+      for(var ci=0;ci<(cur.data||[]).length;ci++){
+        var row=cur.data[ci]
+        if(orderMap[row.step_key]!=null&&row.sort_order!==orderMap[row.step_key]){
+          await sb.from('job_permit_steps').update({sort_order:orderMap[row.step_key]}).eq('id',row.id)
+        }
+      }
+      // Re-fetch with the new steps included
+      sr=await sb.from('job_permit_steps').select('*').eq('job_id',currentJobId).order('sort_order')
+      steps=sr.data||[]
+    }
+  }
   window._permitSteps=steps
 
   var h='<div style="max-width:760px">'
@@ -3220,12 +3251,18 @@ async function setPermitPath(path){
   await sb.from('jobs').update({permit_path:path,permit_triaged_by:(ME&&ME.full_name)||'',permit_triaged_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',currentJobId)
   // Seed steps for the chosen path if not already present
   if(path==='full'||path==='otc'){
-    var existing=await sb.from('job_permit_steps').select('step_key').eq('job_id',currentJobId)
-    var have=(existing.data||[]).map(function(s){return s.step_key})
+    var existing=await sb.from('job_permit_steps').select('id,step_key').eq('job_id',currentJobId)
+    var existingRows=existing.data||[]
+    var byKey={};existingRows.forEach(function(r){byKey[r.step_key]=r})
     var defs=permitStepsForPath(path)
     for(var i=0;i<defs.length;i++){
-      if(have.indexOf(defs[i][0])>=0)continue
-      await sb.from('job_permit_steps').insert({id:uuid(),job_id:currentJobId,step_key:defs[i][0],step_label:defs[i][1],sort_order:i,status:'not_started',created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+      var key=defs[i][0]
+      if(byKey[key]){
+        // Re-sync sort_order + label so newly-inserted steps order correctly
+        await sb.from('job_permit_steps').update({sort_order:i,step_label:defs[i][1],updated_at:new Date().toISOString()}).eq('id',byKey[key].id)
+      }else{
+        await sb.from('job_permit_steps').insert({id:uuid(),job_id:currentJobId,step_key:key,step_label:defs[i][1],sort_order:i,status:'not_started',created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+      }
     }
   }
   toast('Path set: '+PERMIT_PATHS[path])
