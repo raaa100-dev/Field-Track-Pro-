@@ -12284,6 +12284,7 @@ async function renderPartsTab(el){
 
   var h='<div style="display:flex;gap:8px;margin-bottom:13px;flex-wrap:wrap">'
   h+='<button class="btn btn-sm" onclick="reloadPartsTab()">↻ Refresh</button>'
+  if(staged.length)h+='<button class="btn btn-sm btn-p" onclick="openPickupModal()">🚚 Pick Up Parts</button>'
   if(isAdmin)h+='<button class="btn btn-sm btn-a" onclick="showTransferPartsModal()">↔ Transfer Parts</button>'
   if(isAdmin)h+='<button class="btn btn-sm btn-b" onclick="showExpectedStagingDate()">📅 Expected Staging Date</button>'
   h+='<button class="btn btn-sm" onclick="printPartsSheet()">🖨 Print Parts Sheet</button>'
@@ -12543,6 +12544,125 @@ async function checkOutAllStaged(){
   toast('All staged parts checked out')
   loadJT('jt-parts')
 }
+
+// ══════════════════════════════════════════
+// PHASE 3 — PICKUP CONFIRMATION + DELIVER TO SITE
+// ══════════════════════════════════════════
+var _pickupState=null
+async function openPickupModal(){
+  var parts=(window._currentJobParts||[]).filter(function(p){return p.status==='staged'})
+  if(!parts.length){toast('No staged parts to pick up','warn');return}
+  // Build confirmation state: each part needs its qty confirmed (scan or manual)
+  _pickupState={parts:parts.map(function(p){return{id:p.id,name:p.part_name,barcode:p.barcode||p.part_id||'',need:Number(p.assigned_qty)||0,warehouse:p.warehouse_location||'',confirmed:0}}),pickedBy:(ME&&ME.full_name)||''}
+  renderPickupModal()
+}
+function renderPickupModal(){
+  var st=_pickupState
+  var totalNeed=st.parts.reduce(function(s,p){return s+p.need},0)
+  var totalConf=st.parts.reduce(function(s,p){return s+p.confirmed},0)
+  var allDone=st.parts.every(function(p){return p.confirmed>=p.need})
+  var h='<div style="font-size:12px;color:#8a96ab;margin-bottom:10px">Scan each part\\'s barcode, or tap <strong>Count</strong> to confirm manually. The counter shows how many you\\'ve confirmed against what\\'s staged.</div>'
+  // Scan input
+  h+='<div class="fg"><label class="fl">📷 Scan barcode</label><input class="fi" id="pk-scan" placeholder="Scan or type a part barcode…" oninput="pickupScanInput(this.value)" autocomplete="off"></div>'
+  // Progress bar
+  var pct=totalNeed?Math.round(totalConf/totalNeed*100):0
+  h+='<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Confirmed</span><span style="font-weight:700;color:'+(allDone?'#16a34a':'#d97706')+'">'+totalConf+' / '+totalNeed+' units</span></div>'
+  h+='<div style="height:8px;background:#0c1220;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+(allDone?'#16a34a':'#d97706')+';transition:width .2s"></div></div></div>'
+  // Parts checklist
+  h+='<div style="max-height:300px;overflow-y:auto;margin-top:8px">'
+  st.parts.forEach(function(p,i){
+    var done=p.confirmed>=p.need
+    h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">'
+    h+='<span style="font-size:16px">'+(done?'✅':'⬜')+'</span>'
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500'+(done?';color:#16a34a':'')+'">'+_escapeHTML(p.name)+'</div>'
+    h+='<div style="font-size:10px;color:#414e63">'+(p.barcode?p.barcode+' · ':'')+(p.warehouse?'📍 '+p.warehouse:'')+'</div></div>'
+    h+='<div style="display:flex;align-items:center;gap:5px">'
+    h+='<span style="font-size:13px;font-weight:700;color:'+(done?'#16a34a':'#e8edf5')+'">'+p.confirmed+'/'+p.need+'</span>'
+    h+='<button class="btn btn-sm" onclick="pickupAdjust('+i+',-1)">−</button>'
+    h+='<button class="btn btn-sm" onclick="pickupAdjust('+i+',1)">Count</button>'
+    h+='<button class="btn btn-sm btn-ghost" onclick="pickupAdjust('+i+',999)" title="Confirm all">All</button>'
+    h+='</div></div>'
+  })
+  h+='</div>'
+  // Picked up by
+  h+='<div class="fg" style="margin-top:12px"><label class="fl">Picked up by *</label><input class="fi" id="pk-by" value="'+_escAttr(st.pickedBy)+'" oninput="_pickupState.pickedBy=this.value"></div>'
+  if(!allDone)h+='<div style="font-size:11px;color:#d97706;margin-top:4px">⚠ Not all parts confirmed yet — you can still complete, and any shortfall will be noted.</div>'
+  modal('🚚 Pick Up Parts — '+(currentJob?currentJob.name:''),h,async function(){
+    await confirmPickup()
+  },allDone?'Confirm Pickup ✓':'Complete Anyway')
+  // Focus scan field
+  setTimeout(function(){var s=document.getElementById('pk-scan');if(s)s.focus()},100)
+}
+function pickupAdjust(i,delta){
+  var p=_pickupState.parts[i]
+  if(delta===999)p.confirmed=p.need
+  else p.confirmed=Math.max(0,Math.min(p.need,p.confirmed+delta))
+  // Re-render in place (preserve scroll/focus minimally)
+  closeModal();renderPickupModal()
+}
+function pickupScanInput(val){
+  val=(val||'').trim()
+  if(val.length<3)return
+  // Match a part by barcode
+  clearTimeout(window._pkScanTimer)
+  window._pkScanTimer=setTimeout(function(){
+    var match=_pickupState.parts.find(function(p){return p.barcode&&p.barcode.toLowerCase()===val.toLowerCase()})
+    if(match){
+      if(match.confirmed<match.need){match.confirmed++;toast('✓ '+match.name+' ('+match.confirmed+'/'+match.need+')')}
+      else toast(match.name+' already fully confirmed','warn')
+      var s=document.getElementById('pk-scan');if(s)s.value=''
+      closeModal();renderPickupModal()
+    }else{
+      toast('No staged part matches barcode '+val,'warn')
+      var s2=document.getElementById('pk-scan');if(s2)s2.value=''
+    }
+  },300)
+}
+async function confirmPickup(){
+  var st=_pickupState
+  if(!st){return}
+  var pickedBy=(st.pickedBy||'').trim()
+  if(!pickedBy){toast('Enter who picked up the parts','error');return}
+  var now=new Date().toISOString()
+  var shortfalls=[]
+  for(var i=0;i<st.parts.length;i++){
+    var p=st.parts[i]
+    var taken=p.confirmed
+    if(taken<p.need)shortfalls.push(p.name+' ('+taken+'/'+p.need+')')
+    // Mark delivered to site (signed_out), record taken qty + who/when
+    await sb.from('job_parts').update({status:'signed_out',taken_qty:taken,checked_out_by:pickedBy,checked_out_at:now,updated_at:now}).eq('id',p.id)
+    // Audit movement: warehouse → site
+    try{await sb.from('part_movements').insert({id:uuid(),job_part_id:p.id,job_id:currentJobId,part_name:p.name,movement_type:'deliver',qty:taken,from_location:p.warehouse||'warehouse',to_location:'Job Site',performed_by:pickedBy,notes:taken<p.need?'Short '+(p.need-taken):null,created_at:now})}catch(e){}
+  }
+  // Log delivery to a daily report for today
+  await logDeliveryToDailyReport(pickedBy,st.parts,shortfalls)
+  closeModal()
+  if(shortfalls.length)toast('Picked up with shortfalls: '+shortfalls.join(', '),'warn')
+  else toast('✓ All parts picked up & marked delivered to site by '+pickedBy)
+  _pickupState=null
+  loadJT('jt-parts')
+}
+// Add a delivery note to today's daily report (create one if none exists).
+async function logDeliveryToDailyReport(pickedBy,parts,shortfalls){
+  var today=new Date().toISOString().split('T')[0]
+  var deliveredList=parts.filter(function(p){return p.confirmed>0}).map(function(p){return p.confirmed+'× '+p.name}).join(', ')
+  var note='Parts delivered to site by '+pickedBy+': '+deliveredList+(shortfalls.length?' | SHORT: '+shortfalls.join(', '):'')
+  try{
+    var existing=await sb.from('daily_reports').select('id,work_performed').eq('job_id',currentJobId).eq('report_date',today).limit(1)
+    if(existing.data&&existing.data[0]){
+      var prev=existing.data[0].work_performed||''
+      await sb.from('daily_reports').update({work_performed:(prev?prev+'\\n\\n':'')+note,updated_at:new Date().toISOString()}).eq('id',existing.data[0].id)
+    }else{
+      await sb.from('daily_reports').insert({id:uuid(),job_id:currentJobId,report_date:today,submitted_by:pickedBy,crew_count:0,hours_worked:0,total_man_hours:0,weather:'',work_performed:note,source:'parts_delivery',created_at:new Date().toISOString()})
+    }
+  }catch(e){console.warn('delivery daily report log failed:',e.message)}
+}
+
+// ══════════════════════════════════════════
+// TRANSFER STAGED PARTS TO ANOTHER JOB (legacy)
+// ══════════════════════════════════════════
+async function showScanTransferModal2_placeholder(){}
+
 
 // ══════════════════════════════════════════
 // TRANSFER STAGED PARTS TO ANOTHER JOB
