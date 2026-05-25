@@ -13239,7 +13239,9 @@ async function processReturn(btn){
   await sb.from('job_parts').insert({id:uuid(),job_id:currentJobId,part_id:p.part_id,part_name:p.part_name,barcode:p.barcode||'',ordered_qty:0,assigned_qty:qty,taken_qty:0,installed_qty:0,status:'staged',warehouse_location:warehouse,notes:'Returned from site — leftover',staged_by:(ME&&ME.full_name)||'',staged_at:now,created_at:now,updated_at:now})
   // Audit movement: site → warehouse
   try{await sb.from('part_movements').insert({id:uuid(),job_part_id:id,job_id:currentJobId,part_name:name,movement_type:'return',qty:qty,from_location:'Job Site',to_location:warehouse,performed_by:(ME&&ME.full_name)||'',created_at:now})}catch(e){}
-  toast('↩️ Returned '+qty+' × '+name+' to '+warehouse)
+  // Return the leftover quantity back into warehouse inventory
+  var invRes=await adjustInventory(p.part_id||p.barcode,qty,name)
+  toast('↩️ Returned '+qty+' × '+name+' to '+warehouse+(invRes.matched?' · stock now '+invRes.newQty:''))
   loadJT('jt-parts')
 }
 
@@ -13251,8 +13253,12 @@ async function movePartToStaged(btn){
 }
 async function movePartToOrdered(btn){
   var id=btn.getAttribute('data-pid')
+  var parts=window._currentJobParts||[]
+  var p=parts.find(function(x){return x.id===id})
   var res=await sb.from('job_parts').update({status:'ordered',staged_at:null,staged_by:null,updated_at:new Date().toISOString()}).eq('id',id)
   if(res.error){toast(res.error.message,'error');return}
+  // Un-staging returns the quantity to inventory (it's no longer pulled from stock)
+  if(p)await adjustInventory(p.part_id||p.barcode,(p.assigned_qty||0),p.part_name)
   toast('Moved back to Ordered');reloadPartsTab()
 }
 async function editPartStatus(btn){
@@ -13331,6 +13337,20 @@ async function transferWarehouse(btn){
   loadJT('jt-parts')
 }
 
+// Adjust warehouse inventory for a part. delta negative = remove (staging),
+// positive = add back (returns). Matches inventory.id to the part's barcode/part_id.
+// Returns {matched:bool, newQty:number|null}. Silent if no inventory row exists.
+async function adjustInventory(partKey,delta,label){
+  if(!partKey||!delta)return{matched:false,newQty:null}
+  try{
+    var inv=await sb.from('inventory').select('id,qty,name').eq('id',partKey).maybeSingle()
+    if(!inv.data)return{matched:false,newQty:null}
+    var newQty=Math.max(0,(Number(inv.data.qty)||0)+delta)
+    await sb.from('inventory').update({qty:newQty,updated_at:new Date().toISOString()}).eq('id',partKey)
+    return{matched:true,newQty:newQty,name:inv.data.name}
+  }catch(e){console.warn('inventory adjust failed:',e.message);return{matched:false,newQty:null}}
+}
+
 async function stageOneIn(btn){
   var id=btn.getAttribute('data-pid')
   var name=btn.getAttribute('data-pname')
@@ -13347,6 +13367,8 @@ async function stageOneIn(btn){
   var extra=qty-orderedQty
   var res=await sb.from('job_parts').update({status:'staged',assigned_qty:qty,warehouse_location:warehouse,staged_by:(typeof ME!=='undefined'?ME.full_name||'':''),staged_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id)
   if(res.error){toast(res.error.message,'error');return}
+  // Decrement warehouse inventory for this part
+  var invRes=await adjustInventory(p.part_id||p.barcode,-qty,name)
   // Audit movement
   try{await sb.from('part_movements').insert({id:uuid(),job_part_id:id,job_id:currentJobId,part_name:name,movement_type:'stage',qty:qty,to_location:warehouse,performed_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString()})}catch(e){}
   if(extra>0){
@@ -13355,6 +13377,7 @@ async function stageOneIn(btn){
   }else{
     toast('✓ Staged: '+name+' (×'+qty+') at '+warehouse)
   }
+  if(invRes.matched&&invRes.newQty<=0){setTimeout(function(){toast('⚠ '+name+' inventory now at 0','warn')},400)}
   // Check if all parts are now staged
   var updatedParts=await sb.from('job_parts').select('status').eq('job_id',currentJobId)
   var allDone=(updatedParts.data||[]).every(function(x){return['staged','signed_out','partial_install','installed'].includes(x.status)})
@@ -13382,7 +13405,10 @@ async function stageAllOrdered(){
     var partWh=(rowWh&&rowWh.value)||warehouse
     var res=await sb.from('job_parts').update({status:'staged',assigned_qty:qty,warehouse_location:partWh,staged_by:(typeof ME!=='undefined'?ME.full_name||'':''),staged_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',p.id)
     if(res.error)errors++
-    else{try{await sb.from('part_movements').insert({id:uuid(),job_part_id:p.id,job_id:currentJobId,part_name:p.part_name,movement_type:'stage',qty:qty,to_location:partWh,performed_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString()})}catch(e){}}
+    else{
+      await adjustInventory(p.part_id||p.barcode,-qty,p.part_name)
+      try{await sb.from('part_movements').insert({id:uuid(),job_part_id:p.id,job_id:currentJobId,part_name:p.part_name,movement_type:'stage',qty:qty,to_location:partWh,performed_by:(ME&&ME.full_name)||'',created_at:new Date().toISOString()})}catch(e){}
+    }
   }
   if(!errors){
     await sb.from('jobs').update({staging_status:'complete',updated_at:new Date().toISOString()}).eq('id',currentJobId)
