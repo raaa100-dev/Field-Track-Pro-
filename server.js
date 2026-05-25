@@ -1050,7 +1050,8 @@ async function renderToday(){
     sb.from('daily_reports').select('job_id,report_date').order('report_date',{ascending:false}),
     sb.from('punch_list').select('id,job_id,item,assigned_to,assigned_name,due_date,priority,status,created_by').in('status',['open','in_progress']).order('due_date',{ascending:true}),
     myId?sb.from('safety_assignments').select('id,topic_id,due_date,assigned_at,safety_topics(title)').eq('profile_id',myId):Promise.resolve({data:[]}),
-    myId?sb.from('safety_acks').select('topic_id').eq('profile_id',myId):Promise.resolve({data:[]})
+    myId?sb.from('safety_acks').select('topic_id').eq('profile_id',myId):Promise.resolve({data:[]}),
+    myId?sb.from('job_walks').select('id,job_id,walk_date,status,assigned_to,assigned_name').eq('assigned_to',myId).neq('status','complete'):Promise.resolve({data:[]})
   ])
   var comms=results[0].status==='fulfilled'?(results[0].value.data||[]):[]
   var tasks=results[1].status==='fulfilled'?(results[1].value.data||[]):[]
@@ -1060,6 +1061,7 @@ async function renderToday(){
   var punch=results[5].status==='fulfilled'?(results[5].value.data||[]):[]
   var safetyAssigns=results[6].status==='fulfilled'?(results[6].value.data||[]):[]
   var safetyAcks=results[7].status==='fulfilled'?(results[7].value.data||[]):[]
+  var myWalksToday=results[8].status==='fulfilled'?(results[8].value.data||[]):[]
 
   // Build a job lookup + latest report date per job
   var jobById={};jobs.forEach(function(j){jobById[j.id]=j})
@@ -1139,6 +1141,19 @@ async function renderToday(){
     }else{item.tag='Pending';watch.push(item)}
   })
 
+  // My assigned job walks (not yet complete)
+  myWalksToday.forEach(function(w){
+    var j=jobById[w.job_id]
+    var item={kind:'walk',id:w.id,job_id:w.job_id,title:'🚶 Job walk'+(w.status==='in_progress'?' (in progress)':''),sub:(j?j.name:'')}
+    if(w.walk_date){
+      var d=new Date(w.walk_date);d.setHours(0,0,0,0)
+      if(d<today){item.tag='Was '+fd(w.walk_date);overdue.push(item)}
+      else if(d.getTime()===today.getTime()){item.tag='Today';soon.push(item)}
+      else if((d-today)/(1000*3600*24)<=3){item.tag=fd(w.walk_date);soon.push(item)}
+      else{item.tag=fd(w.walk_date);watch.push(item)}
+    }else{item.tag='Scheduled';watch.push(item)}
+  })
+
   // Jobs going dark + labor over budget + upcoming PM visits (job-level scan)
   var scanJobs=mine?jobs.filter(function(j){return jobIsMine(j.id)}):jobs
   scanJobs.forEach(function(j){
@@ -1194,7 +1209,7 @@ function _todaySection(title,items,color){
   if(!items.length)return ''
   var h='<div style="margin-top:18px"><div style="font-size:12px;font-weight:700;color:'+color+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">'+title+' ('+items.length+')</div>'
   items.forEach(function(it){
-    var icon=it.kind==='task'?'✓':it.kind==='comm'?'📞':it.kind==='co'?'📝':it.kind==='punch'?'🔧':it.kind==='safety'?'🦺':'🏗'
+    var icon=it.kind==='task'?'✓':it.kind==='comm'?'📞':it.kind==='co'?'📝':it.kind==='punch'?'🔧':it.kind==='safety'?'🦺':it.kind==='walk'?'🚶':'🏗'
     h+='<div onclick="todayOpen(\\''+it.kind+'\\',\\''+(it.job_id||'')+'\\',\\''+(it.id||'')+'\\')" style="display:flex;align-items:center;gap:11px;padding:11px 13px;background:#0a1019;border:1px solid rgba(255,255,255,.05);border-radius:9px;margin-bottom:7px;cursor:pointer">'
     h+='<span style="font-size:15px;flex-shrink:0">'+icon+'</span>'
     h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+_escapeHTML(it.title)+'</div>'
@@ -1209,6 +1224,7 @@ function _todaySection(title,items,color){
 function todayOpen(kind,jobId,id){
   if(kind==='task'){P('tasks',null);return}
   if(kind==='safety'){P('safety',null);return}
+  if(kind==='walk'&&id){openJobWalk(id);return}
   if(jobId){openJob(jobId);return}
   P('dashboard',null)
 }
@@ -6168,6 +6184,11 @@ async function newWalkModal(jobIdOverride){
     var res=await sb.from('job_walks').insert(data).select().single()
     if(res.error){toast(res.error.message,'error');return}
     var newWalkId=res.data.id
+    // Notify the assigned worker
+    if(assignId){
+      var wkJobName='';var wj=allJobs.find(function(x){return x.id===jobId});if(wj)wkJobName=wj.name
+      await notify(assignId,'walk','🚶 Job walk assigned',(wkJobName||'Job walk')+' · '+fd(v('wk-date')),{jobId:jobId})
+    }
     // Upload any staged plans
     if(window._wkStagedFiles&&window._wkStagedFiles.length){
       toast('Uploading plans...')
@@ -10523,10 +10544,21 @@ async function logPmVisitModal(){
     '<div class="fg"><label class="fl">Next Visit Date</label><input class="fi" type="date" id="pmv-next"></div></div>'
   modal('Log PM Visit', pvHtml,
     async()=>{
-      const{error}=await sb.from('pm_visits').insert({id:uuid(),job_id:currentJobId,visit_type:v('pmv-type')||'regular',visit_date:v('pmv-date'),pm_name:v('pmv-pm'),observations:v('pmv-obs'),issues:v('pmv-iss'),outcome:v('pmv-out'),next_visit_date:v('pmv-next')||null,created_at:new Date().toISOString()})
+      const visitId=uuid()
+      const obs=v('pmv-obs'),iss=v('pmv-iss'),vtype=v('pmv-type')||'regular',vdate=v('pmv-date'),pmName=v('pmv-pm'),outcome=v('pmv-out')
+      const{error}=await sb.from('pm_visits').insert({id:visitId,job_id:currentJobId,visit_type:vtype,visit_date:vdate,pm_name:pmName,observations:obs,issues:iss,outcome:outcome,next_visit_date:v('pmv-next')||null,created_at:new Date().toISOString()})
       if(error){toast(error.message,'error');return}
       if(v('pmv-next'))await sb.from('jobs').update({next_pm_visit:v('pmv-next'),updated_at:new Date().toISOString()}).eq('id',currentJobId)
-      closeModal();toast('Visit logged');loadJT('jt-pmvisits')
+      // Log the visit findings into the communication timeline (connect the island)
+      try{
+        var summaryParts=['PM site visit ('+vtype+')']
+        if(obs)summaryParts.push('Observed: '+obs)
+        if(iss)summaryParts.push('Issues: '+iss)
+        if(outcome)summaryParts.push('Outcome: '+outcome)
+        var needsResp=(outcome==='issues_found'||outcome==='reinspection_needed')
+        await sb.from('job_communications').insert({id:uuid(),job_id:currentJobId,comm_type:'meeting',direction:'internal',with_who:pmName||'PM',occurred_at:(vdate?new Date(vdate).toISOString():new Date().toISOString()),summary:summaryParts.join(' · '),needs_response:needsResp,responded:false,logged_by:(ME&&ME.full_name)||pmName||'',created_at:new Date().toISOString()})
+      }catch(e){console.warn('pm visit -> comm log failed:',e.message)}
+      closeModal();toast('Visit logged'+(iss?' · findings added to timeline':''));loadJT('jt-pmvisits')
     }
   )
 }
