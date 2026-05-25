@@ -500,6 +500,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
     <div class="nav-item" onclick="P('schedule',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>Schedule</div>
     <div class="nav-item" onclick="P('calendar',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4M5 10h2M9 10h2"/></svg>Calendar</div>
     <div class="nav-item" onclick="P('design',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L8 2l6 10M4.5 8h7"/><circle cx="8" cy="13.5" r="1"/></svg>Design</div>
+    <div class="nav-item" onclick="P('billing',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6h12M5 10h3"/></svg>Billing</div>
     <div class="nav-item" onclick="P('dispatch',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="6" height="5" rx="1"/><rect x="9" y="4" width="6" height="5" rx="1"/><path d="M4 9v4M12 9v4M1 13h6M9 13h6"/></svg>Dispatch Board</div>
     <div class="nav-item" onclick="pgJobMap()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 3l4 1.5L9 3l6 2v8l-6-2-4 1.5L1 11V3z"/><path d="M5 4.5v9M9 3v9"/></svg>Job Map</div>
     <div class="nav-section">Daily Ops</div>
@@ -772,7 +773,7 @@ async function deleteJobConfirm(){
 function doSignOut(){sb.auth.signOut().then(function(){location.href='index.html?signout=1'})}
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const PAGE_TITLES={tasks:'Tasks',today:'Today',calendar:'Calendar',design:'Design & Permitting',settings:'Settings',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',forecast:'Labor Forecast',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail',email_review:'Email Review'}
+const PAGE_TITLES={tasks:'Tasks',today:'Today',calendar:'Calendar',design:'Design & Permitting',billing:'Billing',settings:'Settings',my_training:'My Training',crm_accounts:'CRM — Accounts',crm_contacts:'CRM — Contacts',crm_pipeline:'CRM — Pipeline',crm_inspections:'CRM — Inspections',dashboard:'Dashboard',notifications:'Notifications',fax_bids:'FieldAxisHQ Quotes',fax_bid_invoices:'FieldAxisHQ Invoices',fax_bid_templates:'FieldAxisHQ Quote Templates',fax_bid_reports:'FieldAxisHQ Quote Reports',dispatch:'Dispatch Board',jobs:'All Jobs',newjob:'New Job',schedule:'Schedule & Milestones',daily:'Daily Reports',jobwalks:'Job Walks',punch:'Punch List',scan:'Scan Parts',catalog:'Parts Catalog',inventory:'Stock / Inventory',orders:'Orders',gps:'GPS Tracking',hours:'Labor Hours',forecast:'Labor Forecast',companies:'Sub Companies',safety:'Safety Topics',financials:'Financials',reports:'Reports & Exports',documents:'Document Vault',users:'Users',jobdetail:'Job Detail',email_review:'Email Review'}
 function P(page,navEl){
   // Guard against losing unsaved changes
   if(_isDirty()){
@@ -791,7 +792,7 @@ function _proceedToPage(page,navEl){
   document.getElementById('topbar-actions').innerHTML=''
   const a=document.getElementById('page-area')
   a.innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>'
-  const map={dashboard:pgDash,today:pgToday,calendar:pgCalendar,design:pgDesign,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,forecast:pgForecast,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications,settings:pgSettings,email_review:pgEmailReview}
+  const map={dashboard:pgDash,today:pgToday,calendar:pgCalendar,design:pgDesign,billing:pgBilling,jobs:pgJobs,tasks:pgTasks,my_training:pgMyTraining,crm_accounts:pgCrmAccounts,crm_contacts:pgCrmContacts,crm_pipeline:pgCrmPipeline,crm_inspections:pgCrmInspections,fax_bids:pgFaxBids,fax_bid_invoices:pgFaxInvoices,fax_bid_templates:pgFaxBidTemplates,fax_bid_reports:pgFaxBidReports,newjob:pgNewJob,schedule:pgSchedule,dispatch:pgDispatch,daily:pgDaily,jobwalks:pgJobWalks,punch:pgPunch,scan:pgScan,catalog:pgCatalog,inventory:pgInventory,orders:pgOrders,gps:pgGPS,hours:pgHours,forecast:pgForecast,companies:pgCompanies,safety:pgSafety,financials:pgFinancials,reports:pgReports,documents:pgDocuments,users:pgUsers,notifications:pgNotifications,settings:pgSettings,email_review:pgEmailReview}
   if(map[page])map[page]()
   else a.innerHTML='<div class="empty">Coming soon</div>'
 }
@@ -2168,6 +2169,7 @@ function renderJobDetail(){
     <div class="tab" onclick="JT(this,'jt-drawings')">Drawings</div>
     <div class="tab" onclick="JT(this,'jt-co')">Change Orders</div>
     <div class="tab" onclick="JT(this,'jt-fin')">Financials</div>
+    <div class="tab" onclick="JT(this,'jt-billing')">Billing</div>
     <div class="tab" onclick="JT(this,'jt-subs')">Sub Assignments</div>
     <div class="tab" onclick="JT(this,'jt-asbuilts')">Plans &amp; As-builts</div>
     <div class="tab" onclick="JT(this,'jt-pmvisits')">PM Visits</div>
@@ -2225,6 +2227,7 @@ async function loadJT(id){
   else if(id==='jt-drawings') await renderDrawingsTab(el)
   else if(id==='jt-co') await renderCOTab(el)
   else if(id==='jt-fin') await renderJobFinTab(el)
+  else if(id==='jt-billing') await renderBillingTab(el)
   else if(id==='jt-subs') await renderSubAssignTab(el)
   else if(id==='jt-asbuilts') await renderAsbuiltsTab(el)
   else if(id==='jt-pmvisits') await renderPmVisitsTab(el)
@@ -4869,6 +4872,221 @@ async function schedulePmReviewTask(job,reason){
   await sb.from('job_tasks').insert({id:uuid(),job_id:job.id,job_name:job.name,title:title,description:reason,assigned_to:pmProfile?pmProfile.id:null,assigned_name:pmProfile?pmProfile.full_name:pm||'PM',priority:'high',status:'open',source:'labor_alert',created_by:'System',created_at:new Date().toISOString()})
   toast('PM Review task created','warn')
 }
+// ══════════════════════════════════════════
+// BILLING TAB (per job) — Phase 1
+// ══════════════════════════════════════════
+var BILLING_METHODS={draw:'Draw Schedule',percent_complete:'Percent Complete',periodic:'Periodic'}
+var BILLING_FORM_TYPES={aia:'AIA (G702/G703)',custom_pdf:'Custom PDF',spreadsheet:'Spreadsheet',portal:'Web Portal (Textura/GCPay)',other:'Other'}
+function _billMoney(n){return fm(Number(n)||0,2)}
+async function renderBillingTab(el){
+  el.innerHTML='<div style="padding:14px">'+ld()+'</div>'
+  var setupRes=await sb.from('job_billing').select('*').eq('job_id',currentJobId).maybeSingle()
+  var setup=setupRes.data
+  var drawsRes=await sb.from('billing_draws').select('*').eq('job_id',currentJobId).order('sort_order')
+  var draws=drawsRes.data||[]
+  var appsRes=await sb.from('billing_applications').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
+  var apps=appsRes.data||[]
+  window._billSetup=setup;window._billDraws=draws;window._billApps=apps
+  var h='<div style="max-width:820px">'
+  if(!setup){
+    h+='<div class="card"><div style="text-align:center;padding:24px 20px"><div style="font-size:30px;margin-bottom:8px">🧾</div>'
+    h+='<div style="font-weight:600;margin-bottom:4px">No billing set up for this job yet</div>'
+    h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:14px">Set the contract value, billing method, and retainage to start tracking draws and pay applications.</div>'
+    h+='<button class="btn btn-p btn-sm" onclick="editBillingSetup()">+ Set Up Billing</button></div></div>'
+    h+='</div>';el.innerHTML=h;return
+  }
+  var billedToDate=apps.reduce(function(s,a){return s+(Number(a.amount_this_period)||0)},0)
+  var retainageHeld=apps.reduce(function(s,a){return s+(Number(a.retainage_held)||0)},0)
+  var paidToDate=apps.filter(function(a){return a.status==='paid'}).reduce(function(s,a){return s+(Number(a.paid_amount)||a.net_payable||0)},0)
+  var contract=Number(setup.contract_value)||0
+  var remaining=contract-billedToDate
+  var pctBilled=contract?Math.round(billedToDate/contract*100):0
+  h+='<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'
+  h+='<div><div class="card-title" style="margin:0">Contract Summary</div>'
+  h+='<div style="font-size:11px;color:#8a96ab;margin-top:2px">'+BILLING_METHODS[setup.billing_method]+(setup.retainage_pct>0?' \u00b7 '+setup.retainage_pct+'% retainage':' \u00b7 no retainage')+(setup.form_type?' \u00b7 '+(BILLING_FORM_TYPES[setup.form_type]||setup.form_type):'')+'</div></div>'
+  h+='<button class="btn btn-sm" onclick="editBillingSetup()">Edit Setup</button></div>'
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">'
+  h+=_billStat('Contract',_billMoney(contract),'#e8edf5')
+  h+=_billStat('Billed to Date',_billMoney(billedToDate),'#60a5fa')
+  h+=_billStat('Remaining',_billMoney(remaining),remaining>0?'#d97706':'#16a34a')
+  if(setup.retainage_pct>0)h+=_billStat('Retainage Held',_billMoney(retainageHeld),'#a78bfa')
+  h+=_billStat('Paid to Date',_billMoney(paidToDate),'#16a34a')
+  h+='</div>'
+  h+='<div style="height:7px;background:#0c1220;border-radius:4px;overflow:hidden;margin-top:12px"><div style="height:100%;width:'+Math.min(100,pctBilled)+'%;background:#2563eb"></div></div>'
+  h+='<div style="font-size:10px;color:#414e63;margin-top:4px">'+pctBilled+'% of contract billed</div>'
+  h+='</div>'
+  h+='<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center"><div class="card-title" style="margin:0">Draw Schedule</div><button class="btn btn-sm btn-p" onclick="addBillingDraw()">+ Add Draw</button></div>'
+  if(!draws.length){h+='<div style="font-size:12px;color:#414e63;padding:10px 0">No draws scheduled. Add draws/milestones for when you can bill.</div>'}
+  else{
+    h+='<table class="tbl" style="font-size:12px;margin-top:8px"><thead><tr><th>#</th><th>Description</th><th>Date</th><th style="text-align:right">Amount</th><th>Status</th><th></th></tr></thead><tbody>'
+    var today=new Date();today.setHours(0,0,0,0)
+    draws.forEach(function(d){
+      var amt=d.scheduled_amount!=null?d.scheduled_amount:(d.scheduled_pct?contract*d.scheduled_pct/100:0)
+      var isReady=d.status==='scheduled'&&d.scheduled_date&&new Date(d.scheduled_date)<=today
+      var statusBadge=d.status==='paid'?'<span class="badge bg-green">Paid</span>':d.status==='billed'?'<span class="badge bg-blue">Billed</span>':isReady?'<span class="badge bg-amber">Ready to bill</span>':'<span class="badge bg-gray">Scheduled</span>'
+      h+='<tr><td>'+(d.draw_number||'')+'</td><td>'+_escapeHTML(d.description||'')+'</td>'
+      h+='<td'+(isReady?' style="color:#d97706;font-weight:600"':'')+'>'+(d.scheduled_date?fd(d.scheduled_date):'\u2014')+'</td>'
+      h+='<td style="text-align:right">'+_billMoney(amt)+(d.scheduled_pct?' ('+d.scheduled_pct+'%)':'')+'</td>'
+      h+='<td>'+statusBadge+'</td>'
+      h+='<td style="display:flex;gap:4px"><button class="btn btn-sm" data-did="'+d.id+'" onclick="editBillingDraw(this.dataset.did)">Edit</button>'
+      if(d.status==='scheduled'||d.status==='ready')h+='<button class="btn btn-sm btn-p" data-did="'+d.id+'" onclick="billFromDraw(this.dataset.did)">Bill</button>'
+      h+='</td></tr>'
+    })
+    h+='</tbody></table>'
+  }
+  h+='</div>'
+  h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div class="card-title" style="margin:0">Pay Applications</div><button class="btn btn-sm btn-p" onclick="addBillingApp()">+ New Bill</button></div>'
+  if(!apps.length){h+='<div style="font-size:12px;color:#414e63;padding:10px 0">No bills submitted yet.</div>'}
+  else{
+    h+='<table class="tbl" style="font-size:12px;margin-top:8px"><thead><tr><th>App #</th><th>Period End</th><th style="text-align:right">This Period</th><th style="text-align:right">Retainage</th><th style="text-align:right">Net Due</th><th>Status</th><th></th></tr></thead><tbody>'
+    apps.forEach(function(a){
+      var statusBadge=a.status==='paid'?'<span class="badge bg-green">Paid</span>':a.status==='submitted'?'<span class="badge bg-amber">Submitted</span>':'<span class="badge bg-gray">Draft</span>'
+      h+='<tr><td>'+(a.application_number||'')+'</td><td>'+(a.period_end?fd(a.period_end):'\u2014')+'</td>'
+      h+='<td style="text-align:right">'+_billMoney(a.amount_this_period)+'</td>'
+      h+='<td style="text-align:right;color:#a78bfa">'+(a.retainage_held?'\u2212'+_billMoney(a.retainage_held):'\u2014')+'</td>'
+      h+='<td style="text-align:right;font-weight:600">'+_billMoney(a.net_payable)+'</td>'
+      h+='<td>'+statusBadge+'</td>'
+      h+='<td style="display:flex;gap:4px">'
+      if(a.form_url)h+='<a href="'+a.form_url+'" target="_blank" class="btn btn-sm">\ud83d\udcce</a>'
+      h+='<button class="btn btn-sm" data-aid="'+a.id+'" onclick="editBillingApp(this.dataset.aid)">Edit</button></td></tr>'
+    })
+    h+='</tbody></table>'
+  }
+  h+='</div></div>'
+  el.innerHTML=h
+}
+function _billStat(label,val,color){
+  return '<div style="background:#0a1019;border-radius:8px;padding:10px 12px"><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.04em">'+label+'</div><div style="font-size:16px;font-weight:700;color:'+color+';margin-top:3px">'+val+'</div></div>'
+}
+async function editBillingSetup(){
+  var s=window._billSetup||{}
+  var h='<div class="two"><div class="fg"><label class="fl">Contract Value *</label><input class="fi" type="number" step="0.01" id="bs-contract" value="'+(s.contract_value!=null?s.contract_value:(currentJob&&currentJob.contract_value||''))+'"></div>'
+  h+='<div class="fg"><label class="fl">Billing Method</label><select class="fs" id="bs-method">'
+  Object.keys(BILLING_METHODS).forEach(function(k){h+='<option value="'+k+'"'+(s.billing_method===k?' selected':'')+'>'+BILLING_METHODS[k]+'</option>'})
+  h+='</select></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Retainage % <span style="color:#414e63;font-weight:400;font-size:10px">(0 = none)</span></label><input class="fi" type="number" step="0.1" id="bs-retainage" value="'+(s.retainage_pct!=null?s.retainage_pct:0)+'"></div>'
+  h+='<div class="fg"><label class="fl">Form Type</label><select class="fs" id="bs-form"><option value="">\u2014 Select \u2014</option>'
+  Object.keys(BILLING_FORM_TYPES).forEach(function(k){h+='<option value="'+k+'"'+(s.form_type===k?' selected':'')+'>'+BILLING_FORM_TYPES[k]+'</option>'})
+  h+='</select></div></div>'
+  h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="bs-notes" style="min-height:50px">'+_escapeHTML(s.notes||'')+'</textarea></div>'
+  modal('Billing Setup',h,async function(){
+    var contract=parseFloat(document.getElementById('bs-contract').value)||0
+    var data={job_id:currentJobId,contract_value:contract,billing_method:document.getElementById('bs-method').value,retainage_pct:parseFloat(document.getElementById('bs-retainage').value)||0,form_type:document.getElementById('bs-form').value||null,notes:document.getElementById('bs-notes').value||null,updated_at:new Date().toISOString()}
+    var res
+    if(s.id)res=await sb.from('job_billing').update(data).eq('id',s.id)
+    else{data.id=uuid();data.created_at=new Date().toISOString();res=await sb.from('job_billing').insert(data)}
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();toast('Billing setup saved');loadJT('jt-billing')
+  },'Save Setup')
+}
+async function addBillingDraw(){editBillingDraw(null)}
+async function editBillingDraw(drawId){
+  var draws=window._billDraws||[]
+  var d=drawId?draws.find(function(x){return x.id===drawId}):null
+  var nextNum=d?d.draw_number:(draws.length?Math.max.apply(null,draws.map(function(x){return x.draw_number||0}))+1:1)
+  var h='<div class="two"><div class="fg"><label class="fl">Draw #</label><input class="fi" type="number" id="bd-num" value="'+(d?d.draw_number||nextNum:nextNum)+'"></div>'
+  h+='<div class="fg"><label class="fl">Scheduled Date</label><input class="fi" type="date" id="bd-date" value="'+(d&&d.scheduled_date||'')+'"></div></div>'
+  h+='<div class="fg"><label class="fl">Description</label><input class="fi" id="bd-desc" placeholder="e.g. Rough-in complete, Draw 3, March billing" value="'+_escAttr(d&&d.description||'')+'"></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Amount ($)</label><input class="fi" type="number" step="0.01" id="bd-amt" value="'+(d&&d.scheduled_amount!=null?d.scheduled_amount:'')+'"></div>'
+  h+='<div class="fg"><label class="fl">\u2014 or \u2014 % of Contract</label><input class="fi" type="number" step="0.1" id="bd-pct" value="'+(d&&d.scheduled_pct!=null?d.scheduled_pct:'')+'"></div></div>'
+  h+='<div class="fg"><label class="fl">Status</label><select class="fs" id="bd-status">'
+  ;['scheduled','ready','billed','paid'].forEach(function(st){h+='<option value="'+st+'"'+((d&&d.status||'scheduled')===st?' selected':'')+'>'+st.charAt(0).toUpperCase()+st.slice(1)+'</option>'})
+  h+='</select></div>'
+  var footer=d?'<button class="btn btn-ghost btn-sm" style="color:#dc2626" data-did="'+d.id+'" onclick="deleteBillingDraw(this.dataset.did)">Delete Draw</button>':''
+  modal(d?'Edit Draw':'Add Draw',h+'<div style="margin-top:8px">'+footer+'</div>',async function(){
+    var amt=document.getElementById('bd-amt').value
+    var pct=document.getElementById('bd-pct').value
+    var data={job_id:currentJobId,draw_number:parseInt(document.getElementById('bd-num').value)||null,description:document.getElementById('bd-desc').value||null,scheduled_date:document.getElementById('bd-date').value||null,scheduled_amount:amt!==''?parseFloat(amt):null,scheduled_pct:pct!==''?parseFloat(pct):null,status:document.getElementById('bd-status').value,updated_at:new Date().toISOString()}
+    var res
+    if(d)res=await sb.from('billing_draws').update(data).eq('id',d.id)
+    else{data.id=uuid();data.sort_order=draws.length;data.created_at=new Date().toISOString();res=await sb.from('billing_draws').insert(data)}
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal();toast('Draw saved');loadJT('jt-billing')
+  },'Save Draw')
+}
+async function deleteBillingDraw(id){
+  if(!confirm('Delete this draw?'))return
+  await sb.from('billing_draws').delete().eq('id',id)
+  closeModal();toast('Draw deleted');loadJT('jt-billing')
+}
+async function billFromDraw(drawId){
+  var draws=window._billDraws||[]
+  var d=draws.find(function(x){return x.id===drawId});if(!d)return
+  var setup=window._billSetup||{}
+  var contract=Number(setup.contract_value)||0
+  var amt=d.scheduled_amount!=null?d.scheduled_amount:(d.scheduled_pct?contract*d.scheduled_pct/100:0)
+  editBillingApp(null,{amount:amt,drawId:d.id,desc:d.description})
+}
+async function addBillingApp(){editBillingApp(null)}
+async function editBillingApp(appId,prefill){
+  var apps=window._billApps||[]
+  var setup=window._billSetup||{}
+  var a=appId?apps.find(function(x){return x.id===appId}):null
+  var nextNum=a?a.application_number:(apps.length?Math.max.apply(null,apps.map(function(x){return x.application_number||0}))+1:1)
+  var retPct=Number(setup.retainage_pct)||0
+  var defAmt=a?a.amount_this_period:(prefill&&prefill.amount!=null?prefill.amount:'')
+  var h='<div class="two"><div class="fg"><label class="fl">Application #</label><input class="fi" type="number" id="ba-num" value="'+(a?a.application_number||nextNum:nextNum)+'"></div>'
+  h+='<div class="fg"><label class="fl">Period End</label><input class="fi" type="date" id="ba-period" value="'+(a&&a.period_end||'')+'"></div></div>'
+  h+='<div class="fg"><label class="fl">Amount This Period ($) *</label><input class="fi" type="number" step="0.01" id="ba-amt" value="'+(defAmt!==''&&defAmt!=null?defAmt:'')+'" oninput="_billRecalc('+retPct+')"></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Retainage Held ($) <span style="color:#414e63;font-weight:400;font-size:10px">('+retPct+'%)</span></label><input class="fi" type="number" step="0.01" id="ba-ret" value="'+(a&&a.retainage_held!=null?a.retainage_held:'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Net Payable ($)</label><input class="fi" type="number" step="0.01" id="ba-net" value="'+(a&&a.net_payable!=null?a.net_payable:'')+'" readonly style="background:rgba(255,255,255,.03)"></div></div>'
+  h+='<div class="fg"><label class="fl">Status</label><select class="fs" id="ba-status" onchange="_billStatusFields()">'
+  ;['draft','submitted','paid'].forEach(function(st){h+='<option value="'+st+'"'+((a&&a.status||'draft')===st?' selected':'')+'>'+st.charAt(0).toUpperCase()+st.slice(1)+'</option>'})
+  h+='</select></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Submitted Date</label><input class="fi" type="date" id="ba-sub" value="'+(a&&a.submitted_date||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Paid Date</label><input class="fi" type="date" id="ba-paid" value="'+(a&&a.paid_date||'')+'"></div></div>'
+  h+='<div class="fg" id="ba-paidamt-wrap" style="display:none"><label class="fl">Paid Amount ($)</label><input class="fi" type="number" step="0.01" id="ba-paidamt" value="'+(a&&a.paid_amount!=null?a.paid_amount:'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Billing Form <span style="color:#414e63;font-weight:400;font-size:10px">(AIA, custom PDF, spreadsheet \u2014 attach the filled form)</span></label>'
+  h+='<div style="display:flex;align-items:center;gap:10px"><div id="ba-form-status" style="font-size:11px;color:#8a96ab;flex:1">'+(a&&a.form_url?'\ud83d\udcce '+_escapeHTML(a.form_name||'attached'):'No form attached')+'</div>'
+  h+='<label class="btn btn-sm" style="cursor:pointer">\u2b06 Upload<input type="file" style="display:none" onchange="uploadBillingForm(this.files[0])"></label></div>'
+  h+='<input type="hidden" id="ba-form-url" value="'+_escAttr(a&&a.form_url||'')+'"><input type="hidden" id="ba-form-name" value="'+_escAttr(a&&a.form_name||'')+'"></div>'
+  h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ba-notes" style="min-height:45px">'+_escapeHTML(a&&a.notes||'')+'</textarea></div>'
+  var footer=a?'<button class="btn btn-ghost btn-sm" style="color:#dc2626" data-aid="'+a.id+'" onclick="deleteBillingApp(this.dataset.aid)">Delete</button>':''
+  modal(a?'Edit Pay Application':'New Pay Application',h+'<div style="margin-top:8px">'+footer+'</div>',async function(){
+    var amt=parseFloat(document.getElementById('ba-amt').value)||0
+    if(!amt){toast('Amount this period is required','error');return}
+    var ret=parseFloat(document.getElementById('ba-ret').value)||0
+    var net=parseFloat(document.getElementById('ba-net').value)||(amt-ret)
+    var status=document.getElementById('ba-status').value
+    var priorBilled=apps.filter(function(x){return !a||x.id!==a.id}).reduce(function(s,x){return s+(Number(x.amount_this_period)||0)},0)
+    var data={job_id:currentJobId,draw_id:(prefill&&prefill.drawId)||(a&&a.draw_id)||null,application_number:parseInt(document.getElementById('ba-num').value)||null,period_end:document.getElementById('ba-period').value||null,amount_this_period:amt,retainage_held:ret,net_payable:net,billed_to_date:priorBilled+amt,status:status,submitted_date:document.getElementById('ba-sub').value||null,paid_date:document.getElementById('ba-paid').value||null,paid_amount:document.getElementById('ba-paidamt').value!==''?parseFloat(document.getElementById('ba-paidamt').value):null,form_url:document.getElementById('ba-form-url').value||null,form_name:document.getElementById('ba-form-name').value||null,notes:document.getElementById('ba-notes').value||null,updated_at:new Date().toISOString()}
+    var res
+    if(a)res=await sb.from('billing_applications').update(data).eq('id',a.id)
+    else{data.id=uuid();data.created_by=(ME&&ME.full_name)||'';data.created_at=new Date().toISOString();res=await sb.from('billing_applications').insert(data)}
+    if(res.error){toast(res.error.message,'error');return}
+    if(data.draw_id){var newDrawStatus=status==='paid'?'paid':'billed';await sb.from('billing_draws').update({status:newDrawStatus,updated_at:new Date().toISOString()}).eq('id',data.draw_id)}
+    closeModal();toast('Pay application saved');loadJT('jt-billing')
+  },'Save')
+  setTimeout(function(){_billRecalc(retPct);_billStatusFields()},50)
+}
+function _billRecalc(retPct){
+  var amtEl=document.getElementById('ba-amt'),retEl=document.getElementById('ba-ret'),netEl=document.getElementById('ba-net')
+  if(!amtEl||!netEl)return
+  var amt=parseFloat(amtEl.value)||0
+  if(retEl&&(retEl.value===''||retEl.dataset.auto==='1')&&retPct>0){retEl.value=(amt*retPct/100).toFixed(2);retEl.dataset.auto='1'}
+  var ret=parseFloat(retEl?retEl.value:0)||0
+  netEl.value=(amt-ret).toFixed(2)
+}
+function _billStatusFields(){
+  var st=document.getElementById('ba-status');var w=document.getElementById('ba-paidamt-wrap')
+  if(st&&w)w.style.display=st.value==='paid'?'block':'none'
+}
+async function uploadBillingForm(file){
+  if(!file)return
+  toast('Uploading\u2026')
+  try{
+    var res=await uploadToCloudinary(file,'fieldaxishq/billing')
+    document.getElementById('ba-form-url').value=res.url
+    document.getElementById('ba-form-name').value=file.name
+    var st=document.getElementById('ba-form-status');if(st)st.innerHTML='\ud83d\udcce '+_escapeHTML(file.name)
+    toast('Uploaded \u2014 Save to keep')
+  }catch(e){toast('Upload failed: '+(e.message||e),'error')}
+}
+async function deleteBillingApp(id){
+  if(!confirm('Delete this pay application?'))return
+  await sb.from('billing_applications').delete().eq('id',id)
+  closeModal();toast('Deleted');loadJT('jt-billing')
+}
 async function renderJobFinTab(el){
   // Daily reports are the single source of truth for hours
   const{data:dr}=await sb.from('daily_reports').select('*').eq('job_id',currentJobId)
@@ -5116,6 +5334,123 @@ var CAL_TYPES=[
   {key:'projected_closeout',label:'Projected Closeouts',color:'#14b8a6',icon:'🏁'},
   {key:'milestone',label:'Rough-in / Trim / etc.',color:'#fb923c',icon:'🔨'}
 ]
+// ── BILLING DASHBOARD (cross-job) ──────────────────────────────────────────
+async function pgBilling(){
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="pgBilling()">\u21bb Refresh</button>'
+  var el=document.getElementById('page-area')
+  el.innerHTML='<div style="padding:20px">'+ld()+'</div>'
+  var setupRes=await sb.from('job_billing').select('*')
+  var setups=setupRes.data||[]
+  if(!setups.length){el.innerHTML='<div style="padding:20px">'+empty('\ud83e\uddfe','No jobs have billing set up yet. Open a job\\'s Billing tab to configure its contract and draws.')+'</div>';return}
+  var jobIds=setups.map(function(s){return s.job_id})
+  var drawsRes=await sb.from('billing_draws').select('*').in('job_id',jobIds)
+  var appsRes=await sb.from('billing_applications').select('*').in('job_id',jobIds)
+  var draws=drawsRes.data||[],apps=appsRes.data||[]
+  var jobsRes=await sb.from('jobs').select('id,name,job_number').in('id',jobIds)
+  var jobsById={};(jobsRes.data||[]).forEach(function(j){jobsById[j.id]=j})
+  var setupByJob={};setups.forEach(function(s){setupByJob[s.job_id]=s})
+  var appsByJob={};apps.forEach(function(a){(appsByJob[a.job_id]=appsByJob[a.job_id]||[]).push(a)})
+
+  var today=new Date();today.setHours(0,0,0,0)
+  // Aggregate stats
+  var totalContract=setups.reduce(function(s,x){return s+(Number(x.contract_value)||0)},0)
+  var totalBilled=apps.reduce(function(s,a){return s+(Number(a.amount_this_period)||0)},0)
+  var totalRetainage=apps.reduce(function(s,a){return s+(Number(a.retainage_held)||0)},0)
+  var outstanding=apps.filter(function(a){return a.status==='submitted'}).reduce(function(s,a){return s+(Number(a.net_payable)||0)},0)
+  var paidTotal=apps.filter(function(a){return a.status==='paid'}).reduce(function(s,a){return s+(Number(a.paid_amount)||a.net_payable||0)},0)
+
+  // Billable now: draws scheduled with date <= today and not yet billed/paid
+  var billable=draws.filter(function(d){return(d.status==='scheduled'||d.status==='ready')&&d.scheduled_date&&new Date(d.scheduled_date)<=today})
+  // Upcoming: scheduled draws with future dates (next 30 days)
+  var upcoming=draws.filter(function(d){return(d.status==='scheduled'||d.status==='ready')&&d.scheduled_date&&new Date(d.scheduled_date)>today&&(new Date(d.scheduled_date)-today)/(1000*3600*24)<=30})
+  upcoming.sort(function(a,b){return new Date(a.scheduled_date)-new Date(b.scheduled_date)})
+  // Outstanding bills (submitted, unpaid)
+  var outBills=apps.filter(function(a){return a.status==='submitted'})
+
+  var h='<div style="padding:16px 20px">'
+  // Stats bar
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin-bottom:18px">'
+  h+=_billStat('Total Contracts',_billMoney(totalContract),'#e8edf5')
+  h+=_billStat('Billed to Date',_billMoney(totalBilled),'#60a5fa')
+  h+=_billStat('Outstanding',_billMoney(outstanding),'#d97706')
+  h+=_billStat('Paid',_billMoney(paidTotal),'#16a34a')
+  h+=_billStat('Retainage Held',_billMoney(totalRetainage),'#a78bfa')
+  h+='</div>'
+
+  // Billable now
+  h+='<div class="card" style="margin-bottom:14px;border:1px solid rgba(217,119,6,.25)"><div class="card-title" style="color:#d97706">\ud83d\udcb0 Billable Now ('+billable.length+')</div>'
+  if(!billable.length){h+='<div style="font-size:12px;color:#414e63;padding:6px 0">Nothing is due to bill right now.</div>'}
+  else{
+    h+='<table class="tbl" style="font-size:12px"><thead><tr><th>Job</th><th>Draw</th><th>Scheduled</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>'
+    billable.forEach(function(d){
+      var j=jobsById[d.job_id],setup=setupByJob[d.job_id]
+      var amt=d.scheduled_amount!=null?d.scheduled_amount:(d.scheduled_pct&&setup?Number(setup.contract_value)*d.scheduled_pct/100:0)
+      h+='<tr style="cursor:pointer" data-jid="'+d.job_id+'" onclick="billingOpenJob(this.dataset.jid)"><td>'+_escapeHTML(j?j.name:'')+'</td>'
+      h+='<td>'+(d.draw_number?'#'+d.draw_number+' ':'')+_escapeHTML(d.description||'')+'</td>'
+      h+='<td style="color:#d97706;font-weight:600">'+fd(d.scheduled_date)+'</td>'
+      h+='<td style="text-align:right;font-weight:600">'+_billMoney(amt)+'</td>'
+      h+='<td><span class="badge bg-amber">Bill now</span></td></tr>'
+    })
+    h+='</tbody></table>'
+  }
+  h+='</div>'
+
+  // Outstanding bills + upcoming side by side
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px">'
+  // Outstanding
+  h+='<div class="card"><div class="card-title">\ud83d\udce4 Outstanding Bills ('+outBills.length+')</div>'
+  if(!outBills.length){h+='<div style="font-size:12px;color:#414e63;padding:6px 0">No unpaid submitted bills.</div>'}
+  else{
+    outBills.sort(function(a,b){return new Date(a.submitted_date||0)-new Date(b.submitted_date||0)})
+    outBills.forEach(function(a){
+      var j=jobsById[a.job_id]
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" data-jid="'+a.job_id+'" onclick="billingOpenJob(this.dataset.jid)">'
+      h+='<div><div style="font-size:12px;font-weight:500">'+_escapeHTML(j?j.name:'')+'</div><div style="font-size:10px;color:#414e63">App #'+(a.application_number||'')+(a.submitted_date?' \u00b7 submitted '+fd(a.submitted_date):'')+'</div></div>'
+      h+='<div style="font-size:13px;font-weight:700;color:#d97706">'+_billMoney(a.net_payable)+'</div></div>'
+    })
+  }
+  h+='</div>'
+  // Upcoming draws
+  h+='<div class="card"><div class="card-title">\ud83d\uddd3 Upcoming Draws (30d)</div>'
+  if(!upcoming.length){h+='<div style="font-size:12px;color:#414e63;padding:6px 0">No draws scheduled in the next 30 days.</div>'}
+  else{
+    upcoming.forEach(function(d){
+      var j=jobsById[d.job_id],setup=setupByJob[d.job_id]
+      var amt=d.scheduled_amount!=null?d.scheduled_amount:(d.scheduled_pct&&setup?Number(setup.contract_value)*d.scheduled_pct/100:0)
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" data-jid="'+d.job_id+'" onclick="billingOpenJob(this.dataset.jid)">'
+      h+='<div><div style="font-size:12px;font-weight:500">'+_escapeHTML(j?j.name:'')+'</div><div style="font-size:10px;color:#414e63">'+(d.draw_number?'#'+d.draw_number+' ':'')+_escapeHTML(d.description||'')+' \u00b7 '+fd(d.scheduled_date)+'</div></div>'
+      h+='<div style="font-size:13px;font-weight:600;color:#8a96ab">'+_billMoney(amt)+'</div></div>'
+    })
+  }
+  h+='</div>'
+  h+='</div>'
+
+  // Per-job summary table
+  h+='<div class="card" style="margin-top:14px"><div class="card-title">All Jobs</div>'
+  h+='<table class="tbl" style="font-size:12px"><thead><tr><th>Job</th><th>Method</th><th style="text-align:right">Contract</th><th style="text-align:right">Billed</th><th style="text-align:right">Remaining</th><th style="text-align:right">Retainage</th></tr></thead><tbody>'
+  setups.forEach(function(s){
+    var j=jobsById[s.job_id]
+    var jApps=appsByJob[s.job_id]||[]
+    var billed=jApps.reduce(function(sum,a){return sum+(Number(a.amount_this_period)||0)},0)
+    var ret=jApps.reduce(function(sum,a){return sum+(Number(a.retainage_held)||0)},0)
+    var contract=Number(s.contract_value)||0
+    h+='<tr style="cursor:pointer" data-jid="'+s.job_id+'" onclick="billingOpenJob(this.dataset.jid)"><td>'+_escapeHTML(j?j.name:'')+'</td>'
+    h+='<td style="color:#8a96ab">'+(BILLING_METHODS[s.billing_method]||s.billing_method)+'</td>'
+    h+='<td style="text-align:right">'+_billMoney(contract)+'</td>'
+    h+='<td style="text-align:right;color:#60a5fa">'+_billMoney(billed)+'</td>'
+    h+='<td style="text-align:right;color:'+(contract-billed>0?'#d97706':'#16a34a')+'">'+_billMoney(contract-billed)+'</td>'
+    h+='<td style="text-align:right;color:#a78bfa">'+(ret?_billMoney(ret):'\u2014')+'</td></tr>'
+  })
+  h+='</tbody></table></div>'
+
+  h+='</div>'
+  el.innerHTML=h
+}
+function billingOpenJob(jobId){
+  openJob(jobId)
+  setTimeout(function(){if(typeof loadJT==='function')loadJT('jt-billing')},400)
+}
+
 // ── DESIGN & PERMITTING DASHBOARD ──────────────────────────────────────────
 var _designStallDays=7  // days without movement = stalled
 var _designExpWindow='all'  // expiration filter window
