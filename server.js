@@ -183,9 +183,6 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .nav-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer;color:#8a96ab;font-size:12px;margin:1px 5px;transition:.15s;user-select:none;white-space:nowrap}
 .nav-item:hover{background:#131c2e;color:#e8edf5}.nav-item.active{background:#1a2540;color:#e8edf5}
 .nav-item svg{width:13px;height:13px;flex-shrink:0;opacity:.75}
-.nav-item-jobs{font-weight:700;font-size:13px;color:#e8edf5}
-.nav-item-jobs svg{opacity:1;width:15px;height:15px}
-.nav-item-jobs:hover{background:#1a2540}
 .nb{margin-left:auto;background:#dc2626;color:#fff;font-size:9px;padding:1px 5px;border-radius:9px;font-weight:700}
 .sidebar-foot{margin-top:auto;padding:9px;border-top:1px solid rgba(255,255,255,.06)}
 .user-pill{display:flex;align-items:center;gap:8px;padding:7px;background:#131c2e;border-radius:7px;cursor:pointer}
@@ -498,7 +495,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
     <div class="nav-section">Overview</div>
     <div class="nav-item active" onclick="P('dashboard',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="1.5" width="5" height="5" rx="1"/><rect x="9.5" y="1.5" width="5" height="5" rx="1"/><rect x="1.5" y="9.5" width="5" height="5" rx="1"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/></svg>Dashboard</div>
     <div class="nav-item" onclick="P('today',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.5 1.5"/></svg>Today <span id="today-nav-badge" style="display:none;background:#dc2626;color:#fff;font-size:9px;border-radius:8px;padding:1px 6px;margin-left:auto"></span></div>
-    <div class="nav-item nav-item-jobs" onclick="P('jobs',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>All Jobs</div>
+    <div class="nav-item" onclick="P('jobs',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>All Jobs</div>
     <div class="nav-item" onclick="P('newjob',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/></svg>New Job</div>
     <div class="nav-item" onclick="P('schedule',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>Schedule</div>
     <div class="nav-item" onclick="P('calendar',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4M5 10h2M9 10h2"/></svg>Calendar</div>
