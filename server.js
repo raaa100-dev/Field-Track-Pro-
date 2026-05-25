@@ -1047,13 +1047,15 @@ async function renderToday(){
     sb.from('job_tasks').select('id,job_id,job_name,title,assigned_to,assigned_name,due_date,priority,status,created_by').in('status',['open','in_progress']).order('due_date',{ascending:true}),
     sb.from('jobs').select('id,name,job_number,phase,project_manager,labor_budget,next_pm_visit,due_date,archived,permit_expires_on,permit_number').eq('archived',false),
     sb.from('change_orders').select('id,job_id,co_number,title,value,status,created_at').eq('status','pending').order('created_at',{ascending:true}),
-    sb.from('daily_reports').select('job_id,report_date').order('report_date',{ascending:false})
+    sb.from('daily_reports').select('job_id,report_date').order('report_date',{ascending:false}),
+    sb.from('punch_list').select('id,job_id,item,assigned_to,assigned_name,due_date,priority,status,created_by').in('status',['open','in_progress']).order('due_date',{ascending:true})
   ])
   var comms=results[0].status==='fulfilled'?(results[0].value.data||[]):[]
   var tasks=results[1].status==='fulfilled'?(results[1].value.data||[]):[]
   var jobs=results[2].status==='fulfilled'?(results[2].value.data||[]):[]
   var cos=results[3].status==='fulfilled'?(results[3].value.data||[]):[]
   var reports=results[4].status==='fulfilled'?(results[4].value.data||[]):[]
+  var punch=results[5].status==='fulfilled'?(results[5].value.data||[]):[]
 
   // Build a job lookup + latest report date per job
   var jobById={};jobs.forEach(function(j){jobById[j.id]=j})
@@ -1066,6 +1068,7 @@ async function renderToday(){
     tasks=tasks.filter(function(t){return t.assigned_to===myId||t.created_by===myName})
     comms=comms.filter(function(c){return c.logged_by===myName||jobIsMine(c.job_id)})
     cos=cos.filter(function(c){return jobIsMine(c.job_id)})
+    punch=punch.filter(function(p){return p.assigned_to===myId||p.created_by===myName||jobIsMine(p.job_id)})
   }
 
   var today=new Date();today.setHours(0,0,0,0)
@@ -1103,6 +1106,19 @@ async function renderToday(){
     var ageDays=(now-new Date(c.created_at))/(1000*3600*24)
     var item={kind:'co',id:c.job_id,job_id:c.job_id,title:'CO pending approval: '+(c.co_number||'')+' '+(c.title||''),sub:(j?j.name:'')+' · '+fm(c.value||0),tag:Math.floor(ageDays)+'d pending'}
     if(ageDays>=3)overdue.push(item);else soon.push(item)
+  })
+
+  // Punch list items (open/in-progress)
+  punch.forEach(function(p){
+    var j=jobById[p.job_id]
+    var item={kind:'punch',id:p.id,job_id:p.job_id,title:'Punch: '+(p.item||'item'),sub:(j?j.name:'')+(p.assigned_name?' · '+p.assigned_name:''),priority:p.priority}
+    if(p.due_date){
+      var d=new Date(p.due_date);d.setHours(0,0,0,0)
+      if(d<today){item.tag='Overdue '+_daysAgo(p.due_date);overdue.push(item)}
+      else if(d.getTime()===today.getTime()){item.tag='Due today';soon.push(item)}
+      else if((d-today)/(1000*3600*24)<=3){item.tag='Due '+fd(p.due_date);soon.push(item)}
+    }else if(p.priority==='urgent'){item.tag='Urgent';overdue.push(item)}
+    else if(p.priority==='high'){item.tag='High priority';soon.push(item)}
   })
 
   // Jobs going dark + labor over budget + upcoming PM visits (job-level scan)
@@ -1160,7 +1176,7 @@ function _todaySection(title,items,color){
   if(!items.length)return ''
   var h='<div style="margin-top:18px"><div style="font-size:12px;font-weight:700;color:'+color+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">'+title+' ('+items.length+')</div>'
   items.forEach(function(it){
-    var icon=it.kind==='task'?'✓':it.kind==='comm'?'📞':it.kind==='co'?'📝':'🏗'
+    var icon=it.kind==='task'?'✓':it.kind==='comm'?'📞':it.kind==='co'?'📝':it.kind==='punch'?'🔧':'🏗'
     h+='<div onclick="todayOpen(\\''+it.kind+'\\',\\''+(it.job_id||'')+'\\',\\''+(it.id||'')+'\\')" style="display:flex;align-items:center;gap:11px;padding:11px 13px;background:#0a1019;border:1px solid rgba(255,255,255,.05);border-radius:9px;margin-bottom:7px;cursor:pointer">'
     h+='<span style="font-size:15px;flex-shrink:0">'+icon+'</span>'
     h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+_escapeHTML(it.title)+'</div>'
@@ -1186,14 +1202,17 @@ async function updateTodayBadge(){
     var now=new Date()
     var res=await Promise.allSettled([
       sb.from('job_tasks').select('id,due_date,assigned_to,created_by').in('status',['open','in_progress']),
-      sb.from('job_communications').select('id,occurred_at').eq('needs_response',true).eq('responded',false)
+      sb.from('job_communications').select('id,occurred_at').eq('needs_response',true).eq('responded',false),
+      sb.from('punch_list').select('id,due_date,assigned_to,created_by').in('status',['open','in_progress'])
     ])
     var tasks=res[0].status==='fulfilled'?(res[0].value.data||[]):[]
     var comms=res[1].status==='fulfilled'?(res[1].value.data||[]):[]
+    var punch=res[2].status==='fulfilled'?(res[2].value.data||[]):[]
     var mine=(ME&&ME.isPm)?false:true  // non-PMs default to mine-only
-    if(mine)tasks=tasks.filter(function(t){return t.assigned_to===myId||t.created_by===myName})
+    if(mine){tasks=tasks.filter(function(t){return t.assigned_to===myId||t.created_by===myName});punch=punch.filter(function(p){return p.assigned_to===myId||p.created_by===myName})}
     var overdue=0
     tasks.forEach(function(t){if(t.due_date){var d=new Date(t.due_date);d.setHours(0,0,0,0);if(d<today)overdue++}})
+    punch.forEach(function(p){if(p.due_date){var d=new Date(p.due_date);d.setHours(0,0,0,0);if(d<today)overdue++}})
     comms.forEach(function(c){if((now-new Date(c.occurred_at))/(1000*3600*24)>=2)overdue++})
     var badge=document.getElementById('today-nav-badge')
     if(badge){if(overdue>0){badge.style.display='inline-block';badge.textContent=overdue}else badge.style.display='none'}
@@ -4335,7 +4354,7 @@ async function renderPunchTab(el){
   const{data:items}=await sb.from('punch_list').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
   el.innerHTML=\`<div style="margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="addPunchItem('\${currentJobId}',true)">+ Add Punch Item</button></div>
   <table class="tbl"><thead><tr><th>Item</th><th>Location</th><th>Assigned To</th><th>Priority</th><th>Status</th><th>Due</th><th></th></tr></thead><tbody>
-  \${(items||[]).map(i=>\`<tr><td style="font-weight:500">\${i.item}</td><td style="font-size:11px;color:#8a96ab">\${i.location||'—'}</td><td style="font-size:11px">\${i.assigned_to||'—'}</td><td><span class="badge \${i.priority==='urgent'?'bg-red':i.priority==='high'?'bg-amber':'bg-gray'}">\${i.priority}</span></td><td><span class="badge \${i.status==='complete'?'bg-green':'bg-amber'}">\${i.status}</span></td><td style="font-size:11px">\${fd(i.due_date)}</td><td>\${i.status!=='complete'?\`<button class="btn btn-sm btn-g" onclick="completePunch('\${i.id}')">Done</button>\`:''}</td></tr>\`).join('')}</tbody></table>
+  \${(items||[]).map(i=>\`<tr><td style="font-weight:500">\${i.item}</td><td style="font-size:11px;color:#8a96ab">\${i.location||'—'}</td><td style="font-size:11px">\${i.assigned_name||'—'}</td><td><span class="badge \${i.priority==='urgent'?'bg-red':i.priority==='high'?'bg-amber':'bg-gray'}">\${i.priority}</span></td><td><span class="badge \${i.status==='complete'?'bg-green':'bg-amber'}">\${i.status}</span></td><td style="font-size:11px">\${fd(i.due_date)}</td><td>\${i.status!=='complete'?\`<button class="btn btn-sm btn-g" onclick="completePunch('\${i.id}')">Done</button>\`:''}</td></tr>\`).join('')}</tbody></table>
   \${!(items||[]).length?empty('✅','No punch list items'):''}\` 
 }
 async function completePunch(id){await sb.from('punch_list').update({status:'complete',completed_at:new Date().toISOString(),completed_by:ME?.full_name}).eq('id',id);loadJT('jt-punch')}
@@ -6147,22 +6166,41 @@ async function newWalkModal(jobIdOverride){
 async function pgPunch(){
   document.getElementById('topbar-actions').innerHTML='<button class="btn btn-p btn-sm" onclick="addPunchItem()">+ Add Item</button>'
   const{data:items}=await sb.from('punch_list').select('*').order('created_at',{ascending:false})
+  var _jobNm={};(allJobs||[]).forEach(function(j){_jobNm[j.id]=j.name})
   document.getElementById('page-area').innerHTML=\`
   <div class="card" style="padding:0;overflow:hidden">
-  \${(items||[]).length?\`<table class="tbl"><thead><tr><th>Item</th><th>Job</th><th>Location</th><th>Assigned</th><th>Priority</th><th>Status</th><th>Due</th><th></th></tr></thead><tbody>\${(items||[]).map(i=>\`<tr><td style="font-weight:500">\${i.item}</td><td style="font-size:11px">\${i.job_id||'—'}</td><td style="font-size:11px;color:#8a96ab">\${i.location||'—'}</td><td style="font-size:11px">\${i.assigned_to||'—'}</td><td><span class="badge \${i.priority==='urgent'?'bg-red':i.priority==='high'?'bg-amber':'bg-gray'}">\${i.priority}</span></td><td><span class="badge \${i.status==='complete'?'bg-green':'bg-amber'}">\${i.status}</span></td><td style="font-size:11px">\${fd(i.due_date)}</td><td>\${i.status!=='complete'?\`<button class="btn btn-sm btn-g" onclick="completePunchGlobal('\${i.id}')">Done</button>\`:''}</td></tr>\`).join('')}</tbody></table>\`:empty('✅','No punch list items')}
+  \${(items||[]).length?\`<table class="tbl"><thead><tr><th>Item</th><th>Job</th><th>Location</th><th>Assigned</th><th>Priority</th><th>Status</th><th>Due</th><th></th></tr></thead><tbody>\${(items||[]).map(i=>\`<tr><td style="font-weight:500">\${i.item}</td><td style="font-size:11px">\${_jobNm[i.job_id]||'—'}</td><td style="font-size:11px;color:#8a96ab">\${i.location||'—'}</td><td style="font-size:11px">\${i.assigned_name||'—'}</td><td><span class="badge \${i.priority==='urgent'?'bg-red':i.priority==='high'?'bg-amber':'bg-gray'}">\${i.priority}</span></td><td><span class="badge \${i.status==='complete'?'bg-green':'bg-amber'}">\${i.status}</span></td><td style="font-size:11px">\${fd(i.due_date)}</td><td>\${i.status!=='complete'?\`<button class="btn btn-sm btn-g" onclick="completePunchGlobal('\${i.id}')">Done</button>\`:''}</td></tr>\`).join('')}</tbody></table>\`:empty('✅','No punch list items')}
   </div>\`
 }
-function addPunchItem(jobIdOverride,reloadTab){
+async function addPunchItem(jobIdOverride,reloadTab){
   let jobSel=''
   if(!jobIdOverride)jobSel=\`<div class="fg"><label class="fl">Job *</label><select class="fs" id="pl-job"><option value="">— Select —</option>\${allJobs.map(j=>\`<option value="\${j.id}">\${j.name}</option>\`).join('')}</select></div>\`
+  // Load users for the assignee dropdown (so we can notify them)
+  var ur=await sb.from('profiles').select('id,full_name,role').eq('is_active',true).order('full_name')
+  var users=ur.data||[]
+  var assignOpts='<option value="">— Unassigned —</option>'+users.map(function(u){return '<option value="'+u.id+'">'+_escapeHTML(u.full_name)+'</option>'}).join('')
   modal('Add Punch Item',\`
   \${jobIdOverride?\`<input type="hidden" id="pl-job" value="\${jobIdOverride}">\`:jobSel}
   <div class="fg"><label class="fl">Item *</label><input class="fi" id="pl-item" placeholder="What needs to be fixed/completed?"></div>
   <div class="two"><div class="fg"><label class="fl">Location</label><input class="fi" id="pl-loc" placeholder="Room, area, zone…"></div>
-  <div class="fg"><label class="fl">Assigned To</label><input class="fi" id="pl-ass"></div></div>
+  <div class="fg"><label class="fl">Assigned To</label><select class="fs" id="pl-ass">\${assignOpts}</select></div></div>
   <div class="two"><div class="fg"><label class="fl">Priority</label><select class="fs" id="pl-pri"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
   <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="pl-due"></div></div>\`,
-  async()=>{const jobId=v('pl-job');if(!jobId){toast('Select a job','error');return};const item=v('pl-item').trim();if(!item)return;const{error}=await sb.from('punch_list').insert({id:uuid(),job_id:jobId,item,location:v('pl-loc'),assigned_to:v('pl-ass'),priority:v('pl-pri'),status:'open',due_date:v('pl-due')||null,created_by:ME?.full_name,created_at:new Date().toISOString()});if(error)toast(error.message,'error');else{closeModal();toast('Added');if(reloadTab)loadJT('jt-punch');else pgPunch()}})
+  async()=>{
+    const jobId=v('pl-job');if(!jobId){toast('Select a job','error');return}
+    const item=v('pl-item').trim();if(!item)return
+    const assigneeId=v('pl-ass')||null
+    var assigneeName='';if(assigneeId){var u=users.find(function(x){return x.id===assigneeId});assigneeName=u?u.full_name:''}
+    const punchId=uuid()
+    const{error}=await sb.from('punch_list').insert({id:punchId,job_id:jobId,item,location:v('pl-loc'),assigned_to:assigneeId,assigned_name:assigneeName||null,priority:v('pl-pri'),status:'open',due_date:v('pl-due')||null,created_by:ME?.full_name,created_at:new Date().toISOString()})
+    if(error){toast(error.message,'error');return}
+    // Notify the assignee
+    if(assigneeId){
+      var jobName='';var jb=allJobs.find(function(x){return x.id===jobId});if(jb)jobName=jb.name
+      await notify(assigneeId,'punch','Punch item assigned',item+(jobName?' · '+jobName:''),{jobId:jobId})
+    }
+    closeModal();toast('Added'+(assigneeName?' · assigned to '+assigneeName:''));if(reloadTab)loadJT('jt-punch');else pgPunch()
+  })
 }
 async function completePunchGlobal(id){await sb.from('punch_list').update({status:'complete',completed_at:new Date().toISOString(),completed_by:ME?.full_name}).eq('id',id);toast('Done OK');pgPunch()}
 
