@@ -288,10 +288,12 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 @media (max-width:768px){
   #mk-body{grid-template-columns:1fr!important}
   .mk-desktop-only{display:none!important}
+  .mk-mobile-only{display:flex!important}
   #mk-toolbar .mt-btn{padding:9px 13px;font-size:13px;min-height:40px}
   .mk-swatch{width:28px;height:28px}
-  #mk-sidebar{position:fixed;top:0;right:-300px;bottom:0;width:280px;max-width:85vw;background:#070b14;z-index:9100;padding:14px;transition:right .25s ease;box-shadow:-8px 0 24px rgba(0,0,0,.6)}
+  #mk-sidebar{position:fixed;top:0;right:-320px;bottom:0;width:300px;max-width:88vw;background:#070b14;z-index:9120;padding:14px;transition:right .25s ease;box-shadow:-8px 0 24px rgba(0,0,0,.6)}
   #mk-sidebar.mk-sidebar-open{right:0}
+  #mk-sidebar-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9110}
 }
 @media (min-width:769px){
   #mk-sidebar-toggle{display:none}
@@ -10167,7 +10169,12 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
       <div class="mk-desktop-only" style="flex-shrink:0;font-size:10px;color:#414e63">Tip: tap to place · pinch to zoom · drag to pan · Save often</div>
     </div>
     <!-- SIDEBAR -->
+    <div id="mk-sidebar-backdrop" onclick="toggleMarkupSidebar()" style="display:none"></div>
     <div id="mk-sidebar" style="overflow-y:auto;display:flex;flex-direction:column;gap:10px;min-height:0">
+      <div class="mk-mobile-only" style="display:none;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:14px;font-weight:700">Markup Details</span>
+        <button class="btn btn-sm" onclick="toggleMarkupSidebar()" style="font-size:16px;padding:6px 14px">✕ Close</button>
+      </div>
       <div class="card">
         <div class="card-title">Legend <button class="btn btn-sm btn-p" onclick="addLegendEntry()" style="font-size:10px;padding:3px 8px">+</button></div>
         <div id="legend-entries"></div>
@@ -10186,7 +10193,9 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
 // Toggle the markup sidebar (mobile drawer).
 function toggleMarkupSidebar(){
   var sb=document.getElementById('mk-sidebar');if(!sb)return
-  sb.classList.toggle('mk-sidebar-open')
+  var open=sb.classList.toggle('mk-sidebar-open')
+  var bd=document.getElementById('mk-sidebar-backdrop')
+  if(bd)bd.style.display=open?'block':'none'
 }
 // Close the full-screen markup overlay and run the return callback.
 function closePlanMarkup(){
@@ -10393,15 +10402,19 @@ function handleMarkupClick(e){
   _doMarkupPlace(cx,cy)
 }
 // Shared placement logic for both mouse clicks and touch taps.
+function _mkIsMobile(){return window.innerWidth<=768}
 function _doMarkupPlace(cx,cy){
   const canvas=document.getElementById('markup-canvas');if(!canvas)return
   if(_mMode==='dot'){
-    const sz=parseInt(document.getElementById('dot-size')?.value||13)
+    const sizeEl=document.getElementById('dot-size')
+    // On mobile the size dropdown is hidden — default to a larger, easier-to-see dot
+    const sz=_mkIsMobile()?22:parseInt(sizeEl?.value||13)
     _mpd().dots.push({id:uuid(),x:cx,y:cy,color:_mColor,size:sz,label:''})
     redrawMarkup();updateDotCount();beep()
   } else if(_mMode==='text'){
     const txt=prompt('Enter text to place on plan:');if(!txt)return
-    _mpd().textboxes.push({id:uuid(),x:cx,y:cy,text:txt,color:_mColor,fontSize:14})
+    const fs=_mkIsMobile()?26:14
+    _mpd().textboxes.push({id:uuid(),x:cx,y:cy,text:txt,color:_mColor,fontSize:fs})
     redrawMarkup();renderTextboxEntries()
   } else if(_mMode==='line'){
     if(!_mLineStart){
