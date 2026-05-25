@@ -1048,7 +1048,9 @@ async function renderToday(){
     sb.from('jobs').select('id,name,job_number,phase,project_manager,labor_budget,next_pm_visit,due_date,archived,permit_expires_on,permit_number').eq('archived',false),
     sb.from('change_orders').select('id,job_id,co_number,title,value,status,created_at').eq('status','pending').order('created_at',{ascending:true}),
     sb.from('daily_reports').select('job_id,report_date').order('report_date',{ascending:false}),
-    sb.from('punch_list').select('id,job_id,item,assigned_to,assigned_name,due_date,priority,status,created_by').in('status',['open','in_progress']).order('due_date',{ascending:true})
+    sb.from('punch_list').select('id,job_id,item,assigned_to,assigned_name,due_date,priority,status,created_by').in('status',['open','in_progress']).order('due_date',{ascending:true}),
+    myId?sb.from('safety_assignments').select('id,topic_id,due_date,assigned_at,safety_topics(title)').eq('profile_id',myId):Promise.resolve({data:[]}),
+    myId?sb.from('safety_acks').select('topic_id').eq('profile_id',myId):Promise.resolve({data:[]})
   ])
   var comms=results[0].status==='fulfilled'?(results[0].value.data||[]):[]
   var tasks=results[1].status==='fulfilled'?(results[1].value.data||[]):[]
@@ -1056,6 +1058,8 @@ async function renderToday(){
   var cos=results[3].status==='fulfilled'?(results[3].value.data||[]):[]
   var reports=results[4].status==='fulfilled'?(results[4].value.data||[]):[]
   var punch=results[5].status==='fulfilled'?(results[5].value.data||[]):[]
+  var safetyAssigns=results[6].status==='fulfilled'?(results[6].value.data||[]):[]
+  var safetyAcks=results[7].status==='fulfilled'?(results[7].value.data||[]):[]
 
   // Build a job lookup + latest report date per job
   var jobById={};jobs.forEach(function(j){jobById[j.id]=j})
@@ -1121,6 +1125,20 @@ async function renderToday(){
     else if(p.priority==='high'){item.tag='High priority';soon.push(item)}
   })
 
+  // Pending safety training (assigned to me, not yet acknowledged)
+  var ackedTopics={};safetyAcks.forEach(function(a){ackedTopics[a.topic_id]=true})
+  safetyAssigns.forEach(function(sa){
+    if(ackedTopics[sa.topic_id])return  // already completed
+    var title=(sa.safety_topics&&sa.safety_topics.title)||'Safety topic'
+    var item={kind:'safety',id:sa.topic_id,title:'🦺 Safety training: '+title,sub:'Complete & acknowledge'}
+    if(sa.due_date){
+      var d=new Date(sa.due_date);d.setHours(0,0,0,0)
+      if(d<today){item.tag='Overdue '+_daysAgo(sa.due_date);overdue.push(item)}
+      else if((d-today)/(1000*3600*24)<=3){item.tag='Due '+fd(sa.due_date);soon.push(item)}
+      else{item.tag='Due '+fd(sa.due_date);watch.push(item)}
+    }else{item.tag='Pending';watch.push(item)}
+  })
+
   // Jobs going dark + labor over budget + upcoming PM visits (job-level scan)
   var scanJobs=mine?jobs.filter(function(j){return jobIsMine(j.id)}):jobs
   scanJobs.forEach(function(j){
@@ -1176,7 +1194,7 @@ function _todaySection(title,items,color){
   if(!items.length)return ''
   var h='<div style="margin-top:18px"><div style="font-size:12px;font-weight:700;color:'+color+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">'+title+' ('+items.length+')</div>'
   items.forEach(function(it){
-    var icon=it.kind==='task'?'✓':it.kind==='comm'?'📞':it.kind==='co'?'📝':it.kind==='punch'?'🔧':'🏗'
+    var icon=it.kind==='task'?'✓':it.kind==='comm'?'📞':it.kind==='co'?'📝':it.kind==='punch'?'🔧':it.kind==='safety'?'🦺':'🏗'
     h+='<div onclick="todayOpen(\\''+it.kind+'\\',\\''+(it.job_id||'')+'\\',\\''+(it.id||'')+'\\')" style="display:flex;align-items:center;gap:11px;padding:11px 13px;background:#0a1019;border:1px solid rgba(255,255,255,.05);border-radius:9px;margin-bottom:7px;cursor:pointer">'
     h+='<span style="font-size:15px;flex-shrink:0">'+icon+'</span>'
     h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+_escapeHTML(it.title)+'</div>'
@@ -1190,6 +1208,7 @@ function _todaySection(title,items,color){
 }
 function todayOpen(kind,jobId,id){
   if(kind==='task'){P('tasks',null);return}
+  if(kind==='safety'){P('safety',null);return}
   if(jobId){openJob(jobId);return}
   P('dashboard',null)
 }
@@ -8316,6 +8335,7 @@ async function assignSafetyModal(topicId,topicTitle){
     for(const cb of selected){
       if(assigned.has(cb.value))continue // skip already assigned
       await sb.from('safety_assignments').insert({id:uuid(),topic_id:topicId,profile_id:cb.value,assigned_name:cb.dataset.name,due_date:due,assigned_at:new Date().toISOString()})
+      await notify(cb.value,'safety','🦺 Safety training assigned',(topicTitle||'New safety topic')+(due?' · due '+fd(due):''),{})
       added++
     }
     closeModal();toast(\`Assigned to \${selected.length} person(s)\${added<selected.length?' ('+(selected.length-added)+' already assigned)':''}\`);pgSafety()
