@@ -10106,17 +10106,24 @@ let _markupPlanId=null,_markupReturnFn=null
 function openPlanMarkup(planId,planUrl,fileName,returnFn){
   closeModal()  // Close job walk modal before opening markup editor
   _markupPlanId=planId;_markupReturnFn=returnFn
-  document.getElementById('page-title').textContent='Plan Markup — '+fileName
-  document.getElementById('topbar-actions').innerHTML=\`
-    <button class="btn btn-sm" onclick="window._pdfBgCanvas=null;window._pdfDoc=null;window._pdfCurrentPage=1;if(_markupReturnFn)_markupReturnFn()">← Back</button>
-    <button class="btn btn-sm btn-p" onclick="saveMarkupAndReturn()">&#128190; Save &amp; Back</button>
-    <button class="btn btn-sm btn-g" onclick="downloadMarkupPNG()">⬇ Download PNG</button>\`
-
-  document.getElementById('page-area').innerHTML=\`
-  <div style="display:grid;grid-template-columns:1fr 260px;gap:13px;height:calc(100vh - 130px)">
-    <div style="display:flex;flex-direction:column;gap:9px">
+  // Remove any existing overlay
+  var old=document.getElementById('markup-fullscreen');if(old)old.remove()
+  var ov=document.createElement('div')
+  ov.id='markup-fullscreen'
+  ov.style.cssText='position:fixed;inset:0;z-index:9000;background:#070b14;display:flex;flex-direction:column'
+  ov.innerHTML=\`
+  <!-- HEADER -->
+  <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;padding:10px 16px;background:#0c1220;border-bottom:1px solid rgba(255,255,255,.08)">
+    <span style="font-size:14px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📐 \${_escapeHTML(fileName||'Plan Markup')}</span>
+    <button class="btn btn-sm btn-p" onclick="saveMarkupAndReturn()">&#128190; Save &amp; Close</button>
+    <button class="btn btn-sm btn-g" onclick="downloadMarkupPNG()">⬇ PNG</button>
+    <button class="btn btn-sm" onclick="closePlanMarkup()">✕ Close</button>
+  </div>
+  <!-- BODY -->
+  <div style="flex:1;display:grid;grid-template-columns:1fr 260px;gap:13px;padding:13px;min-height:0">
+    <div style="display:flex;flex-direction:column;gap:9px;min-height:0">
       <!-- TOOLBAR -->
-      <div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <div style="flex-shrink:0;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <span style="font-size:10px;color:#414e63;font-weight:600">MODE</span>
         <button class="mt-btn active" id="mmt-dot" onclick="setMarkupMode('dot',this)">● Dot</button>
         <button class="mt-btn" id="mmt-text" onclick="setMarkupMode('text',this)">T Text</button>
@@ -10134,17 +10141,22 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
         </select>
         <span style="font-size:10px;color:#414e63;margin-left:8px;font-weight:600">LINE W</span>
         <select class="fi" id="line-width" style="width:60px;padding:3px 6px;font-size:11px"><option value="1">1px</option><option value="2" selected>2px</option><option value="4">4px</option><option value="6">6px</option><option value="10">10px</option></select>
+        <span id="pdf-page-controls" style="display:flex;align-items:center;gap:6px;margin-left:8px">
+          <button class="mt-btn" onclick="pdfPrevPage()">‹</button>
+          <span id="pdf-page-label" style="font-size:11px;color:#8a96ab"></span>
+          <button class="mt-btn" onclick="pdfNextPage()">›</button>
+        </span>
         <button class="mt-btn" onclick="clearAllMarkup()" style="margin-left:auto;color:#dc2626">🗑 Clear All</button>
       </div>
       <!-- CANVAS -->
-      <div style="flex:1;overflow:auto;background:#1a2540;border-radius:9px;border:1px solid rgba(255,255,255,.07);cursor:crosshair;position:relative" id="canvas-scroll-wrap">
+      <div style="flex:1;overflow:auto;background:#1a2540;border-radius:9px;border:1px solid rgba(255,255,255,.07);cursor:crosshair;position:relative;min-height:0" id="canvas-scroll-wrap">
         <canvas id="markup-canvas" style="display:block;max-width:100%"></canvas>
         <div id="canvas-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#414e63;font-size:13px">Loading plan…</div>
       </div>
-      <div style="font-size:10px;color:#414e63">Tip: Click to place dot/text • Click existing element in Delete mode to remove • Save often</div>
+      <div style="flex-shrink:0;font-size:10px;color:#414e63">Tip: Click to place dot/text • Click existing element in Delete mode to remove • Save often</div>
     </div>
     <!-- SIDEBAR -->
-    <div style="overflow-y:auto;display:flex;flex-direction:column;gap:10px">
+    <div style="overflow-y:auto;display:flex;flex-direction:column;gap:10px;min-height:0">
       <div class="card">
         <div class="card-title">Legend <button class="btn btn-sm btn-p" onclick="addLegendEntry()" style="font-size:10px;padding:3px 8px">+</button></div>
         <div id="legend-entries"></div>
@@ -10156,13 +10168,19 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
       </div>
       <div class="card"><div class="card-title">Lines</div><div id="line-entries" style="font-size:11px;color:#414e63">No lines drawn</div></div>
       <div class="card">
-        <div class="card-title">Dots (\${0})</div>
+        <div class="card-title">Dots</div>
         <div id="dot-count-display" style="font-size:11px;color:#414e63">0 dots placed</div>
       </div>
     </div>
   </div>\`
-
+  document.body.appendChild(ov)
   loadMarkupData(planId,planUrl)
+}
+// Close the full-screen markup overlay and run the return callback.
+function closePlanMarkup(){
+  var ov=document.getElementById('markup-fullscreen');if(ov)ov.remove()
+  window._pdfBgCanvas=null;window._pdfDoc=null;window._pdfCurrentPage=1
+  if(_markupReturnFn)_markupReturnFn()
 }
 
 let _mMode='dot',_mColor='#dc2626',_mCanvas=null,_mCtx=null,_mImg=null,_mData={legend:[],pages:{}},_mLineStart=null
@@ -10384,6 +10402,7 @@ function renderLineEntries(){
 function clearAllMarkup(){if(!confirm('Clear all dots, lines and text boxes?'))return;_mpd().dots=[];_mpd().textboxes=[];_mpd().lines=[];_mLineStart=null;redrawMarkup();renderLegendEntries();renderTextboxEntries();renderLineEntries();updateDotCount();toast('Cleared','warn')}
 async function saveMarkupAndReturn(){
   await saveMarkupData()
+  var ov=document.getElementById('markup-fullscreen');if(ov)ov.remove()
   window._pdfBgCanvas=null;window._pdfDoc=null;window._pdfCurrentPage=1
   if(_markupReturnFn)_markupReturnFn()
   else if(currentJobId)renderJobDetail()
