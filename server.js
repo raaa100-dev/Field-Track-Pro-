@@ -284,6 +284,18 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .sched-item:last-child{border-bottom:none}
 .markup-toolbar{display:flex;gap:6px;padding:9px;background:#131c2e;border-radius:7px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
 .mt-btn{padding:5px 10px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:#0c1220;color:#8a96ab;cursor:pointer;font-size:11px;font-family:'DM Sans',sans-serif;transition:.15s}
+.mk-swatch{width:18px;height:18px;border-radius:50%;cursor:pointer;flex-shrink:0}
+@media (max-width:768px){
+  #mk-body{grid-template-columns:1fr!important}
+  .mk-desktop-only{display:none!important}
+  #mk-toolbar .mt-btn{padding:9px 13px;font-size:13px;min-height:40px}
+  .mk-swatch{width:28px;height:28px}
+  #mk-sidebar{position:fixed;top:0;right:-300px;bottom:0;width:280px;max-width:85vw;background:#070b14;z-index:9100;padding:14px;transition:right .25s ease;box-shadow:-8px 0 24px rgba(0,0,0,.6)}
+  #mk-sidebar.mk-sidebar-open{right:0}
+}
+@media (min-width:769px){
+  #mk-sidebar-toggle{display:none}
+}
 .mt-btn:hover{background:#1a2540;color:#e8edf5}.mt-btn.active{background:#2563eb;color:#fff;border-color:#2563eb}
 .dot-swatch{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;display:inline-block;flex-shrink:0}
 .dot-swatch.sel{border-color:#fff}
@@ -10113,68 +10125,68 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
   ov.style.cssText='position:fixed;inset:0;z-index:9000;background:#070b14;display:flex;flex-direction:column'
   ov.innerHTML=\`
   <!-- HEADER -->
-  <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;padding:10px 16px;background:#0c1220;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="flex-shrink:0;display:flex;align-items:center;gap:8px;padding:10px 12px;background:#0c1220;border-bottom:1px solid rgba(255,255,255,.08)">
     <span style="font-size:14px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📐 \${_escapeHTML(fileName||'Plan Markup')}</span>
-    <button class="btn btn-sm btn-p" onclick="saveMarkupAndReturn()">&#128190; Save &amp; Close</button>
-    <button class="btn btn-sm btn-g" onclick="downloadMarkupPNG()">⬇ PNG</button>
-    <button class="btn btn-sm" onclick="closePlanMarkup()">✕ Close</button>
+    <button class="btn btn-sm btn-p" onclick="saveMarkupAndReturn()">💾 Save</button>
+    <button class="btn btn-sm" onclick="toggleMarkupSidebar()" id="mk-sidebar-toggle">☰</button>
+    <button class="btn btn-sm" onclick="closePlanMarkup()">✕</button>
   </div>
   <!-- BODY -->
-  <div style="flex:1;display:grid;grid-template-columns:1fr 260px;gap:13px;padding:13px;min-height:0">
+  <div id="mk-body" style="flex:1;display:grid;grid-template-columns:1fr 260px;gap:13px;padding:13px;min-height:0">
     <div style="display:flex;flex-direction:column;gap:9px;min-height:0">
       <!-- TOOLBAR -->
-      <div style="flex-shrink:0;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <span style="font-size:10px;color:#414e63;font-weight:600">MODE</span>
+      <div id="mk-toolbar" style="flex-shrink:0;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:9px 11px;display:flex;gap:7px;flex-wrap:wrap;align-items:center">
         <button class="mt-btn active" id="mmt-dot" onclick="setMarkupMode('dot',this)">● Dot</button>
         <button class="mt-btn" id="mmt-text" onclick="setMarkupMode('text',this)">T Text</button>
-        <button class="mt-btn" id="mmt-del" onclick="setMarkupMode('delete',this)">🗑 Delete</button>
         <button class="mt-btn" id="mmt-line" onclick="setMarkupMode('line',this)">/ Line</button>
-        <div style="width:1px;height:20px;background:rgba(255,255,255,.1);margin:0 4px"></div>
-        <span style="font-size:10px;color:#414e63;font-weight:600">COLOR</span>
-        <div id="color-swatches" style="display:flex;gap:5px">
-          \${['#dc2626','#d97706','#16a34a','#2563eb','#7c3aed','#0d9488','#ec4899','#f97316','#ffffff','#000000'].map((clr,i)=>\`<div onclick="setMarkupColor('\${clr}',this)" style="width:18px;height:18px;border-radius:50%;background:\${clr};cursor:pointer;border:2px solid \${i===0?'#fff':'transparent'};flex-shrink:0" data-color="\${clr}"></div>\`).join('')}
+        <button class="mt-btn" id="mmt-del" onclick="setMarkupMode('delete',this)">🗑</button>
+        <div style="width:1px;height:20px;background:rgba(255,255,255,.1);margin:0 2px" class="mk-desktop-only"></div>
+        <div id="color-swatches" style="display:flex;gap:6px">
+          \${['#dc2626','#d97706','#16a34a','#2563eb','#7c3aed','#0d9488','#ec4899','#f97316','#ffffff','#000000'].map((clr,i)=>\`<div onclick="setMarkupColor('\${clr}',this)" class="mk-swatch" style="background:\${clr};border:2px solid \${i===0?'#fff':'transparent'}" data-color="\${clr}"></div>\`).join('')}
         </div>
-        <div style="width:1px;height:20px;background:rgba(255,255,255,.1);margin:0 4px"></div>
-        <span style="font-size:10px;color:#414e63;font-weight:600">SIZE</span>
-        <select class="fi" id="dot-size" style="width:60px;padding:3px 6px;font-size:11px">
+        <select class="fi mk-desktop-only" id="dot-size" style="width:58px;padding:3px 6px;font-size:11px">
           <option value="6">XS</option><option value="9">S</option><option value="13" selected>M</option><option value="18">L</option><option value="24">XL</option>
         </select>
-        <span style="font-size:10px;color:#414e63;margin-left:8px;font-weight:600">LINE W</span>
-        <select class="fi" id="line-width" style="width:60px;padding:3px 6px;font-size:11px"><option value="1">1px</option><option value="2" selected>2px</option><option value="4">4px</option><option value="6">6px</option><option value="10">10px</option></select>
-        <span id="pdf-page-controls" style="display:flex;align-items:center;gap:6px;margin-left:8px">
-          <button class="mt-btn" onclick="pdfPrevPage()">‹</button>
-          <span id="pdf-page-label" style="font-size:11px;color:#8a96ab"></span>
-          <button class="mt-btn" onclick="pdfNextPage()">›</button>
-        </span>
-        <button class="mt-btn" onclick="clearAllMarkup()" style="margin-left:auto;color:#dc2626">🗑 Clear All</button>
+        <select class="fi mk-desktop-only" id="line-width" style="width:58px;padding:3px 6px;font-size:11px"><option value="1">1px</option><option value="2" selected>2px</option><option value="4">4px</option><option value="6">6px</option><option value="10">10px</option></select>
+        <button class="mt-btn" onclick="clearAllMarkup()" style="margin-left:auto;color:#dc2626">Clear</button>
+      </div>
+      <!-- ZOOM BAR -->
+      <div style="flex-shrink:0;display:flex;align-items:center;gap:8px;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:6px 10px">
+        <span style="font-size:10px;color:#414e63;font-weight:600">ZOOM</span>
+        <button class="mt-btn" onclick="markupZoom(-1)" style="min-width:36px;font-size:16px">−</button>
+        <span id="mk-zoom-label" style="font-size:12px;color:#8a96ab;min-width:42px;text-align:center">100%</span>
+        <button class="mt-btn" onclick="markupZoom(1)" style="min-width:36px;font-size:16px">+</button>
+        <button class="mt-btn" onclick="markupZoomReset()">Fit</button>
+        <span class="mk-pan-hint" style="font-size:10px;color:#414e63;margin-left:auto">Pinch to zoom · drag to pan</span>
       </div>
       <!-- CANVAS -->
-      <div style="flex:1;overflow:auto;background:#1a2540;border-radius:9px;border:1px solid rgba(255,255,255,.07);cursor:crosshair;position:relative;min-height:0" id="canvas-scroll-wrap">
-        <canvas id="markup-canvas" style="display:block;max-width:100%"></canvas>
+      <div style="flex:1;overflow:hidden;background:#1a2540;border-radius:9px;border:1px solid rgba(255,255,255,.07);position:relative;min-height:0;touch-action:none" id="canvas-scroll-wrap">
+        <canvas id="markup-canvas" style="display:block;max-width:100%;transform-origin:0 0"></canvas>
         <div id="canvas-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#414e63;font-size:13px">Loading plan…</div>
       </div>
-      <div style="flex-shrink:0;font-size:10px;color:#414e63">Tip: Click to place dot/text • Click existing element in Delete mode to remove • Save often</div>
+      <div class="mk-desktop-only" style="flex-shrink:0;font-size:10px;color:#414e63">Tip: tap to place · pinch to zoom · drag to pan · Save often</div>
     </div>
     <!-- SIDEBAR -->
-    <div style="overflow-y:auto;display:flex;flex-direction:column;gap:10px;min-height:0">
+    <div id="mk-sidebar" style="overflow-y:auto;display:flex;flex-direction:column;gap:10px;min-height:0">
       <div class="card">
         <div class="card-title">Legend <button class="btn btn-sm btn-p" onclick="addLegendEntry()" style="font-size:10px;padding:3px 8px">+</button></div>
         <div id="legend-entries"></div>
-        <div style="font-size:10px;color:#414e63;margin-top:6px">Add entries to explain what your colored dots mean</div>
+        <div style="font-size:10px;color:#414e63;margin-top:6px">Add entries to explain your colored dots</div>
       </div>
-      <div class="card">
-        <div class="card-title">Text Boxes</div>
-        <div id="textbox-entries"></div>
-      </div>
+      <div class="card"><div class="card-title">Text Boxes</div><div id="textbox-entries"></div></div>
       <div class="card"><div class="card-title">Lines</div><div id="line-entries" style="font-size:11px;color:#414e63">No lines drawn</div></div>
-      <div class="card">
-        <div class="card-title">Dots</div>
-        <div id="dot-count-display" style="font-size:11px;color:#414e63">0 dots placed</div>
-      </div>
+      <div class="card"><div class="card-title">Dots</div><div id="dot-count-display" style="font-size:11px;color:#414e63">0 dots placed</div></div>
     </div>
   </div>\`
   document.body.appendChild(ov)
+  _mkZoom=1;_mkPanX=0;_mkPanY=0
   loadMarkupData(planId,planUrl)
+  setTimeout(initMarkupTouchGestures,300)
+}
+// Toggle the markup sidebar (mobile drawer).
+function toggleMarkupSidebar(){
+  var sb=document.getElementById('mk-sidebar');if(!sb)return
+  sb.classList.toggle('mk-sidebar-open')
 }
 // Close the full-screen markup overlay and run the return callback.
 function closePlanMarkup(){
@@ -10299,11 +10311,90 @@ async function loadMarkupData(planId,planUrl){
   }
 }
 
+// ── Markup zoom & pan (mobile-friendly) ──
+var _mkZoom=1,_mkPanX=0,_mkPanY=0
+function applyMarkupTransform(){
+  var c=document.getElementById('markup-canvas');if(!c)return
+  c.style.transform='translate('+_mkPanX+'px,'+_mkPanY+'px) scale('+_mkZoom+')'
+  var lbl=document.getElementById('mk-zoom-label');if(lbl)lbl.textContent=Math.round(_mkZoom*100)+'%'
+}
+function markupZoom(dir){
+  var step=0.25
+  _mkZoom=Math.max(0.25,Math.min(6,_mkZoom+dir*step))
+  applyMarkupTransform()
+}
+function markupZoomReset(){_mkZoom=1;_mkPanX=0;_mkPanY=0;applyMarkupTransform()}
+// Touch gestures: one finger = tap-to-place (or pan if moved), two fingers = pinch-zoom + pan.
+function initMarkupTouchGestures(){
+  var wrap=document.getElementById('canvas-scroll-wrap')
+  var canvas=document.getElementById('markup-canvas')
+  if(!wrap||!canvas)return
+  var startDist=0,startZoom=1,startPanX=0,startPanY=0,startMidX=0,startMidY=0
+  var oneStartX=0,oneStartY=0,oneStartPanX=0,oneStartPanY=0,moved=false,isPanning=false,gesture=null
+  function dist(t){var dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.hypot(dx,dy)}
+  function mid(t){return{x:(t[0].clientX+t[1].clientX)/2,y:(t[0].clientY+t[1].clientY)/2}}
+  wrap.addEventListener('touchstart',function(e){
+    if(e.touches.length===2){
+      gesture='pinch';startDist=dist(e.touches);startZoom=_mkZoom
+      startPanX=_mkPanX;startPanY=_mkPanY;var m=mid(e.touches);startMidX=m.x;startMidY=m.y
+      e.preventDefault()
+    }else if(e.touches.length===1){
+      gesture='one';moved=false
+      oneStartX=e.touches[0].clientX;oneStartY=e.touches[0].clientY
+      oneStartPanX=_mkPanX;oneStartPanY=_mkPanY
+    }
+  },{passive:false})
+  wrap.addEventListener('touchmove',function(e){
+    if(gesture==='pinch'&&e.touches.length===2){
+      e.preventDefault()
+      var d=dist(e.touches),m=mid(e.touches)
+      var newZoom=Math.max(0.25,Math.min(6,startZoom*(d/startDist)))
+      // Zoom toward the pinch midpoint
+      _mkZoom=newZoom
+      _mkPanX=startPanX+(m.x-startMidX)
+      _mkPanY=startPanY+(m.y-startMidY)
+      applyMarkupTransform()
+    }else if(gesture==='one'&&e.touches.length===1){
+      var dx=e.touches[0].clientX-oneStartX,dy=e.touches[0].clientY-oneStartY
+      if(Math.abs(dx)>8||Math.abs(dy)>8){
+        moved=true;isPanning=true
+        // One-finger drag pans only when zoomed in (so taps still place at 100%)
+        if(_mkZoom>1.01){_mkPanX=oneStartPanX+dx;_mkPanY=oneStartPanY+dy;applyMarkupTransform();e.preventDefault()}
+      }
+    }
+  },{passive:false})
+  wrap.addEventListener('touchend',function(e){
+    if(gesture==='one'&&!moved){
+      // A clean tap — place markup at this point (convert through transform)
+      var t=e.changedTouches[0]
+      window._mkSuppressClick=true
+      setTimeout(function(){window._mkSuppressClick=false},500)
+      placeMarkupAtScreen(t.clientX,t.clientY)
+    }
+    if(e.touches.length===0){gesture=null;isPanning=false}
+  },{passive:false})
+}
+// Convert a screen point to canvas coords (accounting for zoom/pan) and place markup.
+function placeMarkupAtScreen(screenX,screenY){
+  var canvas=document.getElementById('markup-canvas');if(!canvas)return
+  var rect=canvas.getBoundingClientRect()
+  // rect already reflects the CSS transform (scale+translate), so map directly
+  var sx=canvas.width/rect.width,sy=canvas.height/rect.height
+  var cx=(screenX-rect.left)*sx,cy=(screenY-rect.top)*sy
+  _doMarkupPlace(cx,cy)
+}
+
 function handleMarkupClick(e){
+  if(window._mkSuppressClick)return  // touch tap already handled this
   const canvas=document.getElementById('markup-canvas');if(!canvas)return
   const rect=canvas.getBoundingClientRect()
   const sx=canvas.width/rect.width,sy=canvas.height/rect.height
   const cx=(e.clientX-rect.left)*sx,cy=(e.clientY-rect.top)*sy
+  _doMarkupPlace(cx,cy)
+}
+// Shared placement logic for both mouse clicks and touch taps.
+function _doMarkupPlace(cx,cy){
+  const canvas=document.getElementById('markup-canvas');if(!canvas)return
   if(_mMode==='dot'){
     const sz=parseInt(document.getElementById('dot-size')?.value||13)
     _mpd().dots.push({id:uuid(),x:cx,y:cy,color:_mColor,size:sz,label:''})
