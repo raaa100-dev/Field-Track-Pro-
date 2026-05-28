@@ -1498,7 +1498,7 @@ async function buildPermitStatusMap(jobs){
     var walks=walksByJob[j.id]||[]
     var walkComplete=walks.some(function(w){return w.status==='complete'})
     var hasWalk=walks.length>0
-    var defs=permitStepsForPath(path)
+    var defs=filterStepsForJob(permitStepsForPath(path),j)
     function done(key,st){
       if(key==='site_walk_complete')return walkComplete
       if(key==='assign_site_walk')return hasWalk
@@ -3260,7 +3260,7 @@ async function renderInfoPermitSummary(j){
     var walks=wr.data||[]
     var walkComplete=walks.some(function(w){return w.status==='complete'})
     var hasWalk=walks.length>0
-    var defs=permitStepsForPath(path)
+    var defs=filterStepsForJob(permitStepsForPath(path),j)
     // Determine effective done-ness per step (mirror pipeline logic)
     function done(key,st){
       if(key==='site_walk_complete')return walkComplete
@@ -3322,12 +3322,19 @@ var PERMIT_STEPS_OTC=[
   ['permit_issued','Permit Issued']
 ]
 function permitStepsForPath(path){return path==='full'?PERMIT_STEPS_FULL:path==='otc'?PERMIT_STEPS_OTC:[]}
+// Filter out architect_review and customer_review steps when the job hasn't
+// flagged needs_design_review. Most jobs don't need them — toggle on the job
+// Info tab turns them on for the rare ones that do.
+function filterStepsForJob(defs,job){
+  if(!job||job.needs_design_review)return defs
+  return defs.filter(function(d){return d[0]!=='architect_review'&&d[0]!=='customer_review'})
+}
 var PERMIT_STEP_STATUS={not_started:'Not Started',in_progress:'In Progress',done:'Done',blocked:'Blocked',na:'N/A'}
 var PERMIT_STEP_COLORS={not_started:'#414e63',in_progress:'#d97706',done:'#16a34a',blocked:'#dc2626',na:'#8a96ab'}
 
 async function renderPermitTab(el){
   el.innerHTML='<div style="padding:14px">'+ld()+'</div>'
-  var jr=await sb.from('jobs').select('id,name,permit_path,permit_status,permit_number,permit_expires_on,permit_fee,date_permit,permit_triaged_by,permit_triaged_at').eq('id',currentJobId).single()
+  var jr=await sb.from('jobs').select('id,name,permit_path,permit_status,permit_number,permit_expires_on,permit_fee,date_permit,permit_triaged_by,permit_triaged_at,needs_design_review').eq('id',currentJobId).single()
   var job=jr.data||{}
   window._permitJob=job
   var path=job.permit_path||null
@@ -3336,7 +3343,7 @@ async function renderPermitTab(el){
   // Auto-seed any steps that are missing from the current path definition
   // (so jobs triaged before new steps were added pick them up automatically).
   if(path==='full'||path==='otc'){
-    var defs=permitStepsForPath(path)
+    var defs=filterStepsForJob(permitStepsForPath(path),job)
     var haveKeys=steps.map(function(s){return s.step_key})
     var seeded=false
     for(var si=0;si<defs.length;si++){
@@ -3390,7 +3397,7 @@ async function renderPermitTab(el){
       else if(path){
         var st=kSteps[k.id]||[],wk=kWalks[k.id]||[]
         var wc=wk.some(function(w){return w.status==='complete'}),hw=wk.length>0
-        var defs=permitStepsForPath(path)
+        var defs=filterStepsForJob(permitStepsForPath(path),k)
         function kdone(key,s){if(key==='site_walk_complete')return wc;if(key==='assign_site_walk')return hw;return s&&s.status==='done'}
         var allDone=true,cur='Issued'
         for(var i=0;i<defs.length;i++){var s=st.find(function(x){return x.step_key===defs[i][0]});if(!kdone(defs[i][0],s)&&allDone){cur=defs[i][1];allDone=false}}
@@ -3428,7 +3435,18 @@ async function renderPermitTab(el){
   }
 
   // ── Progress roll-up ──
-  var defs=permitStepsForPath(path)
+  var defs=filterStepsForJob(permitStepsForPath(path),job)
+  // Architect/Customer Review toggle (full path only — OTC doesn't have these steps)
+  if(path==='full'){
+    var nd=!!job.needs_design_review
+    h+='<div class="card" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:14px">'
+    h+='<div><div style="font-weight:600;font-size:13px">Architect / Customer Review</div>'
+    h+='<div style="font-size:11px;color:#8a96ab;margin-top:2px">'+(nd?'Included in this job\\'s pipeline':'Not used \u2014 most jobs skip these steps')+'</div></div>'
+    h+='<label style="display:flex;align-items:center;gap:8px;cursor:pointer">'
+    h+='<span style="font-size:11px;color:'+(nd?'#16a34a':'#8a96ab')+';font-weight:600">'+(nd?'ENABLED':'DISABLED')+'</span>'
+    h+='<input type="checkbox" '+(nd?'checked':'')+' onchange="toggleDesignReview(this.checked)" style="width:18px;height:18px;cursor:pointer">'
+    h+='</label></div>'
+  }
   var _walks=window._permitWalks||[]
   var _walkComplete=_walks.some(function(w){return w.status==='complete'})
   var _hasWalk=_walks.length>0
@@ -3531,7 +3549,7 @@ async function setPermitPath(path){
     var existing=await sb.from('job_permit_steps').select('id,step_key').eq('job_id',currentJobId)
     var existingRows=existing.data||[]
     var byKey={};existingRows.forEach(function(r){byKey[r.step_key]=r})
-    var defs=permitStepsForPath(path)
+    var defs=filterStepsForJob(permitStepsForPath(path),job)
     for(var i=0;i<defs.length;i++){
       var key=defs[i][0]
       if(byKey[key]){
@@ -3543,6 +3561,27 @@ async function setPermitPath(path){
     }
   }
   toast('Path set: '+PERMIT_PATHS[path])
+  loadJT('jt-permit')
+}
+// Per-job toggle: include architect/customer review steps in this job's pipeline.
+async function toggleDesignReview(enabled){
+  var job=window._permitJob||{}
+  var res=await sb.from('jobs').update({needs_design_review:!!enabled,updated_at:new Date().toISOString()}).eq('id',currentJobId)
+  if(res.error){toast(res.error.message,'error');return}
+  job.needs_design_review=!!enabled
+  // If enabling, seed the two review steps so they show up in the pipeline
+  if(enabled&&(job.permit_path==='full')){
+    var existing=await sb.from('job_permit_steps').select('step_key').eq('job_id',currentJobId)
+    var have={};(existing.data||[]).forEach(function(r){have[r.step_key]=true})
+    var fullDefs=PERMIT_STEPS_FULL
+    for(var i=0;i<fullDefs.length;i++){
+      var key=fullDefs[i][0]
+      if((key==='architect_review'||key==='customer_review')&&!have[key]){
+        await sb.from('job_permit_steps').insert({id:uuid(),job_id:currentJobId,step_key:key,step_label:fullDefs[i][1],sort_order:i,status:'not_started',created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+      }
+    }
+  }
+  toast(enabled?'Architect/Customer Review enabled':'Architect/Customer Review disabled')
   loadJT('jt-permit')
 }
 
@@ -5520,7 +5559,7 @@ async function pgDesign(){
   el.innerHTML='<div style="padding:20px">'+ld()+'</div>'
 
   // Gather all non-archived jobs that have a permit path set (in the pipeline)
-  var jr=await sb.from('jobs').select('id,name,job_number,permit_path,permit_number,permit_expires_on,permit_fee,submitted_to_city_date,project_manager,parent_job_id,archived').eq('archived',false)
+  var jr=await sb.from('jobs').select('id,name,job_number,permit_path,permit_number,permit_expires_on,permit_fee,submitted_to_city_date,project_manager,parent_job_id,archived,needs_design_review').eq('archived',false)
   var jobs=(jr.data||[]).filter(function(j){return j.permit_path&&j.permit_path!=='none'})
   // Parent-name lookup so sub-job cards can show which complex they belong to
   var _allJobsById={};(jr.data||[]).forEach(function(j){_allJobsById[j.id]=j})
@@ -5569,7 +5608,7 @@ async function pgDesign(){
     var walks=walksByJob[j.id]||[]
     var walkComplete=walks.some(function(w){return w.status==='complete'})
     var hasWalk=walks.length>0
-    var defs=permitStepsForPath(path)
+    var defs=filterStepsForJob(permitStepsForPath(path),j)
     function done(key,st){if(key==='site_walk_complete')return walkComplete;if(key==='assign_site_walk')return hasWalk;return st&&st.status==='done'}
     var currentKey=null,currentLabel='Issued',allDone=true,lastMove=null
     for(var k=0;k<defs.length;k++){
@@ -5653,6 +5692,42 @@ async function pgDesign(){
   h+=_designStat('In City Review',inReviewNow,'#d97706')
   h+=_designStat('Total Permit Fees',fm(jobs.reduce(function(s,j){return s+(Number(j.permit_fee)||0)},0)),'#16a34a')
   h+='</div>'
+  // ── CAD Request Tracker ──
+  // Jobs where 'request_cads' step is in_progress (requested, not yet received)
+  // OR 'request_cads' is done but 'cads_received' is not (CADs requested, awaiting receipt).
+  var cadPending=[]
+  jobs.forEach(function(j){
+    var steps=stepsByJob[j.id]||[]
+    var reqStep=steps.find(function(s){return s.step_key==='request_cads'})
+    var recStep=steps.find(function(s){return s.step_key==='cads_received'})
+    var cadsReceived=recStep&&recStep.status==='done'
+    var requested=reqStep&&(reqStep.status==='in_progress'||reqStep.status==='done')
+    if(requested&&!cadsReceived){
+      // Use entered_at (when it became in_progress) or created_at as the request date
+      var reqDate=reqStep.entered_at||reqStep.created_at
+      var waitingDays=reqDate?Math.floor((now-new Date(reqDate))/(1000*3600*24)):null
+      cadPending.push({job:j,reqDate:reqDate,waitingDays:waitingDays,assignedTo:reqStep.assigned_name||reqStep.external_party||''})
+    }
+  })
+  cadPending.sort(function(a,b){return (b.waitingDays||0)-(a.waitingDays||0)})
+  if(cadPending.length){
+    h+='<div style="background:#0a1019;border:1px solid rgba(59,130,246,.25);border-radius:11px;padding:14px 16px;margin-bottom:18px">'
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+    h+='<div style="font-size:13px;font-weight:700;color:#60a5fa">📐 CADs Requested · Not Received ('+cadPending.length+')</div>'
+    h+='<div style="font-size:10px;color:#414e63">Sorted by wait time</div></div>'
+    h+='<table class="tbl" style="font-size:12px"><thead><tr><th>Job</th><th>Requested From</th><th>Requested</th><th style="text-align:right">Waiting</th></tr></thead><tbody>'
+    cadPending.forEach(function(c){
+      var wColor=c.waitingDays>=14?'#dc2626':c.waitingDays>=7?'#d97706':'#16a34a'
+      h+='<tr style="cursor:pointer" data-jid="'+c.job.id+'" onclick="openJob(this.dataset.jid)">'
+      h+='<td style="font-weight:500">'+_escapeHTML(c.job.name)+'</td>'
+      h+='<td style="color:#8a96ab">'+_escapeHTML(c.assignedTo||'—')+'</td>'
+      h+='<td style="color:#8a96ab">'+(c.reqDate?fd(c.reqDate):'—')+'</td>'
+      h+='<td style="text-align:right;font-weight:600;color:'+wColor+'">'+(c.waitingDays!=null?c.waitingDays+'d':'—')+'</td>'
+      h+='</tr>'
+    })
+    h+='</tbody></table></div>'
+  }
+
   // ── Follow-up banner ──
   var totalFollow=followups.expiring.length+followups.stalled.length+followups.overdue.length
   if(totalFollow){
@@ -5668,8 +5743,12 @@ async function pgDesign(){
   }
 
   // ── Pipeline board ──
-  // Build columns from the full path (union of all steps) — use full-design defs as the master column set.
+  // Build columns from the full path (union of all steps), but DROP the
+  // architect_review and customer_review columns unless at least one job in
+  // the pipeline has needs_design_review=true.
+  var anyNeedsReview=jobs.some(function(j){return j.needs_design_review})
   var columns=PERMIT_STEPS_FULL.slice()
+  if(!anyNeedsReview)columns=columns.filter(function(c){return c[0]!=='architect_review'&&c[0]!=='customer_review'})
   var totalFees=jobs.reduce(function(s,j){return s+(Number(j.permit_fee)||0)},0)
   h+='<div style="font-size:13px;font-weight:700;margin-bottom:10px">Pipeline Board <span style="font-size:11px;color:#414e63;font-weight:400">· '+jobs.length+' jobs'+(totalFees>0?' · '+fm(totalFees)+' total permit fees':'')+'</span></div>'
   h+='<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:12px">'
