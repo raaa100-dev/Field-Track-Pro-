@@ -5140,7 +5140,7 @@ async function renderJobFinTab(el){
   if(hrsEl)hrsEl.textContent=fh(hrs)+' hrs on site'
   const j=currentJob
   const labor=hrs*(j.labor_rate||0)
-  const totalCost=labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0)+(j.permit_fee||0)+budgetLinesActualTotal
+  const totalCost=labor+(j.permit_fee||0)+budgetLinesActualTotal
   const profit=(j.contract_value||0)-totalCost
   const margin=j.contract_value>0?profit/j.contract_value*100:null
   // Labor budget threshold logic
@@ -5152,34 +5152,40 @@ async function renderJobFinTab(el){
   if(lbOver)schedulePmReviewTask(j,'OVER Labor Budget: '+fh(hrs)+' hrs vs '+fh(lb)+' budgeted')
   const lbColor=lbOver?'#dc2626':lbWarn?'#d97706':'inherit'
   const lbBg=lbOver?'rgba(220,38,38,.12)':lbWarn?'rgba(217,119,6,.12)':'transparent'
+  // Estimate balance vs contract (line items should sum to contract)
+  var contractVal=Number(j.contract_value)||0
+  var estDiff=contractVal-budgetLinesPlanTotal
+  var estBalanced=contractVal>0&&Math.abs(estDiff)<0.01
   el.innerHTML='<button class="btn btn-sm" style="float:right;margin-bottom:11px" onclick="editBudget()">Edit Budget</button>'
   +'<div class="two">'
   +'<div class="card"><div class="card-title">Revenue</div>'
-  +'<div class="fin-row"><span style="color:#8a96ab">Contract Value</span><span style="font-weight:500">'+fm(j.contract_value)+'</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Contract Value</span><span style="font-weight:500">'+fm(contractVal)+'</span></div>'
+  +'<div class="fin-row"><span style="color:#8a96ab">Estimate Total (line items)</span><span>'+fm(budgetLinesPlanTotal)+'</span></div>'
+  +(contractVal>0?'<div class="fin-row" style="background:'+(estBalanced?'rgba(22,163,74,.08)':Math.abs(estDiff)>contractVal*0.05?'rgba(220,38,38,.08)':'rgba(217,119,6,.08)')+';border-radius:6px;padding:4px 6px;margin:4px -6px"><span style="color:#8a96ab">Estimate vs Contract</span><span style="font-weight:600;color:'+(estBalanced?'#16a34a':estDiff>0?'#d97706':'#dc2626')+'">'+(estBalanced?'\u2713 Balanced':estDiff>0?fm(estDiff)+' under':fm(-estDiff)+' OVER')+'</span></div>':'')
   +'<div class="fin-row"><span style="color:#8a96ab">Labor Budget</span><span>'+fh(j.labor_budget)+' hrs</span></div>'
-  +'<div class="fin-row"><span style="color:#8a96ab">Material Budget</span><span>'+fm(j.material_budget)+'</span></div>'
   +'<div class="fin-row" style="background:'+lbBg+';border-radius:6px;padding:4px 6px;margin:4px -6px">'
   +'<span style="color:#8a96ab">Hours on Site</span> '
-  +'<span style="font-weight:600;color:'+lbColor+'">'+fh(hrs)+' hrs'+(lbOver?' ⚠ OVER BUDGET':lbWarn?' ⚠ 75%+':'')+'</span></div>'
+  +'<span style="font-weight:600;color:'+lbColor+'">'+fh(hrs)+' hrs'+(lbOver?' \u26a0 OVER BUDGET':lbWarn?' \u26a0 75%+':'')+'</span></div>'
   +(lb>0?'<div style="font-size:10px;color:'+lbColor+';margin-top:2px;padding:0 6px">'+Math.round(lbPct)+'% of labor budget used</div>':'')
   +'</div>'
   +'<div class="card"><div class="card-title">Costs</div>'
   +(j.labor_budget&&j.labor_rate?'<div class="fin-row" style="color:#414e63"><span>Budget Labor Cost ('+fh(j.labor_budget)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm((j.labor_budget||0)*(j.labor_rate||0))+'</span></div>':'')
   +'<div class="fin-row"><span style="color:#8a96ab">Labor Actual ('+fh(hrs)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm(labor)+'</span></div>'
-  +'<div class="fin-row"><span style="color:#8a96ab">Parts & Materials</span><span>'+fm(j.parts_cost||0)+'</span></div>'
-  +'<div class="fin-row"><span style="color:#8a96ab">Shipping</span><span>'+fm(j.shipping_cost||0)+'</span></div>'
-  +'<div class="fin-row"><span style="color:#8a96ab">Equipment Rental</span><span>'+fm(j.equipment_rental_cost||0)+'</span></div>'
-  +'<div class="fin-row"><span style="color:#8a96ab">Tariff / Misc</span><span>'+fm(j.misc_cost||0)+'</span></div>'
   +(j.permit_fee?'<div class="fin-row"><span style="color:#8a96ab">Permit Fee</span><span>'+fm(j.permit_fee)+'</span></div>':'')
-  +(budgetLines.length?'<div style="border-top:1px solid rgba(255,255,255,.08);margin:8px 0 4px;padding-top:6px"><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Budget Line Items ('+budgetLines.length+')</div>'+budgetLines.map(function(l){return '<div class="fin-row"><span style="color:#8a96ab">'+_escapeHTML(l.description||'(no description)')+' <span style="font-size:10px;color:#414e63">\u00b7 '+(l.category||'')+'</span></span><span>'+fm(l.actual_amount||0)+(Number(l.budget_amount)?' <span style="color:#414e63;font-size:10px">/ '+fm(l.budget_amount)+'</span>':'')+'</span></div>'}).join('')+'<div class="fin-row" style="font-size:11px;color:#60a5fa;font-weight:600"><span>Budget Lines Subtotal</span><span>'+fm(budgetLinesActualTotal)+'</span></div></div>':'')
-  +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0)+(j.permit_fee||0)+budgetLinesActualTotal)+'</span></div>'
-  +'<button class="btn btn-sm" style="margin-top:8px" onclick="editJobCosts()">+ Edit Costs</button></div>'
+  +(budgetLines.length?'<div style="border-top:1px solid rgba(255,255,255,.08);margin:8px 0 4px;padding-top:6px"><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Budget Line Items ('+budgetLines.length+')</div>'+budgetLines.map(function(l){return '<div class="fin-row"><span style="color:#8a96ab">'+_escapeHTML(l.description||'(no description)')+' <span style="font-size:10px;color:#414e63">\u00b7 '+(l.category||'')+'</span></span><span>'+fm(l.actual_amount||0)+(Number(l.budget_amount)?' <span style="color:#414e63;font-size:10px">/ '+fm(l.budget_amount)+'</span>':'')+'</span></div>'}).join('')+'<div class="fin-row" style="font-size:11px;color:#60a5fa;font-weight:600"><span>Budget Lines Subtotal</span><span>'+fm(budgetLinesActualTotal)+'</span></div></div>':'<div style="font-size:11px;color:#414e63;padding:8px 0;text-align:center">No budget line items yet. Add them in <strong>Edit Budget</strong> above.</div>')
+  +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(totalCost)+'</span></div>'
+  +'</div>'
+  +'</div>'
+  +(j.permit_fee?'<div class="fin-row"><span style="color:#8a96ab">Permit Fee</span><span>'+fm(j.permit_fee)+'</span></div>':'')
+  +(budgetLines.length?'<div style="border-top:1px solid rgba(255,255,255,.08);margin:8px 0 4px;padding-top:6px"><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Budget Line Items ('+budgetLines.length+')</div>'+budgetLines.map(function(l){return '<div class="fin-row"><span style="color:#8a96ab">'+_escapeHTML(l.description||'(no description)')+' <span style="font-size:10px;color:#414e63">\u00b7 '+(l.category||'')+'</span></span><span>'+fm(l.actual_amount||0)+(Number(l.budget_amount)?' <span style="color:#414e63;font-size:10px">/ '+fm(l.budget_amount)+'</span>':'')+'</span></div>'}).join('')+'<div class="fin-row" style="font-size:11px;color:#60a5fa;font-weight:600"><span>Budget Lines Subtotal</span><span>'+fm(budgetLinesActualTotal)+'</span></div></div>':'<div style="font-size:11px;color:#414e63;padding:8px 0;text-align:center">No budget line items yet. Add them in <strong>Edit Budget</strong> above.</div>')
+  +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(labor+(j.permit_fee||0)+budgetLinesActualTotal)+'</span></div>'
+  +'</div>'
   +'</div>'
   +'</div>'
   +(catKeys.length?'<div class="card" style="margin-top:14px"><div class="card-title">Estimate vs Actual by Category</div>'+'<div style="font-size:11px;color:#8a96ab;margin-bottom:10px">Tracking spend against your estimate breakdown. Each line item rolls into its category.</div>'+'<table class="tbl" style="font-size:12px"><thead><tr><th>Category</th><th style="text-align:right">Estimate</th><th style="text-align:right">Actual</th><th style="text-align:right">Variance</th><th style="width:30%">% Used</th></tr></thead><tbody>'+catKeys.map(function(c){var d=byCat[c];var variance=d.budget-d.actual;var pct=d.budget>0?Math.round(d.actual/d.budget*100):(d.actual>0?100:0);var vColor=variance>=0?'#16a34a':'#dc2626';var barColor=pct>100?'#dc2626':pct>=85?'#d97706':'#16a34a';return '<tr><td><strong>'+(CAT_LABELS[c]||c)+'</strong> <span style="color:#414e63;font-size:10px">\u00b7 '+d.count+' line'+(d.count!==1?'s':'')+'</span></td><td style="text-align:right">'+fm(d.budget)+'</td><td style="text-align:right;color:#60a5fa;font-weight:600">'+fm(d.actual)+'</td><td style="text-align:right;color:'+vColor+';font-weight:600">'+(variance>=0?'+':'')+fm(variance)+'</td><td><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:8px;background:#0c1220;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,pct)+'%;background:'+barColor+'"></div></div><span style="font-size:11px;color:'+barColor+';font-weight:600;min-width:42px;text-align:right">'+pct+'%</span></div></td></tr>'}).join('')+'<tr style="border-top:2px solid rgba(255,255,255,.1);font-weight:700"><td>TOTAL</td><td style="text-align:right">'+fm(budgetLinesPlanTotal)+'</td><td style="text-align:right;color:#60a5fa">'+fm(budgetLinesActualTotal)+'</td><td style="text-align:right;color:'+((budgetLinesPlanTotal-budgetLinesActualTotal)>=0?'#16a34a':'#dc2626')+'">'+((budgetLinesPlanTotal-budgetLinesActualTotal)>=0?'+':'')+fm(budgetLinesPlanTotal-budgetLinesActualTotal)+'</td><td></td></tr>'+'</tbody></table></div>':'')
   +'<div class="card" style="background:'+(profit>=0?'rgba(22,163,74,.08)':'rgba(220,38,38,.08)')+'">'
   +'<div style="font-size:26px;font-weight:300;color:'+(profit>=0?'#16a34a':'#dc2626')+'">'+fm(profit)+(margin!=null?' ('+margin+'%)':'')+' </div>'
-  +'<div style="font-size:12px;color:#8a96ab;margin-top:3px;margin-bottom:'+(lb>0||j.material_budget>0?'14':'0')+'px">Gross Profit &middot; '+fh(hrs)+' logged</div>'
+  +'<div style="font-size:12px;color:#8a96ab;margin-top:3px;margin-bottom:'+(lb>0?'14':'0')+'px">Gross Profit &middot; '+fh(hrs)+' logged</div>'
   +(lb>0?'<div style="margin-bottom:12px">'
     +'<div style="display:flex;justify-content:space-between;font-size:11px;color:#8a96ab;margin-bottom:5px">'
     +'<span style="font-weight:500;color:#e8edf5">Labor</span>'
@@ -5187,15 +5193,6 @@ async function renderJobFinTab(el){
     +'</div>'
     +'<div style="height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden">'
     +'<div style="height:100%;width:'+Math.min(lbPct,100)+'%;background:'+(lbOver?'#dc2626':lbWarn?'#d97706':'#3b82f6')+';border-radius:4px;transition:width .4s ease"></div>'
-    +'</div></div>'
-  :'')
-  +(j.material_budget>0?'<div>'
-    +'<div style="display:flex;justify-content:space-between;font-size:11px;color:#8a96ab;margin-bottom:5px">'
-    +'<span style="font-weight:500;color:#e8edf5">Parts &amp; Materials</span>'
-    +'<span style="color:'+(j.parts_cost>j.material_budget?'#dc2626':'#8a96ab')+'">'+fm(j.parts_cost||0)+' / '+fm(j.material_budget)+'</span>'
-    +'</div>'
-    +'<div style="height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden">'
-    +'<div style="height:100%;width:'+Math.min(j.material_budget>0?(j.parts_cost||0)/j.material_budget*100:0,100)+'%;background:'+(j.parts_cost>j.material_budget?'#dc2626':'#8b5cf6')+';border-radius:4px;transition:width .4s ease"></div>'
     +'</div></div>'
   :'')
   +'</div>'
