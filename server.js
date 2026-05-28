@@ -3335,6 +3335,11 @@ var PERMIT_STEP_COLORS={not_started:'#414e63',in_progress:'#d97706',done:'#16a34
 async function renderPermitTab(el){
   el.innerHTML='<div style="padding:14px">'+ld()+'</div>'
   var jr=await sb.from('jobs').select('id,name,permit_path,permit_status,permit_number,permit_expires_on,permit_fee,date_permit,permit_triaged_by,permit_triaged_at,needs_design_review').eq('id',currentJobId).single()
+  // If needs_design_review column doesn't exist yet (migration-023 not run), retry without it
+  if(jr.error&&/needs_design_review/i.test(jr.error.message||'')){
+    console.warn('[permit tab] needs_design_review column missing — run migration-023.')
+    jr=await sb.from('jobs').select('id,name,permit_path,permit_status,permit_number,permit_expires_on,permit_fee,date_permit,permit_triaged_by,permit_triaged_at').eq('id',currentJobId).single()
+  }
   var job=jr.data||{}
   window._permitJob=job
   var path=job.permit_path||null
@@ -3567,7 +3572,12 @@ async function setPermitPath(path){
 async function toggleDesignReview(enabled){
   var job=window._permitJob||{}
   var res=await sb.from('jobs').update({needs_design_review:!!enabled,updated_at:new Date().toISOString()}).eq('id',currentJobId)
-  if(res.error){toast(res.error.message,'error');return}
+  if(res.error){
+    if(/needs_design_review/i.test(res.error.message||'')){
+      toast('Run migration-023 in Supabase to enable this toggle.','error');return
+    }
+    toast(res.error.message,'error');return
+  }
   job.needs_design_review=!!enabled
   // If enabling, seed the two review steps so they show up in the pipeline
   if(enabled&&(job.permit_path==='full')){
@@ -5560,6 +5570,10 @@ async function pgDesign(){
 
   // Gather all non-archived jobs that have a permit path set (in the pipeline)
   var jr=await sb.from('jobs').select('id,name,job_number,permit_path,permit_number,permit_expires_on,permit_fee,submitted_to_city_date,project_manager,parent_job_id,archived,needs_design_review').eq('archived',false)
+  if(jr.error&&/needs_design_review/i.test(jr.error.message||'')){
+    console.warn('[design dashboard] needs_design_review column missing — run migration-023.')
+    jr=await sb.from('jobs').select('id,name,job_number,permit_path,permit_number,permit_expires_on,permit_fee,submitted_to_city_date,project_manager,parent_job_id,archived').eq('archived',false)
+  }
   var jobs=(jr.data||[]).filter(function(j){return j.permit_path&&j.permit_path!=='none'})
   // Parent-name lookup so sub-job cards can show which complex they belong to
   var _allJobsById={};(jr.data||[]).forEach(function(j){_allJobsById[j.id]=j})
