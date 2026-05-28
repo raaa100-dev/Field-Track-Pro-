@@ -2560,14 +2560,14 @@ function _drawBudgetBuilder(){
     var variance=(Number(l.budget_amount)||0)-(Number(l.actual_amount)||0)
     var vColor=variance>=0?'#16a34a':'#dc2626'
     h+='<tr>'
-    h+='<td><input class="fi" style="font-size:12px;padding:4px 7px" value="'+_escAttr(l.description||'')+'" onchange="updateBudgetLine(\\''+l.id+'\\',\\'description\\',this.value)"></td>'
+    h+='<td><input class="fi" style="font-size:12px;padding:4px 7px" value="'+_escAttr(l.description||'')+'" oninput="_budgetDebounce(\\''+l.id+'\\',\\'description\\',this.value)" onblur="updateBudgetLine(\\''+l.id+'\\',\\'description\\',this.value)"></td>'
     h+='<td><select class="fs" style="font-size:11px;padding:4px 6px" onchange="updateBudgetLine(\\''+l.id+'\\',\\'category\\',this.value)">'
-    ;['material','labor','sub','equipment','other'].forEach(function(c){
+    ;['material','labor','design','permit','sub','equipment','other'].forEach(function(c){
       h+='<option value="'+c+'"'+(l.category===c?' selected':'')+'>'+c.charAt(0).toUpperCase()+c.slice(1)+'</option>'
     })
     h+='</select></td>'
-    h+='<td style="text-align:right"><input class="fi" type="number" style="font-size:12px;padding:4px 7px;text-align:right;max-width:110px" value="'+(l.budget_amount||'')+'" onchange="updateBudgetLine(\\''+l.id+'\\',\\'budget_amount\\',this.value)"></td>'
-    h+='<td style="text-align:right"><input class="fi" type="number" style="font-size:12px;padding:4px 7px;text-align:right;max-width:110px" value="'+(l.actual_amount||'')+'" onchange="updateBudgetLine(\\''+l.id+'\\',\\'actual_amount\\',this.value)"></td>'
+    h+='<td style="text-align:right"><input class="fi" type="number" style="font-size:12px;padding:4px 7px;text-align:right;max-width:110px" value="'+(l.budget_amount||'')+'" oninput="_budgetDebounce(\\''+l.id+'\\',\\'budget_amount\\',this.value)" onblur="updateBudgetLine(\\''+l.id+'\\',\\'budget_amount\\',this.value)"></td>'
+    h+='<td style="text-align:right"><input class="fi" type="number" style="font-size:12px;padding:4px 7px;text-align:right;max-width:110px" value="'+(l.actual_amount||'')+'" oninput="_budgetDebounce(\\''+l.id+'\\',\\'actual_amount\\',this.value)" onblur="updateBudgetLine(\\''+l.id+'\\',\\'actual_amount\\',this.value)"></td>'
     h+='<td style="text-align:right;font-size:12px;font-weight:600;color:'+vColor+'">'+(variance>=0?'+':'')+fm(variance)+'</td>'
     h+='<td style="text-align:center"><button class="btn btn-sm" style="color:#dc2626;font-size:10px;padding:2px 6px" onclick="deleteBudgetLine(\\''+l.id+'\\')">✕</button></td>'
     h+='</tr>'
@@ -2613,6 +2613,14 @@ async function addBudgetLine(){
   if(error){toast(error.message,'error');return}
   if(data&&data[0])_budgetLines.push(data[0])
   _drawBudgetBuilder()
+}
+// Debounced save while typing so values aren't lost if the user navigates away
+// or clicks Save Changes without blurring the input first.
+var _budgetDebounceTimers={}
+function _budgetDebounce(id,field,value){
+  var key=id+':'+field
+  if(_budgetDebounceTimers[key])clearTimeout(_budgetDebounceTimers[key])
+  _budgetDebounceTimers[key]=setTimeout(function(){updateBudgetLine(id,field,value)},500)
 }
 async function updateBudgetLine(id,field,value){
   var line=_budgetLines.find(function(l){return l.id===id})
@@ -3809,6 +3817,7 @@ async function renderCommsSection(){
       if(needsResp)h+='<button class="btn btn-sm" data-cid="'+c.id+'" onclick="markCommResponded(this.dataset.cid)" style="font-size:10px;padding:2px 7px" title="Mark responded">✓</button>'
       if(!c.task_id)h+='<button class="btn btn-sm" data-cid="'+c.id+'" onclick="convertCommToTask(this.dataset.cid)" style="font-size:10px;padding:2px 7px" title="Convert to task">→ Task</button>'
       h+='<button class="btn btn-sm" data-cid="'+c.id+'" onclick="editCommModal(this.dataset.cid)" style="font-size:10px;padding:2px 7px">✎</button>'
+      if(ME&&ME.isAdmin)h+='<button class="btn btn-sm" data-cid="'+c.id+'" onclick="deleteComm(this.dataset.cid)" style="font-size:10px;padding:2px 7px;color:#dc2626" title="Delete (admin)">🗑</button>'
       h+='</div></div></div>'
     })
   }
@@ -3868,6 +3877,15 @@ function editCommModal(id){logCommModal(id)}
 async function markCommResponded(id){
   await sb.from('job_communications').update({responded:true,updated_at:new Date().toISOString()}).eq('id',id)
   renderCommsSection();toast('Marked as responded')
+}
+// Admin-only: delete a logged communication entirely.
+async function deleteComm(id){
+  if(!ME||!ME.isAdmin){toast('Admin only','error');return}
+  if(!confirm('Delete this logged communication? This cannot be undone.'))return
+  var res=await sb.from('job_communications').delete().eq('id',id)
+  if(res.error){toast(res.error.message,'error');return}
+  toast('Communication deleted')
+  if(typeof renderCommsSection==='function')renderCommsSection()
 }
 // Dashboard-level communication logger. Works without a job context: pick a
 // job OR a customer (account), record a phone number, auto-timestamp, and
@@ -4732,7 +4750,7 @@ function _drawCOLines(){
     h+='<tr>'
     h+='<td><input class="fi" style="font-size:12px;padding:4px 7px" value="'+_escAttr(l.description||'')+'" onchange="updateCOLine(\\''+l.id+'\\',\\'description\\',this.value)"></td>'
     h+='<td><select class="fs" style="font-size:11px;padding:4px 6px" onchange="updateCOLine(\\''+l.id+'\\',\\'category\\',this.value)">'
-    ;['material','labor','sub','equipment','other'].forEach(function(c){
+    ;['material','labor','design','permit','sub','equipment','other'].forEach(function(c){
       h+='<option value="'+c+'"'+(l.category===c?' selected':'')+'>'+c.charAt(0).toUpperCase()+c.slice(1)+'</option>'
     })
     h+='</select></td>'
@@ -5092,13 +5110,29 @@ async function renderJobFinTab(el){
   const{data:dr}=await sb.from('daily_reports').select('*').eq('job_id',currentJobId)
   // Refresh permit_fee from DB so it reflects any clear/edit in the pipeline
   try{var pfr=await sb.from('jobs').select('permit_fee').eq('id',currentJobId).single();if(pfr&&pfr.data&&currentJob)currentJob.permit_fee=pfr.data.permit_fee}catch(e){}
+  // Fetch budget line items so Financials reflects them (the Budget Builder edits these)
+  var blRes=await sb.from('job_budget_lines').select('*').eq('job_id',currentJobId).order('sort_order')
+  var budgetLines=blRes.data||[]
+  var budgetLinesActualTotal=budgetLines.reduce(function(s,l){return s+(Number(l.actual_amount)||0)},0)
+  var budgetLinesPlanTotal=budgetLines.reduce(function(s,l){return s+(Number(l.budget_amount)||0)},0)
+  // Roll up by category for the "how is the job doing" view
+  var CAT_LABELS={material:'Material',labor:'Labor',design:'Design',permit:'Permit',sub:'Subcontractor',equipment:'Equipment',other:'Other'}
+  var byCat={}
+  budgetLines.forEach(function(l){
+    var c=l.category||'other'
+    if(!byCat[c])byCat[c]={budget:0,actual:0,count:0}
+    byCat[c].budget+=Number(l.budget_amount)||0
+    byCat[c].actual+=Number(l.actual_amount)||0
+    byCat[c].count++
+  })
+  var catKeys=Object.keys(byCat).sort(function(a,b){return byCat[b].budget-byCat[a].budget})
   const hrs=(dr||[]).reduce((s,r)=>s+(r.total_man_hours||r.hours_worked||r.hours||0),0)
   if(currentJob)currentJob._cachedHrs=hrs
   var hrsEl=document.getElementById('ed-hrs-display')
   if(hrsEl)hrsEl.textContent=fh(hrs)+' hrs on site'
   const j=currentJob
   const labor=hrs*(j.labor_rate||0)
-  const totalCost=labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0)+(j.permit_fee||0)
+  const totalCost=labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0)+(j.permit_fee||0)+budgetLinesActualTotal
   const profit=(j.contract_value||0)-totalCost
   const margin=j.contract_value>0?profit/j.contract_value*100:null
   // Labor budget threshold logic
@@ -5122,7 +5156,6 @@ async function renderJobFinTab(el){
   +(lb>0?'<div style="font-size:10px;color:'+lbColor+';margin-top:2px;padding:0 6px">'+Math.round(lbPct)+'% of labor budget used</div>':'')
   +'</div>'
   +'<div class="card"><div class="card-title">Costs</div>'
-  +'<div class="card"><div class="card-title">Costs</div>'
   +(j.labor_budget&&j.labor_rate?'<div class="fin-row" style="color:#414e63"><span>Budget Labor Cost ('+fh(j.labor_budget)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm((j.labor_budget||0)*(j.labor_rate||0))+'</span></div>':'')
   +'<div class="fin-row"><span style="color:#8a96ab">Labor Actual ('+fh(hrs)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm(labor)+'</span></div>'
   +'<div class="fin-row"><span style="color:#8a96ab">Parts & Materials</span><span>'+fm(j.parts_cost||0)+'</span></div>'
@@ -5130,10 +5163,12 @@ async function renderJobFinTab(el){
   +'<div class="fin-row"><span style="color:#8a96ab">Equipment Rental</span><span>'+fm(j.equipment_rental_cost||0)+'</span></div>'
   +'<div class="fin-row"><span style="color:#8a96ab">Tariff / Misc</span><span>'+fm(j.misc_cost||0)+'</span></div>'
   +(j.permit_fee?'<div class="fin-row"><span style="color:#8a96ab">Permit Fee</span><span>'+fm(j.permit_fee)+'</span></div>':'')
-  +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0)+(j.permit_fee||0))+'</span></div>'
+  +(budgetLines.length?'<div style="border-top:1px solid rgba(255,255,255,.08);margin:8px 0 4px;padding-top:6px"><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Budget Line Items ('+budgetLines.length+')</div>'+budgetLines.map(function(l){return '<div class="fin-row"><span style="color:#8a96ab">'+_escapeHTML(l.description||'(no description)')+' <span style="font-size:10px;color:#414e63">\u00b7 '+(l.category||'')+'</span></span><span>'+fm(l.actual_amount||0)+(Number(l.budget_amount)?' <span style="color:#414e63;font-size:10px">/ '+fm(l.budget_amount)+'</span>':'')+'</span></div>'}).join('')+'<div class="fin-row" style="font-size:11px;color:#60a5fa;font-weight:600"><span>Budget Lines Subtotal</span><span>'+fm(budgetLinesActualTotal)+'</span></div></div>':'')
+  +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(labor+(j.parts_cost||0)+(j.shipping_cost||0)+(j.equipment_rental_cost||0)+(j.misc_cost||0)+(j.permit_fee||0)+budgetLinesActualTotal)+'</span></div>'
   +'<button class="btn btn-sm" style="margin-top:8px" onclick="editJobCosts()">+ Edit Costs</button></div>'
   +'</div>'
   +'</div>'
+  +(catKeys.length?'<div class="card" style="margin-top:14px"><div class="card-title">Estimate vs Actual by Category</div>'+'<div style="font-size:11px;color:#8a96ab;margin-bottom:10px">Tracking spend against your estimate breakdown. Each line item rolls into its category.</div>'+'<table class="tbl" style="font-size:12px"><thead><tr><th>Category</th><th style="text-align:right">Estimate</th><th style="text-align:right">Actual</th><th style="text-align:right">Variance</th><th style="width:30%">% Used</th></tr></thead><tbody>'+catKeys.map(function(c){var d=byCat[c];var variance=d.budget-d.actual;var pct=d.budget>0?Math.round(d.actual/d.budget*100):(d.actual>0?100:0);var vColor=variance>=0?'#16a34a':'#dc2626';var barColor=pct>100?'#dc2626':pct>=85?'#d97706':'#16a34a';return '<tr><td><strong>'+(CAT_LABELS[c]||c)+'</strong> <span style="color:#414e63;font-size:10px">\u00b7 '+d.count+' line'+(d.count!==1?'s':'')+'</span></td><td style="text-align:right">'+fm(d.budget)+'</td><td style="text-align:right;color:#60a5fa;font-weight:600">'+fm(d.actual)+'</td><td style="text-align:right;color:'+vColor+';font-weight:600">'+(variance>=0?'+':'')+fm(variance)+'</td><td><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:8px;background:#0c1220;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,pct)+'%;background:'+barColor+'"></div></div><span style="font-size:11px;color:'+barColor+';font-weight:600;min-width:42px;text-align:right">'+pct+'%</span></div></td></tr>'}).join('')+'<tr style="border-top:2px solid rgba(255,255,255,.1);font-weight:700"><td>TOTAL</td><td style="text-align:right">'+fm(budgetLinesPlanTotal)+'</td><td style="text-align:right;color:#60a5fa">'+fm(budgetLinesActualTotal)+'</td><td style="text-align:right;color:'+((budgetLinesPlanTotal-budgetLinesActualTotal)>=0?'#16a34a':'#dc2626')+'">'+((budgetLinesPlanTotal-budgetLinesActualTotal)>=0?'+':'')+fm(budgetLinesPlanTotal-budgetLinesActualTotal)+'</td><td></td></tr>'+'</tbody></table></div>':'')
   +'<div class="card" style="background:'+(profit>=0?'rgba(22,163,74,.08)':'rgba(220,38,38,.08)')+'">'
   +'<div style="font-size:26px;font-weight:300;color:'+(profit>=0?'#16a34a':'#dc2626')+'">'+fm(profit)+(margin!=null?' ('+margin+'%)':'')+' </div>'
   +'<div style="font-size:12px;color:#8a96ab;margin-top:3px;margin-bottom:'+(lb>0||j.material_budget>0?'14':'0')+'px">Gross Profit &middot; '+fh(hrs)+' logged</div>'
@@ -16128,6 +16163,7 @@ async function addrSuggest(q){try{const r=await fetch('https://nominatim.openstr
 // ────────────────────────────────────────────────────────────────────
 const SB_ANON      = process.env.SUPABASE_KEY || '';
 const SB_SERVICE   = process.env.SUPABASE_SERVICE_KEY || '';
+const SB_JWT_SECRET= process.env.SUPABASE_JWT_SECRET || '';  // for verifying login token signatures
 const CL_CLOUD     = process.env.CLOUDINARY_CLOUD || '';
 const CL_KEY       = process.env.CLOUDINARY_KEY || '';
 const CL_SECRET    = process.env.CLOUDINARY_SECRET || '';
@@ -16243,6 +16279,37 @@ function hashPwd(p)   { const s = crypto.randomBytes(16).toString('hex'); return
 function verifyPwd(p, stored) { const [s, h] = stored.split(':'); return crypto.pbkdf2Sync(p, s, 100000, 64, 'sha512').toString('hex') === h; }
 // Token cache: avoid hitting Supabase auth on every single request
 const _tokenCache = new Map();
+// Verify a Supabase JWT's signature (HS256) using the project JWT secret.
+// Returns the decoded payload if valid, or null if invalid/forged.
+// base64url-decode helper
+function _b64urlToBuf(s){return Buffer.from(s.replace(/-/g,'+').replace(/_/g,'/'),'base64')}
+function verifyJwt(token){
+  try{
+    const parts=token.split('.');if(parts.length!==3)return null
+    const [headerB64,payloadB64,sigB64]=parts
+    var header={};try{header=JSON.parse(_b64urlToBuf(headerB64).toString('utf8'))}catch(e){}
+    const alg=(header&&header.alg)||''
+    if(SB_JWT_SECRET&&alg==='HS256'){
+      // Verify signature: HMAC-SHA256 over "header.payload" with the JWT secret
+      const expected=crypto.createHmac('sha256',SB_JWT_SECRET).update(headerB64+'.'+payloadB64).digest()
+      const got=_b64urlToBuf(sigB64)
+      if(expected.length!==got.length||!crypto.timingSafeEqual(expected,got)){
+        return null  // signature invalid → forged or tampered token
+      }
+    }else if(SB_JWT_SECRET&&alg&&alg!=='HS256'){
+      // Project uses asymmetric signing (ES256/RS256) — can't verify with the
+      // shared secret. Decode-only here; log once so it's visible.
+      if(!_jwtWarned){console.warn('[security] Token alg is '+alg+' (asymmetric); shared-secret verification not applicable. Tokens decoded but not signature-verified.');_jwtWarned=true}
+    }else if(!SB_JWT_SECRET){
+      if(!_jwtWarned){console.warn('[security] SUPABASE_JWT_SECRET not set — token signatures are NOT being verified. Add it in Render → Environment to enable verification.');_jwtWarned=true}
+    }
+    const payload=JSON.parse(_b64urlToBuf(payloadB64).toString('utf8'))
+    if(payload.exp&&payload.exp*1000<Date.now())return null  // expired
+    return payload
+  }catch(e){return null}
+}
+var _jwtWarned=false
+
 async function getUser(req) {
   const t = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
   if (!t) return null;
@@ -16250,18 +16317,15 @@ async function getUser(req) {
   const cached = _tokenCache.get(t);
   if (cached && cached.exp > Date.now()) return cached.user;
   try {
-    // Decode Supabase JWT payload (middle part) without verifying sig
-    // Supabase JWTs are signed with the project secret - we trust them if they parse correctly
-    const parts = t.split('.');
-    if (parts.length !== 3) return null;
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+    // Verify the JWT signature before trusting ANY of its claims.
+    // (Previously this only decoded without verifying — a forged token would
+    //  have been accepted. Now an invalid signature is rejected outright.)
+    const payload = verifyJwt(t);
+    if (!payload) return null;
     const userId = payload.sub;
     if (!userId) return null;
-    if (payload.exp && payload.exp * 1000 < Date.now()) return null; // expired
-    // Load profile from DB using service key — RLS-bypassed because we have
-    // already verified the JWT belongs to the requesting user, and the rest
-    // of this code path relies on having the profile data (role, etc.) to
-    // make authorization decisions.
+    // Load profile from DB using service key — safe now that the token's
+    // signature is verified, so we know it genuinely belongs to this user.
     const rows = await sbReq('GET', 'profiles', null, { id: 'eq.' + userId, select: '*' }, true).catch(() => []);
     const profile = Array.isArray(rows) ? rows[0] : null;
     if (!profile) return null;
@@ -18144,7 +18208,11 @@ window.addEventListener('online',function(){
     var failed=results.filter(function(r){return r&&r.error}).length
     localStorage.removeItem('faxq')
     toast(failed?'Synced with '+failed+' error(s)':'All offline actions synced!',failed?'warn':'success')
-    if(typeof allJobs!=='undefined')pgDash&&pgDash()
+    // Only refresh if the user is currently on the dashboard — otherwise this
+    // hijacks whatever page they're on (e.g. Today) and lands them on dashboard.
+    var dashNav=document.querySelector('.nav-item.active')
+    var onDash=dashNav&&dashNav.textContent&&dashNav.textContent.trim().indexOf('Dashboard')>=0
+    if(onDash&&typeof allJobs!=='undefined')pgDash&&pgDash()
   })
 })
 // Show offline banner when network lost
