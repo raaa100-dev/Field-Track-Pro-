@@ -1678,15 +1678,19 @@ function setDueDays(d){
   var lbl=document.getElementById('due-days-label');if(lbl)lbl.textContent=d
   var list=document.getElementById('due-widget-list')
   if(!list)return
+  // Build a job-id → phase lookup so we can show the status inline
+  var jobPhaseMap={};(allJobs||[]).forEach(function(j){jobPhaseMap[j.id]=j.phase})
   list.innerHTML=soon.length?soon.map(function(s){
     var isOver=s.da<0
     var dc=isOver?'#b91c1c':s.da<=3?'#dc2626':s.da<=7?'#d97706':'#16a34a'
     var bc=isOver?'bg-red':s.da<=3?'bg-red':s.da<=7?'bg-amber':'bg-green'
     var badgeTxt=isOver?Math.abs(s.da)+'d late':(s.da===0?'Today':s.da+'d')
+    var phase=jobPhaseMap[s.id]
+    var statusLabel=phase&&typeof STAGE_LABELS!=='undefined'&&STAGE_LABELS[phase]?STAGE_LABELS[phase]:(phase||'')
     return '<div class="sched-item dash-due-row" data-jid="'+s.id+'" style="cursor:pointer">'
       +'<div class="sched-dot" style="background:'+dc+';margin-top:4px"></div>'
-      +'<div style="flex:1"><div style="font-size:12px;font-weight:500">'+s.job+'</div>'
-      +'<div style="font-size:10px;color:#414e63">'+s.type+' &middot; '+fd(s.date)+'</div></div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.job+'</div>'
+      +'<div style="font-size:10px;color:#414e63;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.type+' &middot; '+fd(s.date)+(statusLabel?' &middot; <span style="color:#8a96ab">'+_escapeHTML(statusLabel)+'</span>':'')+'</div></div>'
       +'<span class="badge '+bc+'">'+badgeTxt+'</span></div>'
   }).join(''):'<div style="text-align:center;padding:20px;color:#414e63">All clear — nothing due in '+d+' days</div>'
   list.querySelectorAll('.dash-due-row').forEach(function(el){
