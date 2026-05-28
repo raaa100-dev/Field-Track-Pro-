@@ -2629,8 +2629,16 @@ async function updateBudgetLine(id,field,value){
   if(field==='budget_amount'||field==='actual_amount'){val=parseFloat(value)||0}
   line[field]=val
   var patch={};patch[field]=val;patch.updated_at=new Date().toISOString()
-  var{error}=await sb.from('job_budget_lines').update(patch).eq('id',id)
-  if(error){toast(error.message,'error');return}
+  var res=await sb.from('job_budget_lines').update(patch).eq('id',id)
+  if(res.error){
+    // If updated_at column is missing, retry without it so the save still goes through
+    if(/updated_at/i.test(res.error.message||'')){
+      var p2={};p2[field]=val
+      res=await sb.from('job_budget_lines').update(p2).eq('id',id)
+      if(res.error){toast(res.error.message,'error');return}
+      console.warn('[budget lines] updated_at column missing — run migration-022 in Supabase.')
+    }else{toast(res.error.message,'error');return}
+  }
   if(field==='budget_amount'||field==='actual_amount'||field==='category')_drawBudgetBuilder()
 }
 async function deleteBudgetLine(id){
