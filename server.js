@@ -3509,7 +3509,14 @@ async function renderPermitTab(el){
     }else if(key==='site_walk_complete'){
       h+='<button class="btn btn-sm" onclick="loadJT(\\'jt-walks\\')" style="flex-shrink:0">View Walks</button>'
     }else{
-      h+='<button class="btn btn-sm" onclick="editPermitStep(\\''+key+'\\',\\''+_escAttr(label)+'\\')" style="flex-shrink:0">Edit</button>'
+      h+='<div style="display:flex;gap:6px;flex-shrink:0;align-items:center">'
+      h+='<select class="fs" style="font-size:11px;padding:4px 6px;min-width:115px" onchange="setPermitStepStatus(\\''+key+'\\',\\''+_escAttr(label)+'\\',this.value)">'
+      ;['not_started','in_progress','done','blocked','na'].forEach(function(st){
+        h+='<option value="'+st+'"'+(effStatus===st?' selected':'')+'>'+(PERMIT_STEP_STATUS[st]||st)+'</option>'
+      })
+      h+='</select>'
+      h+='<button class="btn btn-sm" onclick="editPermitStep(\\''+key+'\\',\\''+_escAttr(label)+'\\')">Edit</button>'
+      h+='</div>'
     }
     h+='</div>'
   })
@@ -3652,6 +3659,29 @@ async function editPermitStep(stepKey,label){
     if(assignedTo&&assignedTo!==step.assigned_to)await notify(assignedTo,'task','Permit step assigned',label+(window._permitJob?' · '+window._permitJob.name:''),{jobId:currentJobId})
     closeModal();toast('Step updated');loadJT('jt-permit')
   },'Save Step')
+}
+// Inline status change from the pipeline overview — updates status only, with
+// the same timestamping as the full editor (completed_date, entered_at,
+// submitted_to_city_date), then re-renders.
+async function setPermitStepStatus(stepKey,label,status){
+  var steps=window._permitSteps||[]
+  var step=steps.find(function(s){return s.step_key===stepKey})||{step_key:stepKey,status:'not_started'}
+  var prevStatus=step.status
+  var nowIso=new Date().toISOString()
+  var today=nowIso.split('T')[0]
+  var data={job_id:currentJobId,step_key:stepKey,step_label:label,status:status,updated_at:nowIso}
+  // Timestamp completion when marking done (only set if not already set)
+  if(status==='done'){data.completed_date=step.completed_date||today}
+  // Set entered_at when entering in_progress for the first time
+  if(status==='in_progress'&&prevStatus!=='in_progress')data.entered_at=nowIso
+  var res
+  if(step.id){res=await sb.from('job_permit_steps').update(data).eq('id',step.id)}
+  else{data.id=uuid();data.created_at=nowIso;res=await sb.from('job_permit_steps').insert(data)}
+  if(res.error){toast(res.error.message,'error');return}
+  // City submission date for cycle-time metrics
+  try{if(stepKey==='submit_city'&&status==='done'){await sb.from('jobs').update({submitted_to_city_date:(step.completed_date||today)}).eq('id',currentJobId)}}catch(e){}
+  toast(label+' → '+(PERMIT_STEP_STATUS[status]||status))
+  loadJT('jt-permit')
 }
 async function uploadPermitDoc(file){
   if(!file)return
