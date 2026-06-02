@@ -1282,11 +1282,41 @@ async function updateTodayBadge(){
   }catch(e){}
 }
 
+// "+ New" picker on the dashboard: offers Account / Quote / Job, each routing
+// to the existing creation flow. The order encourages starting with an Account
+// (so jobs and quotes link back to a customer instead of being orphaned).
+function openNewPicker(){
+  var html=''
+  +'<div style="font-size:12px;color:#a8b3c7;margin-bottom:14px">Most new work starts with an account. Picking the customer first prevents duplicate records and ties everything (quotes, jobs) back to one place.</div>'
+  +'<div style="display:flex;flex-direction:column;gap:10px">'
+  +'<button class="btn btn-p" style="text-align:left;padding:13px 16px;display:flex;align-items:flex-start;gap:11px" onclick="closeModal();_newPickerGo(\\'account\\')">'
+  +'<span style="font-size:22px;line-height:1">👥</span><span><div style="font-size:13px;font-weight:600">New Account / Customer</div><div style="font-size:11px;color:#cbd5e1;margin-top:1px;font-weight:400">Start here for a new lead, GC, or customer</div></span></button>'
+  +'<button class="btn" style="text-align:left;padding:13px 16px;display:flex;align-items:flex-start;gap:11px;background:#1a2540" onclick="closeModal();_newPickerGo(\\'quote\\')">'
+  +'<span style="font-size:22px;line-height:1">📋</span><span><div style="font-size:13px;font-weight:600">New Quote</div><div style="font-size:11px;color:#a8b3c7;margin-top:1px;font-weight:400">Estimate the work \u2014 turns into a job when won</div></span></button>'
+  +'<button class="btn" style="text-align:left;padding:13px 16px;display:flex;align-items:flex-start;gap:11px;background:#1a2540" onclick="closeModal();_newPickerGo(\\'job\\')">'
+  +'<span style="font-size:22px;line-height:1">🏗</span><span><div style="font-size:13px;font-weight:600">New Job</div><div style="font-size:11px;color:#a8b3c7;margin-top:1px;font-weight:400">Skip the quote \u2014 this is already a sold job</div></span></button>'
+  +'</div>'
+  modal('What do you want to create?',html,null,null,true)
+}
+function _newPickerGo(kind){
+  if(kind==='account'){
+    // Route to Accounts page, then open the new-account modal
+    var el=document.querySelector('.nav-item[onclick*="crm_accounts"]')
+    P('crm_accounts',el)
+    setTimeout(function(){if(typeof crmNewAccount==='function')crmNewAccount()},250)
+  }else if(kind==='quote'){
+    var el=document.querySelector('.nav-item[onclick*="fax_bids"]')
+    P('fax_bids',el)
+    setTimeout(function(){if(typeof faxNewBid==='function')faxNewBid()},250)
+  }else if(kind==='job'){
+    P('newjob',null)
+  }
+}
 async function pgDash(){
   // Refresh check-in status on every dashboard load
   if(ME)adminCheckInInit()
 
-  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="logCommGlobal()" style="margin-right:6px">📞 Log Communication</button><button class="btn btn-p btn-sm" onclick="P(\\'newjob\\',null)">+ New Job</button>'
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="logCommGlobal()" style="margin-right:6px">📞 Log Communication</button><button class="btn btn-p btn-sm" onclick="openNewPicker()">+ New</button>'
   try {
   // Run queries individually so one failure doesn't break everything
   const {data:jobs,error:jobsError} = await sb.from('jobs').select('*').order('created_at',{ascending:false})
