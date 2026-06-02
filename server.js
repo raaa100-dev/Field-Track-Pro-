@@ -2175,7 +2175,6 @@ function renderJobDetail(){
     <div class="tab" onclick="JT(this,'jt-photos')">Photos</div>
     <div class="tab" onclick="JT(this,'jt-checklist')">Checklist</div>
     <div class="tab" onclick="JT(this,'jt-punch')">Punch List</div>
-    <div class="tab" onclick="JT(this,'jt-drawings')">Drawings</div>
     <div class="tab" onclick="JT(this,'jt-co')">Change Orders</div>
     <div class="tab" onclick="JT(this,'jt-fin')">Financials</div>
     <div class="tab" onclick="JT(this,'jt-billing')">Billing</div>
@@ -4549,7 +4548,12 @@ async function uploadPhotos(files){for(const f of files){const path=\`jobs/\${cu
 async function renderChecklistTab(el){
   const{data:items}=await sb.from('job_checklist_items').select('*').eq('job_id',currentJobId).order('sort_order')
   const done=(items||[]).filter(i=>i.is_checked).length
-  el.innerHTML=\`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-weight:500">Checklist <span style="font-size:11px;color:#5a6b85">\${done}/\${(items||[]).length}</span></span><button class="btn btn-sm btn-p" onclick="addCheckItem()">+ Add</button></div>
+  el.innerHTML=\`
+  <div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:8px;padding:10px 13px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:600;color:#60a5fa;margin-bottom:3px">📋 Checklist — Standard install steps for this job</div>
+    <div style="font-size:11px;color:#a8b3c7">Use this for the work steps required to complete a job (e.g. install milestones, closeout items, standard procedures). For tracking issues that need to be fixed, use Punch List instead.</div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-weight:500">Checklist <span style="font-size:11px;color:#5a6b85">\${done}/\${(items||[]).length}</span></span><button class="btn btn-sm btn-p" onclick="addCheckItem()">+ Add</button></div>
   <div class="pbar" style="margin-bottom:13px"><div class="pb g" style="width:\${(items||[]).length?Math.round(done/(items||[]).length*100):0}%"></div></div>
   \${(items||[]).map(i=>\`<div class="chk-item"><div class="chk-box \${i.is_checked?'ck':''}" onclick="toggleCheck('\${i.id}',\${!i.is_checked})"></div><div style="flex:1"><div style="font-size:13px;\${i.is_checked?'text-decoration:line-through;color:#5a6b85':'color:#e8edf5'}">\${i.item_text}</div>\${i.section?\`<div style="font-size:10px;color:#2563eb;margin-top:1px">§ \${i.section}</div>\`:''}</div><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="delCheckItem('\${i.id}')">×</button></div>\`).join('')||empty('✅','Add checklist items')}\` 
 }
@@ -4560,7 +4564,12 @@ async function delCheckItem(id){await sb.from('job_checklist_items').delete().eq
 // PUNCH LIST TAB (per job)
 async function renderPunchTab(el){
   const{data:items}=await sb.from('punch_list').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
-  el.innerHTML=\`<div style="margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="addPunchItem('\${currentJobId}',true)">+ Add Punch Item</button></div>
+  el.innerHTML=\`
+  <div style="background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.2);border-radius:8px;padding:10px 13px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:600;color:#f59e0b;margin-bottom:3px">🔧 Punch List — Issues that need to be fixed</div>
+    <div style="font-size:11px;color:#a8b3c7">Use this for problems found during walks, inspections, or QC that need correction before closeout. Each item can be assigned to a worker who gets notified, and items surface on Today until completed. For standard install steps, use Checklist instead.</div>
+  </div>
+  <div style="margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="addPunchItem('\${currentJobId}',true)">+ Add Punch Item</button></div>
   <table class="tbl"><thead><tr><th>Item</th><th>Location</th><th>Assigned To</th><th>Priority</th><th>Status</th><th>Due</th><th></th></tr></thead><tbody>
   \${(items||[]).map(i=>\`<tr><td style="font-weight:500">\${i.item}</td><td style="font-size:11px;color:#8a96ab">\${i.location||'—'}</td><td style="font-size:11px">\${i.assigned_name||'—'}</td><td><span class="badge \${i.priority==='urgent'?'bg-red':i.priority==='high'?'bg-amber':'bg-gray'}">\${i.priority}</span></td><td><span class="badge \${i.status==='complete'?'bg-green':'bg-amber'}">\${i.status}</span></td><td style="font-size:11px">\${fd(i.due_date)}</td><td>\${i.status!=='complete'?\`<button class="btn btn-sm btn-g" onclick="completePunch('\${i.id}')">Done</button>\`:''}</td></tr>\`).join('')}</tbody></table>
   \${!(items||[]).length?empty('✅','No punch list items'):''}\` 
