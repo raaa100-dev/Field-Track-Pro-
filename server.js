@@ -30,7 +30,7 @@ body{background:#060a10;color:#e8edf5;font-family:'DM Sans',sans-serif;min-heigh
 .box{width:100%;max-width:380px;padding:20px}
 .logo{text-align:center;margin-bottom:32px}
 .logo-mark{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;background:linear-gradient(135deg,#e8edf5,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.logo-sub{font-size:11px;color:#414e63;letter-spacing:.15em;text-transform:uppercase;margin-top:4px}
+.logo-sub{font-size:11px;color:#5a6b85;letter-spacing:.15em;text-transform:uppercase;margin-top:4px}
 .card{background:#0c1220;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:28px}
 .role-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:22px}
 .role-tab{padding:12px;border:1.5px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;text-align:center;transition:.15s}
@@ -40,7 +40,7 @@ body{background:#060a10;color:#e8edf5;font-family:'DM Sans',sans-serif;min-heigh
 .role-tab .lbl{font-size:13px;font-weight:500}
 .role-tab .sub{font-size:10px;color:#8a96ab;margin-top:2px}
 .fg{margin-bottom:14px}
-label{font-size:10px;font-weight:500;color:#414e63;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px}
+label{font-size:10px;font-weight:500;color:#5a6b85;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px}
 input{width:100%;padding:11px 13px;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#e8edf5;font-size:14px;font-family:'DM Sans',sans-serif;transition:.15s}
 input:focus{outline:none;border-color:#2563eb;background:#1a2540}
 .btn{width:100%;padding:13px;background:#2563eb;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:.15s;margin-top:6px}
@@ -178,9 +178,9 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 #sidebar{width:215px;min-width:215px;background:#0c1220;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;height:100vh;overflow-y:auto}
 .logo{padding:max(15px,calc(env(safe-area-inset-top,0px) + 8px)) 14px 11px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
 .logo-mark{font-family:Syne,sans-serif;font-size:15px;font-weight:800;background:linear-gradient(135deg,#e8edf5,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.logo-sub{font-size:9px;color:#414e63;letter-spacing:.12em;text-transform:uppercase;margin-top:1px}
-.nav-section{padding:9px 12px 2px;font-size:9px;font-weight:600;color:#414e63;letter-spacing:.1em;text-transform:uppercase}
-.nav-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer;color:#8a96ab;font-size:12px;margin:1px 5px;transition:.15s;user-select:none;white-space:nowrap}
+.logo-sub{font-size:9px;color:#5a6b85;letter-spacing:.12em;text-transform:uppercase;margin-top:1px}
+.nav-section{padding:9px 12px 2px;font-size:9px;font-weight:600;color:#5a6b85;letter-spacing:.1em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer;color:#a8b3c7;font-size:12px;margin:1px 5px;transition:.15s;user-select:none;white-space:nowrap;font-weight:500}
 .nav-item:hover{background:#131c2e;color:#e8edf5}.nav-item.active{background:#1a2540;color:#e8edf5}
 .nav-item svg{width:13px;height:13px;flex-shrink:0;opacity:.75}
 .nb{margin-left:auto;background:#dc2626;color:#fff;font-size:9px;padding:1px 5px;border-radius:9px;font-weight:700}
@@ -202,23 +202,23 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .btn-ghost{border-color:transparent;background:transparent;color:#8a96ab}.btn-ghost:hover{background:#131c2e;color:#e8edf5}
 .btn-sm{padding:4px 9px;font-size:11px}.btn-full{width:100%;justify-content:center}
 .fg{margin-bottom:12px}
-.fl{font-size:10px;font-weight:500;color:#414e63;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px}
+.fl{font-size:10px;font-weight:500;color:#5a6b85;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px}
 .fi,.fs,.ft{width:100%;padding:8px 11px;border:1px solid rgba(255,255,255,.1);border-radius:7px;font-size:13px;font-family:'DM Sans',sans-serif;background:#131c2e;color:#e8edf5;transition:.15s}
 .fi:focus,.fs:focus,.ft:focus{outline:none;border-color:#2563eb;background:#1a2540}
 .ft{resize:vertical;min-height:70px;line-height:1.5}
-.fi::placeholder,.ft::placeholder{color:#414e63}
+.fi::placeholder,.ft::placeholder{color:#5a6b85}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .four{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
 .card{background:#0c1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px;margin-bottom:13px}
-.card-title{font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:10px;font-weight:600;color:#5a6b85;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px}
 .stat{background:#0c1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:13px}
-.stat-label{font-size:10px;color:#414e63;font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.stat-label{font-size:10px;color:#5a6b85;font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
 .stat-value{font-size:24px;font-weight:300}
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
 #h5qr-region{border-radius:8px;overflow:hidden} #h5qr-region video{border-radius:8px} #h5qr-region__scan_region img{display:none}
-.tbl th{text-align:left;padding:8px 11px;border-bottom:1px solid rgba(255,255,255,.06);color:#414e63;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;position:sticky;top:0;background:#0d1626;z-index:2}
+.tbl th{text-align:left;padding:8px 11px;border-bottom:1px solid rgba(255,255,255,.06);color:#5a6b85;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;position:sticky;top:0;background:#0d1626;z-index:2}
 .tbl td{padding:9px 11px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
 .tbl tbody tr:hover td{background:rgba(255,255,255,.02);cursor:pointer}
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap}
@@ -228,15 +228,15 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .bg-purple{background:rgba(124,58,237,.12);color:#a78bfa}.bg-orange{background:rgba(234,88,12,.12);color:#fb923c}
 .tab-bar{display:flex;border-bottom:1px solid rgba(255,255,255,.06);overflow-x:auto;background:#0c1220}
 .tab-bar::-webkit-scrollbar{display:none}
-.tab{padding:10px 14px;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;color:#414e63;transition:.15s;white-space:nowrap;flex-shrink:0;user-select:none}
+.tab{padding:10px 14px;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;color:#a8b3c7;transition:.15s;white-space:nowrap;flex-shrink:0;user-select:none;font-weight:500}
 .tab:hover{color:#8a96ab}.tab.active{color:#2563eb;border-bottom-color:#2563eb;font-weight:500}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .modal-box{background:#0c1220;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:22px;width:100%;max-width:580px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.9)}
 .modal-title{font-family:Syne,sans-serif;font-size:15px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
-.modal-close{cursor:pointer;color:#414e63;font-size:20px;line-height:1;padding:2px 6px;border-radius:4px}.modal-close:hover{color:#e8edf5;background:#131c2e}
+.modal-close{cursor:pointer;color:#5a6b85;font-size:20px;line-height:1;padding:2px 6px;border-radius:4px}.modal-close:hover{color:#e8edf5;background:#131c2e}
 .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:13px;border-top:1px solid rgba(255,255,255,.06)}
-.loading{padding:40px;text-align:center;color:#414e63;font-size:12px;display:flex;align-items:center;justify-content:center;gap:9px}
-.empty{padding:36px;text-align:center;color:#414e63}
+.loading{padding:40px;text-align:center;color:#5a6b85;font-size:12px;display:flex;align-items:center;justify-content:center;gap:9px}
+.empty{padding:36px;text-align:center;color:#5a6b85}
 .empty-icon{font-size:32px;margin-bottom:8px}
 .pbar{height:4px;background:#1a2540;border-radius:2px;overflow:hidden}
 .pb{height:100%;border-radius:2px;background:#2563eb}
@@ -246,12 +246,12 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.5)}}
 .spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.1);border-top-color:#2563eb;border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
 @keyframes spin{to{transform:rotate(360deg)}}
-.sec-hdr{font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.08em;padding:11px 0 7px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.sec-hdr{font-size:10px;font-weight:600;color:#5a6b85;text-transform:uppercase;letter-spacing:.08em;padding:11px 0 7px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
 .upload-zone{border:1.5px dashed rgba(255,255,255,.1);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:.15s}
 .upload-zone:hover{border-color:#2563eb;background:rgba(37,99,235,.04)}
 .upload-zone input{display:none}
 .file-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#1a2540;border:1px solid rgba(255,255,255,.08);border-radius:6px;font-size:11px;color:#8a96ab;margin:2px}
-.rm{cursor:pointer;color:#414e63;margin-left:2px}.rm:hover{color:#dc2626}
+.rm{cursor:pointer;color:#5a6b85;margin-left:2px}.rm:hover{color:#dc2626}
 .alert-row{display:flex;gap:9px;padding:8px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.06);margin-bottom:5px;align-items:flex-start}
 .adot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
 .part-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04);background:#131c2e;border-radius:6px;margin-bottom:4px}
@@ -262,7 +262,7 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
 .photo-card{background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:9px;overflow:hidden;cursor:pointer}
 .photo-thumb{width:100%;height:90px;object-fit:cover;display:block}
-.photo-ph{width:100%;height:90px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#414e63}
+.photo-ph{width:100%;height:90px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#5a6b85}
 .fin-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
 .fin-row:last-child{border-bottom:none}
 .addr-dd{position:absolute;left:0;right:0;top:100%;z-index:200;background:#0c1220;border:1px solid rgba(255,255,255,.12);border-top:none;border-radius:0 0 8px 8px;box-shadow:0 8px 24px rgba(0,0,0,.7);max-height:160px;overflow-y:auto;display:none}
@@ -275,7 +275,7 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 @keyframes scanA{0%,100%{top:10%}50%{top:85%}}
 .scan-status{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,.9);background:rgba(0,0,0,.5);padding:4px}
 .batch-item{display:flex;align-items:center;gap:9px;padding:9px 11px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:7px;margin-bottom:5px}
-.bi-info{flex:1;min-width:0}.bi-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bi-bc{font-size:10px;color:#414e63;margin-top:1px}
+.bi-info{flex:1;min-width:0}.bi-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bi-bc{font-size:10px;color:#5a6b85;margin-top:1px}
 .qty-ctrl{display:flex;align-items:center;gap:5px;flex-shrink:0}
 .qty-ctrl button{width:24px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;font-size:14px;color:#e8edf5;display:flex;align-items:center;justify-content:center}
 .qty-ctrl span{font-size:14px;font-weight:600;min-width:24px;text-align:center}
@@ -542,7 +542,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
   <div class="sidebar-foot">
     <div class="user-pill" onclick="doSignOut()">
       <div class="av" id="user-av" style="width:28px;height:28px;font-size:10px"></div>
-      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="user-name">…</div><div style="font-size:10px;color:#414e63">Sign out</div></div>
+      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="user-name">…</div><div style="font-size:10px;color:#5a6b85">Sign out</div></div>
     </div>
   </div>
 </div>
@@ -554,7 +554,7 @@ canvas-wrap{position:relative;display:inline-block;width:100%;overflow:auto;back
     <div class="tb-right" id="topbar-actions"></div>
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
       <div id="admin-checkin-btn" onclick="adminCheckInModal()" title="Check In to Job" style="cursor:pointer;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px">
-        <span id="checkin-status-dot" style="width:8px;height:8px;border-radius:50%;background:#414e63;flex-shrink:0"></span>
+        <span id="checkin-status-dot" style="width:8px;height:8px;border-radius:50%;background:#5a6b85;flex-shrink:0"></span>
         <span id="checkin-status-txt">Check In</span>
       </div>
       <div style="position:relative;cursor:pointer" onclick="P('notifications',null)" title="Notifications">
@@ -1032,7 +1032,7 @@ function stageBadge(p){return\`<span class="badge \${STAGE_COLORS[p]||'bg-gray'}
 var ROLE_LABELS={admin:'Admin',pm:'Project Manager',estimator:'Estimator',foreman:'Foreman',technician:'Field Worker',sub_worker:'Subcontractor Worker',sub_lead:'Lead',stager:'Stager',signout:'Signout',requestor:'Requestor'}
 function roleLabel(r){return ROLE_LABELS[r]||r||'—'}
 function roleBadge(r){const m={admin:'bg-purple',pm:'bg-blue',estimator:'bg-blue',stager:'bg-amber',foreman:'bg-teal',technician:'bg-green',sub_lead:'bg-amber',sub_worker:'bg-gray'};return\`<span class="badge \${m[r]||'bg-gray'}">\${roleLabel(r)}</span>\`}
-function empty(icon,txt){return\`<div class="empty"><div class="empty-icon">\${icon}</div><div style="color:#414e63;font-size:12px">\${txt}</div></div>\`}
+function empty(icon,txt){return\`<div class="empty"><div class="empty-icon">\${icon}</div><div style="color:#5a6b85;font-size:12px">\${txt}</div></div>\`}
 function ld(){return'<div class="loading"><div class="spin"></div> Loading…</div>'}
 
 // ══════════════════════════════════════════
@@ -1208,7 +1208,7 @@ async function renderToday(){
 
   var totalItems=overdue.length+soon.length+watch.length
   if(totalItems===0){
-    h+='<div style="text-align:center;padding:60px 20px;color:#414e63"><div style="font-size:40px;margin-bottom:10px">✓</div><div style="font-size:16px;font-weight:600;color:#16a34a">All clear</div><div style="font-size:13px;margin-top:4px">Nothing needs your attention right now.</div></div>'
+    h+='<div style="text-align:center;padding:60px 20px;color:#5a6b85"><div style="font-size:40px;margin-bottom:10px">✓</div><div style="font-size:16px;font-weight:600;color:#16a34a">All clear</div><div style="font-size:13px;margin-top:4px">Nothing needs your attention right now.</div></div>'
   }else{
     h+=_todaySection('🔴 Overdue',overdue,'#dc2626')
     h+=_todaySection('🟡 Today &amp; Soon',soon,'#d97706')
@@ -1228,7 +1228,7 @@ function _todaySection(title,items,color){
     h+='<div onclick="todayOpen(\\''+it.kind+'\\',\\''+(it.job_id||'')+'\\',\\''+(it.id||'')+'\\')" style="display:flex;align-items:center;gap:11px;padding:11px 13px;background:#0a1019;border:1px solid rgba(255,255,255,.05);border-radius:9px;margin-bottom:7px;cursor:pointer">'
     h+='<span style="font-size:15px;flex-shrink:0">'+icon+'</span>'
     h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+_escapeHTML(it.title)+'</div>'
-    if(it.sub)h+='<div style="font-size:11px;color:#414e63;margin-top:2px">'+_escapeHTML(it.sub)+'</div>'
+    if(it.sub)h+='<div style="font-size:11px;color:#5a6b85;margin-top:2px">'+_escapeHTML(it.sub)+'</div>'
     h+='</div>'
     if(it.tag)h+='<span style="font-size:10px;color:'+color+';font-weight:600;white-space:nowrap;flex-shrink:0">'+it.tag+'</span>'
     h+='</div>'
@@ -1358,16 +1358,16 @@ async function pgDash(){
   soon.sort((a,b)=>a.da-b.da)
   document.getElementById('page-area').innerHTML=\`
   <div class="stats" style="grid-template-columns:repeat(4,1fr)">
-    <div class="stat" style="cursor:pointer" onclick="P('jobs',null)"><div class="stat-label">Active Jobs</div><div class="stat-value">\${active.length}</div><div style="font-size:10px;color:\${active.filter(j=>isOD(j.due_date,j.phase)).length>0?'#dc2626':'#414e63'};margin-top:2px">\${active.filter(j=>isOD(j.due_date,j.phase)).length} overdue</div></div>
-    <div class="stat" style="cursor:pointer" onclick="P('orders',null)"><div class="stat-label">Orders</div><div class="stat-value" style="color:#d97706">\${pendingOrders+orderedOrders}</div><div style="font-size:10px;color:#414e63;margin-top:2px">\${pendingOrders} pending · \${orderedOrders} ordered · \${stagedOrders} staged</div></div>
-    <div class="stat"><div class="stat-label">Parts Pipeline</div><div class="stat-value" style="color:#a855f7">\${out.length}</div><div style="font-size:10px;color:#414e63;margin-top:2px">\${staged.length} staged · \${out.length} checked out · \${installed.length} installed</div></div>
+    <div class="stat" style="cursor:pointer" onclick="P('jobs',null)"><div class="stat-label">Active Jobs</div><div class="stat-value">\${active.length}</div><div style="font-size:10px;color:\${active.filter(j=>isOD(j.due_date,j.phase)).length>0?'#dc2626':'#5a6b85'};margin-top:2px">\${active.filter(j=>isOD(j.due_date,j.phase)).length} overdue</div></div>
+    <div class="stat" style="cursor:pointer" onclick="P('orders',null)"><div class="stat-label">Orders</div><div class="stat-value" style="color:#d97706">\${pendingOrders+orderedOrders}</div><div style="font-size:10px;color:#5a6b85;margin-top:2px">\${pendingOrders} pending · \${orderedOrders} ordered · \${stagedOrders} staged</div></div>
+    <div class="stat"><div class="stat-label">Parts Pipeline</div><div class="stat-value" style="color:#a855f7">\${out.length}</div><div style="font-size:10px;color:#5a6b85;margin-top:2px">\${staged.length} staged · \${out.length} checked out · \${installed.length} installed</div></div>
     <div class="stat"><div class="stat-label">On Site Now</div><div class="stat-value" style="color:#16a34a">\${checkins.length}</div></div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;width:100%">
     <div style="min-width:0;overflow:hidden">
       <div class="card">
         <div class="card-title">Job Search</div>
-        <div style="position:relative"><input class="fi" id="dash-job-search" placeholder="Search by job name or ID..." oninput="dashJobSearch(this.value)" autocomplete="off" style="width:100%;padding-right:36px"><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#414e63">&#128269;</span></div>
+        <div style="position:relative"><input class="fi" id="dash-job-search" placeholder="Search by job name or ID..." oninput="dashJobSearch(this.value)" autocomplete="off" style="width:100%;padding-right:36px"><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#5a6b85">&#128269;</span></div>
         <div id="dash-job-results" style="margin-top:8px"></div>
       </div>
       <div class="card">
@@ -1430,9 +1430,9 @@ async function pgDash(){
   var ls=document.getElementById('dash-low-stock-list')
   if(ls)ls.innerHTML=lowStock.length?lowStock.slice(0,5).map(function(i){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;font-weight:500">'+i.name+'</span><span class="badge bg-amber">'+i.qty_on_hand+' left</span></div>'}).join(''):empty('Stock OK','')
   var ciEl=document.getElementById('dash-checkins-list')
-  if(ciEl)ciEl.innerHTML=checkins.length?checkins.slice(0,8).map(function(c){return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="width:8px;height:8px;border-radius:50%;background:#16a34a;flex-shrink:0"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">'+(c.worker_name||c.worker_id||'')+'</div><div style="font-size:10px;color:#414e63">'+(c.job_name||'')+'</div></div></div>'}).join(''):empty('No check-ins','')
+  if(ciEl)ciEl.innerHTML=checkins.length?checkins.slice(0,8).map(function(c){return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="width:8px;height:8px;border-radius:50%;background:#16a34a;flex-shrink:0"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">'+(c.worker_name||c.worker_id||'')+'</div><div style="font-size:10px;color:#5a6b85">'+(c.job_name||'')+'</div></div></div>'}).join(''):empty('No check-ins','')
   var tr=document.getElementById('dash-training-list')
-  if(tr)tr.innerHTML=(pendingSafety.length?'<div style="font-size:11px;color:#8a96ab;margin-bottom:8px">'+pendingSafety.length+' topic'+(pendingSafety.length!==1?'s':'')+' pending</div>':'')+pendingSafety.slice(0,3).map(function(t){return '<div style="font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)">'+((t.safety_topics&&t.safety_topics.title)||t.title||'')+'</div>'}).join('')+(pendingSafety.length>3?'<div style="font-size:11px;color:#414e63;margin-top:6px">+'+(pendingSafety.length-3)+' more</div>':'')+(!pendingSafety.length?empty('All up to date',''):'')
+  if(tr)tr.innerHTML=(pendingSafety.length?'<div style="font-size:11px;color:#8a96ab;margin-bottom:8px">'+pendingSafety.length+' topic'+(pendingSafety.length!==1?'s':'')+' pending</div>':'')+pendingSafety.slice(0,3).map(function(t){return '<div style="font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)">'+((t.safety_topics&&t.safety_topics.title)||t.title||'')+'</div>'}).join('')+(pendingSafety.length>3?'<div style="font-size:11px;color:#5a6b85;margin-top:6px">+'+(pendingSafety.length-3)+' more</div>':'')+(!pendingSafety.length?empty('All up to date',''):'')
   setTimeout(function(){
   setDueDays(window._dueDays||14)
     document.querySelectorAll('.dash-due-row').forEach(function(el){
@@ -1575,7 +1575,7 @@ function dashJobSearch(q){
   var results=(allJobs||[]).filter(function(j){
     return j.name.toLowerCase().includes(q)||(j.job_number||'').toLowerCase().includes(q)||(j.address||'').toLowerCase().includes(q)
   }).slice(0,8)
-  if(!results.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:6px 0">No jobs found</div>';return}
+  if(!results.length){el.innerHTML='<div style="font-size:12px;color:#5a6b85;padding:6px 0">No jobs found</div>';return}
   el.innerHTML=results.map(function(j){
     return '<div class="dash-job-row" data-jid="'+j.id+'" style="display:flex;align-items:center;justify-content:space-between;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer">'
       +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div>'
@@ -1595,14 +1595,19 @@ function buildReadyWidget(){
   var jobs=(allJobs||[]).filter(function(j){
     return (showPT&&j.phase==='ready_for_pretest')||(showFI&&j.phase==='ready_for_final')
   })
-  if(!jobs.length)return '<div style="font-size:12px;color:#414e63;padding:6px 0">No jobs ready for inspection</div>'
+  if(!jobs.length)return '<div style="font-size:12px;color:#5a6b85;padding:6px 0">No jobs ready for inspection</div>'
   return jobs.map(function(j){
     var isFinal=j.phase==='ready_for_final'
     var clr=isFinal?'#16a34a':'#3b82f6'
     var lbl=isFinal?'Ready for Final':'Ready for Pre-Test'
+    // Days in this stage — phase_changed_at if available, else updated_at
+    var stageStart=j.phase_changed_at||j.updated_at
+    var daysIn=stageStart?Math.floor((Date.now()-new Date(stageStart).getTime())/(1000*3600*24)):null
+    var stageColor=daysIn==null?'#5a6b85':daysIn>=14?'#dc2626':daysIn>=7?'#d97706':'#8a96ab'
+    var stageTxt=daysIn==null?'':(daysIn===0?'today':daysIn+'d in stage')
     return '<div class="ready-job-row" data-jid="'+j.id+'" style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer">'
-    +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#8a96ab">'+(j.job_number?'#'+j.job_number+' · ':'')+(j.project_manager||'')+'</div></div>'
-    +'<span style="font-size:10px;font-weight:600;color:'+clr+';border:1px solid '+clr+';padding:2px 8px;border-radius:12px;white-space:nowrap">'+lbl+'</span></div>'
+    +'<div style="min-width:0;flex:1"><div style="font-size:13px;font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#8a96ab">'+(j.job_number?'#'+j.job_number+' · ':'')+(j.project_manager||'')+(stageTxt?' · <span style="color:'+stageColor+';font-weight:600">'+stageTxt+'</span>':'')+'</div></div>'
+    +'<span style="font-size:10px;font-weight:600;color:'+clr+';border:1px solid '+clr+';padding:2px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0">'+lbl+'</span></div>'
   }).join('')
 }
 function setStartingDays(d){
@@ -1630,9 +1635,9 @@ function setStartingDays(d){
     return '<div class="sched-item dash-starting-row" data-jid="'+j.id+'" style="cursor:pointer">'
       +'<div class="sched-dot" style="background:'+clr+';margin-top:4px"></div>'
       +'<div style="flex:1"><div style="font-size:12px;font-weight:500">'+j.name+'</div>'
-      +'<div style="font-size:10px;color:#414e63">'+(j.job_number?'#'+j.job_number+' · ':'')+(da===0?'Today':fd(dateStr))+'</div></div>'
+      +'<div style="font-size:10px;color:#5a6b85">'+(j.job_number?'#'+j.job_number+' · ':'')+(da===0?'Today':fd(dateStr))+'</div></div>'
       +'<span class="badge" style="background:rgba(59,130,246,.15);color:#60a5fa">'+(da===0?'Today':da+'d')+'</span></div>'
-  }).join(''):'<div style="text-align:center;padding:16px;color:#414e63">No jobs starting in '+d+' days</div>'
+  }).join(''):'<div style="text-align:center;padding:16px;color:#5a6b85">No jobs starting in '+d+' days</div>'
   list.querySelectorAll('.dash-starting-row').forEach(function(el){
     el.onclick=function(){openJob(this.dataset.jid)}
     el.onmouseover=function(){this.style.background='rgba(255,255,255,.04)'}
@@ -1690,9 +1695,9 @@ function setDueDays(d){
     return '<div class="sched-item dash-due-row" data-jid="'+s.id+'" style="cursor:pointer">'
       +'<div class="sched-dot" style="background:'+dc+';margin-top:4px"></div>'
       +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.job+'</div>'
-      +'<div style="font-size:10px;color:#414e63;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.type+' &middot; '+fd(s.date)+(statusLabel?' &middot; <span style="color:#8a96ab">'+_escapeHTML(statusLabel)+'</span>':'')+'</div></div>'
+      +'<div style="font-size:10px;color:#5a6b85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.type+' &middot; '+fd(s.date)+(statusLabel?' &middot; <span style="color:#8a96ab">'+_escapeHTML(statusLabel)+'</span>':'')+'</div></div>'
       +'<span class="badge '+bc+'">'+badgeTxt+'</span></div>'
-  }).join(''):'<div style="text-align:center;padding:20px;color:#414e63">All clear — nothing due in '+d+' days</div>'
+  }).join(''):'<div style="text-align:center;padding:20px;color:#5a6b85">All clear — nothing due in '+d+' days</div>'
   list.querySelectorAll('.dash-due-row').forEach(function(el){
     el.onclick=function(){openJob(this.dataset.jid)}
     el.onmouseover=function(){this.style.background='rgba(255,255,255,.04)'}
@@ -1766,7 +1771,7 @@ function renderJobsTable(q){
     const ps=jobPartsStatus(j)
     const permit=j.permit_status||'not_required'
     return \`<tr onclick="openJob('\${j.id}')" style="cursor:pointer">
-      <td>\${j.parent_job_id?'<span style="display:inline-block;width:16px;color:#414e63;font-size:10px;margin-right:3px">↳</span>':''}<span style="font-weight:500;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'inherit'}">\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'⚠ ':''}\${j.name}</span>\${j._child_count?' <span class="badge" style="background:rgba(96,165,250,.15);color:#60a5fa;font-size:9px">📂 '+j._child_count+' sub'+(j._child_count===1?'':'s')+'</span>':''}<div style="font-size:10px;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'#414e63'}">\${j.address||''}</div></td>
+      <td>\${j.parent_job_id?'<span style="display:inline-block;width:16px;color:#5a6b85;font-size:10px;margin-right:3px">↳</span>':''}<span style="font-weight:500;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'inherit'}">\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'⚠ ':''}\${j.name}</span>\${j._child_count?' <span class="badge" style="background:rgba(96,165,250,.15);color:#60a5fa;font-size:9px">📂 '+j._child_count+' sub'+(j._child_count===1?'':'s')+'</span>':''}<div style="font-size:10px;color:\${(hrsMap[j.id]||0)>(j.labor_budget||0)&&(j.labor_budget||0)>0?'#dc2626':'#5a6b85'}">\${j.address||''}</div></td>
       <td style="font-size:11px;color:#8a96ab;white-space:nowrap">\${j.job_number||'\u2014'}</td>
       <td>\${stageBadge(j.phase)}</td>
       <td>\${ps.badge}</td>
@@ -1882,7 +1887,7 @@ async function importJobsExcel(input){
       var isDupPrev=(normPNum&&prevNums.has(normPNum))||prevNames.has(normPN)
       var warn=!name?'<span style="color:#dc2626">Missing name</span>':isDupPrev?'<span style="color:#d97706">⚠ Will Update</span>':''
       h+='<tr>'
-      h+='<td style="color:#414e63">'+(i+1)+'</td>'
+      h+='<td style="color:#5a6b85">'+(i+1)+'</td>'
       h+='<td style="font-weight:500">'+(name||'<span style="color:#dc2626">—</span>')+'</td>'
       h+='<td style="color:#8a96ab">'+(addr||'—')+'</td>'
       h+='<td>'+(stage)+'</td>'
@@ -2097,7 +2102,7 @@ async function openJob(id){
     if(currentJob)currentJob._cachedHrs=hrs
     window._jobLoggedHours=hrs
     var el=document.getElementById('ed-hrs-display')
-    if(el){el.textContent=hrs>0?hrs.toFixed(1)+' hrs on site':'No hours logged';el.style.color=hrs>0?'#e8edf5':'#414e63'}
+    if(el){el.textContent=hrs>0?hrs.toFixed(1)+' hrs on site':'No hours logged';el.style.color=hrs>0?'#e8edf5':'#5a6b85'}
     // If the budget builder is already rendered, refresh it so labor cost
     // reflects the logged hours.
     if(typeof _drawBudgetBuilder==='function'&&document.getElementById('ed-budget-builder'))_drawBudgetBuilder()
@@ -2138,7 +2143,7 @@ function renderJobDetail(){
   }
   document.getElementById('page-area').innerHTML=\`
   <div style="margin-bottom:14px">
-    <button class="btn btn-sm btn-ghost" onclick="pgJobs()" style="margin-bottom:10px;font-size:11px;color:#414e63">&#8592; All Jobs</button>
+    <button class="btn btn-sm btn-ghost" onclick="pgJobs()" style="margin-bottom:10px;font-size:11px;color:#5a6b85">&#8592; All Jobs</button>
     <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">\${j.name}\${spBadge}</div>
     <div style="font-size:12px;color:#8a96ab;margin-top:3px">\${jobSubhead(j)}</div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">
@@ -2152,7 +2157,7 @@ function renderJobDetail(){
       </span>
     </div>
       \${j.due_date?\`<span style="font-size:11px;color:\${isOD(j.due_date,j.phase)?'#dc2626':'#8a96ab'}">Due \${fd(j.due_date)}</span>\`:''}
-    \${j.is_urgent?'<div style="display:flex;align-items:center;gap:10px;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.25);border-radius:8px;padding:9px 13px;margin-top:8px"><span style="font-size:20px">🔥</span><div style="flex:1"><div style="font-size:13px;font-weight:600;color:#dc2626">URGENT</div><div style="font-size:12px;color:#8a96ab;margin-top:2px">'+( j.urgent_note||'')+'</div><div style="font-size:11px;color:#414e63;margin-top:2px">Assigned: '+(j.urgent_assigned_name||'—')+'</div></div><button class="btn btn-sm btn-g" onclick="resolveUrgent()">✓ Resolve</button><button class="btn btn-sm" style="color:#dc2626" onclick="toggleUrgent()">Remove</button></div>':''}
+    \${j.is_urgent?'<div style="display:flex;align-items:center;gap:10px;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.25);border-radius:8px;padding:9px 13px;margin-top:8px"><span style="font-size:20px">🔥</span><div style="flex:1"><div style="font-size:13px;font-weight:600;color:#dc2626">URGENT</div><div style="font-size:12px;color:#8a96ab;margin-top:2px">'+( j.urgent_note||'')+'</div><div style="font-size:11px;color:#5a6b85;margin-top:2px">Assigned: '+(j.urgent_assigned_name||'—')+'</div></div><button class="btn btn-sm btn-g" onclick="resolveUrgent()">✓ Resolve</button><button class="btn btn-sm" style="color:#dc2626" onclick="toggleUrgent()">Remove</button></div>':''}
     </div>
     <div class="progress-stages" style="margin-top:10px">\${STAGES.map((s,i)=>\`<div class="ps \${i<si?'done':i===si?'cur':''}" title="\${STAGE_LABELS[s]}"></div>\`).join('')}</div>
   </div>
@@ -2238,7 +2243,24 @@ async function loadJT(id){
   else if(id==='jt-docs') await renderDocsTab(el)
   else if(id==='jt-log') await renderLogTab(el)
 }
-async function updateJobStage(phase){var pu={phase,updated_at:new Date().toISOString()};if(phase==='ready_for_final'||phase==='complete')pu.pct_complete=100;await sb.from('jobs').update(pu).eq('id',currentJobId);currentJob.phase=phase;if(pu.pct_complete){currentJob.pct_complete=100;}toast('Stage updated'+(pu.pct_complete?' (100% set)':''))}
+async function updateJobStage(phase){
+  var changed=currentJob&&currentJob.phase!==phase
+  var pu={phase,updated_at:new Date().toISOString()}
+  if(changed)pu.phase_changed_at=new Date().toISOString()
+  if(phase==='ready_for_final'||phase==='complete')pu.pct_complete=100
+  var res=await sb.from('jobs').update(pu).eq('id',currentJobId)
+  if(res.error&&/phase_changed_at/i.test(res.error.message||'')){
+    // Column missing — retry without it (migration-024 not run yet)
+    delete pu.phase_changed_at
+    res=await sb.from('jobs').update(pu).eq('id',currentJobId)
+    console.warn('[stage] phase_changed_at column missing — run migration-024.')
+  }
+  if(res.error){toast(res.error.message,'error');return}
+  currentJob.phase=phase
+  if(changed)currentJob.phase_changed_at=pu.phase_changed_at||currentJob.phase_changed_at
+  if(pu.pct_complete){currentJob.pct_complete=100}
+  toast('Stage updated'+(pu.pct_complete?' (100% set)':''))
+}
 async function updateJobPct(pct){await sb.from('jobs').update({pct_complete:parseInt(pct)||0,updated_at:new Date().toISOString()}).eq('id',currentJobId);currentJob.pct_complete=parseInt(pct)||0;toast('Progress updated')}
 
 // ── JOB DASHBOARD (stats overview popup) ───────────────────────────────────
@@ -2292,7 +2314,7 @@ async function openJobDashboard(){
     // Build the dashboard HTML
     var tile=function(label,value,sub,color){
       return '<div style="background:#060a10;border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:13px 15px">'
-        +'<div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.05em;font-weight:600">'+label+'</div>'
+        +'<div style="font-size:10px;color:#5a6b85;text-transform:uppercase;letter-spacing:.05em;font-weight:600">'+label+'</div>'
         +'<div style="font-size:22px;font-weight:700;color:'+(color||'#e8edf5')+';margin-top:3px;line-height:1">'+value+'</div>'
         +(sub?'<div style="font-size:11px;color:#8a96ab;margin-top:3px">'+sub+'</div>':'')
         +'</div>'
@@ -2327,27 +2349,27 @@ async function openJobDashboard(){
     // Quick facts row
     html+='<div style="background:#060a10;border-radius:9px;padding:12px 15px;font-size:12px;line-height:1.8">'
     html+='<div style="font-weight:600;color:#8a96ab;margin-bottom:6px;font-size:11px;text-transform:uppercase">Quick Facts</div>'
-    if(j.job_number)html+='<div><span style="color:#414e63">Job #:</span> '+j.job_number+'</div>'
-    if(j.gc_company)html+='<div><span style="color:#414e63">GC:</span> '+j.gc_company+'</div>'
-    if(j.project_manager)html+='<div><span style="color:#414e63">PM:</span> '+j.project_manager+'</div>'
-    if(j.address)html+='<div><span style="color:#414e63">Address:</span> '+j.address+(j.city?', '+j.city:'')+'</div>'
-    if(j.due_date)html+='<div><span style="color:#414e63">Due:</span> '+fd(j.due_date)+(isOD(j.due_date,j.phase)?' <span style="color:#dc2626">(overdue)</span>':'')+'</div>'
-    if(j.projected_start)html+='<div><span style="color:#414e63">Projected Start:</span> '+fd(j.projected_start)+'</div>'
+    if(j.job_number)html+='<div><span style="color:#5a6b85">Job #:</span> '+j.job_number+'</div>'
+    if(j.gc_company)html+='<div><span style="color:#5a6b85">GC:</span> '+j.gc_company+'</div>'
+    if(j.project_manager)html+='<div><span style="color:#5a6b85">PM:</span> '+j.project_manager+'</div>'
+    if(j.address)html+='<div><span style="color:#5a6b85">Address:</span> '+j.address+(j.city?', '+j.city:'')+'</div>'
+    if(j.due_date)html+='<div><span style="color:#5a6b85">Due:</span> '+fd(j.due_date)+(isOD(j.due_date,j.phase)?' <span style="color:#dc2626">(overdue)</span>':'')+'</div>'
+    if(j.projected_start)html+='<div><span style="color:#5a6b85">Projected Start:</span> '+fd(j.projected_start)+'</div>'
     html+='</div>'
 
     // Open Tasks
     html+='<div style="background:#060a10;border-radius:9px;padding:12px 15px;margin-top:10px">'
     html+='<div style="font-weight:600;color:#8a96ab;margin-bottom:8px;font-size:11px;text-transform:uppercase">Open Tasks ('+jdTasks.length+')</div>'
-    if(!jdTasks.length){html+='<div style="font-size:12px;color:#414e63">No open tasks</div>'}
+    if(!jdTasks.length){html+='<div style="font-size:12px;color:#5a6b85">No open tasks</div>'}
     else{
       jdTasks.slice(0,6).forEach(function(t){
         var od=t.due_date&&isOD(t.due_date,'')
         html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
         html+='<span style="font-size:12px;flex-shrink:0">'+(t.priority==='high'?'🔴':'✓')+'</span>'
         html+='<div style="flex:1;min-width:0"><div style="font-size:12px">'+_escapeHTML(t.title||'')+'</div>'
-        html+='<div style="font-size:10px;color:#414e63">'+(t.assigned_name||'Unassigned')+(t.due_date?' · due '+fd(t.due_date):'')+(od?' <span style="color:#dc2626">overdue</span>':'')+'</div></div></div>'
+        html+='<div style="font-size:10px;color:#5a6b85">'+(t.assigned_name||'Unassigned')+(t.due_date?' · due '+fd(t.due_date):'')+(od?' <span style="color:#dc2626">overdue</span>':'')+'</div></div></div>'
       })
-      if(jdTasks.length>6)html+='<div style="font-size:11px;color:#414e63;padding-top:4px">+ '+(jdTasks.length-6)+' more</div>'
+      if(jdTasks.length>6)html+='<div style="font-size:11px;color:#5a6b85;padding-top:4px">+ '+(jdTasks.length-6)+' more</div>'
     }
     html+='</div>'
 
@@ -2355,14 +2377,14 @@ async function openJobDashboard(){
     html+='<div style="background:#060a10;border-radius:9px;padding:12px 15px;margin-top:10px">'
     var openResp=jdComms.filter(function(c){return c.needs_response&&!c.responded}).length
     html+='<div style="font-weight:600;color:#8a96ab;margin-bottom:8px;font-size:11px;text-transform:uppercase">Recent Communications'+(openResp?' · <span style="color:#d97706">'+openResp+' awaiting response</span>':'')+'</div>'
-    if(!jdComms.length){html+='<div style="font-size:12px;color:#414e63">No communications logged</div>'}
+    if(!jdComms.length){html+='<div style="font-size:12px;color:#5a6b85">No communications logged</div>'}
     else{
       jdComms.forEach(function(c){
         var icon=(typeof COMM_TYPE_ICONS!=='undefined'&&COMM_TYPE_ICONS[c.comm_type])||'📞'
         html+='<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
         html+='<span style="font-size:12px;flex-shrink:0">'+icon+'</span>'
         html+='<div style="flex:1;min-width:0"><div style="font-size:12px">'+_escapeHTML((c.with_who||'')+(c.summary?' — '+c.summary.slice(0,50):''))+'</div>'
-        html+='<div style="font-size:10px;color:#414e63">'+fd(c.occurred_at)+(c.needs_response&&!c.responded?' · <span style="color:#d97706">needs response</span>':'')+'</div></div></div>'
+        html+='<div style="font-size:10px;color:#5a6b85">'+fd(c.occurred_at)+(c.needs_response&&!c.responded?' · <span style="color:#d97706">needs response</span>':'')+'</div></div></div>'
       })
     }
     html+='</div>'
@@ -2385,7 +2407,7 @@ function renderInfoTab(el,j){
     <div class="three"><div class="fg"><label class="fl">City</label><input class="fi" id="ed-city" value="\${j.city||''}"></div><div class="fg"><label class="fl">State</label><input class="fi" id="ed-state" value="\${j.state||''}" style="max-width:80px"></div><div class="fg"><label class="fl">Zip</label><input class="fi" id="ed-zip" value="\${j.zip||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">GPS Lat</label><input class="fi" id="ed-lat" value="\${j.gps_lat||''}" style="font-size:11px"></div><div class="fg"><label class="fl">GPS Lng</label><input class="fi" id="ed-lng" value="\${j.gps_lng||''}" style="font-size:11px"></div></div>
     <div class="fg"><label class="fl">Check-in Radius</label><select class="fs" id="ed-rad"><option value="100">100ft</option><option value="250">250ft</option><option value="500">500ft</option><option value="750">750ft</option><option value="1000">1000ft</option></select></div>
-    <div class="fg"><label class="fl">Contractor / Account <span style="color:#414e63;font-weight:400;font-size:10px">(from CRM)</span></label><select class="fs" id="ed-account" onchange="edAccountChanged()"><option value="">— none —</option></select></div>
+    <div class="fg"><label class="fl">Contractor / Account <span style="color:#5a6b85;font-weight:400;font-size:10px">(from CRM)</span></label><select class="fs" id="ed-account" onchange="edAccountChanged()"><option value="">— none —</option></select></div>
     <div class="two"><div class="fg"><label class="fl">GC Project Manager</label><select class="fs" id="ed-gcpm"><option value="">— pick account —</option></select></div>
     <div class="fg"><label class="fl">GC Superintendent</label><select class="fs" id="ed-gcsuper"><option value="">— pick account —</option></select></div></div>
     <div class="fg"><label class="fl">GC Company</label><input class="fi" id="ed-gc" value="\${j.gc_company||''}"></div>
@@ -2396,6 +2418,8 @@ function renderInfoTab(el,j){
     <div class="two"><div class="fg"><label class="fl">PM Visit Schedule</label><select class="fs" id="ed-pmschedule"><option value="none">No visits</option><option value="pre_start">14 days before start</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="milestone">Milestones only</option></select></div><div class="fg"><label class="fl">Next PM Visit Due</label><input class="fi" type="date" id="ed-pmvisit" value="\${j.next_pm_visit||''}"></div></div>
   </div>
   <div>
+    <div class="sec-hdr">Scope of Work</div>
+    <div class="fg"><textarea class="ft" id="ed-scope" style="min-height:75px" placeholder="Brief scope of work for this job">\${j.scope||''}</textarea></div>
     <div class="sec-hdr">Key Dates</div>
     <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="ed-due" value="\${j.due_date||''}"></div>
     <div class="two"><div class="fg"><label class="fl">Projected Start</label><input class="fi" type="date" id="ed-proj-start" value="\${j.projected_start||''}"></div><div class="fg"><label class="fl">Projected Closeout</label><input class="fi" type="date" id="ed-proj-close" value="\${j.projected_closeout||''}"></div></div>
@@ -2410,7 +2434,7 @@ function renderInfoTab(el,j){
     <div class="two"><div class="fg"><label class="fl">Labor Budget (hrs)</label><input class="fi" type="number" id="ed-lb" value="\${j.labor_budget||''}"></div><div class="fg"><label class="fl">Material Budget</label><input class="fi" type="number" id="ed-mb" value="\${j.material_budget||''}"></div></div>
     <div class="fg"><label class="fl">Hours Logged on Job</label><div class="fi" style="background:rgba(255,255,255,.03);cursor:default;color:#8a96ab" id="ed-hrs-display">Loading...</div></div>
     <div class="two"><div class="fg"><label class="fl">Expected Labor Hours</label><input class="fi" type="number" id="ed-exph" value="\${j.expected_labor_hours||''}" placeholder="whole-job estimate"></div><div class="fg"><label class="fl">Manual Hours (no daily report)</label><input class="fi" type="number" id="ed-manh" value="\${j.manual_labor_hours||''}" placeholder="hours added by hand"></div></div>
-    <div class="fg"><label class="fl">Burden Rate $/hr <span style="color:#414e63;font-weight:400;font-size:10px">(blank = company default)</span></label><input class="fi" type="number" id="ed-burden" value="\${j.burden_rate||''}" placeholder="e.g. 65"></div>
+    <div class="fg"><label class="fl">Burden Rate $/hr <span style="color:#5a6b85;font-weight:400;font-size:10px">(blank = company default)</span></label><input class="fi" type="number" id="ed-burden" value="\${j.burden_rate||''}" placeholder="e.g. 65"></div>
   </div>
   </div>
   <div class="sec-hdr" style="margin-top:14px">Budget Line Items &amp; Actuals</div>
@@ -2443,7 +2467,7 @@ function renderInfoTab(el,j){
       var pendingSum=pending.reduce(function(s,c){return s+(c.value||0)},0)
       var orig=(j&&(j.original_contract_value||j.contract_value))||0
       var h='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:11px 13px;margin-top:10px">'
-      h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#414e63;margin-bottom:8px">Change Orders</div>'
+      h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#5a6b85;margin-bottom:8px">Change Orders</div>'
       cos.filter(function(c){return c.status!=='canceled'&&c.status!=='cancelled'}).forEach(function(co){
         var isApproved=co.status==='approved'
         var col=isApproved?'#16a34a':'#d97706'
@@ -2468,7 +2492,7 @@ function renderInfoTab(el,j){
   edLoadAccountDropdowns(j)
   // Register info-tab fields for unsaved-changes tracking
   setTimeout(function(){
-    var ids=['ed-name','ed-jobnum','ed-trade','ed-estimator','ed-addr','ed-city','ed-state','ed-zip','ed-lat','ed-lng','ed-rad','ed-account','ed-gcpm','ed-gcsuper','ed-gc','ed-gcc','ed-gcp','ed-gce','ed-sup','ed-supp','ed-pm','ed-pmschedule','ed-pmvisit','ed-due','ed-proj-start','ed-proj-close','ed-dc','ed-eos','ed-nvd','ed-dco','ed-dr','ed-dt','ed-di','ed-comp','ed-ocv','ed-cv','ed-lr','ed-lb','ed-mb','ed-exph','ed-manh','ed-burden','ed-permit-status','ed-permit-number']
+    var ids=['ed-name','ed-jobnum','ed-trade','ed-estimator','ed-addr','ed-city','ed-state','ed-zip','ed-lat','ed-lng','ed-rad','ed-account','ed-gcpm','ed-gcsuper','ed-gc','ed-gcc','ed-gcp','ed-gce','ed-sup','ed-supp','ed-scope','ed-pm','ed-pmschedule','ed-pmvisit','ed-due','ed-proj-start','ed-proj-close','ed-dc','ed-eos','ed-nvd','ed-dco','ed-dr','ed-dt','ed-di','ed-comp','ed-ocv','ed-cv','ed-lr','ed-lb','ed-mb','ed-exph','ed-manh','ed-burden','ed-permit-status','ed-permit-number']
     _dirtyAttach(ids,'info',saveInfoTab)
   },100)
 }
@@ -2498,11 +2522,31 @@ async function edAccountChanged(preselectPm,preselectSuper){
   }
   var acc=(window._edAccounts||[]).find(function(a){return a.id===accId})
   if(acc&&gcName&&!gcName.value)gcName.value=acc.name
-  var r=await sb.from('crm_contacts').select('id,name,title').eq('account_id',accId).order('name')
+  var r=await sb.from('crm_contacts').select('id,name,title,phone,email').eq('account_id',accId).order('name')
   var contacts=r.data||[]
+  // Cache so the onchange handlers can look up phone/email by selected contact id
+  window._edContactsCache=contacts
   function opts(sel){return '<option value="">— none —</option>'+contacts.map(function(c){return '<option value="'+c.id+'"'+(sel===c.id?' selected':'')+'>'+c.name+(c.title?' ('+c.title+')':'')+'</option>'}).join('')}
-  if(pmDd)pmDd.innerHTML=opts(preselectPm)
-  if(supDd)supDd.innerHTML=opts(preselectSuper)
+  if(pmDd){pmDd.innerHTML=opts(preselectPm);pmDd.onchange=function(){edContactPicked('pm',this.value)}}
+  if(supDd){supDd.innerHTML=opts(preselectSuper);supDd.onchange=function(){edContactPicked('sup',this.value)}}
+}
+// When a contact is picked from a GC PM / Super dropdown, auto-fill the
+// corresponding free-text contact-name and phone fields on the Info tab so
+// the data flows through and is visible inline.
+function edContactPicked(role,contactId){
+  if(!contactId)return
+  var contacts=window._edContactsCache||[]
+  var c=contacts.find(function(x){return x.id===contactId});if(!c)return
+  if(role==='pm'){
+    var nm=document.getElementById('ed-gcc'),ph=document.getElementById('ed-gcp'),em=document.getElementById('ed-gce')
+    if(nm&&!nm.value.trim())nm.value=c.name||''
+    if(ph&&!ph.value.trim())ph.value=c.phone||''
+    if(em&&!em.value.trim())em.value=c.email||''
+  }else if(role==='sup'){
+    var snm=document.getElementById('ed-sup'),sph=document.getElementById('ed-supp')
+    if(snm&&!snm.value.trim())snm.value=c.name||''
+    if(sph&&!sph.value.trim())sph.value=c.phone||''
+  }
 }
 // ── BUDGET BUILDER (line items + actuals + labor cost) ─────────────────────
 var _budgetLines=[]
@@ -2511,7 +2555,7 @@ async function renderBudgetBuilder(){
   var host=document.getElementById('ed-budget-builder')
   if(!host)return
   var jobId=currentJobId
-  if(!jobId){host.innerHTML='<div style="font-size:12px;color:#414e63">Save the job first to add budget lines.</div>';return}
+  if(!jobId){host.innerHTML='<div style="font-size:12px;color:#5a6b85">Save the job first to add budget lines.</div>';return}
   try{
     var results=await Promise.all([
       sb.from('job_budget_lines').select('*').eq('job_id',jobId).order('sort_order'),
@@ -2558,7 +2602,7 @@ function _drawBudgetBuilder(){
   h+='<th style="width:40%">Description</th><th>Category</th><th style="text-align:right">Budget $</th><th style="text-align:right">Actual $</th><th style="text-align:right">Variance</th><th></th>'
   h+='</tr></thead><tbody>'
   if(!_budgetLines.length){
-    h+='<tr><td colspan="6" style="text-align:center;color:#414e63;font-size:12px;padding:14px">No line items yet. Add your first budget line below.</td></tr>'
+    h+='<tr><td colspan="6" style="text-align:center;color:#5a6b85;font-size:12px;padding:14px">No line items yet. Add your first budget line below.</td></tr>'
   }
   _budgetLines.forEach(function(l){
     var variance=(Number(l.budget_amount)||0)-(Number(l.actual_amount)||0)
@@ -2603,10 +2647,10 @@ function _drawBudgetBuilder(){
   h+='<div style="color:#8a96ab">Hours logged (daily reports)</div><div style="text-align:right;font-family:\\'DM Mono\\',monospace">'+fh(loggedHrs)+'</div>'
   h+='<div style="color:#8a96ab">Manual hours added</div><div style="text-align:right;font-family:\\'DM Mono\\',monospace">'+fh(manualHrs)+'</div>'
   h+='<div style="color:#8a96ab;border-top:1px solid rgba(255,255,255,.08);padding-top:6px">Total hours</div><div style="text-align:right;font-family:\\'DM Mono\\',monospace;border-top:1px solid rgba(255,255,255,.08);padding-top:6px;font-weight:700">'+fh(totalHrs)+'</div>'
-  h+='<div style="color:#8a96ab">Burden rate</div><div style="text-align:right;font-family:\\'DM Mono\\',monospace">'+fm(burden)+'/hr'+(_effectiveBurdenIsDefault()?' <span style=\\"color:#414e63;font-size:10px\\">(default)</span>':'')+'</div>'
+  h+='<div style="color:#8a96ab">Burden rate</div><div style="text-align:right;font-family:\\'DM Mono\\',monospace">'+fm(burden)+'/hr'+(_effectiveBurdenIsDefault()?' <span style=\\"color:#5a6b85;font-size:10px\\">(default)</span>':'')+'</div>'
   h+='<div style="color:#e8edf5;font-weight:700;border-top:1px solid rgba(255,255,255,.1);padding-top:6px">Total Labor Cost</div><div style="text-align:right;font-family:\\'DM Mono\\',monospace;font-weight:700;font-size:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:6px;color:#60a5fa">'+fm(laborCost)+'</div>'
   h+='</div>'
-  h+='<div style="font-size:10px;color:#414e63;margin-top:6px">Labor cost = (logged + manual hours) × burden rate. Edit hours and burden in the fields above, then click Save Changes.</div>'
+  h+='<div style="font-size:10px;color:#5a6b85;margin-top:6px">Labor cost = (logged + manual hours) × burden rate. Edit hours and burden in the fields above, then click Save Changes.</div>'
   h+='</div>'
   host.innerHTML=h
 }
@@ -2682,6 +2726,7 @@ async function saveInfoTab(){
     ['ed-gce','gc_email','strOrNull'],
     ['ed-sup','super_name','str'],
     ['ed-supp','super_phone','str'],
+    ['ed-scope','scope','strOrNull'],
     ['ed-pm','project_manager','str'],
     ['ed-pmschedule','pm_visit_schedule','str'],
     ['ed-pmvisit','next_pm_visit','date'],
@@ -2732,6 +2777,8 @@ async function saveInfoTab(){
   currentJob={...currentJob,...u}
   var pt=document.getElementById('page-title');if(pt&&u.name)pt.textContent=u.name
   _clearDirty('info');toast('Saved')
+  // Reschedule PM Pre-Start Review if applicable
+  try{await schedulePreStartReview(currentJob)}catch(e){console.warn('pm review reschedule failed:',e.message)}
 }
 function navJob(dir){
   var list=allJobs||[]
@@ -2749,7 +2796,7 @@ function renderScopeTab(el,j){
   <div class="fg"><label class="fl">Install Notes</label><textarea class="ft" id="sc-notes">\${j.install_notes||''}</textarea></div>
   <div class="fg"><label class="fl">Job Walk Notes</label><textarea class="ft" id="sc-jwn">\${j.job_walk_notes||''}</textarea></div>
   <div class="two"><div class="fg"><label class="fl">Job Walk By</label><input class="fi" id="sc-jwb" value="\${j.job_walk_by||''}"></div><div class="fg"><label class="fl">Job Walk Date</label><input class="fi" type="date" id="sc-jwd" value="\${j.job_walk_date||''}"></div></div>
-  <div style="font-size:11px;color:#414e63;margin-top:4px">Use the <strong>Save Changes</strong> button at the top to save.</div>\`
+  <div style="font-size:11px;color:#5a6b85;margin-top:4px">Use the <strong>Save Changes</strong> button at the top to save.</div>\`
   setTimeout(function(){_dirtyAttach(['sc-scope','sc-notes','sc-jwn','sc-jwb','sc-jwd'],'scope',saveScope)},50)
 }
 async function saveScope(){
@@ -2816,11 +2863,11 @@ async function renderSubProjectsTab(el){
     '<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:14px 16px;margin-bottom:12px">'
     +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#60a5fa;margin-bottom:10px">📊 Roll-Up — This Project + '+direct.length+' Sub-Project'+(direct.length===1?'':'s')+'</div>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">'
-    +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">Contract</div><div style="font-size:18px;font-weight:300;margin-top:2px">'+fm(rollup.rollup.contract_value)+'</div></div>'
-    +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">Labor Budget</div><div style="font-size:18px;font-weight:300;margin-top:2px">'+fh(rollup.rollup.labor_budget)+'</div></div>'
-    +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">Hours Burned</div><div style="font-size:18px;font-weight:300;margin-top:2px;color:'+(rollup.rollup.hours_burned>rollup.rollup.labor_budget&&rollup.rollup.labor_budget>0?'#dc2626':'#e8edf5')+'">'+fh(rollup.rollup.hours_burned)+'</div></div>'
-    +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">% Complete</div><div style="font-size:18px;font-weight:300;margin-top:2px">'+(rollup.rollup.pct_complete||0).toFixed(0)+'%</div></div>'
-    +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">Span</div><div style="font-size:13px;margin-top:2px">'+(rollup.rollup.earliest_start?fd(rollup.rollup.earliest_start):'—')+' → '+(rollup.rollup.latest_end?fd(rollup.rollup.latest_end):'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:#5a6b85;text-transform:uppercase">Contract</div><div style="font-size:18px;font-weight:300;margin-top:2px">'+fm(rollup.rollup.contract_value)+'</div></div>'
+    +'<div><div style="font-size:10px;color:#5a6b85;text-transform:uppercase">Labor Budget</div><div style="font-size:18px;font-weight:300;margin-top:2px">'+fh(rollup.rollup.labor_budget)+'</div></div>'
+    +'<div><div style="font-size:10px;color:#5a6b85;text-transform:uppercase">Hours Burned</div><div style="font-size:18px;font-weight:300;margin-top:2px;color:'+(rollup.rollup.hours_burned>rollup.rollup.labor_budget&&rollup.rollup.labor_budget>0?'#dc2626':'#e8edf5')+'">'+fh(rollup.rollup.hours_burned)+'</div></div>'
+    +'<div><div style="font-size:10px;color:#5a6b85;text-transform:uppercase">% Complete</div><div style="font-size:18px;font-weight:300;margin-top:2px">'+(rollup.rollup.pct_complete||0).toFixed(0)+'%</div></div>'
+    +'<div><div style="font-size:10px;color:#5a6b85;text-transform:uppercase">Span</div><div style="font-size:13px;margin-top:2px">'+(rollup.rollup.earliest_start?fd(rollup.rollup.earliest_start):'—')+' → '+(rollup.rollup.latest_end?fd(rollup.rollup.latest_end):'—')+'</div></div>'
     +'</div>'
     +'<div style="display:flex;gap:14px;margin-top:11px;padding-top:11px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#8a96ab">'
     +'<div>👷 Internal: <strong style="color:#60a5fa">'+fh(rollup.rollup.internal_hours)+'</strong></div>'
@@ -2835,7 +2882,7 @@ async function renderSubProjectsTab(el){
     +direct.map(function(c){
       var startEnd=(c.projected_start?fd(c.projected_start):'?')+' → '+(c.projected_closeout?fd(c.projected_closeout):c.due_date?fd(c.due_date):'?')
       return '<tr style="cursor:pointer" onclick="openJob(\\''+c.id+'\\')">'
-        +'<td><div style="font-weight:500">'+c.name+'</div>'+(c.job_number?'<div style="font-size:10px;color:#414e63">#'+c.job_number+'</div>':'')+'</td>'
+        +'<td><div style="font-weight:500">'+c.name+'</div>'+(c.job_number?'<div style="font-size:10px;color:#5a6b85">#'+c.job_number+'</div>':'')+'</td>'
         +'<td>'+stageBadge(c.phase)+'</td>'
         +'<td style="font-family:DM Mono,monospace;font-size:12px">'+(c.contract_value?fm(c.contract_value):'—')+'</td>'
         +'<td style="font-family:DM Mono,monospace;font-size:12px">'+(c.labor_budget?fh(c.labor_budget):'—')+'</td>'
@@ -2845,7 +2892,7 @@ async function renderSubProjectsTab(el){
         +'<td><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="event.stopPropagation();detachSubProject(\\''+c.id+'\\')">Detach</button></td>'
         +'</tr>'
     }).join('')
-    +'</tbody></table>':'<div class="empty"><div style="font-size:32px;margin-bottom:8px">📂</div><div style="color:#414e63;font-size:13px">No sub-projects yet</div><div style="color:#414e63;font-size:11px;margin-top:4px">Break a big project into pieces — totals roll up here.</div></div>'
+    +'</tbody></table>':'<div class="empty"><div style="font-size:32px;margin-bottom:8px">📂</div><div style="color:#5a6b85;font-size:13px">No sub-projects yet</div><div style="color:#5a6b85;font-size:11px;margin-top:4px">Break a big project into pieces — totals roll up here.</div></div>'
 
   el.innerHTML=rollupCard
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="sec-hdr" style="margin:0">Sub-Projects ('+direct.length+')</div>'+addBtn+'</div>'
@@ -2882,7 +2929,7 @@ async function addSubProjectModal(){
     +'<div class="fg"><label class="fl">Projected Closeout</label><input class="fi" type="date" id="sp-end"></div></div>'
     +'<div class="two"><div class="fg"><label class="fl">Contract $</label><input class="fi" type="number" id="sp-cv"></div>'
     +'<div class="fg"><label class="fl">Labor Budget (hrs)</label><input class="fi" type="number" id="sp-lb"></div></div>'
-    +'<div style="font-size:11px;color:#414e63;margin-top:6px">Address, GC, and PM will be copied from the parent project.</div>'
+    +'<div style="font-size:11px;color:#5a6b85;margin-top:6px">Address, GC, and PM will be copied from the parent project.</div>'
     +'</div>'
     +'<div id="sp-pane-link" style="display:none">'
     +'<div class="fg"><label class="fl">Select an existing job to make a sub-project of this one</label>'
@@ -2962,10 +3009,10 @@ function _spSearch(q){
     if(!box)return
     box.innerHTML=pool.length?pool.map(function(j){
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border-bottom:1px solid rgba(255,255,255,.04)">'
-        +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#414e63">'+(j.job_number?'#'+j.job_number+' · ':'')+(stageBadge(j.phase)||'')+'</div></div>'
+        +'<div><div style="font-size:13px;font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#5a6b85">'+(j.job_number?'#'+j.job_number+' · ':'')+(stageBadge(j.phase)||'')+'</div></div>'
         +'<button class="btn btn-sm btn-p" onclick="_spLink(\\''+j.id+'\\')">Link</button>'
         +'</div>'
-    }).join(''):'<div style="padding:20px;text-align:center;color:#414e63;font-size:12px">No jobs found</div>'
+    }).join(''):'<div style="padding:20px;text-align:center;color:#5a6b85;font-size:12px">No jobs found</div>'
   },200)
 }
 async function _spLink(jobId){
@@ -3005,9 +3052,9 @@ async function renderLaborMixTab(el){
     +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#60a5fa;margin-bottom:10px">⚙ Labor Distribution</div>'
     +(hasAllocs?
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">'
-      +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">👷 Internal Crew</div><div style="font-size:22px;font-weight:300;margin-top:2px;color:#60a5fa">'+fh(intHrs)+'</div><div style="font-size:11px;color:#8a96ab;margin-top:2px">'+(totalHrs>0?Math.round(intHrs/totalHrs*100):0)+'% of total</div></div>'
-      +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">🤝 Subcontractors</div><div style="font-size:22px;font-weight:300;margin-top:2px;color:#fbbf24">'+fh(subHrs)+'</div><div style="font-size:11px;color:#8a96ab;margin-top:2px">'+(totalHrs>0?Math.round(subHrs/totalHrs*100):0)+'% of total</div></div>'
-      +'<div><div style="font-size:10px;color:#414e63;text-transform:uppercase">Total Allocated</div><div style="font-size:22px;font-weight:300;margin-top:2px">'+fh(totalHrs)+'</div>'+(labor_budget>0?'<div style="font-size:11px;color:'+(budgetMismatch?'#d97706':'#16a34a')+';margin-top:2px">Budget: '+fh(labor_budget)+(budgetMismatch?' ⚠':' ✓')+'</div>':'')+'</div>'
+      +'<div><div style="font-size:10px;color:#5a6b85;text-transform:uppercase">👷 Internal Crew</div><div style="font-size:22px;font-weight:300;margin-top:2px;color:#60a5fa">'+fh(intHrs)+'</div><div style="font-size:11px;color:#8a96ab;margin-top:2px">'+(totalHrs>0?Math.round(intHrs/totalHrs*100):0)+'% of total</div></div>'
+      +'<div><div style="font-size:10px;color:#5a6b85;text-transform:uppercase">🤝 Subcontractors</div><div style="font-size:22px;font-weight:300;margin-top:2px;color:#fbbf24">'+fh(subHrs)+'</div><div style="font-size:11px;color:#8a96ab;margin-top:2px">'+(totalHrs>0?Math.round(subHrs/totalHrs*100):0)+'% of total</div></div>'
+      +'<div><div style="font-size:10px;color:#5a6b85;text-transform:uppercase">Total Allocated</div><div style="font-size:22px;font-weight:300;margin-top:2px">'+fh(totalHrs)+'</div>'+(labor_budget>0?'<div style="font-size:11px;color:'+(budgetMismatch?'#d97706':'#16a34a')+';margin-top:2px">Budget: '+fh(labor_budget)+(budgetMismatch?' ⚠':' ✓')+'</div>':'')+'</div>'
       +'</div>'
       +(budgetMismatch?'<div style="margin-top:10px;padding:8px 12px;background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.2);border-radius:6px;font-size:12px;color:#d97706">⚠ Allocations total '+fh(totalHrs)+' but job labor budget is '+fh(labor_budget)+'. <button class="btn btn-sm" onclick="syncLaborBudgetFromAllocs()" style="margin-left:8px">Sync budget to '+fh(totalHrs)+'</button></div>':'')
       :
@@ -3038,7 +3085,7 @@ async function renderLaborMixTab(el){
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="sec-hdr" style="margin:0">Allocations</div>'+addBtn+'</div>'
     +(hasAllocs?
       '<table class="tbl"><thead><tr><th>Type</th><th>Source</th><th>Hours</th><th>Rate</th><th>Est. Cost</th><th>Notes</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'
-      :'<div class="empty" style="border:1px dashed rgba(255,255,255,.1);border-radius:10px;padding:30px"><div style="font-size:32px;margin-bottom:8px">⚙</div><div style="color:#8a96ab;font-size:13px">No allocations yet</div><div style="color:#414e63;font-size:11px;margin-top:6px">Click "+ Add Allocation" to split the labor between internal and one or more subs.</div></div>'
+      :'<div class="empty" style="border:1px dashed rgba(255,255,255,.1);border-radius:10px;padding:30px"><div style="font-size:32px;margin-bottom:8px">⚙</div><div style="color:#8a96ab;font-size:13px">No allocations yet</div><div style="color:#5a6b85;font-size:11px;margin-top:6px">Click "+ Add Allocation" to split the labor between internal and one or more subs.</div></div>'
     )
 
   // Stash companies for the add-modal
@@ -3180,12 +3227,12 @@ async function renderWorkersTab(el){
   const totalHrs=(ci||[]).reduce((s,c)=>s+(c.hours_logged||0),0)
   el.innerHTML=\`
   <div class="sec-hdr">Assigned Workers <button class="btn btn-sm btn-p" onclick="addWorkerModal()">+ Add</button></div>
-  \${(workers||[]).map(w=>{const p=wProfiles.find(x=>x.id===w.worker_id)||{};return\`<div style="display:flex;align-items:center;gap:9px;padding:8px 10px;background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:7px;margin-bottom:6px"><div class="av" style="width:28px;height:28px;font-size:10px;\${Object.entries(avS(p.full_name)).map(([k,val])=>k+':'+val).join(';')}">\${ini(p.full_name)}</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${p.full_name||'?'}\${p.is_lead?' <span style="font-size:9px;color:#d97706">LEAD</span>':''}</div><div style="font-size:10px;color:#414e63">\${p.email||''}</div></div><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="removeWorker('\${w.id}')">Remove</button></div>\`}).join('')||'<div style="font-size:12px;color:#414e63;margin-bottom:12px">No workers assigned</div>'}
+  \${(workers||[]).map(w=>{const p=wProfiles.find(x=>x.id===w.worker_id)||{};return\`<div style="display:flex;align-items:center;gap:9px;padding:8px 10px;background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:7px;margin-bottom:6px"><div class="av" style="width:28px;height:28px;font-size:10px;\${Object.entries(avS(p.full_name)).map(([k,val])=>k+':'+val).join(';')}">\${ini(p.full_name)}</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${p.full_name||'?'}\${p.is_lead?' <span style="font-size:9px;color:#d97706">LEAD</span>':''}</div><div style="font-size:10px;color:#5a6b85">\${p.email||''}</div></div><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="removeWorker('\${w.id}')">Remove</button></div>\`}).join('')||'<div style="font-size:12px;color:#5a6b85;margin-bottom:12px">No workers assigned</div>'}
   <div class="sec-hdr" style="margin-top:14px">GPS Check-in Log</div>
-  \${(ci||[]).length?\`<table class="tbl"><thead><tr><th>Worker</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Distance</th></tr></thead><tbody>\${(ci||[]).map(c=>\`<tr><td>\${c.workerName||'?'}</td><td style="font-size:11px;color:#8a96ab">\${fd(c.checkin_at)}</td><td style="font-size:11px">\${ft(c.checkin_at)}</td><td style="font-size:11px">\${c.checkout_at?ft(c.checkout_at):'<span class="gps-live" style="font-size:9px"><span class="pulse"></span>Active</span>'}</td><td style="font-weight:500">\${c.hours_logged?fh(c.hours_logged):'—'}</td><td>\${c.checkin_dist_ft!=null?\`<span class="badge bg-green">\${c.checkin_dist_ft}ft</span>\`:'—'}</td></tr>\`).join('')}</tbody></table>\`:'<div style="font-size:12px;color:#414e63">No check-ins yet</div>'}
+  \${(ci||[]).length?\`<table class="tbl"><thead><tr><th>Worker</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Distance</th></tr></thead><tbody>\${(ci||[]).map(c=>\`<tr><td>\${c.workerName||'?'}</td><td style="font-size:11px;color:#8a96ab">\${fd(c.checkin_at)}</td><td style="font-size:11px">\${ft(c.checkin_at)}</td><td style="font-size:11px">\${c.checkout_at?ft(c.checkout_at):'<span class="gps-live" style="font-size:9px"><span class="pulse"></span>Active</span>'}</td><td style="font-weight:500">\${c.hours_logged?fh(c.hours_logged):'—'}</td><td>\${c.checkin_dist_ft!=null?\`<span class="badge bg-green">\${c.checkin_dist_ft}ft</span>\`:'—'}</td></tr>\`).join('')}</tbody></table>\`:'<div style="font-size:12px;color:#5a6b85">No check-ins yet</div>'}
   <div style="margin-top:11px;background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:10px 13px;display:flex;gap:20px">
-    <div><div style="font-size:10px;color:#414e63">TOTAL HOURS</div><div style="font-size:20px;font-weight:300;margin-top:2px">\${fh(totalHrs)}</div></div>
-    <div><div style="font-size:10px;color:#414e63">EST LABOR COST</div><div style="font-size:20px;font-weight:300;margin-top:2px;color:#60a5fa">\${fm(totalHrs*(currentJob?.labor_rate||0))}</div></div>
+    <div><div style="font-size:10px;color:#5a6b85">TOTAL HOURS</div><div style="font-size:20px;font-weight:300;margin-top:2px">\${fh(totalHrs)}</div></div>
+    <div><div style="font-size:10px;color:#5a6b85">EST LABOR COST</div><div style="font-size:20px;font-weight:300;margin-top:2px;color:#60a5fa">\${fm(totalHrs*(currentJob?.labor_rate||0))}</div></div>
   </div>\`
 }
 async function addWorkerModal(){
@@ -3209,7 +3256,7 @@ function buildPartsTable(parts){
   const over=parts.filter(p=>(p.installed_qty||0)>(p.ordered_qty||p.assigned_qty||0))
   const under=parts.filter(p=>p.status==='installed'&&(p.installed_qty||0)<(p.ordered_qty||p.assigned_qty||0))
   let html='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">'
-  ;[{l:'Ordered',v:totalOrdered,cl:'#60a5fa'},{l:'Staged',v:totalStaged,cl:'#eab308'},{l:'Checked Out',v:totalTaken,cl:'#a855f7'},{l:'Installed',v:totalInstalled,cl:'#16a34a'}].forEach(s=>{html+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 12px;text-align:center"><div style="font-size:18px;font-weight:700;color:'+s.cl+'">'+s.v+'</div><div style="font-size:10px;color:#414e63;margin-top:2px">'+s.l+'</div></div>'})
+  ;[{l:'Ordered',v:totalOrdered,cl:'#60a5fa'},{l:'Staged',v:totalStaged,cl:'#eab308'},{l:'Checked Out',v:totalTaken,cl:'#a855f7'},{l:'Installed',v:totalInstalled,cl:'#16a34a'}].forEach(s=>{html+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 12px;text-align:center"><div style="font-size:18px;font-weight:700;color:'+s.cl+'">'+s.v+'</div><div style="font-size:10px;color:#5a6b85;margin-top:2px">'+s.l+'</div></div>'})
   html+='</div><div style="margin-bottom:10px;padding:8px 12px;border-radius:7px;font-size:12px;background:'+(stagedComplete?'rgba(22,163,74,.08)':'rgba(217,119,6,.08)')+';border:1px solid '+(stagedComplete?'rgba(22,163,74,.2)':'rgba(217,119,6,.2)')+'">'+( stagedComplete?'✅ All parts staged':'⚠ '+parts.filter(p=>!['staged','signed_out','partial_install','installed'].includes(p.status)).length+' not yet staged')+'</div>'
   if(over.length)html+='<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:9px 12px;margin-bottom:9px;font-size:12px;color:#dc2626">⚠ Over-issued: '+over.map(p=>p.part_name).join(', ')+'</div>'
   if(under.length)html+='<div style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.2);border-radius:7px;padding:9px 12px;margin-bottom:9px;font-size:12px;color:#d97706">⚠ Under-installed: '+under.map(p=>p.part_name).join(', ')+'</div>'
@@ -3224,7 +3271,7 @@ function buildPartsTable(parts){
       if(p.status==='staged')rowActions+='<button class="btn btn-sm" style="font-size:10px;padding:2px 6px" data-pid="'+p.id+'" onclick="movePartToOrdered(this)">↩ Order</button>'
       rowActions+='<button class="btn btn-sm" style="font-size:10px;padding:2px 6px" data-pid="'+p.id+'" data-pstatus="'+p.status+'" onclick="editPartStatus(this)">Edit</button>'
     }
-    html+='<tr><td><div style="font-weight:500">'+p.part_name+'</div><div style="font-size:9px;color:#414e63">'+p.part_id+'</div></td><td>'+ord+'</td><td style="color:'+(stg>0?'#eab308':'#414e63')+'">'+stg+'</td><td style="color:'+(tak>0?'#a855f7':'#414e63')+'">'+tak+'</td><td><div style="display:flex;align-items:center;gap:5px"><div class="pbar" style="width:36px"><div class="pb g" style="width:'+Math.min(100,pct)+'%"></div></div><span style="font-size:11px">'+ins+'</span></div></td><td><span class="badge '+bc+'">'+p.status.replace(/_/g,' ')+'</span></td><td style="font-size:11px;color:#8a96ab">'+(p.staged_by||'—')+'</td><td style="display:flex;gap:3px" onclick="event.stopPropagation()">'+rowActions+'</td></tr>'
+    html+='<tr><td><div style="font-weight:500">'+p.part_name+'</div><div style="font-size:9px;color:#5a6b85">'+p.part_id+'</div></td><td>'+ord+'</td><td style="color:'+(stg>0?'#eab308':'#5a6b85')+'">'+stg+'</td><td style="color:'+(tak>0?'#a855f7':'#5a6b85')+'">'+tak+'</td><td><div style="display:flex;align-items:center;gap:5px"><div class="pbar" style="width:36px"><div class="pb g" style="width:'+Math.min(100,pct)+'%"></div></div><span style="font-size:11px">'+ins+'</span></div></td><td><span class="badge '+bc+'">'+p.status.replace(/_/g,' ')+'</span></td><td style="font-size:11px;color:#8a96ab">'+(p.staged_by||'—')+'</td><td style="display:flex;gap:3px" onclick="event.stopPropagation()">'+rowActions+'</td></tr>'
   })
   html+='</tbody></table></div>'
   return html
@@ -3280,7 +3327,7 @@ async function renderInfoPermitSummary(j){
     var pct=defs.length?Math.round(doneCount/defs.length*100):0
     var h=''
     h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
-    h+='<div><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.05em">Status</div>'
+    h+='<div><div style="font-size:10px;color:#5a6b85;text-transform:uppercase;letter-spacing:.05em">Status</div>'
     h+='<div style="font-size:14px;font-weight:700;color:'+statusColor+'">'+statusText+'</div>'
     h+='<div style="font-size:11px;color:#8a96ab;margin-top:1px">'+PERMIT_PATHS[path]+' · '+doneCount+'/'+defs.length+' steps</div></div>'
     h+='<button class="btn btn-sm" onclick="loadJT(\\'jt-permit\\')">Open Pipeline</button>'
@@ -3288,8 +3335,8 @@ async function renderInfoPermitSummary(j){
     h+='<div style="height:6px;background:#0c1220;border-radius:3px;overflow:hidden;margin-bottom:10px"><div style="height:100%;width:'+pct+'%;background:'+(pct===100?'#16a34a':'#2563eb')+'"></div></div>'
     // Permit number + expiration
     h+='<div class="two">'
-    h+='<div><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.05em">Permit Number</div><div style="font-size:13px;font-weight:600">'+(job.permit_number?_escapeHTML(job.permit_number):'<span style="color:#414e63;font-weight:400">— not issued yet —</span>')+'</div></div>'
-    var expHtml='<span style="color:#414e63;font-weight:400">— none —</span>'
+    h+='<div><div style="font-size:10px;color:#5a6b85;text-transform:uppercase;letter-spacing:.05em">Permit Number</div><div style="font-size:13px;font-weight:600">'+(job.permit_number?_escapeHTML(job.permit_number):'<span style="color:#5a6b85;font-weight:400">— not issued yet —</span>')+'</div></div>'
+    var expHtml='<span style="color:#5a6b85;font-weight:400">— none —</span>'
     if(job.permit_expires_on){
       var exp=new Date(job.permit_expires_on);exp.setHours(0,0,0,0)
       var today=new Date();today.setHours(0,0,0,0)
@@ -3297,7 +3344,7 @@ async function renderInfoPermitSummary(j){
       var ec=days<0?'#dc2626':days<=30?'#d97706':'#e8edf5'
       expHtml='<span style="color:'+ec+'">'+fd(job.permit_expires_on)+(days<0?' (expired)':days<=30?' ('+days+'d)':'')+'</span>'
     }
-    h+='<div><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.05em">Expiration</div><div style="font-size:13px;font-weight:600">'+expHtml+'</div></div>'
+    h+='<div><div style="font-size:10px;color:#5a6b85;text-transform:uppercase;letter-spacing:.05em">Expiration</div><div style="font-size:13px;font-weight:600">'+expHtml+'</div></div>'
     h+='</div>'
     box.innerHTML=h
   }catch(e){box.innerHTML='<div style="font-size:12px;color:#8a96ab">Open the <a onclick="loadJT(\\'jt-permit\\')" style="color:#60a5fa;cursor:pointer">Design &amp; Permitting</a> tab to set this up.</div>'}
@@ -3330,7 +3377,7 @@ function filterStepsForJob(defs,job){
   return defs.filter(function(d){return d[0]!=='architect_review'&&d[0]!=='customer_review'})
 }
 var PERMIT_STEP_STATUS={not_started:'Not Started',in_progress:'In Progress',done:'Done',blocked:'Blocked',na:'N/A'}
-var PERMIT_STEP_COLORS={not_started:'#414e63',in_progress:'#d97706',done:'#16a34a',blocked:'#dc2626',na:'#8a96ab'}
+var PERMIT_STEP_COLORS={not_started:'#5a6b85',in_progress:'#d97706',done:'#16a34a',blocked:'#dc2626',na:'#8a96ab'}
 
 async function renderPermitTab(el){
   el.innerHTML='<div style="padding:14px">'+ld()+'</div>'
@@ -3397,7 +3444,7 @@ async function renderPermitTab(el){
     kids.forEach(function(k){
       feeTotal+=Number(k.permit_fee)||0
       var path=k.permit_path
-      var statusLabel='Not triaged',statusColor='#414e63'
+      var statusLabel='Not triaged',statusColor='#5a6b85'
       if(path==='none'){statusLabel='Not required';statusColor='#8a96ab'}
       else if(path){
         var st=kSteps[k.id]||[],wk=kWalks[k.id]||[]
@@ -3427,7 +3474,7 @@ async function renderPermitTab(el){
     h+='<button class="btn btn-sm'+(active?' btn-p':'')+'" onclick="setPermitPath(\\''+k+'\\')" style="'+(active?'':'opacity:.7')+'">'+PERMIT_PATHS[k]+'</button>'
   })
   h+='</div>'
-  if(job.permit_triaged_by)h+='<div style="font-size:10px;color:#414e63;margin-top:8px">Path set by '+_escapeHTML(job.permit_triaged_by)+(job.permit_triaged_at?' · '+fd(job.permit_triaged_at):'')+'</div>'
+  if(job.permit_triaged_by)h+='<div style="font-size:10px;color:#5a6b85;margin-top:8px">Path set by '+_escapeHTML(job.permit_triaged_by)+(job.permit_triaged_at?' · '+fd(job.permit_triaged_at):'')+'</div>'
   h+='</div>'
 
   if(!path){
@@ -3482,7 +3529,7 @@ async function renderPermitTab(el){
     var effStatus=step.status
     if(key==='assign_site_walk')effStatus=walkComplete?'done':(hasWalk?'in_progress':'not_started')
     if(key==='site_walk_complete')effStatus=walkComplete?'done':(hasWalk?'in_progress':'not_started')
-    var color=PERMIT_STEP_COLORS[effStatus]||'#414e63'
+    var color=PERMIT_STEP_COLORS[effStatus]||'#5a6b85'
     var icon=effStatus==='done'?'✅':effStatus==='in_progress'?'🔄':effStatus==='blocked'?'⛔':effStatus==='na'?'➖':'⬜'
     h+='<div style="display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.05)">'
     h+='<span style="font-size:16px;flex-shrink:0;margin-top:1px">'+icon+'</span>'
@@ -3493,7 +3540,7 @@ async function renderPermitTab(el){
     if(step.external_party)meta.push('🏛 '+step.external_party)
     if(step.target_date)meta.push('🎯 '+fd(step.target_date))
     if(step.completed_date)meta.push('✓ '+fd(step.completed_date))
-    if(meta.length)h+='<div style="font-size:10px;color:#414e63;margin-top:2px">'+meta.join(' · ')+'</div>'
+    if(meta.length)h+='<div style="font-size:10px;color:#5a6b85;margin-top:2px">'+meta.join(' · ')+'</div>'
     if(step.notes)h+='<div style="font-size:11px;color:#8a96ab;margin-top:3px">'+_escapeHTML(step.notes)+'</div>'
     if(step.doc_url)h+='<a href="'+step.doc_url+'" target="_blank" style="font-size:11px;color:#60a5fa;margin-top:3px;display:inline-block">📎 '+_escapeHTML(step.doc_name||'View document')+'</a>'
     // For walk steps, show the linked walks inline (same data as Job Walks tab)
@@ -3528,7 +3575,7 @@ async function renderPermitTab(el){
   h+='<div class="fg"><label class="fl">Permit Number</label><input class="fi" id="pmt-number" value="'+_escAttr(job.permit_number||'')+'" placeholder="e.g. E-2024-001"></div>'
   h+='<div class="fg"><label class="fl">Expiration Date</label><input class="fi" type="date" id="pmt-expires" value="'+(job.permit_expires_on||'')+'"></div>'
   h+='</div>'
-  h+='<div class="fg"><label class="fl">Permit Fee <span style="color:#414e63;font-weight:400;font-size:10px">(actual cost — adds a "Permit Fee Paid" line to the job budget)</span></label><div style="display:flex;gap:8px;align-items:center"><input class="fi" type="number" step="0.01" id="pmt-fee" value="'+(job.permit_fee!=null?job.permit_fee:'')+'" placeholder="0.00" style="flex:1">'+(job.permit_fee!=null&&job.permit_fee!==''?'<button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="clearPermitFee()">Clear</button>':'')+'</div></div>'
+  h+='<div class="fg"><label class="fl">Permit Fee <span style="color:#5a6b85;font-weight:400;font-size:10px">(actual cost — adds a "Permit Fee Paid" line to the job budget)</span></label><div style="display:flex;gap:8px;align-items:center"><input class="fi" type="number" step="0.01" id="pmt-fee" value="'+(job.permit_fee!=null?job.permit_fee:'')+'" placeholder="0.00" style="flex:1">'+(job.permit_fee!=null&&job.permit_fee!==''?'<button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="clearPermitFee()">Clear</button>':'')+'</div></div>'
   // Expiration alert
   if(job.permit_expires_on){
     var exp=new Date(job.permit_expires_on);exp.setHours(0,0,0,0)
@@ -3616,10 +3663,10 @@ async function editPermitStep(stepKey,label){
   h+='<div class="fg"><label class="fl">Assigned To (internal)</label><select class="fs" id="ps-user"><option value="">— None —</option>'
   users.forEach(function(u){h+='<option value="'+u.id+'"'+(step.assigned_to===u.id?' selected':'')+'>'+_escapeHTML(u.full_name)+'</option>'})
   h+='</select></div>'
-  h+='<div class="fg"><label class="fl">External Party <span style="color:#414e63;font-weight:400;font-size:10px">(architect, city, etc.)</span></label><input class="fi" id="ps-external" value="'+_escAttr(step.external_party||'')+'" placeholder="e.g. City of Phoenix"></div>'
+  h+='<div class="fg"><label class="fl">External Party <span style="color:#5a6b85;font-weight:400;font-size:10px">(architect, city, etc.)</span></label><input class="fi" id="ps-external" value="'+_escAttr(step.external_party||'')+'" placeholder="e.g. City of Phoenix"></div>'
   h+='<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="ps-notes" style="min-height:55px">'+_escapeHTML(step.notes||'')+'</textarea></div>'
   // Document
-  h+='<div class="fg"><label class="fl">Document <span style="color:#414e63;font-weight:400;font-size:10px">(drawing, permit PDF, etc.)</span></label>'
+  h+='<div class="fg"><label class="fl">Document <span style="color:#5a6b85;font-weight:400;font-size:10px">(drawing, permit PDF, etc.)</span></label>'
   h+='<div style="display:flex;align-items:center;gap:10px">'
   h+='<div id="ps-doc-status" style="font-size:11px;color:#8a96ab;flex:1">'+(step.doc_url?'📎 '+_escapeHTML(step.doc_name||'attached'):'No document')+'</div>'
   h+='<label class="btn btn-sm" style="cursor:pointer">⬆ Upload<input type="file" style="display:none" onchange="uploadPermitDoc(this.files[0])"></label>'
@@ -3768,15 +3815,15 @@ async function renderJobTasksTab(el){
     var src=t.source==='communication'?'📞 ':t.source==='urgent_flag'?'🚨 ':t.source==='labor_alert'?'📊 ':''
     var x='<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)">'
     x+='<span style="font-size:14px;flex-shrink:0">'+(isDone?'✅':t.priority==='high'?'🔴':'⬜')+'</span>'
-    x+='<div style="flex:1;min-width:0"><div style="font-size:13px;'+(isDone?'text-decoration:line-through;color:#414e63':'font-weight:500')+'">'+src+_escapeHTML(t.title||'')+'</div>'
-    x+='<div style="font-size:11px;color:#414e63;margin-top:2px">'+(t.assigned_name||'Unassigned')+(t.due_date?' · due '+fd(t.due_date):'')+(od?' <span style="color:#dc2626">overdue</span>':'')+'</div></div>'
+    x+='<div style="flex:1;min-width:0"><div style="font-size:13px;'+(isDone?'text-decoration:line-through;color:#5a6b85':'font-weight:500')+'">'+src+_escapeHTML(t.title||'')+'</div>'
+    x+='<div style="font-size:11px;color:#5a6b85;margin-top:2px">'+(t.assigned_name||'Unassigned')+(t.due_date?' · due '+fd(t.due_date):'')+(od?' <span style="color:#dc2626">overdue</span>':'')+'</div></div>'
     if(!isDone)x+='<button class="btn btn-sm" data-tid="'+t.id+'" onclick="completeJobTask(this.dataset.tid)" style="font-size:10px;padding:3px 9px">Done</button>'
     else x+='<button class="btn btn-sm btn-ghost" data-tid="'+t.id+'" onclick="reopenJobTask(this.dataset.tid)" style="font-size:10px;padding:3px 9px">Reopen</button>'
     x+='</div>'
     return x
   }
   h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Open ('+open.length+')</div>'
-  h+=open.length?open.map(row).join(''):'<div style="font-size:12px;color:#414e63">No open tasks</div>'
+  h+=open.length?open.map(row).join(''):'<div style="font-size:12px;color:#5a6b85">No open tasks</div>'
   h+='</div>'
   if(done.length){
     h+='<div class="card"><div class="card-title">Completed ('+done.length+')</div>'
@@ -3850,7 +3897,7 @@ async function renderJobDailyTab(el){
     html+='<td>'+r.crew_count+'</td>'
     html+='<td>'+fh(r.hours_worked)+'</td>'
     html+='<td style="font-size:11px;color:#8a96ab">'+(r.weather||'—')+(r.temp_high?' '+r.temp_high+'°':'')+'</td>'
-    html+='<td>'+(hasIssues?'<span class="badge bg-red">Yes</span>':'<span style="font-size:11px;color:#414e63">—</span>')+'</td>'
+    html+='<td>'+(hasIssues?'<span class="badge bg-red">Yes</span>':'<span style="font-size:11px;color:#5a6b85">—</span>')+'</td>'
     html+='<td style="display:flex;gap:4px" onclick="event.stopPropagation()">'
     html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="dlDailyReportById(this.dataset.rid)">⬇</button>'
     html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="generateDailyReportPdf(this.dataset.rid)">📄 PDF</button>'
@@ -3884,7 +3931,7 @@ async function renderCommsSection(){
   if(openResp.length)h+='<span class="badge bg-amber" style="font-size:10px">'+openResp.length+' awaiting response</span>'
   h+='</div>'
   if(!comms.length){
-    h+='<div style="font-size:12px;color:#414e63;padding:4px 0">No communications logged. Use <strong>📞 Log Communication</strong> to record a call, email, or meeting.</div>'
+    h+='<div style="font-size:12px;color:#5a6b85;padding:4px 0">No communications logged. Use <strong>📞 Log Communication</strong> to record a call, email, or meeting.</div>'
   }else{
     comms.slice(0,30).forEach(function(c){
       var who=c.contact_id&&contactNames[c.contact_id]?contactNames[c.contact_id]:(c.with_who||'Unknown')
@@ -3895,7 +3942,7 @@ async function renderCommsSection(){
       h+='<div style="display:flex;align-items:flex-start;gap:9px">'
       h+='<span style="font-size:16px;flex-shrink:0">'+icon+'</span>'
       h+='<div style="flex:1;min-width:0">'
-      h+='<div style="font-size:12px"><span style="font-weight:600">'+dirArrow+' '+_escapeHTML(who)+'</span> <span style="color:#414e63;font-size:11px">· '+fd(c.occurred_at)+' '+ft(c.occurred_at)+'</span></div>'
+      h+='<div style="font-size:12px"><span style="font-weight:600">'+dirArrow+' '+_escapeHTML(who)+'</span> <span style="color:#5a6b85;font-size:11px">· '+fd(c.occurred_at)+' '+ft(c.occurred_at)+'</span></div>'
       if(c.summary)h+='<div style="font-size:12px;color:#c7d0dd;margin-top:3px">'+_escapeHTML(c.summary)+'</div>'
       var tags=''
       if(needsResp)tags+='<span class="badge bg-amber" style="font-size:9px">Needs response</span> '
@@ -3992,14 +4039,14 @@ async function logCommGlobal(){
   var now=new Date()
   var localDt=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,16)
   var h=''
-  h+='<div style="font-size:11px;color:#414e63;margin-bottom:10px">Link this conversation to a job or a customer (or both). Entry is timestamped automatically.</div>'
+  h+='<div style="font-size:11px;color:#5a6b85;margin-bottom:10px">Link this conversation to a job or a customer (or both). Entry is timestamped automatically.</div>'
   h+='<div class="two"><div class="fg"><label class="fl">Type</label><select class="fs" id="lcg-type">'
   ;['call','email','meeting','text','other'].forEach(function(t){h+='<option value="'+t+'">'+COMM_TYPE_ICONS[t]+' '+t.charAt(0).toUpperCase()+t.slice(1)+'</option>'})
   h+='</select></div><div class="fg"><label class="fl">Direction</label><select class="fs" id="lcg-dir"><option value="inbound">↙ Inbound (they called us)</option><option value="outbound">↗ Outbound (we called them)</option></select></div></div>'
-  h+='<div class="fg"><label class="fl">Link to Job <span style="color:#414e63;font-weight:400;font-size:10px">(optional)</span></label><select class="fs" id="lcg-job" onchange="lcgJobChanged()"><option value="">— none —</option>'
+  h+='<div class="fg"><label class="fl">Link to Job <span style="color:#5a6b85;font-weight:400;font-size:10px">(optional)</span></label><select class="fs" id="lcg-job" onchange="lcgJobChanged()"><option value="">— none —</option>'
   jobs.forEach(function(j){h+='<option value="'+j.id+'" data-acc="'+(j.account_id||'')+'">'+(j.job_number?j.job_number+' · ':'')+_escapeHTML(j.name||'')+'</option>'})
   h+='</select></div>'
-  h+='<div class="fg"><label class="fl">Link to Customer / Account <span style="color:#414e63;font-weight:400;font-size:10px">(optional)</span></label><select class="fs" id="lcg-account" onchange="lcgAccountChanged()"><option value="">— none —</option>'
+  h+='<div class="fg"><label class="fl">Link to Customer / Account <span style="color:#5a6b85;font-weight:400;font-size:10px">(optional)</span></label><select class="fs" id="lcg-account" onchange="lcgAccountChanged()"><option value="">— none —</option>'
   accounts.forEach(function(a){h+='<option value="'+a.id+'">'+_escapeHTML(a.name||'')+'</option>'})
   h+='</select></div>'
   h+='<div class="fg"><label class="fl">Contact</label><select class="fs" id="lcg-contact" onchange="lcgContactChanged()"><option value="">— type name below —</option></select></div>'
@@ -4012,7 +4059,7 @@ async function logCommGlobal(){
   h+='<div class="two"><div class="fg"><label class="fl">Assign Task To</label><select class="fs" id="lcg-assignee"><option value="">— Unassigned —</option>'
   users.forEach(function(u){h+='<option value="'+u.id+'">'+_escapeHTML(u.full_name)+' ('+roleLabel(u.role)+')</option>'})
   h+='</select></div><div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="lcg-due"></div></div>'
-  h+='<div style="font-size:10px;color:#414e63">Creates a task in the assignee\\'s list, linked to this conversation.</div>'
+  h+='<div style="font-size:10px;color:#5a6b85">Creates a task in the assignee\\'s list, linked to this conversation.</div>'
   h+='</div>'
   modal('📞 Log Communication',h,async function(){
     var jobId=document.getElementById('lcg-job').value||null
@@ -4158,10 +4205,10 @@ async function renderJobWalksTab(el){
   const{data:walks}=await sb.from('job_walks').select('*').eq('job_id',currentJobId).order('walk_date',{ascending:false})
   el.innerHTML=\`
   <div style="margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="newWalkModal('\${currentJobId}')">+ New Job Walk</button></div>
-  \${(walks||[]).map(w=>\`<div class="card" style="margin-bottom:10px;cursor:pointer" onclick="openJobWalk('\${w.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px"><div><div style="font-weight:600;font-size:13px">Job Walk — \${fd(w.walk_date)}</div><div style="font-size:11px;color:#414e63">By \${w.walked_by||'—'} · \${w.attendees||'No attendees listed'}</div></div><span class="badge \${w.status==='complete'?'bg-green':'bg-amber'}">\${w.status}</span></div>
+  \${(walks||[]).map(w=>\`<div class="card" style="margin-bottom:10px;cursor:pointer" onclick="openJobWalk('\${w.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px"><div><div style="font-weight:600;font-size:13px">Job Walk — \${fd(w.walk_date)}</div><div style="font-size:11px;color:#5a6b85">By \${w.walked_by||'—'} · \${w.attendees||'No attendees listed'}</div></div><span class="badge \${w.status==='complete'?'bg-green':'bg-amber'}">\${w.status}</span></div>
   \${w.scope_notes?\`<div style="font-size:12px;color:#8a96ab;margin-bottom:6px">\${w.scope_notes.substring(0,150)}\${w.scope_notes.length>150?'…':''}</div>\`:''}
   \${w.issues_found?\`<div style="font-size:11px;color:#d97706">⚠ Issues: \${w.issues_found.substring(0,100)}</div>\`:''}
-  <div style="font-size:10px;color:#414e63;margin-top:5px">Click to view details & markup plans →</div></div>\`).join('')||empty('🚶','No job walks recorded yet')}\` 
+  <div style="font-size:10px;color:#5a6b85;margin-top:5px">Click to view details & markup plans →</div></div>\`).join('')||empty('🚶','No job walks recorded yet')}\` 
 }
 
 async function openJobWalk(walkId){
@@ -4200,7 +4247,7 @@ async function openJobWalk(walkId){
       +'</div>'
     }).join('')
   }else{
-    h+='<div style="font-size:12px;color:#414e63;margin-bottom:8px">No plans uploaded yet</div>'
+    h+='<div style="font-size:12px;color:#5a6b85;margin-bottom:8px">No plans uploaded yet</div>'
   }
   h+='<input type="file" id="walk-plan-file" accept=".pdf,.png,.jpg,.jpeg" multiple style="display:none" onchange="uploadWalkPlan(this.files,window._openWalkId)">'
   h+='<button class="btn btn-sm" style="margin-top:8px" onclick="triggerWalkPlanUpload()">+ Upload Plan</button>'
@@ -4356,14 +4403,14 @@ async function openMarkup(planId,planUrl,walkId){
   <div class="two" style="gap:14px">
     <div>
       <div class="markup-toolbar">
-        <span style="font-size:10px;color:#414e63;margin-right:4px">MODE:</span>
+        <span style="font-size:10px;color:#5a6b85;margin-right:4px">MODE:</span>
         <button class="mt-btn active" id="mt-dot" onclick="setMT('dot',this)">● Dot</button>
         <button class="mt-btn" id="mt-text" onclick="setMT('text',this)">T Text</button>
         <button class="mt-btn" id="mt-move" onclick="setMT('move',this)">✋ Move</button>
         <button class="mt-btn" id="mt-del" onclick="setMT('del',this)">🗑 Delete</button>
-        <span style="font-size:10px;color:#414e63;margin-left:8px">COLOR:</span>
+        <span style="font-size:10px;color:#5a6b85;margin-left:8px">COLOR:</span>
         \${['#dc2626','#d97706','#16a34a','#2563eb','#7c3aed','#0d9488','#ec4899','#000000'].map(c=>\`<div class="dot-swatch" style="background:\${c}" onclick="setDotColor('\${c}',this)" title="\${c}"></div>\`).join('')}
-        <span style="font-size:10px;color:#414e63;margin-left:8px">SIZE:</span>
+        <span style="font-size:10px;color:#5a6b85;margin-left:8px">SIZE:</span>
         <select class="fi" style="width:60px;padding:3px 5px;font-size:11px" id="dot-size-sel"><option value="8">S</option><option value="12" selected>M</option><option value="18">L</option><option value="24">XL</option></select>
       </div>
       <div class="markup-canvas-wrap">
@@ -4456,12 +4503,12 @@ function drawMarkup(ctx,img){
 }
 function renderLegend(){
   const el=document.getElementById('legend-list');if(!el)return
-  el.innerHTML=_markup.legend.map((l,i)=>\`<div class="legend-item"><div style="width:14px;height:14px;border-radius:50%;background:\${l.color};flex-shrink:0;border:1.5px solid rgba(255,255,255,.3)"></div><input style="flex:1;background:transparent;border:none;color:#e8edf5;font-size:12px;font-family:'DM Sans',sans-serif" value="\${l.label}" oninput="_markup.legend[\${i}].label=this.value" placeholder="Legend entry…"><button onclick="_markup.legend.splice(\${i},1);renderLegend()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">Add legend entries to explain your dots</div>'
+  el.innerHTML=_markup.legend.map((l,i)=>\`<div class="legend-item"><div style="width:14px;height:14px;border-radius:50%;background:\${l.color};flex-shrink:0;border:1.5px solid rgba(255,255,255,.3)"></div><input style="flex:1;background:transparent;border:none;color:#e8edf5;font-size:12px;font-family:'DM Sans',sans-serif" value="\${l.label}" oninput="_markup.legend[\${i}].label=this.value" placeholder="Legend entry…"><button onclick="_markup.legend.splice(\${i},1);renderLegend()" style="background:none;border:none;cursor:pointer;color:#5a6b85;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#5a6b85">Add legend entries to explain your dots</div>'
 }
 function addLegendItem(){_markup.legend.push({id:uuid(),color:_dotColor,label:''});renderLegend()}
 function renderTextboxList(){
   const el=document.getElementById('textbox-list');if(!el)return
-  el.innerHTML=_markup.textboxes.map((t,i)=>\`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="font-size:11px;flex:1;color:#8a96ab">\${t.text}</div><button onclick="_markup.textboxes.splice(\${i},1);renderTextboxList();const c=document.getElementById('markup-canvas');if(c){const ctx=c.getContext('2d');drawMarkup(ctx,document.querySelector('#markup-canvas + img')||null)}" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No text boxes added</div>'
+  el.innerHTML=_markup.textboxes.map((t,i)=>\`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="font-size:11px;flex:1;color:#8a96ab">\${t.text}</div><button onclick="_markup.textboxes.splice(\${i},1);renderTextboxList();const c=document.getElementById('markup-canvas');if(c){const ctx=c.getContext('2d');drawMarkup(ctx,document.querySelector('#markup-canvas + img')||null)}" style="background:none;border:none;cursor:pointer;color:#5a6b85;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#5a6b85">No text boxes added</div>'
 }
 async function saveMarkup(planId){
   const{error}=await sb.from('job_walk_plans').update({markup_json:_markup}).eq('id',planId)
@@ -4493,8 +4540,8 @@ async function uploadWalkPlan(files,walkId){
 // PHOTOS TAB
 async function renderPhotosTab(el){
   const{data:photos}=await sb.from('job_photos').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
-  el.innerHTML=\`<label class="upload-zone" style="margin-bottom:12px"><input type="file" multiple accept="image/*" onchange="uploadPhotos(this.files)"><div style="font-size:22px;color:#414e63">📷</div><div style="font-size:12px;color:#414e63;margin-top:5px">Click to upload photos (before/after/progress)</div></label>
-  <div class="photo-grid">\${(photos||[]).map(p=>\`<div class="photo-card" onclick="window.open('\${p.url}','_blank')"><img class="photo-thumb" src="\${p.url}" loading="lazy" onerror="this.style.display='none'"><div style="padding:5px 7px;font-size:10px;color:#414e63">\${p.type||'photo'} · \${p.uploaded_by||''}</div></div>\`).join('')}</div>\`
+  el.innerHTML=\`<label class="upload-zone" style="margin-bottom:12px"><input type="file" multiple accept="image/*" onchange="uploadPhotos(this.files)"><div style="font-size:22px;color:#5a6b85">📷</div><div style="font-size:12px;color:#5a6b85;margin-top:5px">Click to upload photos (before/after/progress)</div></label>
+  <div class="photo-grid">\${(photos||[]).map(p=>\`<div class="photo-card" onclick="window.open('\${p.url}','_blank')"><img class="photo-thumb" src="\${p.url}" loading="lazy" onerror="this.style.display='none'"><div style="padding:5px 7px;font-size:10px;color:#5a6b85">\${p.type||'photo'} · \${p.uploaded_by||''}</div></div>\`).join('')}</div>\`
 }
 async function uploadPhotos(files){for(const f of files){const path=\`jobs/\${currentJobId}/photos/\${Date.now()}_\${f.name}\`;const{error}=await sb.storage.from('fieldtrack-photos').upload(path,f,{upsert:true});if(!error){const{data:{publicUrl}}=sb.storage.from('fieldtrack-photos').getPublicUrl(path);await sb.from('job_photos').insert({id:uuid(),job_id:currentJobId,url:publicUrl,type:'progress',uploaded_by:ME?.full_name,created_at:new Date().toISOString()})}};toast('Uploaded');loadJT('jt-photos')}
 
@@ -4502,9 +4549,9 @@ async function uploadPhotos(files){for(const f of files){const path=\`jobs/\${cu
 async function renderChecklistTab(el){
   const{data:items}=await sb.from('job_checklist_items').select('*').eq('job_id',currentJobId).order('sort_order')
   const done=(items||[]).filter(i=>i.is_checked).length
-  el.innerHTML=\`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-weight:500">Checklist <span style="font-size:11px;color:#414e63">\${done}/\${(items||[]).length}</span></span><button class="btn btn-sm btn-p" onclick="addCheckItem()">+ Add</button></div>
+  el.innerHTML=\`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-weight:500">Checklist <span style="font-size:11px;color:#5a6b85">\${done}/\${(items||[]).length}</span></span><button class="btn btn-sm btn-p" onclick="addCheckItem()">+ Add</button></div>
   <div class="pbar" style="margin-bottom:13px"><div class="pb g" style="width:\${(items||[]).length?Math.round(done/(items||[]).length*100):0}%"></div></div>
-  \${(items||[]).map(i=>\`<div class="chk-item"><div class="chk-box \${i.is_checked?'ck':''}" onclick="toggleCheck('\${i.id}',\${!i.is_checked})"></div><div style="flex:1"><div style="font-size:13px;\${i.is_checked?'text-decoration:line-through;color:#414e63':'color:#e8edf5'}">\${i.item_text}</div>\${i.section?\`<div style="font-size:10px;color:#2563eb;margin-top:1px">§ \${i.section}</div>\`:''}</div><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="delCheckItem('\${i.id}')">×</button></div>\`).join('')||empty('✅','Add checklist items')}\` 
+  \${(items||[]).map(i=>\`<div class="chk-item"><div class="chk-box \${i.is_checked?'ck':''}" onclick="toggleCheck('\${i.id}',\${!i.is_checked})"></div><div style="flex:1"><div style="font-size:13px;\${i.is_checked?'text-decoration:line-through;color:#5a6b85':'color:#e8edf5'}">\${i.item_text}</div>\${i.section?\`<div style="font-size:10px;color:#2563eb;margin-top:1px">§ \${i.section}</div>\`:''}</div><button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="delCheckItem('\${i.id}')">×</button></div>\`).join('')||empty('✅','Add checklist items')}\` 
 }
 async function addCheckItem(){modal('Add Item',\`<div class="fg"><label class="fl">Item *</label><input class="fi" id="ci-t"></div><div class="fg"><label class="fl">Section</label><input class="fi" id="ci-s" placeholder="Install, Closeout…"></div>\`,async()=>{const t=v('ci-t').trim();if(!t)return;const{data:last}=await sb.from('job_checklist_items').select('sort_order').eq('job_id',currentJobId).order('sort_order',{ascending:false}).limit(1).single();await sb.from('job_checklist_items').insert({id:uuid(),job_id:currentJobId,item_text:t,section:v('ci-s')||null,sort_order:(last?.sort_order||0)+1,is_checked:false});closeModal();loadJT('jt-checklist')})}
 async function toggleCheck(id,val){await sb.from('job_checklist_items').update({is_checked:val,checked_by:val?ME?.id:null,checked_at:val?new Date().toISOString():null}).eq('id',id);loadJT('jt-checklist')}
@@ -4524,7 +4571,7 @@ async function completePunch(id){await sb.from('punch_list').update({status:'com
 async function renderPmTab(el){
   const{data:insps}=await sb.from('pm_inspections').select('*').eq('job_id',currentJobId).order('visited_at',{ascending:false})
   el.innerHTML=\`<div style="margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="logPmVisit()">+ Log Visit</button></div>
-  \${(insps||[]).map(ins=>\`<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div style="font-weight:500">\${ins.visit_type==='final'?'Final Sign-off':'Inspection'} — \${fd(ins.visited_at)}</div><div style="font-size:11px;color:#414e63">\${ins.pm_name||''}</div></div><span class="badge \${ins.approved_at?'bg-green':ins.rejected_at?'bg-red':'bg-gray'}">\${ins.approved_at?'Approved':ins.rejected_at?'Rejected':'Pending'}</span></div>
+  \${(insps||[]).map(ins=>\`<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div style="font-weight:500">\${ins.visit_type==='final'?'Final Sign-off':'Inspection'} — \${fd(ins.visited_at)}</div><div style="font-size:11px;color:#5a6b85">\${ins.pm_name||''}</div></div><span class="badge \${ins.approved_at?'bg-green':ins.rejected_at?'bg-red':'bg-gray'}">\${ins.approved_at?'Approved':ins.rejected_at?'Rejected':'Pending'}</span></div>
   <div style="font-size:12px;color:#8a96ab">\${ins.work_observed||'—'}</div>
   \${ins.issues_noted?\`<div style="font-size:12px;color:#d97706;margin-top:6px">\${ins.issues_noted}</div>\`:''}
   \${!ins.approved_at&&!ins.rejected_at?\`<div style="display:flex;gap:7px;margin-top:10px"><button class="btn btn-sm btn-g" onclick="approveInsp('\${ins.id}')">✓ Approve</button><button class="btn btn-sm btn-r" onclick="rejectInsp('\${ins.id}')">Reject</button></div>\`:''}</div>\`).join('')||empty('🔍','No PM inspections yet')}\`
@@ -4754,12 +4801,12 @@ async function renderCOTab(el){
   var h='<div style="display:flex;gap:8px;margin-bottom:14px">'
   h+='<button class="btn btn-p btn-sm" onclick="newCO()">+ New Change Order</button></div>'
   h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
-  h+='<div class="stat"><div class="stat-label">Approved COs</div><div class="stat-value" style="color:#16a34a;font-size:20px">+'+fm(approvedTotal)+'</div><div style="font-size:10px;color:#414e63">'+approved.length+' approved</div></div>'
-  h+='<div class="stat"><div class="stat-label">Pending Value</div><div class="stat-value" style="color:#d97706;font-size:20px">'+fm(pendingTotal)+'</div><div style="font-size:10px;color:#414e63">'+pending.length+' pending</div></div>'
-  h+='<div class="stat"><div class="stat-label">Current Contract</div><div class="stat-value" style="font-size:18px">'+fm(current)+'</div><div style="font-size:10px;color:#414e63">orig '+fm(orig)+'</div></div>'
+  h+='<div class="stat"><div class="stat-label">Approved COs</div><div class="stat-value" style="color:#16a34a;font-size:20px">+'+fm(approvedTotal)+'</div><div style="font-size:10px;color:#5a6b85">'+approved.length+' approved</div></div>'
+  h+='<div class="stat"><div class="stat-label">Pending Value</div><div class="stat-value" style="color:#d97706;font-size:20px">'+fm(pendingTotal)+'</div><div style="font-size:10px;color:#5a6b85">'+pending.length+' pending</div></div>'
+  h+='<div class="stat"><div class="stat-label">Current Contract</div><div class="stat-value" style="font-size:18px">'+fm(current)+'</div><div style="font-size:10px;color:#5a6b85">orig '+fm(orig)+'</div></div>'
   h+='</div>'
   if(!cos.length){h+=empty('📝','No change orders yet');el.innerHTML=h;return}
-  var groups=[{label:'Pending',items:pending,color:'#d97706',badge:'bg-amber'},{label:'Approved',items:approved,color:'#16a34a',badge:'bg-green'},{label:'Canceled',items:canceled,color:'#414e63',badge:'bg-gray'}]
+  var groups=[{label:'Pending',items:pending,color:'#d97706',badge:'bg-amber'},{label:'Approved',items:approved,color:'#16a34a',badge:'bg-green'},{label:'Canceled',items:canceled,color:'#5a6b85',badge:'bg-gray'}]
   groups.forEach(function(g){
     if(!g.items.length)return
     h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:'+g.color+';margin:14px 0 7px">'+g.label+' ('+g.items.length+')</div>'
@@ -4769,13 +4816,13 @@ async function renderCOTab(el){
       h+='<div class="card" style="margin-bottom:8px;opacity:'+(isCanceled?'.45':'1')+'">'
       h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
       h+='<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">'+(co.co_number||'CO')+' — '+co.title+'</div>'
-      h+='<div style="font-size:11px;color:#414e63;margin-top:2px">Submitted: '+fd(co.submitted_date||co.created_at)+(co.created_by?' by '+co.created_by:'')+'</div>'
+      h+='<div style="font-size:11px;color:#5a6b85;margin-top:2px">Submitted: '+fd(co.submitted_date||co.created_at)+(co.created_by?' by '+co.created_by:'')+'</div>'
       if(isApproved&&co.approved_date)h+='<div style="font-size:11px;color:#16a34a;margin-top:1px">✓ Approved: '+fd(co.approved_date)+'</div>'
       h+='</div>'
       h+='<div style="text-align:right;flex-shrink:0"><span class="badge '+g.badge+'">'+co.status.replace(/_/g,' ')+'</span>'
-      h+='<div style="font-size:15px;font-weight:600;color:'+(isApproved?'#16a34a':isCanceled?'#414e63':'#d97706')+';margin-top:5px">'+(co.value>=0?'+':'')+fm(co.value)+'</div>'+(co.added_hours?'<div style="font-size:10px;color:#414e63">'+fh(co.added_hours)+' hrs</div>':'')+'</div></div>'
+      h+='<div style="font-size:15px;font-weight:600;color:'+(isApproved?'#16a34a':isCanceled?'#5a6b85':'#d97706')+';margin-top:5px">'+(co.value>=0?'+':'')+fm(co.value)+'</div>'+(co.added_hours?'<div style="font-size:10px;color:#5a6b85">'+fh(co.added_hours)+' hrs</div>':'')+'</div></div>'
       if(co.description)h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:8px">'+co.description+'</div>'
-      if(co.days_added)h+='<div style="font-size:11px;color:#414e63;margin-bottom:6px">+'+co.days_added+' days added to schedule</div>'
+      if(co.days_added)h+='<div style="font-size:11px;color:#5a6b85;margin-bottom:6px">+'+co.days_added+' days added to schedule</div>'
       h+='<div style="display:flex;gap:6px;flex-wrap:wrap">'
       h+='<button class="btn btn-sm" data-coid="'+co.id+'" data-conum="'+(co.co_number||'')+'" data-cotitle="'+(co.title||'').replace(/"/g,'&quot;')+'" onclick="openCOLines(this.dataset.coid,this.dataset.conum,this.dataset.cotitle)">📋 Line Items</button>'
       h+='<button class="btn btn-sm" data-coid="'+co.id+'" onclick="generateCOPdf(this.dataset.coid)">📄 PDF</button>'
@@ -4800,7 +4847,7 @@ async function newCO(){
   h+='<div class="fg"><label class="fl">Description</label><textarea class="ft" id="co-d" style="min-height:70px"></textarea></div>'
   h+='<div class="two"><div class="fg"><label class="fl">Days Added</label><input class="fi" type="number" id="co-dy" value="0"></div>'
   h+='<div class="fg"><label class="fl">Date Submitted to Customer</label><input class="fi" type="date" id="co-sub" value="'+today+'"></div></div>'
-  h+='<div style="font-size:11px;color:#414e63;margin-top:4px">After you create the CO, you\\'ll add line items (with amounts and hours). The CO total is the sum of those lines.</div>'
+  h+='<div style="font-size:11px;color:#5a6b85;margin-top:4px">After you create the CO, you\\'ll add line items (with amounts and hours). The CO total is the sum of those lines.</div>'
   modal('New Change Order — '+num, h, async function(){
     var t=(document.getElementById('co-t').value||'').trim()
     if(!t){toast('Title required','error');return}
@@ -4835,7 +4882,7 @@ function _drawCOLines(){
   h+='<th style="width:38%">Description</th><th>Category</th><th style="text-align:right">Amount $</th><th style="text-align:right">Hours</th><th></th>'
   h+='</tr></thead><tbody>'
   if(!_coLines.length){
-    h+='<tr><td colspan="5" style="text-align:center;color:#414e63;font-size:12px;padding:14px">No line items yet. Add the first one below.</td></tr>'
+    h+='<tr><td colspan="5" style="text-align:center;color:#5a6b85;font-size:12px;padding:14px">No line items yet. Add the first one below.</td></tr>'
   }
   _coLines.forEach(function(l){
     h+='<tr>'
@@ -4859,7 +4906,7 @@ function _drawCOLines(){
   }
   h+='</tbody></table>'
   h+='<button class="btn btn-sm" style="margin-top:8px" onclick="addCOLine()">+ Add Line Item</button>'
-  h+='<div style="font-size:11px;color:#414e63;margin-top:8px">This CO will add <strong style="color:#16a34a">'+fm(amtTotal)+'</strong> to the contract when approved'+(hrsTotal?', plus '+fh(hrsTotal)+' labor hours':'')+'.</div>'
+  h+='<div style="font-size:11px;color:#5a6b85;margin-top:8px">This CO will add <strong style="color:#16a34a">'+fm(amtTotal)+'</strong> to the contract when approved'+(hrsTotal?', plus '+fh(hrsTotal)+' labor hours':'')+'.</div>'
   host.innerHTML=h
 }
 async function addCOLine(){
@@ -4928,7 +4975,7 @@ async function editCO(btn){
   var h='<div class="fg"><label class="fl">Title *</label><input class="fi" id="eco-t" value="'+(co.title||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Description</label><textarea class="ft" id="eco-d">'+(co.description||'')+'</textarea></div>'
   // Value is now computed from line items — show it read-only with a button to edit lines
-  h+='<div class="two"><div class="fg"><label class="fl">CO Total <span style="color:#414e63;font-weight:400;font-size:10px">(from line items)</span></label><div class="fi" style="background:rgba(255,255,255,.03);cursor:default;color:#16a34a;font-weight:600">'+fm(co.value||0)+(co.added_hours?' · '+fh(co.added_hours)+' hrs':'')+'</div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">CO Total <span style="color:#5a6b85;font-weight:400;font-size:10px">(from line items)</span></label><div class="fi" style="background:rgba(255,255,255,.03);cursor:default;color:#16a34a;font-weight:600">'+fm(co.value||0)+(co.added_hours?' · '+fh(co.added_hours)+' hrs':'')+'</div></div>'
   h+='<div class="fg"><label class="fl">Days Added</label><input class="fi" type="number" id="eco-dy" value="'+(co.days_added||0)+'"></div></div>'
   h+='<button class="btn btn-sm btn-p" style="margin-bottom:10px" data-coid="'+id+'" data-conum="'+_escAttr(co.co_number||'')+'" data-cotitle="'+_escAttr(co.title||'')+'" onclick="closeModal();openCOLines(this.dataset.coid,this.dataset.conum,this.dataset.cotitle)">✎ Edit Line Items</button>'
   h+='<div class="two"><div class="fg"><label class="fl">Submitted Date</label><input class="fi" type="date" id="eco-sub" value="'+(co.submitted_date?co.submitted_date.split('T')[0]:'')+'"></div>'
@@ -5022,10 +5069,10 @@ async function renderBillingTab(el){
   h+=_billStat('Paid to Date',_billMoney(paidToDate),'#16a34a')
   h+='</div>'
   h+='<div style="height:7px;background:#0c1220;border-radius:4px;overflow:hidden;margin-top:12px"><div style="height:100%;width:'+Math.min(100,pctBilled)+'%;background:#2563eb"></div></div>'
-  h+='<div style="font-size:10px;color:#414e63;margin-top:4px">'+pctBilled+'% of contract billed</div>'
+  h+='<div style="font-size:10px;color:#5a6b85;margin-top:4px">'+pctBilled+'% of contract billed</div>'
   h+='</div>'
   h+='<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center"><div class="card-title" style="margin:0">Draw Schedule</div><button class="btn btn-sm btn-p" onclick="addBillingDraw()">+ Add Draw</button></div>'
-  if(!draws.length){h+='<div style="font-size:12px;color:#414e63;padding:10px 0">No draws scheduled. Add draws/milestones for when you can bill.</div>'}
+  if(!draws.length){h+='<div style="font-size:12px;color:#5a6b85;padding:10px 0">No draws scheduled. Add draws/milestones for when you can bill.</div>'}
   else{
     h+='<table class="tbl" style="font-size:12px;margin-top:8px"><thead><tr><th>#</th><th>Description</th><th>Date</th><th style="text-align:right">Amount</th><th>Status</th><th></th></tr></thead><tbody>'
     var today=new Date();today.setHours(0,0,0,0)
@@ -5045,7 +5092,7 @@ async function renderBillingTab(el){
   }
   h+='</div>'
   h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div class="card-title" style="margin:0">Pay Applications</div><button class="btn btn-sm btn-p" onclick="addBillingApp()">+ New Bill</button></div>'
-  if(!apps.length){h+='<div style="font-size:12px;color:#414e63;padding:10px 0">No bills submitted yet.</div>'}
+  if(!apps.length){h+='<div style="font-size:12px;color:#5a6b85;padding:10px 0">No bills submitted yet.</div>'}
   else{
     h+='<table class="tbl" style="font-size:12px;margin-top:8px"><thead><tr><th>App #</th><th>Period End</th><th style="text-align:right">This Period</th><th style="text-align:right">Retainage</th><th style="text-align:right">Net Due</th><th>Status</th><th></th></tr></thead><tbody>'
     apps.forEach(function(a){
@@ -5065,7 +5112,7 @@ async function renderBillingTab(el){
   el.innerHTML=h
 }
 function _billStat(label,val,color){
-  return '<div style="background:#0a1019;border-radius:8px;padding:10px 12px"><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.04em">'+label+'</div><div style="font-size:16px;font-weight:700;color:'+color+';margin-top:3px">'+val+'</div></div>'
+  return '<div style="background:#0a1019;border-radius:8px;padding:10px 12px"><div style="font-size:10px;color:#5a6b85;text-transform:uppercase;letter-spacing:.04em">'+label+'</div><div style="font-size:16px;font-weight:700;color:'+color+';margin-top:3px">'+val+'</div></div>'
 }
 async function editBillingSetup(){
   var s=window._billSetup||{}
@@ -5073,7 +5120,7 @@ async function editBillingSetup(){
   h+='<div class="fg"><label class="fl">Billing Method</label><select class="fs" id="bs-method">'
   Object.keys(BILLING_METHODS).forEach(function(k){h+='<option value="'+k+'"'+(s.billing_method===k?' selected':'')+'>'+BILLING_METHODS[k]+'</option>'})
   h+='</select></div></div>'
-  h+='<div class="two"><div class="fg"><label class="fl">Retainage % <span style="color:#414e63;font-weight:400;font-size:10px">(0 = none)</span></label><input class="fi" type="number" step="0.1" id="bs-retainage" value="'+(s.retainage_pct!=null?s.retainage_pct:0)+'"></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Retainage % <span style="color:#5a6b85;font-weight:400;font-size:10px">(0 = none)</span></label><input class="fi" type="number" step="0.1" id="bs-retainage" value="'+(s.retainage_pct!=null?s.retainage_pct:0)+'"></div>'
   h+='<div class="fg"><label class="fl">Form Type</label><select class="fs" id="bs-form"><option value="">\u2014 Select \u2014</option>'
   Object.keys(BILLING_FORM_TYPES).forEach(function(k){h+='<option value="'+k+'"'+(s.form_type===k?' selected':'')+'>'+BILLING_FORM_TYPES[k]+'</option>'})
   h+='</select></div></div>'
@@ -5137,7 +5184,7 @@ async function editBillingApp(appId,prefill){
   var h='<div class="two"><div class="fg"><label class="fl">Application #</label><input class="fi" type="number" id="ba-num" value="'+(a?a.application_number||nextNum:nextNum)+'"></div>'
   h+='<div class="fg"><label class="fl">Period End</label><input class="fi" type="date" id="ba-period" value="'+(a&&a.period_end||'')+'"></div></div>'
   h+='<div class="fg"><label class="fl">Amount This Period ($) *</label><input class="fi" type="number" step="0.01" id="ba-amt" value="'+(defAmt!==''&&defAmt!=null?defAmt:'')+'" oninput="_billRecalc('+retPct+')"></div>'
-  h+='<div class="two"><div class="fg"><label class="fl">Retainage Held ($) <span style="color:#414e63;font-weight:400;font-size:10px">('+retPct+'%)</span></label><input class="fi" type="number" step="0.01" id="ba-ret" value="'+(a&&a.retainage_held!=null?a.retainage_held:'')+'"></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Retainage Held ($) <span style="color:#5a6b85;font-weight:400;font-size:10px">('+retPct+'%)</span></label><input class="fi" type="number" step="0.01" id="ba-ret" value="'+(a&&a.retainage_held!=null?a.retainage_held:'')+'"></div>'
   h+='<div class="fg"><label class="fl">Net Payable ($)</label><input class="fi" type="number" step="0.01" id="ba-net" value="'+(a&&a.net_payable!=null?a.net_payable:'')+'" readonly style="background:rgba(255,255,255,.03)"></div></div>'
   h+='<div class="fg"><label class="fl">Status</label><select class="fs" id="ba-status" onchange="_billStatusFields()">'
   ;['draft','submitted','paid'].forEach(function(st){h+='<option value="'+st+'"'+((a&&a.status||'draft')===st?' selected':'')+'>'+st.charAt(0).toUpperCase()+st.slice(1)+'</option>'})
@@ -5145,7 +5192,7 @@ async function editBillingApp(appId,prefill){
   h+='<div class="two"><div class="fg"><label class="fl">Submitted Date</label><input class="fi" type="date" id="ba-sub" value="'+(a&&a.submitted_date||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Paid Date</label><input class="fi" type="date" id="ba-paid" value="'+(a&&a.paid_date||'')+'"></div></div>'
   h+='<div class="fg" id="ba-paidamt-wrap" style="display:none"><label class="fl">Paid Amount ($)</label><input class="fi" type="number" step="0.01" id="ba-paidamt" value="'+(a&&a.paid_amount!=null?a.paid_amount:'')+'"></div>'
-  h+='<div class="fg"><label class="fl">Billing Form <span style="color:#414e63;font-weight:400;font-size:10px">(AIA, custom PDF, spreadsheet \u2014 attach the filled form)</span></label>'
+  h+='<div class="fg"><label class="fl">Billing Form <span style="color:#5a6b85;font-weight:400;font-size:10px">(AIA, custom PDF, spreadsheet \u2014 attach the filled form)</span></label>'
   h+='<div style="display:flex;align-items:center;gap:10px"><div id="ba-form-status" style="font-size:11px;color:#8a96ab;flex:1">'+(a&&a.form_url?'\ud83d\udcce '+_escapeHTML(a.form_name||'attached'):'No form attached')+'</div>'
   h+='<label class="btn btn-sm" style="cursor:pointer">\u2b06 Upload<input type="file" style="display:none" onchange="uploadBillingForm(this.files[0])"></label></div>'
   h+='<input type="hidden" id="ba-form-url" value="'+_escAttr(a&&a.form_url||'')+'"><input type="hidden" id="ba-form-name" value="'+_escAttr(a&&a.form_name||'')+'"></div>'
@@ -5252,20 +5299,20 @@ async function renderJobFinTab(el){
   +(lb>0?'<div style="font-size:10px;color:'+lbColor+';margin-top:2px;padding:0 6px">'+Math.round(lbPct)+'% of labor budget used</div>':'')
   +'</div>'
   +'<div class="card"><div class="card-title">Costs</div>'
-  +(j.labor_budget&&j.labor_rate?'<div class="fin-row" style="color:#414e63"><span>Budget Labor Cost ('+fh(j.labor_budget)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm((j.labor_budget||0)*(j.labor_rate||0))+'</span></div>':'')
+  +(j.labor_budget&&j.labor_rate?'<div class="fin-row" style="color:#5a6b85"><span>Budget Labor Cost ('+fh(j.labor_budget)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm((j.labor_budget||0)*(j.labor_rate||0))+'</span></div>':'')
   +'<div class="fin-row"><span style="color:#8a96ab">Labor Actual ('+fh(hrs)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm(labor)+'</span></div>'
   +(j.permit_fee?'<div class="fin-row"><span style="color:#8a96ab">Permit Fee</span><span>'+fm(j.permit_fee)+'</span></div>':'')
-  +(budgetLines.length?'<div style="border-top:1px solid rgba(255,255,255,.08);margin:8px 0 4px;padding-top:6px"><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Budget Line Items ('+budgetLines.length+')</div>'+budgetLines.map(function(l){return '<div class="fin-row"><span style="color:#8a96ab">'+_escapeHTML(l.description||'(no description)')+' <span style="font-size:10px;color:#414e63">\u00b7 '+(l.category||'')+'</span></span><span>'+fm(l.actual_amount||0)+(Number(l.budget_amount)?' <span style="color:#414e63;font-size:10px">/ '+fm(l.budget_amount)+'</span>':'')+'</span></div>'}).join('')+'<div class="fin-row" style="font-size:11px;color:#60a5fa;font-weight:600"><span>Budget Lines Subtotal</span><span>'+fm(budgetLinesActualTotal)+'</span></div></div>':'<div style="font-size:11px;color:#414e63;padding:8px 0;text-align:center">No budget line items yet. Add them in <strong>Edit Budget</strong> above.</div>')
+  +(budgetLines.length?'<div style="border-top:1px solid rgba(255,255,255,.08);margin:8px 0 4px;padding-top:6px"><div style="font-size:10px;color:#5a6b85;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Budget Line Items ('+budgetLines.length+')</div>'+budgetLines.map(function(l){return '<div class="fin-row"><span style="color:#8a96ab">'+_escapeHTML(l.description||'(no description)')+' <span style="font-size:10px;color:#5a6b85">\u00b7 '+(l.category||'')+'</span></span><span>'+fm(l.actual_amount||0)+(Number(l.budget_amount)?' <span style="color:#5a6b85;font-size:10px">/ '+fm(l.budget_amount)+'</span>':'')+'</span></div>'}).join('')+'<div class="fin-row" style="font-size:11px;color:#60a5fa;font-weight:600"><span>Budget Lines Subtotal</span><span>'+fm(budgetLinesActualTotal)+'</span></div></div>':'<div style="font-size:11px;color:#5a6b85;padding:8px 0;text-align:center">No budget line items yet. Add them in <strong>Edit Budget</strong> above.</div>')
   +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(totalCost)+'</span></div>'
   +'</div>'
   +'</div>'
   +(j.permit_fee?'<div class="fin-row"><span style="color:#8a96ab">Permit Fee</span><span>'+fm(j.permit_fee)+'</span></div>':'')
-  +(budgetLines.length?'<div style="border-top:1px solid rgba(255,255,255,.08);margin:8px 0 4px;padding-top:6px"><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Budget Line Items ('+budgetLines.length+')</div>'+budgetLines.map(function(l){return '<div class="fin-row"><span style="color:#8a96ab">'+_escapeHTML(l.description||'(no description)')+' <span style="font-size:10px;color:#414e63">\u00b7 '+(l.category||'')+'</span></span><span>'+fm(l.actual_amount||0)+(Number(l.budget_amount)?' <span style="color:#414e63;font-size:10px">/ '+fm(l.budget_amount)+'</span>':'')+'</span></div>'}).join('')+'<div class="fin-row" style="font-size:11px;color:#60a5fa;font-weight:600"><span>Budget Lines Subtotal</span><span>'+fm(budgetLinesActualTotal)+'</span></div></div>':'<div style="font-size:11px;color:#414e63;padding:8px 0;text-align:center">No budget line items yet. Add them in <strong>Edit Budget</strong> above.</div>')
+  +(budgetLines.length?'<div style="border-top:1px solid rgba(255,255,255,.08);margin:8px 0 4px;padding-top:6px"><div style="font-size:10px;color:#5a6b85;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Budget Line Items ('+budgetLines.length+')</div>'+budgetLines.map(function(l){return '<div class="fin-row"><span style="color:#8a96ab">'+_escapeHTML(l.description||'(no description)')+' <span style="font-size:10px;color:#5a6b85">\u00b7 '+(l.category||'')+'</span></span><span>'+fm(l.actual_amount||0)+(Number(l.budget_amount)?' <span style="color:#5a6b85;font-size:10px">/ '+fm(l.budget_amount)+'</span>':'')+'</span></div>'}).join('')+'<div class="fin-row" style="font-size:11px;color:#60a5fa;font-weight:600"><span>Budget Lines Subtotal</span><span>'+fm(budgetLinesActualTotal)+'</span></div></div>':'<div style="font-size:11px;color:#5a6b85;padding:8px 0;text-align:center">No budget line items yet. Add them in <strong>Edit Budget</strong> above.</div>')
   +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(labor+(j.permit_fee||0)+budgetLinesActualTotal)+'</span></div>'
   +'</div>'
   +'</div>'
   +'</div>'
-  +(catKeys.length?'<div class="card" style="margin-top:14px"><div class="card-title">Estimate vs Actual by Category</div>'+'<div style="font-size:11px;color:#8a96ab;margin-bottom:10px">Tracking spend against your estimate breakdown. Each line item rolls into its category.</div>'+'<table class="tbl" style="font-size:12px"><thead><tr><th>Category</th><th style="text-align:right">Estimate</th><th style="text-align:right">Actual</th><th style="text-align:right">Variance</th><th style="width:30%">% Used</th></tr></thead><tbody>'+catKeys.map(function(c){var d=byCat[c];var variance=d.budget-d.actual;var pct=d.budget>0?Math.round(d.actual/d.budget*100):(d.actual>0?100:0);var vColor=variance>=0?'#16a34a':'#dc2626';var barColor=pct>100?'#dc2626':pct>=85?'#d97706':'#16a34a';return '<tr><td><strong>'+(CAT_LABELS[c]||c)+'</strong> <span style="color:#414e63;font-size:10px">\u00b7 '+d.count+' line'+(d.count!==1?'s':'')+'</span></td><td style="text-align:right">'+fm(d.budget)+'</td><td style="text-align:right;color:#60a5fa;font-weight:600">'+fm(d.actual)+'</td><td style="text-align:right;color:'+vColor+';font-weight:600">'+(variance>=0?'+':'')+fm(variance)+'</td><td><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:8px;background:#0c1220;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,pct)+'%;background:'+barColor+'"></div></div><span style="font-size:11px;color:'+barColor+';font-weight:600;min-width:42px;text-align:right">'+pct+'%</span></div></td></tr>'}).join('')+'<tr style="border-top:2px solid rgba(255,255,255,.1);font-weight:700"><td>TOTAL</td><td style="text-align:right">'+fm(budgetLinesPlanTotal)+'</td><td style="text-align:right;color:#60a5fa">'+fm(budgetLinesActualTotal)+'</td><td style="text-align:right;color:'+((budgetLinesPlanTotal-budgetLinesActualTotal)>=0?'#16a34a':'#dc2626')+'">'+((budgetLinesPlanTotal-budgetLinesActualTotal)>=0?'+':'')+fm(budgetLinesPlanTotal-budgetLinesActualTotal)+'</td><td></td></tr>'+'</tbody></table></div>':'')
+  +(catKeys.length?'<div class="card" style="margin-top:14px"><div class="card-title">Estimate vs Actual by Category</div>'+'<div style="font-size:11px;color:#8a96ab;margin-bottom:10px">Tracking spend against your estimate breakdown. Each line item rolls into its category.</div>'+'<table class="tbl" style="font-size:12px"><thead><tr><th>Category</th><th style="text-align:right">Estimate</th><th style="text-align:right">Actual</th><th style="text-align:right">Variance</th><th style="width:30%">% Used</th></tr></thead><tbody>'+catKeys.map(function(c){var d=byCat[c];var variance=d.budget-d.actual;var pct=d.budget>0?Math.round(d.actual/d.budget*100):(d.actual>0?100:0);var vColor=variance>=0?'#16a34a':'#dc2626';var barColor=pct>100?'#dc2626':pct>=85?'#d97706':'#16a34a';return '<tr><td><strong>'+(CAT_LABELS[c]||c)+'</strong> <span style="color:#5a6b85;font-size:10px">\u00b7 '+d.count+' line'+(d.count!==1?'s':'')+'</span></td><td style="text-align:right">'+fm(d.budget)+'</td><td style="text-align:right;color:#60a5fa;font-weight:600">'+fm(d.actual)+'</td><td style="text-align:right;color:'+vColor+';font-weight:600">'+(variance>=0?'+':'')+fm(variance)+'</td><td><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:8px;background:#0c1220;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,pct)+'%;background:'+barColor+'"></div></div><span style="font-size:11px;color:'+barColor+';font-weight:600;min-width:42px;text-align:right">'+pct+'%</span></div></td></tr>'}).join('')+'<tr style="border-top:2px solid rgba(255,255,255,.1);font-weight:700"><td>TOTAL</td><td style="text-align:right">'+fm(budgetLinesPlanTotal)+'</td><td style="text-align:right;color:#60a5fa">'+fm(budgetLinesActualTotal)+'</td><td style="text-align:right;color:'+((budgetLinesPlanTotal-budgetLinesActualTotal)>=0?'#16a34a':'#dc2626')+'">'+((budgetLinesPlanTotal-budgetLinesActualTotal)>=0?'+':'')+fm(budgetLinesPlanTotal-budgetLinesActualTotal)+'</td><td></td></tr>'+'</tbody></table></div>':'')
   +'<div class="card" style="background:'+(profit>=0?'rgba(22,163,74,.08)':'rgba(220,38,38,.08)')+'">'
   +'<div style="font-size:26px;font-weight:300;color:'+(profit>=0?'#16a34a':'#dc2626')+'">'+fm(profit)+(margin!=null?' ('+margin+'%)':'')+' </div>'
   +'<div style="font-size:12px;color:#8a96ab;margin-top:3px;margin-bottom:'+(lb>0?'14':'0')+'px">Gross Profit &middot; '+fh(hrs)+' logged</div>'
@@ -5301,7 +5348,7 @@ function editBudget(){const j=currentJob;modal('Edit Budget',\`<div class="two">
 async function renderDocsTab(el){
   const{data:docs}=await sb.from('job_documents').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
   el.innerHTML=\`<label class="btn btn-p btn-sm" style="cursor:pointer;margin-bottom:12px">+ Upload Document<input type="file" style="display:none" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg" onchange="uploadJobDoc(this.files)"></label>
-  \${(docs||[]).map(d=>\`<div class="doc-row"><div style="font-size:18px">\${d.file_name.endsWith('.pdf')?'📄':d.file_name.match(/\\.(png|jpg|jpeg)$/i)?'🖼':'📎'}</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${d.name}</div><div style="font-size:10px;color:#414e63">\${d.category||'General'} · \${d.uploaded_by||''} · \${fd(d.created_at)}</div></div><a href="\${d.url}" target="_blank" class="btn btn-sm">View</a></div>\`).join('')||empty('📁','No documents uploaded')}\` 
+  \${(docs||[]).map(d=>\`<div class="doc-row"><div style="font-size:18px">\${d.file_name.endsWith('.pdf')?'📄':d.file_name.match(/\\.(png|jpg|jpeg)$/i)?'🖼':'📎'}</div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${d.name}</div><div style="font-size:10px;color:#5a6b85">\${d.category||'General'} · \${d.uploaded_by||''} · \${fd(d.created_at)}</div></div><a href="\${d.url}" target="_blank" class="btn btn-sm">View</a></div>\`).join('')||empty('📁','No documents uploaded')}\` 
 }
 async function uploadJobDoc(files){for(const f of files){const path=\`jobs/\${currentJobId}/docs/\${Date.now()}_\${f.name}\`;const{error}=await sb.storage.from('documents').upload(path,f,{upsert:true});if(!error){const{data:{publicUrl}}=sb.storage.from('documents').getPublicUrl(path);await sb.from('job_documents').insert({id:uuid(),job_id:currentJobId,name:f.name,file_name:f.name,category:'general',storage_path:path,url:publicUrl,uploaded_by:ME?.full_name,created_at:new Date().toISOString()})}};toast('Uploaded');loadJT('jt-docs')}
 
@@ -5309,7 +5356,7 @@ async function uploadJobDoc(files){for(const f of files){const path=\`jobs/\${cu
 async function renderLogTab(el){
   const{data:logs}=await sb.from('daily_logs').select('*').eq('job_id',currentJobId).order('created_at',{ascending:false})
   el.innerHTML=\`<div style="margin-bottom:12px"><div class="two" style="margin-bottom:7px"><select class="fs" id="log-type"><option value="note">Note</option><option value="issue">Issue</option><option value="progress">Progress</option><option value="delivery">Delivery</option></select><button class="btn btn-p" onclick="addLog()">Add</button></div><textarea class="ft" id="log-txt" placeholder="Field note…"></textarea></div>
-  \${(logs||[]).map(l=>\`<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;font-weight:600;color:\${l.type==='issue'?'#dc2626':l.type==='progress'?'#16a34a':'#414e63'}">\${(l.type||'NOTE').toUpperCase()}</span><span style="font-size:10px;color:#414e63">\${l.author||''} · \${fdt(l.created_at)}</span></div><div style="font-size:13px;color:#8a96ab;white-space:pre-wrap">\${l.content}</div></div>\`).join('')||'<div style="font-size:12px;color:#414e63">No entries</div>'}\`
+  \${(logs||[]).map(l=>\`<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;font-weight:600;color:\${l.type==='issue'?'#dc2626':l.type==='progress'?'#16a34a':'#5a6b85'}">\${(l.type||'NOTE').toUpperCase()}</span><span style="font-size:10px;color:#5a6b85">\${l.author||''} · \${fdt(l.created_at)}</span></div><div style="font-size:13px;color:#8a96ab;white-space:pre-wrap">\${l.content}</div></div>\`).join('')||'<div style="font-size:12px;color:#5a6b85">No entries</div>'}\`
 }
 async function addLog(){const c=v('log-txt').trim();if(!c)return;await sb.from('daily_logs').insert({id:uuid(),job_id:currentJobId,type:v('log-type'),content:c,author:ME?.full_name,created_at:new Date().toISOString()});document.getElementById('log-txt').value='';toast('Added');loadJT('jt-log')}
 // ══════════════════════════════════════════
@@ -5371,10 +5418,10 @@ async function pgNewJob(){
       <div class="three"><div class="fg"><label class="fl">Original Contract $</label><input class="fi" type="number" id="nj-cv"></div>
       <div class="fg"><label class="fl">Labor Budget (hrs)</label><input class="fi" type="number" id="nj-lb"></div>
       <div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="nj-lr"></div></div>
-      <div class="fg"><label class="fl">Contractor / Account <span style="color:#414e63;font-weight:400;font-size:10px">(from CRM)</span></label><select class="fs" id="nj-account" onchange="njAccountChanged()"><option value="">— Select account —</option>\${(crmAccounts||[]).map(function(a){return '<option value="'+a.id+'">'+a.name+'</option>'}).join('')}</select></div>
+      <div class="fg"><label class="fl">Contractor / Account <span style="color:#5a6b85;font-weight:400;font-size:10px">(from CRM)</span></label><select class="fs" id="nj-account" onchange="njAccountChanged()"><option value="">— Select account —</option>\${(crmAccounts||[]).map(function(a){return '<option value="'+a.id+'">'+a.name+'</option>'}).join('')}</select></div>
       <div class="two"><div class="fg"><label class="fl">GC Project Manager</label><select class="fs" id="nj-gcpm"><option value="">— pick account first —</option></select></div>
       <div class="fg"><label class="fl">GC Superintendent</label><select class="fs" id="nj-gcsuper"><option value="">— pick account first —</option></select></div></div>
-      <div class="fg"><label class="fl">GC Company <span style="color:#414e63;font-weight:400;font-size:10px">(auto-fills from account, or type for non-CRM)</span></label><input class="fi" id="nj-gc"></div>
+      <div class="fg"><label class="fl">GC Company <span style="color:#5a6b85;font-weight:400;font-size:10px">(auto-fills from account, or type for non-CRM)</span></label><input class="fi" id="nj-gc"></div>
       <div class="two"><div class="fg"><label class="fl">GC Contact (free text)</label><input class="fi" id="nj-gcc"></div><div class="fg"><label class="fl">GC Phone</label><input class="fi" id="nj-gcp"></div></div>
       <div class="two"><div class="fg"><label class="fl">Superintendent</label><input class="fi" id="nj-sup"></div><div class="fg"><label class="fl">Super Phone</label><input class="fi" id="nj-supp"></div></div>
       <div class="fg"><label class="fl">Project Manager (Internal)</label><select class="fs" id="nj-pm"><option value="">— Assign PM —</option></select></div>
@@ -5386,7 +5433,7 @@ async function pgNewJob(){
   <div>
     <div class="card">
       <div class="fg"><label class="fl">Sub Company</label><select class="fs" id="nj-co" onchange="loadNjWorkers()"><option value="">— None —</option>\${(companies||[]).map(c=>\`<option value="\${c.id}">\${c.name}</option>\`).join('')}</select></div>
-      <div class="fg"><label class="fl">Workers</label><div id="nj-workers" style="background:#131c2e;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:9px;min-height:44px"><div style="font-size:11px;color:#414e63">Select a company first</div></div></div>
+      <div class="fg"><label class="fl">Workers</label><div id="nj-workers" style="background:#131c2e;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:9px;min-height:44px"><div style="font-size:11px;color:#5a6b85">Select a company first</div></div></div>
       <div class="fg"><label class="fl">PM Review</label><select class="fs" id="nj-pmr"><option value="midpoint_and_final">Mid-point &amp; Final</option><option value="final_only">Final only</option><option value="none">None</option></select></div>
       <div class="fg"><label class="fl">Scope of Work</label><textarea class="ft" id="nj-scope"></textarea></div>
       <div class="fg"><label class="fl">Install Notes</label><textarea class="ft" id="nj-notes" style="min-height:55px"></textarea></div>
@@ -5425,7 +5472,7 @@ async function populateNjPM(pmUsers){
   var edEst=document.getElementById('ed-estimator')
   if(edEst){edEst.innerHTML='<option value="">— Unassigned —</option>'+users.filter(function(p){return['admin','pm','estimator'].includes(p.role)}).map(p=>'<option value="'+p.full_name+'">'+p.full_name+'</option>').join('');if(currentJob)edEst.value=currentJob.estimator||''}
 }
-async function loadNjWorkers(){const coId=v('nj-co');const wrap=document.getElementById('nj-workers');if(!wrap)return;if(!coId){wrap.innerHTML='<div style="font-size:11px;color:#414e63">Select a company first</div>';return};const{data}=await sb.from('profiles').select('id,full_name,is_lead').eq('company_id',coId).eq('is_active',true);wrap.innerHTML=(data||[]).map(w=>\`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><input type="checkbox" id="w-\${w.id}" value="\${w.id}" \${w.is_lead?'checked':''}><label for="w-\${w.id}" style="font-size:12px;color:#8a96ab">\${w.full_name}\${w.is_lead?' (Lead)':''}</label></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No workers</div>'}
+async function loadNjWorkers(){const coId=v('nj-co');const wrap=document.getElementById('nj-workers');if(!wrap)return;if(!coId){wrap.innerHTML='<div style="font-size:11px;color:#5a6b85">Select a company first</div>';return};const{data}=await sb.from('profiles').select('id,full_name,is_lead').eq('company_id',coId).eq('is_active',true);wrap.innerHTML=(data||[]).map(w=>\`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><input type="checkbox" id="w-\${w.id}" value="\${w.id}" \${w.is_lead?'checked':''}><label for="w-\${w.id}" style="font-size:12px;color:#8a96ab">\${w.full_name}\${w.is_lead?' (Lead)':''}</label></div>\`).join('')||'<div style="font-size:11px;color:#5a6b85">No workers</div>'}
 async function submitNewJob(){
   const name=v('nj-name').trim();if(!name){toast('Job name required','error');return}
   const btn=document.getElementById('nj-btn');btn.disabled=true;btn.textContent='Creating…'
@@ -5435,7 +5482,35 @@ async function submitNewJob(){
   const{data:created,error}=await sb.from('jobs').insert(job).select().single()
   if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Create Job';return}
   document.querySelectorAll('#nj-workers input[type=checkbox]:checked').forEach(async cb=>await sb.from('job_workers').insert({id:uuid(),job_id:created.id,worker_id:cb.value,is_active:true,added_by:ME?.full_name,added_at:new Date().toISOString()}))
+  // If PM Visit Schedule is "14 days before start" and we have a start date,
+  // auto-schedule a PM Review task so it surfaces on Today + Tasks
+  try{await schedulePreStartReview(created)}catch(e){console.warn('pm review schedule failed:',e.message)}
   toast('Job created!');allJobs.unshift(created);openJob(created.id)
+}
+// Schedule (or update) a PM Review task 14 days before the job's projected
+// start date when pm_visit_schedule='pre_start'. Idempotent: keyed by job_id +
+// source='pre_start_review' so it updates the existing one instead of duplicating.
+async function schedulePreStartReview(job){
+  if(!job)return
+  var startDate=job.projected_start||job.expected_onsite_date||job.date_start
+  if(job.pm_visit_schedule!=='pre_start'||!startDate)return
+  var d=new Date(startDate);d.setDate(d.getDate()-14)
+  var dueDate=d.toISOString().split('T')[0]
+  // Look up existing PM Review task for this job
+  var existing=await sb.from('job_tasks').select('id').eq('job_id',job.id).eq('source','pre_start_review').limit(1)
+  // Try to resolve a PM user-id from the job's project_manager name
+  var pmUserId=null,pmName=job.project_manager||''
+  if(pmName){
+    try{var pr=await sb.from('profiles').select('id,full_name').ilike('full_name','%'+pmName.split(' ')[0]+'%').limit(1);if(pr.data&&pr.data.length){pmUserId=pr.data[0].id;pmName=pr.data[0].full_name}}catch(e){}
+  }
+  var taskData={job_id:job.id,job_name:job.name,title:'PM Pre-Start Review (14 days)',description:'PM review 14 days before scheduled start of '+(job.name||''),due_date:dueDate,assigned_to:pmUserId,assigned_name:pmName||null,priority:'high',status:'open',source:'pre_start_review',updated_at:new Date().toISOString()}
+  if(existing.data&&existing.data.length){
+    await sb.from('job_tasks').update(taskData).eq('id',existing.data[0].id)
+  }else{
+    taskData.id=uuid();taskData.created_by='System';taskData.created_at=new Date().toISOString()
+    await sb.from('job_tasks').insert(taskData)
+    if(pmUserId)await notify(pmUserId,'task','PM Pre-Start Review scheduled',taskData.title+' · '+job.name,{jobId:job.id})
+  }
 }
 
 // ══════════════════════════════════════════
@@ -5502,7 +5577,7 @@ async function pgBilling(){
 
   // Billable now
   h+='<div class="card" style="margin-bottom:14px;border:1px solid rgba(217,119,6,.25)"><div class="card-title" style="color:#d97706">\ud83d\udcb0 Billable Now ('+billable.length+')</div>'
-  if(!billable.length){h+='<div style="font-size:12px;color:#414e63;padding:6px 0">Nothing is due to bill right now.</div>'}
+  if(!billable.length){h+='<div style="font-size:12px;color:#5a6b85;padding:6px 0">Nothing is due to bill right now.</div>'}
   else{
     h+='<table class="tbl" style="font-size:12px"><thead><tr><th>Job</th><th>Draw</th><th>Scheduled</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>'
     billable.forEach(function(d){
@@ -5522,26 +5597,26 @@ async function pgBilling(){
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px">'
   // Outstanding
   h+='<div class="card"><div class="card-title">\ud83d\udce4 Outstanding Bills ('+outBills.length+')</div>'
-  if(!outBills.length){h+='<div style="font-size:12px;color:#414e63;padding:6px 0">No unpaid submitted bills.</div>'}
+  if(!outBills.length){h+='<div style="font-size:12px;color:#5a6b85;padding:6px 0">No unpaid submitted bills.</div>'}
   else{
     outBills.sort(function(a,b){return new Date(a.submitted_date||0)-new Date(b.submitted_date||0)})
     outBills.forEach(function(a){
       var j=jobsById[a.job_id]
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" data-jid="'+a.job_id+'" onclick="billingOpenJob(this.dataset.jid)">'
-      h+='<div><div style="font-size:12px;font-weight:500">'+_escapeHTML(j?j.name:'')+'</div><div style="font-size:10px;color:#414e63">App #'+(a.application_number||'')+(a.submitted_date?' \u00b7 submitted '+fd(a.submitted_date):'')+'</div></div>'
+      h+='<div><div style="font-size:12px;font-weight:500">'+_escapeHTML(j?j.name:'')+'</div><div style="font-size:10px;color:#5a6b85">App #'+(a.application_number||'')+(a.submitted_date?' \u00b7 submitted '+fd(a.submitted_date):'')+'</div></div>'
       h+='<div style="font-size:13px;font-weight:700;color:#d97706">'+_billMoney(a.net_payable)+'</div></div>'
     })
   }
   h+='</div>'
   // Upcoming draws
   h+='<div class="card"><div class="card-title">\ud83d\uddd3 Upcoming Draws (30d)</div>'
-  if(!upcoming.length){h+='<div style="font-size:12px;color:#414e63;padding:6px 0">No draws scheduled in the next 30 days.</div>'}
+  if(!upcoming.length){h+='<div style="font-size:12px;color:#5a6b85;padding:6px 0">No draws scheduled in the next 30 days.</div>'}
   else{
     upcoming.forEach(function(d){
       var j=jobsById[d.job_id],setup=setupByJob[d.job_id]
       var amt=d.scheduled_amount!=null?d.scheduled_amount:(d.scheduled_pct&&setup?Number(setup.contract_value)*d.scheduled_pct/100:0)
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" data-jid="'+d.job_id+'" onclick="billingOpenJob(this.dataset.jid)">'
-      h+='<div><div style="font-size:12px;font-weight:500">'+_escapeHTML(j?j.name:'')+'</div><div style="font-size:10px;color:#414e63">'+(d.draw_number?'#'+d.draw_number+' ':'')+_escapeHTML(d.description||'')+' \u00b7 '+fd(d.scheduled_date)+'</div></div>'
+      h+='<div><div style="font-size:12px;font-weight:500">'+_escapeHTML(j?j.name:'')+'</div><div style="font-size:10px;color:#5a6b85">'+(d.draw_number?'#'+d.draw_number+' ':'')+_escapeHTML(d.description||'')+' \u00b7 '+fd(d.scheduled_date)+'</div></div>'
       h+='<div style="font-size:13px;font-weight:600;color:#8a96ab">'+_billMoney(amt)+'</div></div>'
     })
   }
@@ -5758,7 +5833,7 @@ async function pgDesign(){
     h+='<div style="background:#0a1019;border:1px solid rgba(59,130,246,.25);border-radius:11px;padding:14px 16px;margin-bottom:18px">'
     h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
     h+='<div style="font-size:13px;font-weight:700;color:#60a5fa">📐 CADs Requested · Not Received ('+cadPending.length+')</div>'
-    h+='<div style="font-size:10px;color:#414e63">Sorted by wait time</div></div>'
+    h+='<div style="font-size:10px;color:#5a6b85">Sorted by wait time</div></div>'
     h+='<table class="tbl" style="font-size:12px"><thead><tr><th>Job</th><th>Requested From</th><th>Requested</th><th style="text-align:right">Waiting</th></tr></thead><tbody>'
     cadPending.forEach(function(c){
       var wColor=c.waitingDays>=14?'#dc2626':c.waitingDays>=7?'#d97706':'#16a34a'
@@ -5794,7 +5869,7 @@ async function pgDesign(){
   var columns=PERMIT_STEPS_FULL.slice()
   if(!anyNeedsReview)columns=columns.filter(function(c){return c[0]!=='architect_review'&&c[0]!=='customer_review'})
   var totalFees=jobs.reduce(function(s,j){return s+(Number(j.permit_fee)||0)},0)
-  h+='<div style="font-size:13px;font-weight:700;margin-bottom:10px">Pipeline Board <span style="font-size:11px;color:#414e63;font-weight:400">· '+jobs.length+' jobs'+(totalFees>0?' · '+fm(totalFees)+' total permit fees':'')+'</span></div>'
+  h+='<div style="font-size:13px;font-weight:700;margin-bottom:10px">Pipeline Board <span style="font-size:11px;color:#5a6b85;font-weight:400">· '+jobs.length+' jobs'+(totalFees>0?' · '+fm(totalFees)+' total permit fees':'')+'</span></div>'
   h+='<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:12px">'
   columns.forEach(function(col){
     var colKey=col[0],colLabel=col[1]
@@ -5803,7 +5878,7 @@ async function pgDesign(){
     // Issued column collects all done jobs
     if(colKey==='permit_issued')jobsHere=Object.keys(jobState).filter(function(jid){return jobState[jid].allDone&&pmMatch(jid)})
     h+='<div style="flex:0 0 220px;background:#0a1019;border-radius:10px;padding:10px">'
-    h+='<div style="font-size:11px;font-weight:700;color:#8a96ab;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;display:flex;justify-content:space-between">'+colLabel+'<span style="color:#414e63">'+jobsHere.length+'</span></div>'
+    h+='<div style="font-size:11px;font-weight:700;color:#8a96ab;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;display:flex;justify-content:space-between">'+colLabel+'<span style="color:#5a6b85">'+jobsHere.length+'</span></div>'
     if(!jobsHere.length){h+='<div style="font-size:11px;color:#2a3444;padding:6px 0">—</div>'}
     jobsHere.forEach(function(jid){
       var s=jobState[jid],j=s.job
@@ -5812,7 +5887,7 @@ async function pgDesign(){
       h+='<div style="font-size:12px;font-weight:600;line-height:1.2">'+_escapeHTML(j.name)+'</div>'
       var _pn=window._designParentName?window._designParentName(j.parent_job_id):null
       if(_pn)h+='<div style="font-size:9px;color:#60a5fa">📂 '+_escapeHTML(_pn)+'</div>'
-      if(j.job_number)h+='<div style="font-size:10px;color:#414e63">#'+_escapeHTML(j.job_number)+'</div>'
+      if(j.job_number)h+='<div style="font-size:10px;color:#5a6b85">#'+_escapeHTML(j.job_number)+'</div>'
       var meta=[]
       if(st&&st.assigned_name)meta.push('👤 '+st.assigned_name)
       if(st&&st.external_party)meta.push('🏛 '+st.external_party)
@@ -5820,7 +5895,7 @@ async function pgDesign(){
       if(meta.length)h+='<div style="font-size:10px;color:#8a96ab;margin-top:3px">'+_escapeHTML(meta.join(' · '))+'</div>'
       // Time-in-stage (amber if long) — not shown on issued
       if(!s.allDone&&s.daysInStage!=null){
-        var tisColor=s.daysInStage>=_designStallDays?'#d97706':'#414e63'
+        var tisColor=s.daysInStage>=_designStallDays?'#d97706':'#5a6b85'
         h+='<div style="font-size:10px;color:'+tisColor+';margin-top:2px">⏱ '+s.daysInStage+'d in stage</div>'
       }
       // Days in city review (only relevant at/after submit)
@@ -5839,7 +5914,7 @@ async function pgDesign(){
   el.innerHTML=h
 }
 function _designStat(label,val,color){
-  return '<div style="background:#0a1019;border-radius:9px;padding:11px 13px"><div style="font-size:10px;color:#414e63;text-transform:uppercase;letter-spacing:.04em">'+label+'</div><div style="font-size:18px;font-weight:700;color:'+color+';margin-top:3px">'+val+'</div></div>'
+  return '<div style="background:#0a1019;border-radius:9px;padding:11px 13px"><div style="font-size:10px;color:#5a6b85;text-transform:uppercase;letter-spacing:.04em">'+label+'</div><div style="font-size:18px;font-weight:700;color:'+color+';margin-top:3px">'+val+'</div></div>'
 }
 function _designFollowCol(title,items,color){
   var h='<div><div style="font-size:11px;font-weight:600;color:'+color+';margin-bottom:6px">'+title+' ('+items.length+')</div>'
@@ -5848,7 +5923,7 @@ function _designFollowCol(title,items,color){
     items.slice(0,8).forEach(function(it){
       h+='<div onclick="designOpenJob(\\''+it.job.id+'\\')" style="font-size:11px;padding:4px 0;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04)"><span style="color:#e8edf5">'+_escapeHTML(it.job.name)+'</span> <span style="color:'+color+'">· '+_escapeHTML(it.label)+'</span></div>'
     })
-    if(items.length>8)h+='<div style="font-size:10px;color:#414e63;padding-top:4px">+ '+(items.length-8)+' more</div>'
+    if(items.length>8)h+='<div style="font-size:10px;color:#5a6b85;padding-top:4px">+ '+(items.length-8)+' more</div>'
   }
   h+='</div>'
   return h
@@ -5945,7 +6020,7 @@ function renderCalendar(){
   // Filter checkboxes
   h+='<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;padding:10px 12px;background:#0a1019;border-radius:9px">'
   CAL_TYPES.forEach(function(t){
-    h+='<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:'+(_calFilters[t.key]?'#e8edf5':'#414e63')+'">'
+    h+='<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:'+(_calFilters[t.key]?'#e8edf5':'#5a6b85')+'">'
     h+='<input type="checkbox" '+(_calFilters[t.key]?'checked':'')+' onchange="calToggleFilter(\\''+t.key+'\\')" style="accent-color:'+t.color+'">'
     h+='<span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:'+t.color+'"></span>'+t.label+'</label>'
   })
@@ -5975,12 +6050,12 @@ function _calMonthGrid(byDate){
     evs.slice(0,4).forEach(function(e){
       h+='<div onclick="calOpenEvent(\\''+(e.jobId||'')+'\\',\\''+(e.taskId||'')+'\\',\\''+(e.accountId||'')+'\\')" style="font-size:9px;padding:2px 4px;margin-bottom:2px;border-radius:3px;background:'+calEventColor(e.type)+'22;border-left:2px solid '+calEventColor(e.type)+';cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+_escAttr(e.title+' — '+(e.sub||''))+'">'+calEventIcon(e.type)+' '+_escapeHTML(e.title)+'</div>'
     })
-    if(evs.length>4)h+='<div style="font-size:9px;color:#414e63">+'+(evs.length-4)+' more</div>'
+    if(evs.length>4)h+='<div style="font-size:9px;color:#5a6b85">+'+(evs.length-4)+' more</div>'
     h+='</div>'
   }
   h+='</div>'
   // Legend hint
-  h+='<div style="font-size:11px;color:#414e63;margin-top:10px;text-align:center">Click any event to open its job, task, or account.</div>'
+  h+='<div style="font-size:11px;color:#5a6b85;margin-top:10px;text-align:center">Click any event to open its job, task, or account.</div>'
   return h
 }
 function _calWeekAgenda(byDate){
@@ -5996,13 +6071,13 @@ function _calWeekAgenda(byDate){
     var isToday=key===todayKey
     h+='<div style="margin-bottom:10px">'
     h+='<div style="font-size:13px;font-weight:'+(isToday?'700':'600')+';color:'+(isToday?'#60a5fa':'#e8edf5')+';margin-bottom:6px;display:flex;align-items:center;gap:8px">'+d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})+(isToday?' <span class="badge bg-blue" style="font-size:9px">Today</span>':'')+'</div>'
-    if(!evs.length){h+='<div style="font-size:11px;color:#414e63;padding-left:4px">—</div>'}
+    if(!evs.length){h+='<div style="font-size:11px;color:#5a6b85;padding-left:4px">—</div>'}
     else{
       evs.forEach(function(e){
         h+='<div onclick="calOpenEvent(\\''+(e.jobId||'')+'\\',\\''+(e.taskId||'')+'\\',\\''+(e.accountId||'')+'\\')" style="display:flex;align-items:center;gap:9px;padding:8px 11px;background:#0a1019;border-left:3px solid '+calEventColor(e.type)+';border-radius:7px;margin-bottom:5px;cursor:pointer">'
         h+='<span style="font-size:13px">'+calEventIcon(e.type)+'</span>'
         h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">'+_escapeHTML(e.title)+'</div>'
-        if(e.sub)h+='<div style="font-size:10px;color:#414e63">'+_escapeHTML(e.sub)+'</div>'
+        if(e.sub)h+='<div style="font-size:10px;color:#5a6b85">'+_escapeHTML(e.sub)+'</div>'
         h+='</div></div>'
       })
     }
@@ -6033,17 +6108,17 @@ async function pgSchedule(){
     <div>
       <div class="card">
         <div class="card-title" style="color:#d97706">⚠ Due in Next 14 Days (\${upcoming.length})</div>
-        \${upcoming.length?upcoming.map(e=>\`<div class="sched-item" onclick="openJob('\${e.jobId}')"><div class="sched-dot" style="background:\${e.da<=3?'#dc2626':e.da<=7?'#d97706':'#16a34a'};margin-top:5px"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${e.job}</div><div style="font-size:10px;color:#414e63">\${e.type} · \${fd(e.date)}</div></div><span class="badge \${e.da<=3?'bg-red':e.da<=7?'bg-amber':'bg-green'}">\${e.da===0?'Today':e.da+'d'}</span></div>\`).join(''):empty('✅','Nothing due in next 14 days')}
+        \${upcoming.length?upcoming.map(e=>\`<div class="sched-item" onclick="openJob('\${e.jobId}')"><div class="sched-dot" style="background:\${e.da<=3?'#dc2626':e.da<=7?'#d97706':'#16a34a'};margin-top:5px"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${e.job}</div><div style="font-size:10px;color:#5a6b85">\${e.type} · \${fd(e.date)}</div></div><span class="badge \${e.da<=3?'bg-red':e.da<=7?'bg-amber':'bg-green'}">\${e.da===0?'Today':e.da+'d'}</span></div>\`).join(''):empty('✅','Nothing due in next 14 days')}
       </div>
       <div class="card">
         <div class="card-title">Past Due / Recent</div>
-        \${past.length?past.map(e=>\`<div class="sched-item" onclick="openJob('\${e.jobId}')"><div class="sched-dot" style="background:#dc2626;margin-top:5px"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${e.job}</div><div style="font-size:10px;color:#414e63">\${e.type} · \${fd(e.date)}</div></div><span class="badge bg-red">\${Math.abs(e.da)}d ago</span></div>\`).join(''):empty('✅','No past due items')}
+        \${past.length?past.map(e=>\`<div class="sched-item" onclick="openJob('\${e.jobId}')"><div class="sched-dot" style="background:#dc2626;margin-top:5px"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${e.job}</div><div style="font-size:10px;color:#5a6b85">\${e.type} · \${fd(e.date)}</div></div><span class="badge bg-red">\${Math.abs(e.da)}d ago</span></div>\`).join(''):empty('✅','No past due items')}
       </div>
     </div>
     <div>
       <div class="card">
         <div class="card-title">Upcoming (Beyond 2 Weeks)</div>
-        \${future.length?future.map(e=>\`<div class="sched-item" onclick="openJob('\${e.jobId}')"><div class="sched-dot" style="background:\${e.color};margin-top:5px"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${e.job}</div><div style="font-size:10px;color:#414e63">\${e.type} · \${fd(e.date)}</div></div><span class="badge bg-gray">\${e.da}d</span></div>\`).join(''):empty('📅','No future events')}
+        \${future.length?future.map(e=>\`<div class="sched-item" onclick="openJob('\${e.jobId}')"><div class="sched-dot" style="background:\${e.color};margin-top:5px"></div><div style="flex:1"><div style="font-size:12px;font-weight:500">\${e.job}</div><div style="font-size:10px;color:#5a6b85">\${e.type} · \${fd(e.date)}</div></div><span class="badge bg-gray">\${e.da}d</span></div>\`).join(''):empty('📅','No future events')}
       </div>
     </div>
   </div>\`
@@ -6100,7 +6175,7 @@ async function toggleEmailInbox(){
   if(btn)btn.dataset.showing='1'
   el.innerHTML='<div style="font-size:12px;color:#8a96ab;padding:8px">Loading...</div>'
   var{data:inbox}=await sb.from('email_inbox').select('*').eq('status','unmatched').order('received_at',{ascending:false}).limit(50)
-  if(!inbox||!inbox.length){el.innerHTML='<div style="padding:20px;text-align:center;color:#414e63">No unmatched emails ✓</div>';return}
+  if(!inbox||!inbox.length){el.innerHTML='<div style="padding:20px;text-align:center;color:#5a6b85">No unmatched emails ✓</div>';return}
   var h='<div style="margin-bottom:10px;font-size:12px;color:#f59e0b;font-weight:500">'+inbox.length+' unmatched email'+(inbox.length!==1?'s':'')+' need attention</div>'
   h+='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr><th>Received</th><th>From</th><th>Subject</th><th>Job ID Guess</th><th>Preview</th><th></th></tr></thead><tbody>'
   inbox.forEach(function(e){
@@ -6110,7 +6185,7 @@ async function toggleEmailInbox(){
     h+='<td style="font-size:11px;white-space:nowrap">'+fd(e.received_at)+'</td>'
     h+='<td style="font-size:11px;color:#8a96ab">'+( e.from_address||'')+'</td>'
     h+='<td style="font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(e.subject||'')+'</td>'
-    h+=(e.job_id_guess?'<td><span class="badge bg-amber">'+e.job_id_guess+'</span></td>':'<td style="color:#414e63">none</td>')
+    h+=(e.job_id_guess?'<td><span class="badge bg-amber">'+e.job_id_guess+'</span></td>':'<td style="color:#5a6b85">none</td>')
     h+='<td style="font-size:11px;color:#8a96ab;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(e.body||'').slice(0,60)+'</td>'
     h+='<td style="display:flex;gap:4px" onclick="event.stopPropagation()">'
     h+='<button class="btn btn-sm" data-eid="'+e.id+'" data-ef="'+ef+'" data-eb="'+eb+'" onclick="assignEmailModal(this.dataset.eid,decodeURIComponent(this.dataset.ef),decodeURIComponent(this.dataset.eb))">Assign</button>'
@@ -6171,7 +6246,7 @@ function filterDailyReports(){
   const el=document.getElementById('dr-results')
   if(!el)return
   if(!rows.length){el.innerHTML=empty('📋','No reports match your filters');return}
-  let html='<div style="font-size:11px;color:#414e63;margin-bottom:8px">'+rows.length+' report'+(rows.length!==1?'s':'')+' found</div>'
+  let html='<div style="font-size:11px;color:#5a6b85;margin-bottom:8px">'+rows.length+' report'+(rows.length!==1?'s':'')+' found</div>'
   html+='<div class="card" style="padding:0;overflow:hidden"><table class="tbl"><thead><tr>'
   html+='<th>Date</th><th>Job</th><th>Job ID</th><th>Submitted By</th><th>Crew</th><th>Hours</th><th>Weather</th><th>Issues</th><th></th>'
   html+='</tr></thead><tbody>'
@@ -6188,7 +6263,7 @@ function filterDailyReports(){
     html+='<td>'+r.crew_count+'</td>'
     html+='<td>'+fh(r.hours_worked)+'</td>'
     html+='<td style="font-size:11px;color:#8a96ab">'+(r.weather||'—')+(r.temp_high?' '+r.temp_high+'°':'')+'</td>'
-    html+='<td>'+(hasIssues?'<span class="badge bg-red">Yes</span>':'<span style="font-size:11px;color:#414e63">—</span>')+'</td>'
+    html+='<td>'+(hasIssues?'<span class="badge bg-red">Yes</span>':'<span style="font-size:11px;color:#5a6b85">—</span>')+'</td>'
     html+='<td style="display:flex;gap:4px" onclick="event.stopPropagation()">'
     html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="dlDailyReportById(this.dataset.rid)">⬇</button>'
     html+='<button class="btn btn-sm" data-rid="'+r.id+'" onclick="generateDailyReportPdf(this.dataset.rid)">📄 PDF</button>'
@@ -6222,7 +6297,7 @@ async function editDailyReport(id){
   h+='<div class="fg"><label class="fl">Equipment Used</label><input class="fi" id="edr-eq" value="'+(r.equipment_used||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Issues / Delays</label><textarea class="ft" id="edr-iss">'+(r.issues||'')+'</textarea></div>'
   h+='<div class="fg"><label class="fl">Visitors</label><input class="fi" id="edr-vis" value="'+(r.visitors||'')+'"></div>'
-  if(jobName)h+='<div style="font-size:11px;color:#414e63;margin-top:4px">Job: '+jobName+'</div>'
+  if(jobName)h+='<div style="font-size:11px;color:#5a6b85;margin-top:4px">Job: '+jobName+'</div>'
   h+='<div style="padding-top:10px;border-top:1px solid rgba(255,255,255,.06);margin-top:10px"><button class="btn btn-ghost btn-sm" style="color:#dc2626" data-rid="'+id+'" onclick="deleteDailyReport(this.dataset.rid)">Delete Report</button></div>'
   modal('Edit Daily Report — '+fd(r.report_date), h, async function(){
     var work=(document.getElementById('edr-work').value||'').trim()
@@ -6360,7 +6435,7 @@ async function pgEmailReview(){
 
       // Job match
       if(job){
-        html+='<div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:7px;padding:8px 11px;margin-bottom:10px;font-size:12px"><span style="color:#60a5fa;font-weight:600">📌 Matched to:</span> <a onclick="openJob(\\''+r.job_id+'\\')" style="color:#e8edf5;cursor:pointer;text-decoration:underline">'+(job.job_number?'#'+job.job_number+' · ':'')+job.name+'</a> <span style="color:#414e63;font-size:10px">(via '+(r.matched_by||'?')+')</span></div>'
+        html+='<div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:7px;padding:8px 11px;margin-bottom:10px;font-size:12px"><span style="color:#60a5fa;font-weight:600">📌 Matched to:</span> <a onclick="openJob(\\''+r.job_id+'\\')" style="color:#e8edf5;cursor:pointer;text-decoration:underline">'+(job.job_number?'#'+job.job_number+' · ':'')+job.name+'</a> <span style="color:#5a6b85;font-size:10px">(via '+(r.matched_by||'?')+')</span></div>'
       }else{
         html+='<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:8px 11px;margin-bottom:10px;font-size:12px;color:#f87171">⚠ No job matched — pick one before approving</div>'
       }
@@ -6368,9 +6443,9 @@ async function pgEmailReview(){
       // Hours block
       if(hb.total_hours||hb.punch_in||hb.punch_out){
         html+='<div style="display:flex;gap:14px;flex-wrap:wrap;background:#060a10;border-radius:7px;padding:9px 12px;margin-bottom:10px;font-size:12px">'
-        if(hb.total_hours)html+='<div><span style="color:#414e63">Total:</span> <strong>'+hb.total_hours+' hrs</strong></div>'
-        if(hb.punch_in)html+='<div><span style="color:#414e63">In:</span> '+hb.punch_in+'</div>'
-        if(hb.punch_out)html+='<div><span style="color:#414e63">Out:</span> '+hb.punch_out+'</div>'
+        if(hb.total_hours)html+='<div><span style="color:#5a6b85">Total:</span> <strong>'+hb.total_hours+' hrs</strong></div>'
+        if(hb.punch_in)html+='<div><span style="color:#5a6b85">In:</span> '+hb.punch_in+'</div>'
+        if(hb.punch_out)html+='<div><span style="color:#5a6b85">Out:</span> '+hb.punch_out+'</div>'
         html+='</div>'
       }
 
@@ -6398,11 +6473,11 @@ async function pgEmailReview(){
         html+='<button class="btn btn-sm btn-ghost" style="color:#dc2626;margin-left:auto" onclick="rejectEmailPending(\\''+r.id+'\\')">✗ Reject</button>'
         html+='</div>'
       }else if(r.status==='approved'&&r.daily_report_id){
-        html+='<div style="font-size:11px;color:#414e63;margin-top:6px">Approved '+fdt(r.reviewed_at)+' → <a onclick="viewDailyReport(\\''+r.daily_report_id+'\\')" style="cursor:pointer;text-decoration:underline;color:#60a5fa">view daily report</a></div>'
+        html+='<div style="font-size:11px;color:#5a6b85;margin-top:6px">Approved '+fdt(r.reviewed_at)+' → <a onclick="viewDailyReport(\\''+r.daily_report_id+'\\')" style="cursor:pointer;text-decoration:underline;color:#60a5fa">view daily report</a></div>'
       }else if(r.status==='rejected'){
-        html+='<div style="font-size:11px;color:#414e63;margin-top:6px">Rejected '+fdt(r.reviewed_at)+(r.rejection_reason?' — '+r.rejection_reason:'')+'</div>'
+        html+='<div style="font-size:11px;color:#5a6b85;margin-top:6px">Rejected '+fdt(r.reviewed_at)+(r.rejection_reason?' — '+r.rejection_reason:'')+'</div>'
       }else if(r.status==='auto_approved'&&r.daily_report_id){
-        html+='<div style="font-size:11px;color:#414e63;margin-top:6px">Auto-approved · <a onclick="viewDailyReport(\\''+r.daily_report_id+'\\')" style="cursor:pointer;text-decoration:underline;color:#60a5fa">view daily report</a></div>'
+        html+='<div style="font-size:11px;color:#5a6b85;margin-top:6px">Auto-approved · <a onclick="viewDailyReport(\\''+r.daily_report_id+'\\')" style="cursor:pointer;text-decoration:underline;color:#60a5fa">view daily report</a></div>'
       }
       html+='</div>'
     })
@@ -6515,8 +6590,8 @@ function newDailyModal(jobIdOverride){
     '</div>'+
     '<div class="fg"><label class="fl">Work Performed *</label><textarea class="ft" id="dr-work" style="min-height:80px" placeholder="Describe work completed today…"></textarea></div>'+
     '<div id="dr-parts-section" style="margin-bottom:12px">'+
-    (jobIdOverride?'<div id="dr-parts-wrap"><div style="font-size:11px;color:#414e63">Loading parts…</div></div>':
-    '<div id="dr-parts-wrap"><div style="font-size:11px;color:#414e63">Select a job to see staged parts</div></div>')+
+    (jobIdOverride?'<div id="dr-parts-wrap"><div style="font-size:11px;color:#5a6b85">Loading parts…</div></div>':
+    '<div id="dr-parts-wrap"><div style="font-size:11px;color:#5a6b85">Select a job to see staged parts</div></div>')+
     '</div>'+
     '<div class="fg"><label class="fl">Equipment Used</label><input class="fi" id="dr-eq"></div>'+
     '<div class="fg"><label class="fl">Issues / Delays</label><textarea class="ft" id="dr-iss" placeholder="Any problems, delays, safety issues?"></textarea></div>'+
@@ -6565,13 +6640,13 @@ function newDailyModal(jobIdOverride){
 
 async function drLoadParts(jobId){
   const wrap=document.getElementById('dr-parts-wrap');if(!wrap)return
-  if(!jobId){wrap.innerHTML='<div style="font-size:11px;color:#414e63">Select a job to see parts</div>';return}
-  wrap.innerHTML='<div style="font-size:11px;color:#414e63">Loading parts…</div>'
+  if(!jobId){wrap.innerHTML='<div style="font-size:11px;color:#5a6b85">Select a job to see parts</div>';return}
+  wrap.innerHTML='<div style="font-size:11px;color:#5a6b85">Loading parts…</div>'
   // Only parts delivered to the site can be installed (signed_out / partial_install).
   const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',jobId).in('status',['signed_out','partial_install','staged'])
-  if(!parts?.length){wrap.innerHTML='<div style="font-size:11px;color:#414e63;padding:8px 0">No parts delivered to this job yet</div>';return}
+  if(!parts?.length){wrap.innerHTML='<div style="font-size:11px;color:#5a6b85;padding:8px 0">No parts delivered to this job yet</div>';return}
   // Compute remaining = taken/delivered − installed (countdown target)
-  let html='<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Parts On Site — Enter Qty Installed Today</div>'
+  let html='<div style="font-size:10px;font-weight:600;color:#5a6b85;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Parts On Site — Enter Qty Installed Today</div>'
   html+='<div style="background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;overflow:hidden">'
   var anyRow=false
   for(const p of parts){
@@ -6584,7 +6659,7 @@ async function drLoadParts(jobId){
     const allIn=remaining<=0
     html+='<div class="dr-part-row" data-part-id="'+p.part_id+'" data-part-name="'+_escAttr(p.part_name)+'" data-available="'+Math.max(0,remaining)+'" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04)'+(allIn?';opacity:.55':'')+'">'
     html+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_escapeHTML(p.part_name)+(allIn?' ✅':'')+'</div>'
-    html+='<div style="font-size:10px;color:#414e63">'+delivered+' delivered · '+installed+' installed · <span style="color:'+(allIn?'#16a34a':'#d97706')+';font-weight:600">'+Math.max(0,remaining)+' remaining</span></div></div>'
+    html+='<div style="font-size:10px;color:#5a6b85">'+delivered+' delivered · '+installed+' installed · <span style="color:'+(allIn?'#16a34a':'#d97706')+';font-weight:600">'+Math.max(0,remaining)+' remaining</span></div></div>'
     if(!allIn){
       html+='<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
       html+='<button onclick="this.nextElementSibling.value=Math.max(0,parseInt(this.nextElementSibling.value||0)-1)" style="width:24px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:14px">−</button>'
@@ -6643,7 +6718,7 @@ async function pgJobWalks(){
   \${shown.length?\`<table class="tbl"><thead><tr><th>Date</th><th>Job</th><th>Assigned To</th><th>Status</th><th>Panel Type</th><th>Manufacturer</th><th>Issues</th></tr></thead><tbody>\${shown.map(w=>{
     const j=jobMap[w.job_id]||{}
     const isMe=w.assigned_to===ME?.id
-    return \`<tr onclick="openJobWalk('\${w.id}')" style="cursor:pointer\${isMe&&w.status!=='complete'?' background:rgba(37,99,235,.06)':''}"><td style="font-weight:500">\${fd(w.walk_date)}</td><td>\${j.name||w.job_id||'—'}\${j.job_number?\`<div style='font-size:10px;color:#414e63'>#\${j.job_number}</div>\`:''}</td><td style="font-size:11px">\${w.assigned_name||w.walked_by||'—'}\${isMe?\` <span style='color:#60a5fa;font-size:9px'>(you)</span>\`:''}</td><td><span class="badge \${w.status==='complete'?'bg-green':w.status==='in_progress'?'bg-blue':'bg-amber'}">\${w.status||'open'}</span></td><td style="font-size:11px">\${w.panel_type||'—'}</td><td style="font-size:11px">\${w.device_manufacturer||'—'}</td><td style="font-size:11px;color:\${w.issues_found?'#d97706':'#414e63'}">\${w.issues_found?'Yes':'None'}</td></tr>\`
+    return \`<tr onclick="openJobWalk('\${w.id}')" style="cursor:pointer\${isMe&&w.status!=='complete'?' background:rgba(37,99,235,.06)':''}"><td style="font-weight:500">\${fd(w.walk_date)}</td><td>\${j.name||w.job_id||'—'}\${j.job_number?\`<div style='font-size:10px;color:#5a6b85'>#\${j.job_number}</div>\`:''}</td><td style="font-size:11px">\${w.assigned_name||w.walked_by||'—'}\${isMe?\` <span style='color:#60a5fa;font-size:9px'>(you)</span>\`:''}</td><td><span class="badge \${w.status==='complete'?'bg-green':w.status==='in_progress'?'bg-blue':'bg-amber'}">\${w.status||'open'}</span></td><td style="font-size:11px">\${w.panel_type||'—'}</td><td style="font-size:11px">\${w.device_manufacturer||'—'}</td><td style="font-size:11px;color:\${w.issues_found?'#d97706':'#5a6b85'}">\${w.issues_found?'Yes':'None'}</td></tr>\`
   }).join('')}</tbody></table>\`:empty('🚶','No job walks recorded')}
   </div>\`
 }
@@ -6673,10 +6748,10 @@ async function newWalkModal(jobIdOverride){
     '<div class="fg"><label class="fl">Walk Date *</label><input class="fi" type="date" id="wk-date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
     '<div class="fg"><label class="fl">Assign To *</label><select class="fs" id="wk-assign"><option value="">— Select Worker —</option>'+workerOpts+'</select></div>'+
     '</div>'+
-    '<div class="fg"><label class="fl">Notes for Worker <span style="font-size:10px;color:#414e63">(optional)</span></label><textarea class="ft" id="wk-scope" placeholder="Any instructions, access notes, or context for the worker…" style="min-height:70px"></textarea></div>'+
+    '<div class="fg"><label class="fl">Notes for Worker <span style="font-size:10px;color:#5a6b85">(optional)</span></label><textarea class="ft" id="wk-scope" placeholder="Any instructions, access notes, or context for the worker…" style="min-height:70px"></textarea></div>'+
     '<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:8px;padding:12px;margin-top:8px">'+
     '<div style="font-size:11px;font-weight:600;color:#60a5fa;margin-bottom:8px">📄 Upload Plans <span style="font-weight:400;color:#8a96ab">(worker will mark these up on-site)</span></div>'+
-    '<div id="wk-plan-list" style="margin-bottom:8px;font-size:11px;color:#414e63">No plans uploaded yet</div>'+
+    '<div id="wk-plan-list" style="margin-bottom:8px;font-size:11px;color:#5a6b85">No plans uploaded yet</div>'+
     '<label style="display:inline-flex;align-items:center;gap:6px;background:#1e293b;border:1px solid rgba(255,255,255,.1);color:#e8edf5;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:12px">'+
     '📄 Add Plan (PDF or Image)<input type="file" id="wk-plan-input" accept=".pdf,.png,.jpg,.jpeg" multiple style="display:none" onchange="wkAddPlanFile(this.files)"></label>'+
     '</div>'+
@@ -6788,7 +6863,7 @@ async function pgScan(){
           <button class="btn btn-sm" id="cam-toggle-btn" onclick="toggleCam()">📷 Start Camera</button>
         </div>
         <div class="fg">
-          <label class="fl">Barcode / Part # <span style="color:#414e63">— scanner auto-submits, or type + Enter</span></label>
+          <label class="fl">Barcode / Part # <span style="color:#5a6b85">— scanner auto-submits, or type + Enter</span></label>
           <input class="fi" id="sc-bc" placeholder="Ready for scanner — click Focus button or click here…" autocomplete="off" autofocus style="font-size:15px;letter-spacing:.5px" oninput="liveResolveBC(this.value)" onkeydown="if(event.key==='Enter'&&this.value.trim()){addToBatch(null,null);this.value='';document.getElementById('sc-resolve').style.display='none';document.getElementById('sc-qty-row').style.display='none';this.focus()}">
         </div>
         <div id="cam-wrap" style="display:none;margin-bottom:12px"><video id="cam-viewport" style="width:100%;max-height:280px;border-radius:8px;background:#000" autoplay muted playsinline></video><div id="cam-status" style="font-size:11px;color:#8a96ab;margin-top:4px">Camera not started</div></div>
@@ -6819,7 +6894,7 @@ async function pgScan(){
     <div>
       <div class="card">
         <div class="card-title">Parts on Job <button class="btn btn-sm btn-ghost" onclick="loadJobPartsPanel()">↻</button></div>
-        <div id="job-parts-panel"><div style="font-size:12px;color:#414e63">Select a job to see its parts</div></div>
+        <div id="job-parts-panel"><div style="font-size:12px;color:#5a6b85">Select a job to see its parts</div></div>
       </div>
       <div class="card">
         <div class="card-title">Recent Scan Events</div>
@@ -6843,8 +6918,8 @@ function liveResolveBC(val){
   if(!val||val.length<2){el.style.display='none';qr.style.display='none';_resolvedPart=null;return}
   _bcDeb=setTimeout(()=>{
     const match=allCatalog.filter(c=>c.barcode.toLowerCase()===val.toLowerCase()||c.barcode.toLowerCase().includes(val.toLowerCase())||(c.part_number||'').toLowerCase().includes(val.toLowerCase())||(c.name||'').toLowerCase().includes(val.toLowerCase())).slice(0,5)
-    if(!match.length){el.innerHTML=\`<div style="font-size:11px;color:#414e63;padding:6px 9px;background:#131c2e;border-radius:6px">Not in catalog — will add as new part</div>\`;el.style.display='block';_resolvedPart={barcode:val,name:val,part_number:'',description:''};qr.style.display='block';return}
-    el.innerHTML=match.map(c=>\`<div style="padding:9px 11px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:7px;cursor:pointer;margin-bottom:4px" onclick="selectCatalogPart('\${c.barcode}','\${(c.name||'').replace(/'/g,"\\\\'")}')"><div style="font-size:13px;font-weight:500">\${c.name}</div><div style="font-size:10px;color:#414e63">\${c.barcode} \${c.part_number?' · #'+c.part_number:''} \${c.description?' · '+c.description.substring(0,40):''}</div></div>\`).join('')
+    if(!match.length){el.innerHTML=\`<div style="font-size:11px;color:#5a6b85;padding:6px 9px;background:#131c2e;border-radius:6px">Not in catalog — will add as new part</div>\`;el.style.display='block';_resolvedPart={barcode:val,name:val,part_number:'',description:''};qr.style.display='block';return}
+    el.innerHTML=match.map(c=>\`<div style="padding:9px 11px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:7px;cursor:pointer;margin-bottom:4px" onclick="selectCatalogPart('\${c.barcode}','\${(c.name||'').replace(/'/g,"\\\\'")}')"><div style="font-size:13px;font-weight:500">\${c.name}</div><div style="font-size:10px;color:#5a6b85">\${c.barcode} \${c.part_number?' · #'+c.part_number:''} \${c.description?' · '+c.description.substring(0,40):''}</div></div>\`).join('')
     el.style.display='block'
     if(match.length===1){_resolvedPart=match[0];qr.style.display='block'}
   },200)
@@ -6877,7 +6952,7 @@ function renderBatch(){
   document.getElementById('batch-items').innerHTML=_batch.map((b,i)=>\`<div class="batch-item">
     <div class="bi-info"><div class="bi-name">\${b.name}</div><div class="bi-bc">\${b.barcode}\${b.part_number?' · #'+b.part_number:''}</div></div>
     <div class="qty-ctrl"><button onclick="adjBatch(\${i},-1)">−</button><span>\${b.qty}</span><button onclick="adjBatch(\${i},1)">+</button></div>
-    <button style="background:none;border:none;cursor:pointer;color:#414e63;font-size:16px;padding:2px 5px" onclick="rmBatch(\${i})">×</button>
+    <button style="background:none;border:none;cursor:pointer;color:#5a6b85;font-size:16px;padding:2px 5px" onclick="rmBatch(\${i})">×</button>
   </div>\`).join('')
 }
 function adjBatch(i,d){_batch[i].qty=Math.max(1,_batch[i].qty+d);renderBatch()}
@@ -6929,10 +7004,10 @@ function filterScanJobList(q){
 }
 async function loadJobPartsPanel(){
   const jobId=document.getElementById('sc-job')?.value;const el=document.getElementById('job-parts-panel');if(!el)return
-  if(!jobId){el.innerHTML='<div style="font-size:12px;color:#414e63">Select a job</div>';return}
+  if(!jobId){el.innerHTML='<div style="font-size:12px;color:#5a6b85">Select a job</div>';return}
   const{data:parts}=await sb.from('job_parts').select('*').eq('job_id',jobId).order('created_at',{ascending:false})
     var isAdm=['admin','pm','estimator'].indexOf((typeof ME!=='undefined'?ME.role:'')||'')>=0
-  el.innerHTML=(parts||[]).length?'<table class="tbl"><thead><tr><th>Part</th><th>Qty</th><th>Status</th><th>By</th>'+(isAdm?'<th></th>':'')+'</tr></thead><tbody>'+((parts||[]).map(function(p){return'<tr><td style="font-weight:500;font-size:12px">'+p.part_name+'</td>'+'<td>'+p.assigned_qty+'</td>'+'<td><span class="badge '+(p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-blue':'bg-green')+'">'+p.status.replace(/_/g,' ')+'</span></td>'+'<td style="font-size:10px;color:#8a96ab">'+(p.staged_by||p.checked_out_by||'—')+'</td>'+(isAdm?'<td><button class="btn btn-sm" style="font-size:10px;padding:2px 6px" data-pid="'+p.id+'" data-pname="'+p.part_name+'" data-status="'+p.status+'" onclick="editScanPartStatus(this)">Status</button></td>':'')+'</tr>'}).join(''))+'</tbody></table>':'<div style="font-size:12px;color:#414e63">No parts on this job yet</div>'
+  el.innerHTML=(parts||[]).length?'<table class="tbl"><thead><tr><th>Part</th><th>Qty</th><th>Status</th><th>By</th>'+(isAdm?'<th></th>':'')+'</tr></thead><tbody>'+((parts||[]).map(function(p){return'<tr><td style="font-weight:500;font-size:12px">'+p.part_name+'</td>'+'<td>'+p.assigned_qty+'</td>'+'<td><span class="badge '+(p.status==='staged'?'bg-amber':p.status==='signed_out'?'bg-blue':'bg-green')+'">'+p.status.replace(/_/g,' ')+'</span></td>'+'<td style="font-size:10px;color:#8a96ab">'+(p.staged_by||p.checked_out_by||'—')+'</td>'+(isAdm?'<td><button class="btn btn-sm" style="font-size:10px;padding:2px 6px" data-pid="'+p.id+'" data-pname="'+p.part_name+'" data-status="'+p.status+'" onclick="editScanPartStatus(this)">Status</button></td>':'')+'</tr>'}).join(''))+'</tbody></table>':'<div style="font-size:12px;color:#5a6b85">No parts on this job yet</div>'
   // Add transfer button if there are staged parts
   var hasStagedParts=(parts||[]).some(function(p){return p.status==='staged'})
   if(hasStagedParts&&isAdm){
@@ -6945,7 +7020,7 @@ async function loadJobPartsPanel(){
 async function loadScanEvents(){
   const el=document.getElementById('scan-events-panel');if(!el)return
   const{data:events}=await sb.from('scan_events').select('*').order('scanned_at',{ascending:false}).limit(15)
-  el.innerHTML=(events||[]).length?events.map(e=>\`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span class="badge \${e.action==='stage_in'?'bg-amber':e.action==='check_out'?'bg-blue':'bg-green'}" style="flex-shrink:0">\${e.action.replace('_',' ')}</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${e.part_name} ×\${e.qty}</div><div style="font-size:10px;color:#414e63">\${e.scanned_by||'?'} · \${fdt(e.scanned_at)}</div></div></div>\`).join(''):'<div style="font-size:12px;color:#414e63">No recent scans</div>'
+  el.innerHTML=(events||[]).length?events.map(e=>\`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span class="badge \${e.action==='stage_in'?'bg-amber':e.action==='check_out'?'bg-blue':'bg-green'}" style="flex-shrink:0">\${e.action.replace('_',' ')}</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${e.part_name} ×\${e.qty}</div><div style="font-size:10px;color:#5a6b85">\${e.scanned_by||'?'} · \${fdt(e.scanned_at)}</div></div></div>\`).join(''):'<div style="font-size:12px;color:#5a6b85">No recent scans</div>'
 }
 
 // CAMERA SCANNING
@@ -7162,7 +7237,7 @@ async function pgStagedParts(){
     var jobCount=Object.keys(jobsInWh).length
     h+='<div style="margin-bottom:22px">'
     h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="width:12px;height:12px;border-radius:3px;background:'+whColor+'"></span>'
-    h+='<span style="font-size:16px;font-weight:700">📍 '+wh+'</span><span style="font-size:12px;color:#414e63">'+jobCount+' job'+(jobCount!==1?'s':'')+' waiting</span></div>'
+    h+='<span style="font-size:16px;font-weight:700">📍 '+wh+'</span><span style="font-size:12px;color:#5a6b85">'+jobCount+' job'+(jobCount!==1?'s':'')+' waiting</span></div>'
     Object.keys(jobsInWh).forEach(function(jid){
       var job=jobsById[jid]||{name:'Unknown job',job_number:''}
       var jparts=jobsInWh[jid]
@@ -7170,7 +7245,7 @@ async function pgStagedParts(){
       h+='<div class="card" style="margin-bottom:10px">'
       h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
       h+='<div><div style="font-size:15px;font-weight:700">'+_escapeHTML(job.name)+'</div>'
-      h+='<div style="font-size:11px;color:#414e63">'+(job.job_number?'Job #'+job.job_number+' · ':'')+jparts.length+' line items · '+totalQty+' total units</div></div>'
+      h+='<div style="font-size:11px;color:#5a6b85">'+(job.job_number?'Job #'+job.job_number+' · ':'')+jparts.length+' line items · '+totalQty+' total units</div></div>'
       h+='<button class="btn btn-sm btn-p" data-jid="'+jid+'" data-wh="'+_escAttr(wh)+'" onclick="generatePickSheet(this.dataset.jid,this.dataset.wh)">🖨 Pick Sheet</button>'
       h+='</div>'
       h+='<table class="tbl" style="font-size:12px"><thead><tr><th>Part</th><th>Part #</th><th style="text-align:right">Qty</th></tr></thead><tbody>'
@@ -7366,7 +7441,7 @@ async function lookupBarcodeForAssign(){
 function editCatalogModal(bc){
   const c=allCatalog.find(x=>x.barcode===bc);if(!c)return
   modal('Edit Part — '+c.name,\`
-  <div style="font-size:11px;color:#414e63;margin-bottom:10px;font-family:'DM Mono',monospace">Barcode: \${c.barcode}</div>
+  <div style="font-size:11px;color:#5a6b85;margin-bottom:10px;font-family:'DM Mono',monospace">Barcode: \${c.barcode}</div>
   <div class="fg"><label class="fl">Part Name *</label><input class="fi" id="ec-nm" value="\${c.name||''}"></div>
   <div class="two"><div class="fg"><label class="fl">Part Number</label><input class="fi" id="ec-pn" value="\${c.part_number||''}"></div><div class="fg"><label class="fl">Category</label><input class="fi" id="ec-cat" value="\${c.category||''}"></div></div>
   <div class="fg"><label class="fl">Description</label><textarea class="ft" id="ec-desc" style="min-height:55px">\${c.description||''}</textarea></div>
@@ -7473,7 +7548,7 @@ async function pgInventory(){
   </div>\`
 }
 function renderInvTable(rows){
-  return rows.length?\`<table class="tbl"><thead><tr><th>Name</th><th>Barcode/ID</th><th>Qty</th><th>Min Qty</th><th>Status</th><th></th></tr></thead><tbody>\${rows.map(i=>{const low=i.min_qty>0&&i.qty<=i.min_qty;const out=i.qty<=0;return\`<tr><td style="font-weight:500">\${i.name}</td><td style="font-size:10px;font-family:'DM Mono',monospace;color:#8a96ab">\${i.id}</td><td style="font-weight:600;color:\${out?'#dc2626':low?'#d97706':'#e8edf5'}">\${i.qty}</td><td style="color:#414e63">\${i.min_qty||0}</td><td>\${out?'<span class="badge bg-red">Out of Stock</span>':low?'<span class="badge bg-amber">Low Stock</span>':'<span class="badge bg-green">OK</span>'}</td><td><button class="btn btn-sm" onclick="adjStockModal('\${i.id}','\${(i.name||'').replace(/'/g,"\\\\'")}',\${i.qty},\${i.min_qty||0})">Adjust</button></td></tr>\`}).join('')}</tbody></table>\`:empty('📦','No inventory items')
+  return rows.length?\`<table class="tbl"><thead><tr><th>Name</th><th>Barcode/ID</th><th>Qty</th><th>Min Qty</th><th>Status</th><th></th></tr></thead><tbody>\${rows.map(i=>{const low=i.min_qty>0&&i.qty<=i.min_qty;const out=i.qty<=0;return\`<tr><td style="font-weight:500">\${i.name}</td><td style="font-size:10px;font-family:'DM Mono',monospace;color:#8a96ab">\${i.id}</td><td style="font-weight:600;color:\${out?'#dc2626':low?'#d97706':'#e8edf5'}">\${i.qty}</td><td style="color:#5a6b85">\${i.min_qty||0}</td><td>\${out?'<span class="badge bg-red">Out of Stock</span>':low?'<span class="badge bg-amber">Low Stock</span>':'<span class="badge bg-green">OK</span>'}</td><td><button class="btn btn-sm" onclick="adjStockModal('\${i.id}','\${(i.name||'').replace(/'/g,"\\\\'")}',\${i.qty},\${i.min_qty||0})">Adjust</button></td></tr>\`}).join('')}</tbody></table>\`:empty('📦','No inventory items')
 }
 let _invCache=[]
 async function pgInventoryLoad(){const{data}=await sb.from('inventory').select('*').order('name');_invCache=data||[];return _invCache}
@@ -7541,7 +7616,7 @@ async function pgOrders(filterJobId){
     '<option value="">All Jobs</option>'+
     (jobs||[]).map(j=>'<option value="'+j.id+'"'+(filterJobId===j.id?' selected':'')+'>'+( j.job_number?'['+j.job_number+'] ':'')+j.name+'</option>').join('')+
     '</select>'+
-    '<span style="font-size:11px;color:#414e63" id="ord-filter-count"></span>'+
+    '<span style="font-size:11px;color:#5a6b85" id="ord-filter-count"></span>'+
     '</div>'+
     // New order form
     '<div class="card" style="margin-bottom:14px">'+
@@ -7620,7 +7695,7 @@ function renderJobPartsOrdersList(parts, jobs){
     var jb=jobMap[p.job_id]||{}
     return (jb.name||'').toLowerCase().includes(searchQ)||(jb.job_number||'').toLowerCase().includes(searchQ)||(p.part_name||'').toLowerCase().includes(searchQ)
   })
-  if(!filtered.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:8px 0">No parts found</div>';return}
+  if(!filtered.length){el.innerHTML='<div style="font-size:12px;color:#5a6b85;padding:8px 0">No parts found</div>';return}
   // Group by job
   var byJob={}
   filtered.forEach(function(p){
@@ -7772,12 +7847,12 @@ function renderOrdersList(orders, jobs){
     let html='<div class="card" style="margin-bottom:9px">'
     html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
     var jobObj=(window._allOrderJobs||[]).find(function(jj){return jj.id===o.job_id});var jobNum=jobObj&&jobObj.job_number?'['+jobObj.job_number+'] ':'';html+='<div><div style="font-weight:600;font-size:14px">'+jobNum+jobName+'</div>'
-    html+='<div style="font-size:11px;color:#414e63;margin-top:2px">'+(o.notes||'No notes')+' · By '+(o.created_by||'—')+' · '+fd(o.created_at)+'</div>'
+    html+='<div style="font-size:11px;color:#5a6b85;margin-top:2px">'+(o.notes||'No notes')+' · By '+(o.created_by||'—')+' · '+fd(o.created_at)+'</div>'
     html+=(o.staged_at?'<div style="font-size:10px;color:#16a34a">Staged by '+(o.staged_by||'?')+' on '+fdt(o.staged_at)+'</div>':'')
     html+='</div><span class="badge '+sc+'">'+o.status+'</span></div>'
     html+='<div style="background:#0c1220;border-radius:7px;overflow:hidden;margin-bottom:9px">'
-    html+=items.map(i=>'<div style="display:flex;align-items:center;gap:10px;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.04)"><div style="flex:1"><div style="font-size:12px;font-weight:500">'+i.name+'</div><div style="font-size:10px;color:#414e63">'+i.barcode+'</div></div><div style="font-size:12px;font-weight:600">×'+i.qty+'</div></div>').join('')
-    html+='<div style="padding:7px 11px;font-size:11px;color:#414e63">'+items.length+' type(s) · '+totalQty+' units</div></div>'
+    html+=items.map(i=>'<div style="display:flex;align-items:center;gap:10px;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.04)"><div style="flex:1"><div style="font-size:12px;font-weight:500">'+i.name+'</div><div style="font-size:10px;color:#5a6b85">'+i.barcode+'</div></div><div style="font-size:12px;font-weight:600">×'+i.qty+'</div></div>').join('')
+    html+='<div style="padding:7px 11px;font-size:11px;color:#5a6b85">'+items.length+' type(s) · '+totalQty+' units</div></div>'
     html+='<div style="display:flex;gap:7px;flex-wrap:wrap">'
     if(o.status==='pending'||o.status==='ordered'){
       html+='<button class="btn btn-sm" data-oid="'+o.id+'" onclick="editOrderModal(this.dataset.oid)">✏ Edit Order</button>'
@@ -7825,7 +7900,7 @@ async function pgGPS(){
     <td style="font-size:11px">\${c.checkout_at?ft(c.checkout_at):'<span class="gps-live" style="font-size:9px"><span class="pulse"></span>On Site</span>'}</td>
     <td style="font-weight:500">\${c.hours_logged?fh(c.hours_logged):'—'}</td>
     <td>\${c.checkin_dist_ft!=null?\`<span class="badge bg-green">\${c.checkin_dist_ft}ft</span>\`:'—'}</td>
-    <td style="font-size:10px;color:#414e63;font-family:'DM Mono',monospace">\${c.checkin_lat?c.checkin_lat.toFixed(4)+','+c.checkin_lng.toFixed(4):'—'}</td>
+    <td style="font-size:10px;color:#5a6b85;font-family:'DM Mono',monospace">\${c.checkin_lat?c.checkin_lat.toFixed(4)+','+c.checkin_lng.toFixed(4):'—'}</td>
   </tr>\`).join('')}</tbody></table>\`:empty('📍','No check-ins today')}
   </div>\`
 }
@@ -8281,11 +8356,11 @@ function _renderForecastPage(fc){
       +'<div style="display:flex;align-items:baseline;gap:6px"><div style="font-size:28px;font-weight:300;color:'+clr+'">'+stats.peak.toFixed(1)+'</div><div style="font-size:11px;color:#8a96ab">peak total</div></div>'
     if(hasSubs){
       html+='<div style="display:flex;gap:8px;font-size:11px;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.06)">'
-        +'<div style="flex:1"><div style="color:#414e63">👷 Int</div><div style="color:#60a5fa;font-weight:600">'+intStats.peak.toFixed(1)+'</div></div>'
-        +'<div style="flex:1"><div style="color:#414e63">🤝 Sub</div><div style="color:#fbbf24;font-weight:600">'+subStats.peak.toFixed(1)+'</div></div>'
+        +'<div style="flex:1"><div style="color:#5a6b85">👷 Int</div><div style="color:#60a5fa;font-weight:600">'+intStats.peak.toFixed(1)+'</div></div>'
+        +'<div style="flex:1"><div style="color:#5a6b85">🤝 Sub</div><div style="color:#fbbf24;font-weight:600">'+subStats.peak.toFixed(1)+'</div></div>'
         +'</div>'
     }else{
-      html+='<div style="font-size:11px;color:#414e63;margin-top:2px">Avg: '+stats.avg.toFixed(1)+' workers</div>'
+      html+='<div style="font-size:11px;color:#5a6b85;margin-top:2px">Avg: '+stats.avg.toFixed(1)+' workers</div>'
     }
     html+=(over?'<div style="font-size:11px;color:#dc2626;font-weight:600;margin-top:4px">⚠ Int short '+gap.toFixed(1):warn?'<div style="font-size:11px;color:#d97706;margin-top:4px">Near capacity':'<div style="font-size:11px;color:#16a34a;margin-top:4px">✓ Within capacity')+'</div>'
     html+='</div>'
@@ -8327,9 +8402,9 @@ function _renderForecastPage(fc){
     var j=inc.job
     var mix=inc.hasAllocations
       ?'<span style="font-size:10px;color:#60a5fa">'+Math.round(inc.internalRatio*100)+'% int</span> · <span style="font-size:10px;color:#fbbf24">'+Math.round(inc.subRatio*100)+'% sub</span>'
-      :'<span style="font-size:10px;color:#414e63">all internal</span>'
+      :'<span style="font-size:10px;color:#5a6b85">all internal</span>'
     return '<tr style="cursor:pointer" onclick="openJob(\\''+j.id+'\\')">'
-      +'<td><div style="font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#414e63">'+(j.job_number||'')+'</div></td>'
+      +'<td><div style="font-weight:500">'+j.name+'</div><div style="font-size:10px;color:#5a6b85">'+(j.job_number||'')+'</div></td>'
       +'<td>'+stageBadge(j.phase)+'</td>'
       +'<td style="font-size:11px">'+fd(inc.start)+' → '+fd(inc.end)+(inc.estimated?' <span class="badge bg-amber" style="font-size:9px">est</span>':'')+'</td>'
       +'<td>'+mix+'</td>'
@@ -8340,7 +8415,7 @@ function _renderForecastPage(fc){
 
   var missRows=fc.missing.map(function(m){
     return '<tr style="cursor:pointer" onclick="openJob(\\''+m.id+'\\')">'
-      +'<td><div style="font-weight:500">'+m.name+'</div><div style="font-size:10px;color:#414e63">'+(m.job_number||'')+'</div></td>'
+      +'<td><div style="font-weight:500">'+m.name+'</div><div style="font-size:10px;color:#5a6b85">'+(m.job_number||'')+'</div></td>'
       +'<td style="font-size:11px;color:#d97706">'+m.reason+'</td>'
       +'</tr>'
   }).join('')
@@ -8412,7 +8487,7 @@ function forecastSettingsModal(){
     }).join('')
     +'</div></div>'
     +'<div style="background:#060a10;border-radius:8px;padding:11px;margin-top:10px"><div style="font-size:11px;font-weight:600;color:#60a5fa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Phase Weights (% of labor by phase)</div>'
-    +'<div style="font-size:10px;color:#414e63;margin-bottom:8px">How total job hours are distributed across phases. Should roughly sum to 100%.</div>'
+    +'<div style="font-size:10px;color:#5a6b85;margin-bottom:8px">How total job hours are distributed across phases. Should roughly sum to 100%.</div>'
     +Object.keys(FORECAST_PHASE_WEIGHTS).filter(function(p){return p!=='not_started'&&p!=='complete'}).map(function(p){
       return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><label style="flex:1;font-size:12px">'+(STAGE_LABELS[p]||p)+'</label><input class="fi" type="number" id="fs-w-'+p+'" value="'+Math.round(FORECAST_PHASE_WEIGHTS[p]*100)+'" min="0" max="100" style="width:80px;text-align:right"><span style="font-size:11px;color:#8a96ab">%</span></div>'
     }).join('')
@@ -8456,19 +8531,19 @@ async function pgCompanies(){
     const insStatus=insExp===null?'unknown':insExp<0?'expired':insExp<30?'expiring':'ok'
     return\`<div class="card" style="margin-bottom:13px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-      <div><div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700">\${co.name}</div><div style="font-size:11px;color:#414e63;margin-top:2px">\${co.trade||''} \${co.license_num?'· Lic: '+co.license_num:''} \${co.email?'· '+co.email:''}</div></div>
+      <div><div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700">\${co.name}</div><div style="font-size:11px;color:#5a6b85;margin-top:2px">\${co.trade||''} \${co.license_num?'· Lic: '+co.license_num:''} \${co.email?'· '+co.email:''}</div></div>
       <div style="display:flex;gap:7px;align-items:center">
         <span class="badge \${insStatus==='ok'?'bg-green':insStatus==='expiring'?'bg-amber':'bg-red'}">\${insStatus==='ok'?'GL Insurance OK':insStatus==='expiring'?'Ins Expiring Soon':'Ins Expired/Unknown'}</span>
-        \${co.ins_expiry?\`<span style="font-size:10px;color:#414e63">Exp: \${fd(co.ins_expiry)}</span>\`:''}
+        \${co.ins_expiry?\`<span style="font-size:10px;color:#5a6b85">Exp: \${fd(co.ins_expiry)}</span>\`:''}
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
       \${ws.map(w=>\`<div style="background:#131c2e;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px;display:flex;gap:10px;align-items:flex-start">
         <div class="av" style="width:38px;height:38px;font-size:13px;flex-shrink:0;\${Object.entries(avS(w.full_name)).map(([k,val])=>k+':'+val).join(';')}">\${ini(w.full_name)}</div>
-        <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12px">\${w.full_name}\${w.is_lead?' <span style="font-size:9px;color:#d97706">LEAD</span>':''}</div><div style="font-size:10px;color:#414e63;margin-top:1px">\${w.email||''}</div><div style="font-size:10px;color:#414e63">\${w.phone||''}</div><div style="margin-top:5px">\${roleBadge(w.role)}</div></div>
+        <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12px">\${w.full_name}\${w.is_lead?' <span style="font-size:9px;color:#d97706">LEAD</span>':''}</div><div style="font-size:10px;color:#5a6b85;margin-top:1px">\${w.email||''}</div><div style="font-size:10px;color:#5a6b85">\${w.phone||''}</div><div style="margin-top:5px">\${roleBadge(w.role)}</div></div>
       </div>\`).join('')}
       <div style="background:#131c2e;border:1.5px dashed rgba(255,255,255,.08);border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:80px" onclick="addWorkerToCoModal('\${co.id}')">
-        <div style="text-align:center;color:#414e63"><div style="font-size:20px">+</div><div style="font-size:11px;margin-top:3px">Add Worker</div></div>
+        <div style="text-align:center;color:#5a6b85"><div style="font-size:20px">+</div><div style="font-size:11px;margin-top:3px">Add Worker</div></div>
       </div>
     </div>
     </div>\`
@@ -8550,7 +8625,7 @@ async function pgSafety(){
       const assignedTopics=(allAssigns||[]).filter(a=>a.profile_id===p.id)
       if(!assignedTopics.length) return // skip unassigned employees
       html+='<tr onclick="viewEmployeeModal(\\"'+p.id+'\\")" style="cursor:pointer">'
-      html+='<td style="position:sticky;left:0;background:#0c1220;font-weight:500">'+p.full_name+'<div style="font-size:9px;color:#414e63">'+(p.companies?.name||'Internal')+'</div></td>'
+      html+='<td style="position:sticky;left:0;background:#0c1220;font-weight:500">'+p.full_name+'<div style="font-size:9px;color:#5a6b85">'+(p.companies?.name||'Internal')+'</div></td>'
       html+='<td>'+roleBadge(p.role)+'</td>'
       ;(topics||[]).forEach(t=>{
         const ack=ackMap[p.id+'_'+t.id]
@@ -8583,7 +8658,7 @@ function safetyTopicCard(t, allAcks, allAssigns){
   return '<div class="card" style="margin-bottom:10px">'+
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px">'+
     '<div><div style="font-family:Syne,sans-serif;font-size:14px;font-weight:700">'+t.title+'</div>'+
-    '<div style="font-size:11px;color:#414e63;margin-top:2px">'+t.category+' · Week of '+fd(t.week_of)+' · By '+(t.created_by||'—')+'</div></div>'+
+    '<div style="font-size:11px;color:#5a6b85;margin-top:2px">'+t.category+' · Week of '+fd(t.week_of)+' · By '+(t.created_by||'—')+'</div></div>'+
     '<div style="display:flex;gap:6px">'+
     '<button class="btn btn-sm" onclick="viewSafetyAcks(this.dataset.id)" data-id="'+t.id+'">View Acks</button>'+
     '<button class="btn btn-sm btn-p" onclick="assignSafetyModal(this.dataset.id,this.dataset.title)" data-id="'+t.id+'" data-title="'+safeTitle+'">Assign</button>'+
@@ -8592,7 +8667,7 @@ function safetyTopicCard(t, allAcks, allAssigns){
     '<div style="font-size:12px;color:#8a96ab;line-height:1.6;margin-bottom:9px">'+t.content.substring(0,200)+(t.content.length>200?'…':'')+'</div>'+
     '<div style="display:flex;gap:12px;font-size:11px">'+
     '<span style="color:#16a34a">✓ '+tAcks.length+' completed</span>'+
-    '<span style="color:#414e63">/ '+tAssigns.length+' assigned</span>'+
+    '<span style="color:#5a6b85">/ '+tAssigns.length+' assigned</span>'+
     (tPending.length?'<span style="color:#dc2626">⚠ '+tPending.length+' pending</span>':'')+
     '</div></div>'
 }
@@ -8665,7 +8740,7 @@ function buildTrainingCard(t,a,isComplete,ackedAt){
   var h='<div class="card" style="margin-bottom:12px;border-left:3px solid '+(isComplete?'#16a34a':'#dc2626')+'">'
   h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'
   h+='<div><div style="font-weight:700;font-size:14px">'+t.title+'</div>'
-  h+='<div style="font-size:11px;color:#414e63;margin-top:3px">'+(t.category||'Safety')+' · Week of '+fd(t.week_of)
+  h+='<div style="font-size:11px;color:#5a6b85;margin-top:3px">'+(t.category||'Safety')+' · Week of '+fd(t.week_of)
   if(a.due_date)h+=' · <span style="color:'+(new Date(a.due_date)<new Date()&&!isComplete?'#dc2626':'#8a96ab')+'">Due: '+fd(a.due_date)+'</span>'
   h+='</div></div>'
   if(isComplete)h+='<span class="badge bg-green" style="flex-shrink:0">✓ Done '+fd(ackedAt)+'</span>'
@@ -8788,7 +8863,7 @@ async function newSafetyTopicModal(){
   h+='<div class="fg"><label class="fl">Week Of</label><input class="fi" type="date" id="st-week" value="'+new Date().toISOString().split('T')[0]+'"></div>'
   h+='<div class="fg"><label class="fl">Video URL</label><input class="fi" id="st-video" placeholder="https://youtube.com/…"></div>'
   h+='</div>'
-  h+='<div class="fg"><label class="fl">PDF Document <span style="font-size:10px;color:#414e63">(optional — employees must open it before acknowledging)</span></label>'
+  h+='<div class="fg"><label class="fl">PDF Document <span style="font-size:10px;color:#5a6b85">(optional — employees must open it before acknowledging)</span></label>'
   h+='<div id="st-pdf-drop" onclick="stPdfDropClick()" style="border:2px dashed rgba(255,255,255,.15);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:.2s;color:#8a96ab;font-size:13px" '
   +'ondragover="event.preventDefault();this.style.borderColor=&quot;#2563eb&quot;" '
   +'ondragleave="this.style.borderColor=&quot;rgba(255,255,255,.15)&quot;" '
@@ -8855,14 +8930,14 @@ async function assignSafetyModal(topicId,topicTitle){
   ])
   const assigned=new Set((already||[]).map(a=>a.profile_id))
   modal('Assign — '+topicTitle,\`
-  <div style="font-size:11px;color:#414e63;margin-bottom:10px">Select who must review this safety topic. Already assigned are pre-checked.</div>
+  <div style="font-size:11px;color:#5a6b85;margin-bottom:10px">Select who must review this safety topic. Already assigned are pre-checked.</div>
   <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="sa-due"></div>
   <div style="max-height:300px;overflow-y:auto;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:6px">
     <div style="padding:4px 6px;margin-bottom:5px"><label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px;color:#8a96ab"><input type="checkbox" id="sa-all" onchange="document.querySelectorAll('.sa-cb').forEach(cb=>cb.checked=this.checked)"> Select All</label></div>
     \${(profiles||[]).map(p=>\`<label style="display:flex;align-items:center;gap:8px;padding:6px 7px;cursor:pointer;border-radius:5px;transition:.15s" onmouseover="this.style.background='#131c2e'" onmouseout="this.style.background=''">
       <input type="checkbox" class="sa-cb" value="\${p.id}" data-name="\${p.full_name}" \${assigned.has(p.id)?'checked':''}>
       <div class="av" style="width:22px;height:22px;font-size:8px;flex-shrink:0;\${Object.entries(avS(p.full_name)).map(([k,val])=>k+':'+val).join(';')}">\${ini(p.full_name)}</div>
-      <div style="flex:1"><div style="font-size:12px">\${p.full_name}</div><div style="font-size:10px;color:#414e63">\${p.role} · \${p.companies?.name||'Internal'}</div></div>
+      <div style="flex:1"><div style="font-size:12px">\${p.full_name}</div><div style="font-size:10px;color:#5a6b85">\${p.role} · \${p.companies?.name||'Internal'}</div></div>
     </label>\`).join('')}
   </div>\`,
   async()=>{
@@ -8887,11 +8962,11 @@ async function viewSafetyAcks(topicId){
   const pending=(assignments||[]).filter(a=>!ackedProfileIds.has(a.profile_id))
   modal('Acknowledgements',\`
   <div class="two" style="margin-bottom:12px">
-    <div style="background:rgba(22,163,74,.08);border-radius:7px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:300;color:#16a34a">\${(acks||[]).length}</div><div style="font-size:10px;color:#414e63">Acknowledged</div></div>
-    <div style="background:rgba(217,119,6,.08);border-radius:7px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:300;color:#d97706">\${pending.length}</div><div style="font-size:10px;color:#414e63">Pending</div></div>
+    <div style="background:rgba(22,163,74,.08);border-radius:7px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:300;color:#16a34a">\${(acks||[]).length}</div><div style="font-size:10px;color:#5a6b85">Acknowledged</div></div>
+    <div style="background:rgba(217,119,6,.08);border-radius:7px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:300;color:#d97706">\${pending.length}</div><div style="font-size:10px;color:#5a6b85">Pending</div></div>
   </div>
-  \${(acks||[]).length?\`<div class="sec-hdr">Acknowledged</div>\${(acks||[]).map(a=>\`<div class="safety-ack-row"><span class="badge bg-green" style="flex-shrink:0">✓</span><div style="flex:1"><div style="font-size:12px;font-weight:500">\${a.profiles?.full_name||a.user_name||'Unknown'}</div><div style="font-size:10px;color:#414e63">\${fdt(a.acknowledged_at)}</div></div></div>\`).join('')}\`:''}
-  \${pending.length?\`<div class="sec-hdr" style="margin-top:10px">Pending Review</div>\${pending.map(a=>\`<div class="safety-ack-row"><span class="badge bg-amber" style="flex-shrink:0">⏳</span><div style="flex:1"><div style="font-size:12px;font-weight:500">\${a.assigned_name}</div><div style="font-size:10px;color:#414e63">Assigned \${fd(a.assigned_at)}\${a.due_date?' · Due '+fd(a.due_date):''}</div></div></div>\`).join('')}\`:''}\`,
+  \${(acks||[]).length?\`<div class="sec-hdr">Acknowledged</div>\${(acks||[]).map(a=>\`<div class="safety-ack-row"><span class="badge bg-green" style="flex-shrink:0">✓</span><div style="flex:1"><div style="font-size:12px;font-weight:500">\${a.profiles?.full_name||a.user_name||'Unknown'}</div><div style="font-size:10px;color:#5a6b85">\${fdt(a.acknowledged_at)}</div></div></div>\`).join('')}\`:''}
+  \${pending.length?\`<div class="sec-hdr" style="margin-top:10px">Pending Review</div>\${pending.map(a=>\`<div class="safety-ack-row"><span class="badge bg-amber" style="flex-shrink:0">⏳</span><div style="flex:1"><div style="font-size:12px;font-weight:500">\${a.assigned_name}</div><div style="font-size:10px;color:#5a6b85">Assigned \${fd(a.assigned_at)}\${a.due_date?' · Due '+fd(a.due_date):''}</div></div></div>\`).join('')}\`:''}\`,
   ()=>closeModal(),'Close',false)
   document.getElementById('modal-footer').innerHTML='<button class="btn" onclick="closeModal()">Close</button>'
 }
@@ -8952,7 +9027,7 @@ async function pgReports(){
     ].map(([ico,ttl,sub,t])=>\`<div style="background:#0c1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px;cursor:pointer;transition:.15s" onmouseover="this.style.borderColor='rgba(255,255,255,.15)'" onmouseout="this.style.borderColor='rgba(255,255,255,.06)'" onclick="exportReport('\${t}')">
       <div style="font-size:26px;margin-bottom:8px">\${ico}</div>
       <div style="font-size:13px;font-weight:500;margin-bottom:3px">\${ttl}</div>
-      <div style="font-size:11px;color:#414e63">\${sub}</div>
+      <div style="font-size:11px;color:#5a6b85">\${sub}</div>
     </div>\`).join('')}
   </div>\`
 }
@@ -9126,7 +9201,7 @@ async function adminCheckOut(){
   var coRes=await sb.from('checkins').update({checkout_at:new Date().toISOString(),hours_logged:hoursWorked}).eq('id',active.id)
   if(coRes.error){toast(coRes.error.message,'error');return}
   _adminCheckinId=null;_adminCheckinJobId=null
-  document.getElementById('checkin-status-dot').style.background='#414e63'
+  document.getElementById('checkin-status-dot').style.background='#5a6b85'
   document.getElementById('checkin-status-txt').textContent='Check In'
   document.getElementById('admin-checkin-btn').style.borderColor='rgba(255,255,255,.1)'
   // Check if daily report already exists for today
@@ -9199,22 +9274,22 @@ async function pgSettings(){
   h+='<div class="fg"><label class="fl">ZIP</label><input class="fi" id="co-zip" value="'+(co.zip||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Website</label><input class="fi" id="co-web" value="'+(co.website||'')+'"></div>'
   h+='</div>'
-  h+='<div class="fg"><label class="fl">Default Burden Rate $/hr <span style="color:#414e63;font-weight:400;font-size:10px">(used for labor cost on jobs without an override)</span></label><input class="fi" type="number" id="co-burden" value="'+(co.default_burden_rate!=null?co.default_burden_rate:65)+'" placeholder="65"></div>'
+  h+='<div class="fg"><label class="fl">Default Burden Rate $/hr <span style="color:#5a6b85;font-weight:400;font-size:10px">(used for labor cost on jobs without an override)</span></label><input class="fi" type="number" id="co-burden" value="'+(co.default_burden_rate!=null?co.default_burden_rate:65)+'" placeholder="65"></div>'
   // ── Branding: logo + letterhead ──
   h+='<div class="sec-hdr" style="margin-top:16px">Document Branding</div>'
   h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:12px">These appear on generated Change Orders and Daily Reports. Logo shows in the document header; the letterhead banner (if set) replaces the header entirely with your own image.</div>'
   // Logo
-  h+='<div class="fg"><label class="fl">Company Logo <span style="color:#414e63;font-weight:400;font-size:10px">(square or wordmark, PNG/JPG)</span></label>'
+  h+='<div class="fg"><label class="fl">Company Logo <span style="color:#5a6b85;font-weight:400;font-size:10px">(square or wordmark, PNG/JPG)</span></label>'
   h+='<div style="display:flex;align-items:center;gap:12px">'
-  h+='<div id="co-logo-preview" style="width:90px;height:60px;background:#0a1019;border:1px solid rgba(255,255,255,.08);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden">'+(co.logo_url?'<img src="'+co.logo_url+'" style="max-width:100%;max-height:100%;object-fit:contain">':'<span style="font-size:10px;color:#414e63">No logo</span>')+'</div>'
+  h+='<div id="co-logo-preview" style="width:90px;height:60px;background:#0a1019;border:1px solid rgba(255,255,255,.08);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden">'+(co.logo_url?'<img src="'+co.logo_url+'" style="max-width:100%;max-height:100%;object-fit:contain">':'<span style="font-size:10px;color:#5a6b85">No logo</span>')+'</div>'
   h+='<label class="btn btn-sm" style="cursor:pointer">⬆ Upload Logo<input type="file" accept="image/*" style="display:none" onchange="uploadBrandImage(this.files[0],\\'logo\\')"></label>'
   if(co.logo_url)h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="clearBrandImage(\\'logo\\')">Remove</button>'
   h+='<input type="hidden" id="co-logo-url" value="'+(co.logo_url||'')+'">'
   h+='</div></div>'
   // Letterhead
-  h+='<div class="fg"><label class="fl">Letterhead Banner <span style="color:#414e63;font-weight:400;font-size:10px">(optional full-width header image)</span></label>'
+  h+='<div class="fg"><label class="fl">Letterhead Banner <span style="color:#5a6b85;font-weight:400;font-size:10px">(optional full-width header image)</span></label>'
   h+='<div style="display:flex;align-items:center;gap:12px">'
-  h+='<div id="co-lh-preview" style="width:160px;height:50px;background:#0a1019;border:1px solid rgba(255,255,255,.08);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden">'+(co.letterhead_url?'<img src="'+co.letterhead_url+'" style="max-width:100%;max-height:100%;object-fit:contain">':'<span style="font-size:10px;color:#414e63">No letterhead</span>')+'</div>'
+  h+='<div id="co-lh-preview" style="width:160px;height:50px;background:#0a1019;border:1px solid rgba(255,255,255,.08);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden">'+(co.letterhead_url?'<img src="'+co.letterhead_url+'" style="max-width:100%;max-height:100%;object-fit:contain">':'<span style="font-size:10px;color:#5a6b85">No letterhead</span>')+'</div>'
   h+='<label class="btn btn-sm" style="cursor:pointer">⬆ Upload Letterhead<input type="file" accept="image/*" style="display:none" onchange="uploadBrandImage(this.files[0],\\'letterhead\\')"></label>'
   if(co.letterhead_url)h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="clearBrandImage(\\'letterhead\\')">Remove</button>'
   h+='<input type="hidden" id="co-lh-url" value="'+(co.letterhead_url||'')+'">'
@@ -9226,7 +9301,7 @@ async function pgSettings(){
   h+='<div class="card" style="margin-bottom:14px">'
   h+='<div class="card-title" style="margin-bottom:4px">💾 Database Backup</div>'
   h+='<div style="font-size:12px;color:#8a96ab;margin-bottom:6px">Complete JSON backup of your entire database. Useful for migration safety, compliance audits, and disaster recovery.</div>'
-  h+='<div style="font-size:11px;color:#414e63;margin-bottom:12px;line-height:1.5"><strong style="color:#8a96ab">Includes:</strong> all 65+ tables (data rows), table schemas (column definitions), RLS policies, and helper functions. Runs server-side with the service key so it captures everything regardless of your RLS permissions. Admin role required.</div>'
+  h+='<div style="font-size:11px;color:#5a6b85;margin-bottom:12px;line-height:1.5"><strong style="color:#8a96ab">Includes:</strong> all 65+ tables (data rows), table schemas (column definitions), RLS policies, and helper functions. Runs server-side with the service key so it captures everything regardless of your RLS permissions. Admin role required.</div>'
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap">'
   h+='<button class="btn btn-p" onclick="downloadDatabaseBackup()">⬇ Download Full Backup</button>'
   h+='<button class="btn btn-sm btn-ghost" data-tbl="jobs" onclick="dlTableBackup(this.dataset.tbl)">Jobs only</button>'
@@ -9274,11 +9349,11 @@ async function pgSettings(){
   h+='<option value="webhook"'+(co.email_ingest_provider==='webhook'?' selected':'')+'>Generic Webhook</option>'
   h+='</select></div>'
   h+='<div id="ei-help" style="font-size:11px;color:#8a96ab;margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:6px;display:none"></div>'
-  h+='<div class="fg" style="margin-top:10px"><label class="fl">Webhook Secret / Signing Key <span style="font-size:10px;color:#414e63">(optional)</span></label>'
+  h+='<div class="fg" style="margin-top:10px"><label class="fl">Webhook Secret / Signing Key <span style="font-size:10px;color:#5a6b85">(optional)</span></label>'
   h+='<input class="fi" id="ei-secret" placeholder="Verify webhook authenticity" value="'+(co.email_ingest_secret||'')+'"></div>'
-  h+='<div class="fg"><label class="fl">Allowed Senders <span style="font-size:10px;color:#414e63">(comma-separated emails — blank = accept all)</span></label>'
+  h+='<div class="fg"><label class="fl">Allowed Senders <span style="font-size:10px;color:#5a6b85">(comma-separated emails — blank = accept all)</span></label>'
   h+='<input class="fi" id="ei-allowlist" placeholder="crew@yourco.com, foreman@yourco.com" value="'+(co.email_ingest_allowlist||'')+'"></div>'
-  h+='<div class="fg"><label class="fl">Job ID Regex Pattern <span style="font-size:10px;color:#414e63">(leave blank to auto-detect from subject)</span></label>'
+  h+='<div class="fg"><label class="fl">Job ID Regex Pattern <span style="font-size:10px;color:#5a6b85">(leave blank to auto-detect from subject)</span></label>'
   h+='<input class="fi" id="ei-pattern" placeholder="Leave blank for auto-detect" value="'+(co.email_ingest_pattern||'')+'"></div>'
   h+='<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">'
   h+='<button class="btn btn-p" onclick="saveEmailIngestSettings()">&#128190; Save Email Settings</button>'
@@ -9295,7 +9370,7 @@ async function pgSettings(){
   h+='<div style="background:#060a10;border-radius:7px;padding:11px 13px;margin-bottom:10px">'
   h+='<div style="font-size:13px;font-weight:600;margin-bottom:4px">Orphan Profile Cleanup</div>'
   h+='<div style="font-size:11px;color:#8a96ab;margin-bottom:9px">Finds profile rows whose login (auth) account no longer exists. These can block recreating a user with the same email. Safe to delete \u2014 the auth side is already gone.</div>'
-  h+='<div id="orphan-results" style="font-size:12px;margin-bottom:8px;color:#414e63">Click <strong>Scan</strong> to look for orphans.</div>'
+  h+='<div id="orphan-results" style="font-size:12px;margin-bottom:8px;color:#5a6b85">Click <strong>Scan</strong> to look for orphans.</div>'
   h+='<div style="display:flex;gap:6px;flex-wrap:wrap">'
   h+='<button class="btn btn-sm" onclick="scanOrphanProfiles()">🔍 Scan for Orphans</button>'
   h+='<button class="btn btn-sm" id="orphan-delete-btn" onclick="deleteOrphanProfiles()" style="display:none;background:#dc2626;color:#fff">🗑 Delete All Orphans</button>'
@@ -9311,7 +9386,7 @@ async function pgSettings(){
   h+='<button class="btn btn-sm" onclick="loadConsentStatus()">👥 View Who Consented</button>'
   h+='<button class="btn btn-sm" onclick="editConsentText()">✎ Edit Consent Text</button>'
   h+='</div>'
-  h+='<div id="consent-status-box" style="font-size:12px;color:#414e63"></div>'
+  h+='<div id="consent-status-box" style="font-size:12px;color:#5a6b85"></div>'
   h+='</div>'
 
   document.getElementById('page-area').innerHTML=h
@@ -9347,7 +9422,7 @@ async function loadConsentStatus(){
     }).join('')
     var signedCount=Object.values(byWorker).filter(function(c){return c.agreed}).length
     if(box)box.innerHTML='<div style="margin-bottom:8px;color:#8a96ab">Active consent version: <strong>'+activeVer+'</strong> · '+signedCount+' of '+workers.length+' workers agreed</div>'
-      +'<table class="tbl" style="width:100%"><thead><tr><th>Worker</th><th>Role</th><th>Location Consent</th></tr></thead><tbody>'+(rows||'<tr><td colspan="3" style="color:#414e63">No active workers</td></tr>')+'</tbody></table>'
+      +'<table class="tbl" style="width:100%"><thead><tr><th>Worker</th><th>Role</th><th>Location Consent</th></tr></thead><tbody>'+(rows||'<tr><td colspan="3" style="color:#5a6b85">No active workers</td></tr>')+'</tbody></table>'
   }catch(e){
     if(box)box.innerHTML='<span style="color:#dc2626">Error: '+(e.message||e)+'</span>'
   }
@@ -9359,7 +9434,7 @@ async function editConsentText(){
   var h='<div class="fg"><label class="fl">Title</label><input class="fi" id="ct-title" value="'+_escAttr(ct?ct.title:'Location Tracking Consent')+'"></div>'
   h+='<div class="fg"><label class="fl">Consent Text</label><textarea class="ft" id="ct-body" style="min-height:240px;font-size:12px">'+(ct?ct.body:'')+'</textarea></div>'
   h+='<label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-top:6px"><input type="checkbox" id="ct-bump"> Bump version (re-prompts ALL workers to re-consent)</label>'
-  h+='<div style="font-size:11px;color:#414e63;margin-top:4px">Current version: '+curVer+'. Check the box above only if this is a material change that requires everyone to agree again.</div>'
+  h+='<div style="font-size:11px;color:#5a6b85;margin-top:4px">Current version: '+curVer+'. Check the box above only if this is a material change that requires everyone to agree again.</div>'
   modal('Edit Location Consent', h, async function(){
     var title=document.getElementById('ct-title').value||'Location Tracking Consent'
     var body=document.getElementById('ct-body').value||''
@@ -9395,7 +9470,7 @@ async function scanOrphanProfiles(){
       var btn=document.getElementById('orphan-delete-btn');if(btn)btn.style.display='none'
       return
     }
-    var list=rows.slice(0,30).map(function(o){return '<li><strong>'+(o.full_name||'(no name)')+'</strong> &lt;'+(o.email||'no email')+'&gt; <span style="color:#414e63">'+(o.is_active?'active':'inactive')+'</span></li>'}).join('')
+    var list=rows.slice(0,30).map(function(o){return '<li><strong>'+(o.full_name||'(no name)')+'</strong> &lt;'+(o.email||'no email')+'&gt; <span style="color:#5a6b85">'+(o.is_active?'active':'inactive')+'</span></li>'}).join('')
     if(el)el.innerHTML='<div style="color:#d97706;font-weight:600;margin-bottom:6px">Found '+rows.length+' orphan profile'+(rows.length===1?'':'s')+':</div><ul style="font-size:11px;color:#8a96ab;margin:0;padding-left:20px;max-height:140px;overflow-y:auto">'+list+(rows.length>30?'<li><em>… and '+(rows.length-30)+' more</em></li>':'')+'</ul>'
     var btn=document.getElementById('orphan-delete-btn');if(btn)btn.style.display='inline-block'
   }catch(e){
@@ -9603,8 +9678,8 @@ async function uploadBrandImage(file,kind){
   }catch(e){toast('Upload failed: '+(e.message||e),'error')}
 }
 function clearBrandImage(kind){
-  if(kind==='logo'){var u=document.getElementById('co-logo-url');if(u)u.value='';var p=document.getElementById('co-logo-preview');if(p)p.innerHTML='<span style="font-size:10px;color:#414e63">No logo</span>'}
-  else{var u2=document.getElementById('co-lh-url');if(u2)u2.value='';var p2=document.getElementById('co-lh-preview');if(p2)p2.innerHTML='<span style="font-size:10px;color:#414e63">No letterhead</span>'}
+  if(kind==='logo'){var u=document.getElementById('co-logo-url');if(u)u.value='';var p=document.getElementById('co-logo-preview');if(p)p.innerHTML='<span style="font-size:10px;color:#5a6b85">No logo</span>'}
+  else{var u2=document.getElementById('co-lh-url');if(u2)u2.value='';var p2=document.getElementById('co-lh-preview');if(p2)p2.innerHTML='<span style="font-size:10px;color:#5a6b85">No letterhead</span>'}
   toast('Removed — click Save Company Info to keep')
 }
 async function saveCompanySettings(){
@@ -9769,7 +9844,7 @@ async function pgUsers(){
     '<select class="fs" id="emp-status" style="width:120px" onchange="filterEmployees()"><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select>'+
     '</div>'+
     '<div id="emp-table"></div>'+
-    '<div style="margin-top:11px;font-size:11px;color:#414e63" id="emp-count"></div>'
+    '<div style="margin-top:11px;font-size:11px;color:#5a6b85" id="emp-count"></div>'
   window._empAll=all
   window._empCos=companies||[]
   filterEmployees()
@@ -9800,12 +9875,12 @@ function filterEmployees(){
   for(const u of rows){
     const avCss=Object.entries(avS(u.full_name)).map(([k,val])=>k+':'+val).join(';')
     html+='<tr>'
-    html+='<td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:26px;height:26px;font-size:9px;'+avCss+'">'+ini(u.full_name)+'</div><div><div style="font-weight:500">'+u.full_name+'</div>'+(u.hire_date?'<div style="font-size:9px;color:#414e63">Hired '+fd(u.hire_date)+'</div>':'')+'</div></div></td>'
+    html+='<td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:26px;height:26px;font-size:9px;'+avCss+'">'+ini(u.full_name)+'</div><div><div style="font-weight:500">'+u.full_name+'</div>'+(u.hire_date?'<div style="font-size:9px;color:#5a6b85">Hired '+fd(u.hire_date)+'</div>':'')+'</div></div></td>'
     html+='<td style="font-size:11px;color:#8a96ab">'+(u.email||'—')+'</td>'
     html+='<td style="font-size:11px;color:#8a96ab">'+(u.phone||'—')+'</td>'
     html+='<td>'+roleBadge(u.role)+'</td>'
     html+='<td style="font-size:11px">'+(u.companies?.name||'Internal')+'</td>'
-    html+='<td style="font-size:10px;color:#8a96ab">'+(u.emergency_contact||'—')+'<br>'+(u.emergency_phone?'<span style="color:#414e63">'+u.emergency_phone+'</span>':'')+'</td>'
+    html+='<td style="font-size:10px;color:#8a96ab">'+(u.emergency_contact||'—')+'<br>'+(u.emergency_phone?'<span style="color:#5a6b85">'+u.emergency_phone+'</span>':'')+'</td>'
     html+='<td><span class="badge '+(u.is_active?'bg-green':'bg-gray')+'">'+(u.is_active?'Active':'Inactive')+'</span></td>'
     html+='<td style="display:flex;gap:4px;flex-wrap:wrap">'
     html+='<button class="btn btn-sm" data-id="'+u.id+'" onclick="viewEmployeeModal(this.dataset.id)">View</button>'
@@ -9847,7 +9922,7 @@ async function viewEmployeeModal(id){
     '<div class="av" style="width:52px;height:52px;font-size:18px;flex-shrink:0;'+avCss+'">'+ini(u.full_name)+'</div>'+
     '<div><div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700">'+u.full_name+'</div>'+
     '<div style="margin-top:3px">'+roleBadge(u.role)+'</div>'+
-    '<div style="font-size:11px;color:#414e63;margin-top:3px">'+(u.companies?.name||'Internal')+(u.hire_date?' · Hired '+fd(u.hire_date):'')+'</div></div></div>'+
+    '<div style="font-size:11px;color:#5a6b85;margin-top:3px">'+(u.companies?.name||'Internal')+(u.hire_date?' · Hired '+fd(u.hire_date):'')+'</div></div></div>'+
     '<div class="two" style="margin-bottom:13px">'+
     '<div><div class="fl">EMAIL</div><div style="font-size:13px">'+(u.email||'—')+'</div></div>'+
     '<div><div class="fl">PHONE</div><div style="font-size:13px">'+(u.phone||'—')+'</div></div>'+
@@ -9858,7 +9933,7 @@ async function viewEmployeeModal(id){
     '</div>'+
     '<div class="sec-hdr" style="margin-bottom:10px">Safety Training — '+
     '<span style="color:#16a34a">'+(acks||[]).length+' completed</span> · '+
-    '<span style="color:'+(pending.length?'#dc2626':'#414e63')+'">'+pending.length+' pending</span></div>'
+    '<span style="color:'+(pending.length?'#dc2626':'#5a6b85')+'">'+pending.length+' pending</span></div>'
   if(pending.length){
     html+='<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);border-radius:7px;padding:9px 12px;margin-bottom:10px">'
     html+='<div style="font-size:10px;color:#dc2626;font-weight:600;margin-bottom:6px">PENDING — NOT YET COMPLETED</div>'
@@ -9868,10 +9943,10 @@ async function viewEmployeeModal(id){
   if((acks||[]).length){
     html+='<div style="background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.15);border-radius:7px;padding:9px 12px">'
     html+='<div style="font-size:10px;color:#16a34a;font-weight:600;margin-bottom:6px">COMPLETED</div>'
-    html+=(acks||[]).map(a=>'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px">✓ '+a.safety_topics?.title+'</span><span style="font-size:10px;color:#414e63">'+fdt(a.acknowledged_at)+'</span></div>').join('')
+    html+=(acks||[]).map(a=>'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px">✓ '+a.safety_topics?.title+'</span><span style="font-size:10px;color:#5a6b85">'+fdt(a.acknowledged_at)+'</span></div>').join('')
     html+='</div>'
   }
-  if(!(acks||[]).length&&!pending.length) html+='<div style="font-size:12px;color:#414e63">No safety training assigned yet</div>'
+  if(!(acks||[]).length&&!pending.length) html+='<div style="font-size:12px;color:#5a6b85">No safety training assigned yet</div>'
   modal(u.full_name, html, ()=>closeModal(), 'Close', false)
   const editBtn=document.createElement('button')
   editBtn.className='btn btn-p btn-sm'
@@ -9952,7 +10027,7 @@ function addUserModal(){
             '</div>'+
             '<div class="fg"><label class="fl">Email</label><input class="fi" readonly value="'+_escapeHTML(em)+'" onclick="this.select()"></div>'+
             '<div class="fg"><label class="fl">Password</label><input class="fi" readonly value="'+_escapeHTML(pw1)+'" onclick="this.select()"></div>'+
-            '<div style="font-size:11px;color:#414e63;margin-top:8px">⚠ This is the only time the password is shown. If lost, use the 🔑 Password button on their row to set a new one.</div>',
+            '<div style="font-size:11px;color:#5a6b85;margin-top:8px">⚠ This is the only time the password is shown. If lost, use the 🔑 Password button on their row to set a new one.</div>',
             function(){closeModal();pgUsers()},'Done',false)
           document.getElementById('modal-footer').innerHTML='<button class="btn btn-p" onclick="closeModal();pgUsers()">Done</button>'
         },100)
@@ -10082,7 +10157,7 @@ function editUserModal(id,role,active,name){
   const coOpts=(window._empCos||[]).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')
   const html=
     '<div class="two"><div class="fg"><label class="fl">Full Name</label><input class="fi" id="eu-nm" value="'+name+'"></div>'+
-    '<div class="fg"><label class="fl">Email <span style="color:#414e63;font-weight:400;font-size:10px">(login identity)</span></label><input class="fi" id="eu-em" type="email" placeholder="user@example.com"></div></div>'+
+    '<div class="fg"><label class="fl">Email <span style="color:#5a6b85;font-weight:400;font-size:10px">(login identity)</span></label><input class="fi" id="eu-em" type="email" placeholder="user@example.com"></div></div>'+
     '<div class="fg" id="eu-em-warn" style="display:none;background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.2);border-radius:7px;padding:8px 11px;font-size:11px;color:#d97706;margin-top:-4px">⚠ Changing the email updates the user\\'s login. They will sign in with the new address from now on. No confirmation email is sent.</div>'+
     '<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="eu-ph"></div>'+
     '<div class="fg"><label class="fl">Role</label><select class="fs" id="eu-rl">'+
@@ -10233,7 +10308,7 @@ async function pgJobMap(){
   <div id="map-outer" style="display:grid;grid-template-columns:1fr 280px;gap:13px;height:calc(100vh - 120px)">
     <div style="position:relative;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">
       <div id="map-container" style="width:100%;height:100%;background:#0c1220;display:flex;align-items:center;justify-content:center">
-        <div style="text-align:center;color:#414e63">
+        <div style="text-align:center;color:#5a6b85">
           <div style="font-size:32px;margin-bottom:8px">🗺</div>
           <div style="font-size:13px;font-weight:500;color:#8a96ab">Interactive Map</div>
           <div style="font-size:11px;margin-top:4px">Loading OpenStreetMap…</div>
@@ -10339,7 +10414,7 @@ function buildGeocodePopup(j){
   var addr=(j.address||'')+(j.city?', '+j.city:'')+(j.state?' '+j.state:'')
   var h='<div style="min-width:200px">'
   h+='<div style="font-weight:700;font-size:13px;margin-bottom:2px">'+j.name+'</div>'
-  if(j.job_number)h+='<div style="font-size:10px;color:#414e63;margin-bottom:3px">#'+j.job_number+'</div>'
+  if(j.job_number)h+='<div style="font-size:10px;color:#5a6b85;margin-bottom:3px">#'+j.job_number+'</div>'
   if(addr)h+='<div style="font-size:11px;color:#666;margin-bottom:5px">'+addr+'</div>'
   h+='<span style="background:'+color+'22;color:'+color+';padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600">'+(STAGE_LABELS[j.phase]||j.phase)+'</span>'
   if(j.project_manager)h+='<div style="font-size:11px;margin-top:4px"><strong>PM:</strong> '+j.project_manager+'</div>'
@@ -10459,7 +10534,7 @@ function addMapPins(jobs,map){
   }
   // Legend
   const el=document.getElementById('map-legend')
-  if(el)el.innerHTML=Object.entries(MAP_COLORS).map(([stage,color])=>\`<div style="display:flex;align-items:center;gap:6px;padding:2px 0"><div style="width:10px;height:10px;border-radius:50%;background:\${color}"></div><span style="color:#e8edf5">\${STAGE_LABELS[stage]}</span></div>\`).join('')+'<div style="margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.1);color:#414e63">'+withGPS.length+' of '+(window._mapJobs||jobs).length+' jobs have GPS</div>'
+  if(el)el.innerHTML=Object.entries(MAP_COLORS).map(([stage,color])=>\`<div style="display:flex;align-items:center;gap:6px;padding:2px 0"><div style="width:10px;height:10px;border-radius:50%;background:\${color}"></div><span style="color:#e8edf5">\${STAGE_LABELS[stage]}</span></div>\`).join('')+'<div style="margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.1);color:#5a6b85">'+withGPS.length+' of '+(window._mapJobs||jobs).length+' jobs have GPS</div>'
 }
 
 function showMobileJobList(){
@@ -10502,9 +10577,9 @@ function syncMapFilters(type,val){
 function renderMapJobList(jobs){
   const el=document.getElementById('map-job-list');if(!el)return
   el.innerHTML=jobs.map(j=>\`<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onclick="mapFlyTo('\${j.id}')">
-    <div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:\${MAP_COLORS[j.phase]||'#8a96ab'};flex-shrink:0"></div><div style="flex:1;overflow:hidden"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${j.name}</div>\${j.job_number?'<div style=\"font-size:10px;color:#414e63\">'+j.job_number+'</div>':''}</div></div>
-    <div style="font-size:10px;color:#414e63;margin-top:1px;padding-left:15px">\${j.project_manager?j.project_manager+' · ':''} \${j.gc_company||''}</div>
-  </div>\`).join('')||'<div style="font-size:12px;color:#414e63">No jobs match filters</div>'
+    <div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:\${MAP_COLORS[j.phase]||'#8a96ab'};flex-shrink:0"></div><div style="flex:1;overflow:hidden"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${j.name}</div>\${j.job_number?'<div style=\"font-size:10px;color:#5a6b85\">'+j.job_number+'</div>':''}</div></div>
+    <div style="font-size:10px;color:#5a6b85;margin-top:1px;padding-left:15px">\${j.project_manager?j.project_manager+' · ':''} \${j.gc_company||''}</div>
+  </div>\`).join('')||'<div style="font-size:12px;color:#5a6b85">No jobs match filters</div>'
 }
 
 function mapFlyTo(jobId){
@@ -10521,16 +10596,16 @@ function updateMapStats(jobs){
   var stageColors={'not_started':'#8a96ab','make_safe':'#dc2626','prewire':'#d97706','roughed_in':'#f59e0b','trimmed':'#16a34a','ready_for_pretest':'#2563eb','ready_for_final':'#7c3aed','complete':'#0d9488'}
   var html=''
   html+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 12px;display:flex;gap:14px;align-items:center;font-size:12px">'
-  html+='<div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#e8edf5;line-height:1">'+total+'</div><div style="color:#414e63;font-size:10px">Total</div></div>'
+  html+='<div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#e8edf5;line-height:1">'+total+'</div><div style="color:#5a6b85;font-size:10px">Total</div></div>'
   html+='<div style="width:1px;height:28px;background:rgba(255,255,255,.08)"></div>'
-  html+='<div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#60a5fa;line-height:1">'+pinned+'</div><div style="color:#414e63;font-size:10px">On Map</div></div>'
+  html+='<div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#60a5fa;line-height:1">'+pinned+'</div><div style="color:#5a6b85;font-size:10px">On Map</div></div>'
   html+='<div style="width:1px;height:28px;background:rgba(255,255,255,.08)"></div>'
   // Top 3 stages
   var stageEntries=Object.entries(byStage).sort(function(a,b){return b[1]-a[1]}).slice(0,3)
   stageEntries.forEach(function(e){
     var col=stageColors[e[0]]||'#8a96ab'
     var lbl=(STAGE_LABELS[e[0]]||e[0]).replace('Ready for ','').replace('Not Started','Not Strtd')
-    html+='<div style="text-align:center"><div style="font-size:18px;font-weight:700;line-height:1;color:'+col+'">'+e[1]+'</div><div style="color:#414e63;font-size:10px">'+lbl+'</div></div>'
+    html+='<div style="text-align:center"><div style="font-size:18px;font-weight:700;line-height:1;color:'+col+'">'+e[1]+'</div><div style="color:#5a6b85;font-size:10px">'+lbl+'</div></div>'
   })
   html+='</div>'
   el.innerHTML=html
@@ -10579,13 +10654,13 @@ async function renderSubAssignTab(el){
   <div class="sec-hdr">Subcontractor Work Assignments <button class="btn btn-p btn-sm" onclick="addSubAssignModal()">+ Assign Sub</button></div>
   \${(existing||[]).map(a=>\`<div style="background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px;margin-bottom:8px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div><div style="font-weight:600;font-size:13px">\${a.company_name||a.company_id||'—'}</div><div style="font-size:11px;color:#414e63;margin-top:2px">\${a.scope_of_work||'All work'}</div></div>
+      <div><div style="font-weight:600;font-size:13px">\${a.company_name||a.company_id||'—'}</div><div style="font-size:11px;color:#5a6b85;margin-top:2px">\${a.scope_of_work||'All work'}</div></div>
       <span class="badge \${a.status==='complete'?'bg-green':a.status==='in_progress'?'bg-blue':'bg-amber'}">\${a.status||'assigned'}</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:9px">
-      <div><div style="font-size:10px;color:#414e63">CONTRACT VALUE</div><div style="font-size:13px;font-weight:500">\${a.contract_value?fm(a.contract_value):'Not set'}</div></div>
-      <div><div style="font-size:10px;color:#414e63">START</div><div style="font-size:13px">\${fd(a.start_date)}</div></div>
-      <div><div style="font-size:10px;color:#414e63">DUE</div><div style="font-size:13px;color:\${isOD(a.due_date,a.status)?'#dc2626':'#e8edf5'}">\${fd(a.due_date)}</div></div>
+      <div><div style="font-size:10px;color:#5a6b85">CONTRACT VALUE</div><div style="font-size:13px;font-weight:500">\${a.contract_value?fm(a.contract_value):'Not set'}</div></div>
+      <div><div style="font-size:10px;color:#5a6b85">START</div><div style="font-size:13px">\${fd(a.start_date)}</div></div>
+      <div><div style="font-size:10px;color:#5a6b85">DUE</div><div style="font-size:13px;color:\${isOD(a.due_date,a.status)?'#dc2626':'#e8edf5'}">\${fd(a.due_date)}</div></div>
     </div>
     \${a.notes?\`<div style="font-size:12px;color:#8a96ab;margin-bottom:8px">\${a.notes}</div>\`:''}
     <div style="display:flex;gap:7px">
@@ -10593,7 +10668,7 @@ async function renderSubAssignTab(el){
       <button class="btn btn-sm" onclick="updateSubAssign('\${a.id}','complete')">✓ Complete</button>
       <button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="deleteSubAssign('\${a.id}')">Remove</button>
     </div>
-  </div>\`).join('')||'<div style="font-size:12px;color:#414e63;padding:10px 0">No sub assignments yet</div>'}\`
+  </div>\`).join('')||'<div style="font-size:12px;color:#5a6b85;padding:10px 0">No sub assignments yet</div>'}\`
 }
 async function addSubAssignModal(){
   const{data:companies}=await sb.from('companies').select('id,name').eq('is_active',true).order('name')
@@ -10656,19 +10731,19 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
       </div>
       <!-- ZOOM BAR -->
       <div style="flex-shrink:0;display:flex;align-items:center;gap:8px;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:6px 10px">
-        <span style="font-size:10px;color:#414e63;font-weight:600">ZOOM</span>
+        <span style="font-size:10px;color:#5a6b85;font-weight:600">ZOOM</span>
         <button class="mt-btn" onclick="markupZoom(-1)" style="min-width:36px;font-size:16px">−</button>
         <span id="mk-zoom-label" style="font-size:12px;color:#8a96ab;min-width:42px;text-align:center">100%</span>
         <button class="mt-btn" onclick="markupZoom(1)" style="min-width:36px;font-size:16px">+</button>
         <button class="mt-btn" onclick="markupZoomReset()">Fit</button>
-        <span class="mk-pan-hint" style="font-size:10px;color:#414e63;margin-left:auto">Pinch to zoom · drag to pan</span>
+        <span class="mk-pan-hint" style="font-size:10px;color:#5a6b85;margin-left:auto">Pinch to zoom · drag to pan</span>
       </div>
       <!-- CANVAS -->
       <div style="flex:1;overflow:hidden;background:#1a2540;border-radius:9px;border:1px solid rgba(255,255,255,.07);position:relative;min-height:0;touch-action:none" id="canvas-scroll-wrap">
         <canvas id="markup-canvas" style="display:block;max-width:100%;transform-origin:0 0"></canvas>
-        <div id="canvas-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#414e63;font-size:13px">Loading plan…</div>
+        <div id="canvas-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#5a6b85;font-size:13px">Loading plan…</div>
       </div>
-      <div class="mk-desktop-only" style="flex-shrink:0;font-size:10px;color:#414e63">Tip: tap to place · pinch to zoom · drag to pan · Save often</div>
+      <div class="mk-desktop-only" style="flex-shrink:0;font-size:10px;color:#5a6b85">Tip: tap to place · pinch to zoom · drag to pan · Save often</div>
     </div>
     <!-- SIDEBAR -->
     <div id="mk-sidebar-backdrop" onclick="toggleMarkupSidebar()" style="display:none"></div>
@@ -10680,11 +10755,11 @@ function openPlanMarkup(planId,planUrl,fileName,returnFn){
       <div class="card">
         <div class="card-title">Legend <button class="btn btn-sm btn-p" onclick="addLegendEntry()" style="font-size:10px;padding:3px 8px">+</button></div>
         <div id="legend-entries"></div>
-        <div style="font-size:10px;color:#414e63;margin-top:6px">Add entries to explain your colored dots</div>
+        <div style="font-size:10px;color:#5a6b85;margin-top:6px">Add entries to explain your colored dots</div>
       </div>
       <div class="card"><div class="card-title">Text Boxes</div><div id="textbox-entries"></div></div>
-      <div class="card"><div class="card-title">Lines</div><div id="line-entries" style="font-size:11px;color:#414e63">No lines drawn</div></div>
-      <div class="card"><div class="card-title">Dots</div><div id="dot-count-display" style="font-size:11px;color:#414e63">0 dots placed</div></div>
+      <div class="card"><div class="card-title">Lines</div><div id="line-entries" style="font-size:11px;color:#5a6b85">No lines drawn</div></div>
+      <div class="card"><div class="card-title">Dots</div><div id="dot-count-display" style="font-size:11px;color:#5a6b85">0 dots placed</div></div>
     </div>
   </div>\`
   document.body.appendChild(ov)
@@ -10772,7 +10847,7 @@ async function loadMarkupData(planId,planUrl){
         nav.innerHTML='<button class="btn btn-sm" onclick="pdfPrevPage()">&#9664; Prev</button>'
           +'<span id="pdf-page-label" style="font-size:12px;color:#8a96ab">Page 1 of 1</span>'
           +'<button class="btn btn-sm" onclick="pdfNextPage()">Next &#9654;</button>'
-          +'<span style="font-size:11px;color:#414e63;margin-left:8px">Markup overlays the current page</span>'
+          +'<span style="font-size:11px;color:#5a6b85;margin-left:8px">Markup overlays the current page</span>'
         canvasWrap.insertBefore(nav,canvasWrap.firstChild)
       }
       pdfjsLib.getDocument(planUrl).promise.then(function(pdfDoc){
@@ -10812,7 +10887,7 @@ async function loadMarkupData(planId,planUrl){
     img.onerror=()=>{
       canvas.width=1200;canvas.height=800;canvas.style.width='100%'
       ctx.fillStyle='#1a2540';ctx.fillRect(0,0,1200,800)
-      ctx.fillStyle='#414e63';ctx.font='16px DM Sans,sans-serif';ctx.textAlign='center'
+      ctx.fillStyle='#5a6b85';ctx.font='16px DM Sans,sans-serif';ctx.textAlign='center'
       ctx.fillText('Preview not available — markup will still be saved',600,400)
       _mImg=null
       document.getElementById('canvas-loading').style.display='none'
@@ -10985,12 +11060,12 @@ function renderLegendEntries(){
   const el=document.getElementById('legend-entries');if(!el)return
   const colorCounts={}
   ;(_mpd().dots||[]).forEach(d=>{colorCounts[d.color]=(colorCounts[d.color]||0)+1})
-  el.innerHTML=(_mData.legend||[]).map((l,i)=>\`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><div style="width:14px;height:14px;border-radius:50%;background:\${l.color};flex-shrink:0;border:1.5px solid rgba(255,255,255,.3)"></div><div style="font-size:10px;color:#414e63;flex-shrink:0">\${colorCounts[l.color]||0}×</div><input style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:5px;color:#e8edf5;font-size:11px;padding:3px 7px;font-family:inherit" value="\${l.label||''}" placeholder="What this color means…" oninput="_mData.legend[\${i}].label=this.value"><button onclick="_mData.legend.splice(\${i},1);renderLegendEntries()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:16px;flex-shrink:0">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No legend entries — click + to add</div>'
+  el.innerHTML=(_mData.legend||[]).map((l,i)=>\`<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><div style="width:14px;height:14px;border-radius:50%;background:\${l.color};flex-shrink:0;border:1.5px solid rgba(255,255,255,.3)"></div><div style="font-size:10px;color:#5a6b85;flex-shrink:0">\${colorCounts[l.color]||0}×</div><input style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:5px;color:#e8edf5;font-size:11px;padding:3px 7px;font-family:inherit" value="\${l.label||''}" placeholder="What this color means…" oninput="_mData.legend[\${i}].label=this.value"><button onclick="_mData.legend.splice(\${i},1);renderLegendEntries()" style="background:none;border:none;cursor:pointer;color:#5a6b85;font-size:16px;flex-shrink:0">×</button></div>\`).join('')||'<div style="font-size:11px;color:#5a6b85">No legend entries — click + to add</div>'
 }
 function addLegendEntry(){_mData.legend.push({id:uuid(),color:_mColor,label:''});renderLegendEntries()}
 function renderTextboxEntries(){
   const el=document.getElementById('textbox-entries');if(!el)return
-  el.innerHTML=(_mpd().textboxes||[]).map((t,i)=>\`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="width:8px;height:8px;border-radius:50%;background:\${t.color};flex-shrink:0"></div><div style="font-size:11px;flex:1;color:#8a96ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${t.text}</div><button onclick="_mpd().textboxes.splice(\${i},1);renderTextboxEntries();redrawMarkup()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#414e63">No text boxes</div>'
+  el.innerHTML=(_mpd().textboxes||[]).map((t,i)=>\`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="width:8px;height:8px;border-radius:50%;background:\${t.color};flex-shrink:0"></div><div style="font-size:11px;flex:1;color:#8a96ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${t.text}</div><button onclick="_mpd().textboxes.splice(\${i},1);renderTextboxEntries();redrawMarkup()" style="background:none;border:none;cursor:pointer;color:#5a6b85;font-size:14px">×</button></div>\`).join('')||'<div style="font-size:11px;color:#5a6b85">No text boxes</div>'
 }
 function renderLineEntries(){
   var el=document.getElementById('line-entries');if(!el)return
@@ -11001,7 +11076,7 @@ function renderLineEntries(){
     h+='<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
     h+='<div style="width:20px;height:3px;background:'+l.color+';border-radius:2px;flex-shrink:0"></div>'
     h+='<div style="font-size:11px;flex:1;color:#8a96ab">'+(i+1)+'. ('+Math.round(Math.sqrt(Math.pow(l.x2-l.x1,2)+Math.pow(l.y2-l.y1,2)))+'px)</div>'
-    h+='<button onclick="_mData.lines.splice('+i+',1);renderLineEntries();redrawMarkup()" style="background:none;border:none;cursor:pointer;color:#414e63;font-size:14px">x</button></div>'
+    h+='<button onclick="_mData.lines.splice('+i+',1);renderLineEntries();redrawMarkup()" style="background:none;border:none;cursor:pointer;color:#5a6b85;font-size:14px">x</button></div>'
   })
   el.innerHTML=h
 }
@@ -11030,7 +11105,7 @@ async function renderDrawingsTab(el){
   var h='<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
   h+='<label class="btn btn-p btn-sm" style="cursor:pointer">+ Upload Drawing / Plan'
   h+='<input type="file" style="display:none" multiple accept=".pdf,.png,.jpg,.jpeg" onchange="uploadJobDrawing(this.files)"></label>'
-  h+='<span style="font-size:11px;color:#414e63">Upload plans or prints — click Markup to annotate with dots, lines and text</span>'
+  h+='<span style="font-size:11px;color:#5a6b85">Upload plans or prints — click Markup to annotate with dots, lines and text</span>'
   h+='</div>'
   if(ps.length){
     ps.forEach(function(p){
@@ -11041,14 +11116,14 @@ async function renderDrawingsTab(el){
       h+='<div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:7px">'
       h+='<div style="font-size:11px;font-weight:600;color:#8a96ab;background:#0c1220;border-radius:4px;padding:3px 6px">'+icon+'</div>'
       h+='<div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(p.file_name||'Drawing')+'</div>'
-      h+='<div style="font-size:10px;color:#414e63;margin-top:1px">'+fd(p.created_at)+' · '+dc+' dots · '+lc+' lines · '+tc+' text</div></div>'
+      h+='<div style="font-size:10px;color:#5a6b85;margin-top:1px">'+fd(p.created_at)+' · '+dc+' dots · '+lc+' lines · '+tc+' text</div></div>'
       h+='<button class="btn btn-sm btn-p" data-pid="'+p.id+'" data-purl="'+p.url+'" data-pname="'+(p.file_name||'Drawing')+'" onclick="openDrawingMarkup(this)">Markup</button>'
       h+='<a href="'+p.url+'" target="_blank" class="btn btn-sm">View</a>'
       h+='<button class="btn btn-sm btn-ghost" style="color:#dc2626" data-pid="'+p.id+'" data-ppath="'+(p.storage_path||'')+'" onclick="delDrawing(this)">Del</button>'
       h+='</div>'
     })
   }else{
-    h+='<div style="font-size:12px;color:#414e63;padding:20px;text-align:center">No drawings uploaded yet — upload PDF or image files to begin</div>'
+    h+='<div style="font-size:12px;color:#5a6b85;padding:20px;text-align:center">No drawings uploaded yet — upload PDF or image files to begin</div>'
   }
   el.innerHTML=h
 }
@@ -11084,12 +11159,12 @@ async function renderAsbuiltsTab(el){
   el.innerHTML=\`
   <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
     <label class="btn btn-p btn-sm" style="cursor:pointer">+ Upload Plan / As-built<input type="file" style="display:none" multiple accept=".pdf,.png,.jpg,.jpeg,.dwg" onchange="uploadJobAsbuilt(this.files)"></label>
-    <span style="font-size:11px;color:#414e63">Upload plans, then click Markup to annotate with colored dots, text, and legend</span>
+    <span style="font-size:11px;color:#5a6b85">Upload plans, then click Markup to annotate with colored dots, text, and legend</span>
   </div>
   \${(plans||[]).length?plans.map(p=>\`<div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:7px">
     <div style="font-size:22px">\${p.file_name?.match(/\\.pdf$/i)?'📄':'🖼'}</div>
     <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${p.file_name}</div>
-    <div style="font-size:10px;color:#414e63;margin-top:1px">\${fd(p.created_at)} · \${(p.markup_json?.dots||[]).length} dots · \${(p.markup_json?.textboxes||[]).length} text boxes</div></div>
+    <div style="font-size:10px;color:#5a6b85;margin-top:1px">\${fd(p.created_at)} · \${(p.markup_json?.dots||[]).length} dots · \${(p.markup_json?.textboxes||[]).length} text boxes</div></div>
     <button class="btn btn-sm btn-p" onclick="openPlanMarkup('\${p.id}','\${p.url}','\${p.file_name}',function(){renderJobDetail();setTimeout(function(){loadJT('jt-asbuilts')},200)})">✏ Markup</button>
     <a href="\${p.url}" target="_blank" class="btn btn-sm">View</a>
     <button class="btn btn-sm btn-ghost" style="color:#dc2626" onclick="deleteJobPlan('\${p.id}','\${p.storage_path||''}')">Del</button>
@@ -11117,24 +11192,24 @@ async function renderPmVisitsTab(el){
     visitsHtml+='<div style="padding:10px 12px;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:7px">'
     visitsHtml+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">'
     visitsHtml+='<div><div style="font-weight:500;font-size:13px">PM Visit — '+fd(vis.visit_date)+'</div>'
-    visitsHtml+='<div style="font-size:11px;color:#414e63;margin-top:1px">'+(vis.pm_name||'')+'</div></div>'
+    visitsHtml+='<div style="font-size:11px;color:#5a6b85;margin-top:1px">'+(vis.pm_name||'')+'</div></div>'
     visitsHtml+='<span class="badge '+outColor+'">'+(vis.outcome||'visited')+'</span></div>'
     if(vis.observations)visitsHtml+='<div style="font-size:12px;color:#8a96ab;margin-bottom:6px">'+vis.observations+'</div>'
     if(vis.issues)visitsHtml+='<div style="font-size:12px;color:#d97706;margin-bottom:6px">'+vis.issues+'</div>'
-    if(vis.next_visit_date)visitsHtml+='<div style="font-size:11px;color:#414e63">Next visit: '+fd(vis.next_visit_date)+'</div>'
+    if(vis.next_visit_date)visitsHtml+='<div style="font-size:11px;color:#5a6b85">Next visit: '+fd(vis.next_visit_date)+'</div>'
     visitsHtml+='</div>'
   }
   el.innerHTML=
     '<div style="margin-bottom:13px;display:flex;gap:9px;align-items:flex-start">'+
     '<div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">'+
-    '<div style="font-size:10px;color:#414e63;margin-bottom:3px">NEXT PM VISIT DUE</div>'+
+    '<div style="font-size:10px;color:#5a6b85;margin-bottom:3px">NEXT PM VISIT DUE</div>'+
     '<div style="font-size:18px;font-weight:300;color:'+nextVisitColor+'">'+(j.next_pm_visit?fd(j.next_pm_visit):'Not scheduled')+'</div>'+
-    (nextVisitText?'<div style="font-size:11px;color:#414e63;margin-top:2px">'+nextVisitText+'</div>':'')+
+    (nextVisitText?'<div style="font-size:11px;color:#5a6b85;margin-top:2px">'+nextVisitText+'</div>':'')+
     '</div>'+
     '<div style="flex:1;background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px">'+
-    '<div style="font-size:10px;color:#414e63;margin-bottom:3px">PM ASSIGNED</div>'+
+    '<div style="font-size:10px;color:#5a6b85;margin-bottom:3px">PM ASSIGNED</div>'+
     '<div style="font-size:14px;font-weight:500">'+(j.project_manager||'Not assigned')+'</div>'+
-    '<div style="font-size:11px;color:#414e63;margin-top:2px">'+({none:'No schedule',pre_start:'14 days before start',weekly:'Weekly',biweekly:'Every 2 weeks',monthly:'Monthly',milestone:'Milestones only'}[j.pm_visit_schedule]||j.pm_visit_schedule||'No schedule set')+'</div>'+
+    '<div style="font-size:11px;color:#5a6b85;margin-top:2px">'+({none:'No schedule',pre_start:'14 days before start',weekly:'Weekly',biweekly:'Every 2 weeks',monthly:'Monthly',milestone:'Milestones only'}[j.pm_visit_schedule]||j.pm_visit_schedule||'No schedule set')+'</div>'+
     '</div>'+
     '<button class="btn btn-p btn-sm" onclick="logPmVisitModal()">+ Log Visit</button>'+
     '</div>'+
@@ -11280,10 +11355,10 @@ async function pgNotifications(){
     return '<div class="card" style="margin-bottom:13px"><div class="card-title">'+icon+' '+title+' ('+items.length+')</div>'+
       items.map(n=>{
         var jobLink=n.link_job_id||(n.meta&&n.meta.job_id)
-        return '<div style="display:flex;gap:11px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start;opacity:'+(n.read?.7:1)+'">'+'<div style="flex-shrink:0;margin-top:2px"><div style="width:8px;height:8px;border-radius:50%;background:'+(n.read?'#414e63':'#dc2626')+'"></div></div>'+
+        return '<div style="display:flex;gap:11px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start;opacity:'+(n.read?.7:1)+'">'+'<div style="flex-shrink:0;margin-top:2px"><div style="width:8px;height:8px;border-radius:50%;background:'+(n.read?'#5a6b85':'#dc2626')+'"></div></div>'+
         '<div style="flex:1"><div style="font-size:13px;font-weight:'+(n.read?400:600)+'">'+n.title+'</div>'+
         '<div style="font-size:12px;color:#8a96ab;margin-top:3px">'+(n.message||'')+'</div>'+
-        '<div style="font-size:10px;color:#414e63;margin-top:4px">'+fdt(n.created_at)+'</div>'+
+        '<div style="font-size:10px;color:#5a6b85;margin-top:4px">'+fdt(n.created_at)+'</div>'+
         (jobLink?'<button class="btn btn-sm" style="margin-top:6px" onclick="openJob(\\''+jobLink+'\\')">View Job →</button>':'')+
         '</div>'+
         (!n.read?'<button class="btn btn-sm btn-ghost" onclick="markNotifRead(\\''+n.id+'\\')" style="flex-shrink:0">✓</button>':'')+
@@ -11353,7 +11428,7 @@ function filterDispatchJobs(q){
   var chipsEl=document.getElementById('dispatch-job-chips')
   if(!chipsEl)return
   if(!filtered.length){
-    chipsEl.innerHTML='<div style="font-size:11px;color:#414e63;padding:4px 0">No jobs match "'+q+'"</div>'
+    chipsEl.innerHTML='<div style="font-size:11px;color:#5a6b85;padding:4px 0">No jobs match "'+q+'"</div>'
     return
   }
   chipsEl.innerHTML=filtered.map(function(j){
@@ -11362,7 +11437,7 @@ function filterDispatchJobs(q){
       +'onmouseenter="this.style.borderColor=&quot;rgba(37,99,235,.5)&quot;" onmouseleave="this.style.borderColor=&quot;rgba(255,255,255,.08)&quot;">' 
       +'<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+j.name+'</div>'
       +(j.job_number?'<div style="font-size:10px;color:#60a5fa;margin-top:1px">#'+j.job_number+'</div>':'')
-      +'<div style="font-size:10px;color:#414e63;margin-top:2px">'+stageBadge(j.phase)+'</div>'
+      +'<div style="font-size:10px;color:#5a6b85;margin-top:2px">'+stageBadge(j.phase)+'</div>'
       +'</div>'
   }).join('')
 }
@@ -11417,8 +11492,8 @@ function renderDispatchLeft(el, employees, companies, assignedProfileIds, assign
   })
 
   let html='<div style="padding:12px 13px;border-bottom:1px solid rgba(255,255,255,.07)">'
-  html+='<div style="font-size:11px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">'+_dispatchDate+'</div>'
-  html+='<div style="font-size:10px;color:#414e63">'+(unassignedEmp.length)+' available · drag to assign</div>'
+  html+='<div style="font-size:11px;font-weight:600;color:#5a6b85;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">'+_dispatchDate+'</div>'
+  html+='<div style="font-size:10px;color:#5a6b85">'+(unassignedEmp.length)+' available · drag to assign</div>'
   html+='</div>'
 
   // Unassigned jobs pool at top
@@ -11433,7 +11508,7 @@ function renderDispatchLeft(el, employees, companies, assignedProfileIds, assign
       'onmouseenter="this.style.borderColor=&quot;rgba(37,99,235,.5)&quot;" onmouseleave="this.style.borderColor=&quot;rgba(255,255,255,.08)&quot;">' +
       '<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+j.name+'</div>'+
       (j.job_number?'<div style="font-size:10px;color:#60a5fa;margin-top:1px">#'+j.job_number+'</div>':'')+
-      '<div style="font-size:10px;color:#414e63;margin-top:2px">'+stageBadge(j.phase)+'</div>'+
+      '<div style="font-size:10px;color:#5a6b85;margin-top:2px">'+stageBadge(j.phase)+'</div>'+
       '</div>'
     ).join('')
     html+='</div>'  // close dispatch-job-chips
@@ -11457,7 +11532,7 @@ function renderDispatchLeft(el, employees, companies, assignedProfileIds, assign
   })
 
   if(!unassignedEmp.length&&!unassignedJobs.length){
-    html+='<div style="padding:20px 13px;text-align:center;color:#414e63;font-size:12px">Everyone assigned for today ✓</div>'
+    html+='<div style="padding:20px 13px;text-align:center;color:#5a6b85;font-size:12px">Everyone assigned for today ✓</div>'
   }
 
   el.innerHTML=html
@@ -11469,7 +11544,7 @@ function dispatchPersonChip(e){
     'style="display:flex;align-items:center;gap:8px;padding:7px 9px;background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:7px;margin-bottom:5px;cursor:default">'+
     '<div class="av" style="width:26px;height:26px;font-size:9px;flex-shrink:0;'+avCss+'">'+ini(e.full_name)+'</div>'+
     '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+e.full_name+'</div>'+
-    '<div style="font-size:10px;color:#414e63">'+e.role+(e.phone?' · '+e.phone:'')+'</div></div>'+
+    '<div style="font-size:10px;color:#5a6b85">'+e.role+(e.phone?' · '+e.phone:'')+'</div></div>'+
     '</div>'
 }
 
@@ -11483,7 +11558,7 @@ function renderDispatchRight(el, employees, companies, assignments, jobs, assign
   // Rows: each employee who is assigned OR all employees (show full board)
   const allEmp=employees
   if(!allEmp.length){
-    el.innerHTML=html+'<div style="color:#414e63;font-size:13px">No employees to show. Add employees in the Users section.</div>'
+    el.innerHTML=html+'<div style="color:#5a6b85;font-size:13px">No employees to show. Add employees in the Users section.</div>'
     return
   }
 
@@ -11491,8 +11566,8 @@ function renderDispatchRight(el, employees, companies, assignments, jobs, assign
   html+='<table style="width:100%;border-collapse:collapse;min-width:900px">'
   // Header row with times
   html+='<thead><tr>'
-  html+='<th style="text-align:left;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.07);font-size:11px;color:#414e63;min-width:180px;position:sticky;left:0;background:#060a10;z-index:2">Employee</th>'
-  html+='<th style="text-align:left;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.07);font-size:10px;color:#414e63;min-width:400px">Schedule — drag a job from the left panel to assign</th>'
+  html+='<th style="text-align:left;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.07);font-size:11px;color:#5a6b85;min-width:180px;position:sticky;left:0;background:#060a10;z-index:2">Employee</th>'
+  html+='<th style="text-align:left;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.07);font-size:10px;color:#5a6b85;min-width:400px">Schedule — drag a job from the left panel to assign</th>'
   html+='</tr></thead><tbody>'
 
   for(const emp of allEmp){
@@ -11504,7 +11579,7 @@ function renderDispatchRight(el, employees, companies, assignments, jobs, assign
     html+='<div style="display:flex;align-items:center;gap:8px">'
     html+='<div class="av" style="width:28px;height:28px;font-size:10px;flex-shrink:0;'+avCss+'">'+ini(emp.full_name)+'</div>'
     html+='<div><div style="font-size:12px;font-weight:500">'+emp.full_name+'</div>'
-    html+='<div style="font-size:10px;color:#414e63">'+emp.role+'</div></div></div>'
+    html+='<div style="font-size:10px;color:#5a6b85">'+emp.role+'</div></div></div>'
     html+='</td>'
     // Schedule cell — drop zone + assigned jobs
     html+='<td class="dispatch-drop-zone" data-profile-id="'+emp.id+'" data-profile-name="'+emp.full_name.replace(/"/g,'&quot;')+'" '+
@@ -11533,7 +11608,7 @@ function dispatchAssignmentCard(a){
     '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
     '<div style="flex:1;min-width:0">'+
     '<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.jobs?.name||'Job')+'</div>'+
-    (a.jobs?.address?'<div style="font-size:10px;color:#414e63;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.jobs.address+'</div>':'')+
+    (a.jobs?.address?'<div style="font-size:10px;color:#5a6b85;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.jobs.address+'</div>':'')+
     '<div style="display:flex;align-items:center;gap:8px;margin-top:4px">'+
     (a.start_time?'<span style="font-size:10px;color:#60a5fa">⏱ '+fmtDispatchTime(a.start_time)+(a.end_time?' – '+fmtDispatchTime(a.end_time):'')+'</span>':'')+
     '<span class="badge bg-gray" style="font-size:9px">'+a.status+'</span>'+
@@ -11602,7 +11677,7 @@ function openAssignModal(jobId, jobName, profileId, profileName){
 
   const html=
     '<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:7px;padding:10px 12px;margin-bottom:13px">'+
-    '<div style="font-size:11px;color:#414e63">ASSIGNING</div>'+
+    '<div style="font-size:11px;color:#5a6b85">ASSIGNING</div>'+
     '<div style="font-size:14px;font-weight:600;margin-top:2px">'+jobName+'</div>'+
     '<div style="font-size:12px;color:#8a96ab;margin-top:2px">→ '+profileName+'</div>'+
     '</div>'+
@@ -11746,11 +11821,11 @@ async function loadCheckoutUI(){
   if(ts)ts.innerHTML='<option value="">— Select —</option>'+(techs||[]).map(t=>'<option value="'+t.full_name+'">'+t.full_name+'</option>').join('')
   const el=document.getElementById('checkout-parts-list')
   if(!el)return
-  if(!(parts||[]).length){el.innerHTML='<div style="font-size:12px;color:#414e63">No staged parts on this job</div>';return}
+  if(!(parts||[]).length){el.innerHTML='<div style="font-size:12px;color:#5a6b85">No staged parts on this job</div>';return}
   let html='<div style="background:#131c2e;border-radius:8px;overflow:hidden">'
   parts.forEach(p=>{
     const av=p.assigned_qty-(p.taken_qty||0);if(av<=0)return
-    html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+p.part_name+'</div><div style="font-size:10px;color:#414e63">'+av+' available</div></div>'
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+p.part_name+'</div><div style="font-size:10px;color:#5a6b85">'+av+' available</div></div>'
     html+='<div style="display:flex;align-items:center;gap:6px"><button data-pid="'+p.id+'" data-max="'+av+'" onclick="adjCO(this,-1)" style="width:32px;height:32px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#e8edf5;font-size:18px">−</button>'
     html+='<input type="number" class="co-qty fi" data-pid="'+p.id+'" data-max="'+av+'" value="0" min="0" max="'+av+'" style="width:56px;text-align:center;font-size:15px;font-weight:600">'
     html+='<button data-pid="'+p.id+'" data-max="'+av+'" onclick="adjCO(this,1)" style="width:32px;height:32px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:#0c1220;cursor:pointer;color:#16a34a;font-size:18px">+</button></div></div>'
@@ -11809,9 +11884,9 @@ function renderOrdItems(){
   el.innerHTML=items.map((i,x)=>
     '<div style="display:inline-flex;align-items:center;gap:6px;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:5px 10px;font-size:12px;margin:2px">'+
     '<span style="font-weight:500">'+i.name+'</span>'+
-    '<span style="color:#414e63">×'+i.qty+'</span>'+
+    '<span style="color:#5a6b85">×'+i.qty+'</span>'+
     '<button data-idx="'+x+'" onclick="window._ordItems.splice(parseInt(this.dataset.idx),1);renderOrdItems()" '+
-    'style="background:none;border:none;cursor:pointer;color:#414e63;font-size:15px;padding:0 2px;line-height:1">×</button>'+
+    'style="background:none;border:none;cursor:pointer;color:#5a6b85;font-size:15px;padding:0 2px;line-height:1">×</button>'+
     '</div>'
   ).join('')
 }
@@ -11933,11 +12008,11 @@ async function editOrderModal(orderId){
   function rebuildList(){
     const el=document.getElementById('eoi-list');if(!el)return
     const its=window._editOrdItems||[]
-    if(!its.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:8px 0">No parts — add below</div>';return}
+    if(!its.length){el.innerHTML='<div style="font-size:12px;color:#5a6b85;padding:8px 0">No parts — add below</div>';return}
     el.innerHTML=its.map((item,idx)=>
       '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#0c1220;border-radius:7px;margin-bottom:5px">'
       +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+item.name+'</div>'
-      +'<div style="font-size:10px;color:#414e63">'+item.barcode+'</div></div>'
+      +'<div style="font-size:10px;color:#5a6b85">'+item.barcode+'</div></div>'
       +'<div style="display:flex;align-items:center;gap:5px">'
       +'<button data-i="'+idx+'" onclick="adjEO(parseInt(this.dataset.i),-1)" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:#131c2e;cursor:pointer;color:#e8edf5;font-size:16px">−</button>'
       +'<span id="eoi-qty-'+idx+'" style="min-width:32px;text-align:center;font-size:14px;font-weight:600;padding:0 4px">'+item.qty+'</span>'
@@ -11951,7 +12026,7 @@ async function editOrderModal(orderId){
   const notesEsc=(order.notes||'').replace(/"/g,'&quot;')
   const html=\`
     <div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);border-radius:7px;padding:9px 12px;margin-bottom:13px">
-      <div style="font-size:10px;color:#414e63">JOB</div>
+      <div style="font-size:10px;color:#5a6b85">JOB</div>
       <div style="font-size:14px;font-weight:600">\${jobName}</div>
     </div>
     <div class="fg" style="margin-bottom:8px">
@@ -11961,7 +12036,7 @@ async function editOrderModal(orderId){
     <div class="sec-hdr" style="margin-bottom:8px">Parts on this Order</div>
     <div id="eoi-list" style="margin-bottom:12px"></div>
     <div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:10px 12px">
-      <div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Add Part to Order</div>
+      <div style="font-size:10px;font-weight:600;color:#5a6b85;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Add Part to Order</div>
       <div style="display:flex;gap:7px">
         <input class="fi" id="eod-bc" placeholder="Barcode or part name" style="flex:1" oninput="liveResolveBC(this.value)" onkeydown="editOrdBcKey(event)">
         <input class="fi" id="eod-qty" type="number" value="1" min="1" style="width:60px">
@@ -12153,7 +12228,7 @@ function faxRenderBidList(){
       var dueColor=q.bid_due_date&&new Date(q.bid_due_date)<new Date()?'#dc2626':'#8a96ab'
       h+='<tr data-bidid="'+q.id+'" onclick="faxOpenBidById(this)" style="cursor:pointer">';
       h+='<td style="font-weight:500">'+q.number+'</td>'
-      h+='<td>'+( q.project_name||'—')+'<div style="font-size:10px;color:#414e63">'+(q.project_address||'')+'</div></td>'
+      h+='<td>'+( q.project_name||'—')+'<div style="font-size:10px;color:#5a6b85">'+(q.project_address||'')+'</div></td>'
       h+='<td>'+(q.trade||'—')+'</td>'
       h+='<td style="font-size:11px">'+recs.map(function(r){return r.company||r.name}).join(', ')+'</td>'
       h+='<td style="font-weight:500">'+fm(q.total,2)+'</td>'
@@ -12233,7 +12308,7 @@ function faxRenderBidEditor(){
   h+='</div></div>'
   h+='<div>'
   h+='<div class="card"><div class="card-title">Line Items <div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="faxAddLi()">+ Add</button><button class="btn btn-sm" onclick="faxInsertBlock()">Scope Block</button><label class="btn btn-sm" style="cursor:pointer">CSV/XLS<input type="file" accept=".csv,.xlsx" style="display:none" onchange="faxImportLiFile(this)"></label></div></div>'
-  h+='<div style="display:grid;grid-template-columns:1fr 60px 80px 80px 26px;gap:4px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase">'
+  h+='<div style="display:grid;grid-template-columns:1fr 60px 80px 80px 26px;gap:4px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:10px;font-weight:600;color:#5a6b85;text-transform:uppercase">'
   h+='<div>Description</div><div style="text-align:right">Qty</div><div style="text-align:right">Rate</div><div style="text-align:right">Total</div><div></div></div>'
   h+='<div id="qf-li-body"></div>'
   h+='<div style="border-top:1px solid rgba(255,255,255,.06);padding-top:10px;margin-top:8px">'
@@ -12247,7 +12322,7 @@ function faxRenderBidEditor(){
   h+='<div style="display:flex;gap:6px"><select class="fs" id="qf-gc-pick" style="width:160px">'+gcOpts+'</select><button class="btn btn-sm" onclick="faxAddRecipFromGC()">Add</button></div></div>'
   h+='<div id="qf-recs-body"></div>'
   h+='<div style="margin-top:10px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px">'
-  h+='<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;margin-bottom:6px">Or add manually</div>'
+  h+='<div style="font-size:10px;font-weight:600;color:#5a6b85;text-transform:uppercase;margin-bottom:6px">Or add manually</div>'
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:end">'
   h+='<div><label class="fl">Name</label><input class="fi" id="qf-rn" placeholder="Contact name"></div>'
   h+='<div><label class="fl">Company</label><input class="fi" id="qf-rc" placeholder="Company"></div>'
@@ -12276,7 +12351,7 @@ function faxRenderLiBody(){
   var q=window._faxBidEditing
   var el=document.getElementById('qf-li-body')
   if(!el)return
-  if(!q.line_items||!q.line_items.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:8px 0">No line items yet</div>';faxUpdateTotals();return}
+  if(!q.line_items||!q.line_items.length){el.innerHTML='<div style="font-size:12px;color:#5a6b85;padding:8px 0">No line items yet</div>';faxUpdateTotals();return}
   var h=''
   q.line_items.forEach(function(li,i){
     h+='<div style="display:grid;grid-template-columns:1fr 60px 80px 80px 26px;gap:4px;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
@@ -12324,9 +12399,9 @@ async function faxInsertBlock(){
   var h=blocks.length?'<div style="display:flex;flex-direction:column;gap:6px">':''
   blocks.forEach(function(b){
     h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#131c2e;border-radius:7px;cursor:pointer;border:1px solid rgba(255,255,255,.07)" data-blockid="'+b.id+'" onclick="faxPickBlockById(this)">'
-    h+='<div><div style="font-size:13px;font-weight:500">'+b.name+'</div><div style="font-size:10px;color:#414e63">'+(b.trade||'All trades')+' · '+(b.line_items||[]).length+' items</div></div>'
+    h+='<div><div style="font-size:13px;font-weight:500">'+b.name+'</div><div style="font-size:10px;color:#5a6b85">'+(b.trade||'All trades')+' · '+(b.line_items||[]).length+' items</div></div>'
     h+='<button class="btn btn-sm btn-p">Insert</button></div>'
-    h+='<div><div style="font-size:13px;font-weight:500">'+b.name+'</div><div style="font-size:10px;color:#414e63">'+(b.trade||'All trades')+' · '+(b.line_items||[]).length+' items</div></div>'
+    h+='<div><div style="font-size:13px;font-weight:500">'+b.name+'</div><div style="font-size:10px;color:#5a6b85">'+(b.trade||'All trades')+' · '+(b.line_items||[]).length+' items</div></div>'
     h+='<button class="btn btn-sm btn-p">Insert</button></div>'
   })
   if(blocks.length)h+='</div>'
@@ -12342,7 +12417,7 @@ function faxPickBlock(id){
 function faxRenderRecsBody(){
   var el=document.getElementById('qf-recs-body');if(!el)return
   var recs=(window._faxBidEditing||{}).recipients||[]
-  if(!recs.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:6px 0">No recipients yet</div>';return}
+  if(!recs.length){el.innerHTML='<div style="font-size:12px;color:#5a6b85;padding:6px 0">No recipients yet</div>';return}
   var h=''
   recs.forEach(function(r,i){
     h+='<div style="background:#131c2e;border-radius:7px;padding:9px 11px;margin-bottom:6px;border:1px solid rgba(255,255,255,.06)">'
@@ -12360,7 +12435,7 @@ function faxRenderRecsBody(){
       if(['draft','sent','viewed'].indexOf(r.status)>=0)h+='<button class="btn btn-sm" style="color:#dc2626" onclick="faxDeclineRecipIdx('+i+')">Decline</button>'
     if(['draft','sent','viewed'].indexOf(r.status)>=0)h+='<button class="btn btn-sm" style="color:#8a96ab" onclick="faxNoScopeRecipIdx('+i+')">No Scope</button>'
       h+='</div>'
-    }else{h+='<div style="font-size:10px;color:#414e63;margin-top:4px">Save first to send</div>'}
+    }else{h+='<div style="font-size:10px;color:#5a6b85;margin-top:4px">Save first to send</div>'}
     h+='</div></div>'
     if(!r.id)h+='<button class="btn btn-ghost btn-sm" style="color:#dc2626;margin-top:5px" onclick="window._faxBidEditing.recipients.splice('+i+',1);faxRenderRecsBody()">Remove</button>'
     h+='</div>'
@@ -12553,7 +12628,7 @@ function faxRenderInvoiceEditor(){
   h+='<div class="fg"><label class="fl">Terms</label><textarea class="ft" id="qfi-terms">'+(inv.terms||'')+'</textarea></div>'
   h+='</div></div>'
   h+='<div><div class="card"><div class="card-title">Line Items <button class="btn btn-sm" onclick="faxInvAddLi()">+ Add</button></div>'
-  h+='<div style="display:grid;grid-template-columns:1fr 60px 80px 80px 26px;gap:4px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase">'
+  h+='<div style="display:grid;grid-template-columns:1fr 60px 80px 80px 26px;gap:4px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:10px;font-weight:600;color:#5a6b85;text-transform:uppercase">'
   h+='<div>Description</div><div style="text-align:right">Qty</div><div style="text-align:right">Rate</div><div style="text-align:right">Total</div><div></div></div>'
   h+='<div id="qfi-li-body"></div>'
   h+='<div style="border-top:1px solid rgba(255,255,255,.06);padding-top:10px;margin-top:8px">'
@@ -12568,7 +12643,7 @@ function faxRenderInvoiceEditor(){
 function faxInvRenderLi(){
   var el=document.getElementById('qfi-li-body');if(!el)return
   var items=(window._faxBidInv||{}).line_items||[]
-  if(!items.length){el.innerHTML='<div style="font-size:12px;color:#414e63;padding:8px 0">No line items</div>';return}
+  if(!items.length){el.innerHTML='<div style="font-size:12px;color:#5a6b85;padding:8px 0">No line items</div>';return}
   var h=''
   items.forEach(function(li,i){
     h+='<div style="display:grid;grid-template-columns:1fr 60px 80px 80px 26px;gap:4px;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
@@ -12684,7 +12759,7 @@ function faxTmplEditorModal(data,type,onSave){
 function faxTmplRenderLi(){
   var el=document.getElementById('tm-li-body');if(!el)return
   var items=window._faxBidTmplItems||[]
-  if(!items.length){el.innerHTML='<div style="font-size:11px;color:#414e63;padding:5px 0">No items</div>';return}
+  if(!items.length){el.innerHTML='<div style="font-size:11px;color:#5a6b85;padding:5px 0">No items</div>';return}
   var h=''
   items.forEach(function(li,i){
     h+='<div style="display:grid;grid-template-columns:1fr 55px 75px 26px;gap:4px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
@@ -12772,23 +12847,23 @@ async function pgFaxBidReports(){
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'
   h+='<div><div class="card"><div class="card-title">Estimator Leaderboard</div>'
   var estList=Object.values(byEst).sort(function(a,b){return b.vol-a.vol})
-  if(estList.length){estList.forEach(function(e,i){h+='<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="font-size:11px;color:#414e63;width:16px">#'+(i+1)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:500">'+e.name+'</div><div style="font-size:10px;color:#8a96ab">'+e.n+' won</div></div><div style="font-size:14px;font-weight:600;color:#16a34a">'+fm(e.vol)+'</div></div>'})}
-  else h+='<div style="font-size:12px;color:#414e63;padding:12px 0">No awarded quotes yet</div>'
+  if(estList.length){estList.forEach(function(e,i){h+='<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="font-size:11px;color:#5a6b85;width:16px">#'+(i+1)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:500">'+e.name+'</div><div style="font-size:10px;color:#8a96ab">'+e.n+' won</div></div><div style="font-size:14px;font-weight:600;color:#16a34a">'+fm(e.vol)+'</div></div>'})}
+  else h+='<div style="font-size:12px;color:#5a6b85;padding:12px 0">No awarded quotes yet</div>'
   h+='</div>'
   h+='<div class="card"><div class="card-title">Why We Lose</div>'
   var lossKeys=Object.keys(lossR)
   if(lossKeys.length){lossKeys.sort(function(a,b){return lossR[b]-lossR[a]}).forEach(function(reason){h+='<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>'+reason+'</span><span style="color:#8a96ab">'+lossR[reason]+'</span></div><div class="pbar"><div class="pb r" style="width:'+Math.round(lossR[reason]/maxLoss*100)+'%"></div></div></div>'})}
-  else h+='<div style="font-size:12px;color:#414e63;padding:12px 0">No declined quotes yet</div>'
+  else h+='<div style="font-size:12px;color:#5a6b85;padding:12px 0">No declined quotes yet</div>'
   h+='</div></div>'
   h+='<div><div class="card"><div class="card-title">By Trade</div>'
   var tradeList=Object.values(byTrade).sort(function(a,b){return b.vol-a.vol})
   if(tradeList.length){tradeList.forEach(function(t){h+='<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="flex:1"><div style="font-size:13px;font-weight:500">'+t.name+'</div><div style="font-size:10px;color:#8a96ab">'+t.n+' quotes · '+t.won+' won</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:600;color:#16a34a">'+(t.n?Math.round(t.won/t.n*100):0)+'%</div><div style="font-size:10px;color:#8a96ab">'+fm(t.vol)+'</div></div></div>'})}
-  else h+='<div style="font-size:12px;color:#414e63;padding:12px 0">No data yet</div>'
+  else h+='<div style="font-size:12px;color:#5a6b85;padding:12px 0">No data yet</div>'
   h+='</div>'
   h+='<div class="card"><div class="card-title">GC Win Rates</div>'
   var gcList=Object.values(byGC).sort(function(a,b){return b.won-a.won}).slice(0,8)
-  if(gcList.length){gcList.forEach(function(g){h+='<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="flex:1"><div style="font-size:13px;font-weight:500">'+g.name+'</div><div style="font-size:10px;color:#8a96ab">'+g.sent+' sent · '+g.won+' won</div></div><div style="font-size:14px;font-weight:600;color:'+(g.won>0?'#16a34a':'#414e63')+'">'+(g.sent?Math.round(g.won/g.sent*100):0)+'%</div></div>'})}
-  else h+='<div style="font-size:12px;color:#414e63;padding:12px 0">No data yet</div>'
+  if(gcList.length){gcList.forEach(function(g){h+='<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div style="flex:1"><div style="font-size:13px;font-weight:500">'+g.name+'</div><div style="font-size:10px;color:#8a96ab">'+g.sent+' sent · '+g.won+' won</div></div><div style="font-size:14px;font-weight:600;color:'+(g.won>0?'#16a34a':'#5a6b85')+'">'+(g.sent?Math.round(g.won/g.sent*100):0)+'%</div></div>'})}
+  else h+='<div style="font-size:12px;color:#5a6b85;padding:12px 0">No data yet</div>'
   h+='</div></div></div>'
   document.getElementById('page-area').innerHTML=h
 }
@@ -12956,15 +13031,15 @@ async function faxLinkJobId(){
   var h='<div class="fg"><label class="fl">Enter Job ID manually</label>'
   h+='<input class="fi" id="ljid-manual" placeholder="Paste job ID here">'
   h+='</div>'
-  h+='<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">— or pick from existing jobs —</div>'
+  h+='<div style="font-size:10px;font-weight:600;color:#5a6b85;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">— or pick from existing jobs —</div>'
   h+='<div style="max-height:200px;overflow-y:auto">'
   if(jobs.length){
     jobs.forEach(function(j){
   h+='</div>'
       h+='<div style="font-size:13px;font-weight:500">'+(j.name||j.id)+'</div>'
-      h+='<div style="font-size:10px;color:#414e63">'+(j.address||j.id)+'</div></div>'
+      h+='<div style="font-size:10px;color:#5a6b85">'+(j.address||j.id)+'</div></div>'
     })
-  }else{h+='<div style="font-size:12px;color:#414e63">No jobs found</div>'}
+  }else{h+='<div style="font-size:12px;color:#5a6b85">No jobs found</div>'}
   h+='</div>'
   h+='<div class="fg" style="margin-top:12px"><label class="fl">Or create a new Job ID now</label>'
   h+='<button class="btn btn-sm btn-b" onclick="faxCreateJobFromQuote()">+ Create Job from this Quote</button></div>'
@@ -13017,7 +13092,7 @@ async function faxAssignEstimator(){
     var isCurrent=q.estimator_id===u.id
     h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#131c2e;border-radius:7px;border:1px solid rgba(255,255,255,'+(isCurrent?'.25':'.07')+')">'
     h+='<div><div style="font-size:13px;font-weight:500">'+(u.full_name||u.id)+'</div>'
-    h+='<div style="font-size:10px;color:#414e63">'+u.role+'</div></div>'
+    h+='<div style="font-size:10px;color:#5a6b85">'+u.role+'</div></div>'
     if(isCurrent){h+='<span class="badge bg-green">Assigned</span>'}
     else{h+='<button class="btn btn-sm btn-p" data-uid="'+u.id+'" data-uname="'+(u.full_name||'').replace(/"/g,'')+'" onclick="faxDoAssignBtn(this)">Assign</button>'}
     h+='</div>'
@@ -13302,7 +13377,7 @@ function renderTaskList(tasks){
   h+='</select>'
   h+='<select class="fs" id="tk-age" style="width:140px" onchange="renderTaskList()"><option value="">Any age</option><option value="today">Created today</option><option value="week">Last 7 days</option><option value="month">Last 30 days</option><option value="old">Older than 30d</option></select>'
   h+='</div>'
-  if(!filtered.length){document.getElementById('page-area').innerHTML=h+'<div style="text-align:center;padding:40px;color:#414e63">No tasks match filters</div>';return}
+  if(!filtered.length){document.getElementById('page-area').innerHTML=h+'<div style="text-align:center;padding:40px;color:#5a6b85">No tasks match filters</div>';return}
   h+='<table class="tbl"><thead><tr><th>Priority</th><th>Task</th><th>Job</th><th>Assigned To</th><th>Status</th><th>Age</th><th></th></tr></thead><tbody>'
   var priColors={critical:'#dc2626',high:'#d97706',medium:'#2563eb',low:'#16a34a'}
   var priBadge={critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'}
@@ -13455,12 +13530,12 @@ async function viewTask(btn){
   var id=btn.getAttribute('data-tid')
   var t=window._allTasks.find(function(x){return x.id===id});if(!t)return
   var h='<div class="two" style="margin-bottom:12px">'
-  h+='<div><div style="font-size:10px;color:#414e63">JOB</div><a href="javascript:void(0)" data-jid="'+t.job_id+'" onclick="closeModal();taskOpenJob(this)" style="font-size:13px;font-weight:500;color:#2563eb">'+(t.job_name||'—')+'</a></div>'
-  h+='<div><div style="font-size:10px;color:#414e63">ASSIGNED TO</div><div style="font-size:13px;font-weight:500">'+(t.assigned_name||'—')+'</div></div>'
+  h+='<div><div style="font-size:10px;color:#5a6b85">JOB</div><a href="javascript:void(0)" data-jid="'+t.job_id+'" onclick="closeModal();taskOpenJob(this)" style="font-size:13px;font-weight:500;color:#2563eb">'+(t.job_name||'—')+'</a></div>'
+  h+='<div><div style="font-size:10px;color:#5a6b85">ASSIGNED TO</div><div style="font-size:13px;font-weight:500">'+(t.assigned_name||'—')+'</div></div>'
   h+='</div>'
   h+='<div class="two" style="margin-bottom:12px">'
-  h+='<div><div style="font-size:10px;color:#414e63">PRIORITY</div><div style="font-size:13px;font-weight:500">'+(t.priority||'medium')+'</div></div>'
-  h+='<div><div style="font-size:10px;color:#414e63">CREATED</div><div style="font-size:13px">'+(t.created_by||'')+'<br><span style="color:#8a96ab">'+fd(t.created_at)+'</span></div></div>'
+  h+='<div><div style="font-size:10px;color:#5a6b85">PRIORITY</div><div style="font-size:13px;font-weight:500">'+(t.priority||'medium')+'</div></div>'
+  h+='<div><div style="font-size:10px;color:#5a6b85">CREATED</div><div style="font-size:13px">'+(t.created_by||'')+'<br><span style="color:#8a96ab">'+fd(t.created_at)+'</span></div></div>'
   h+='</div>'
   h+='<div style="background:#131c2e;border-radius:8px;padding:11px 13px;font-size:13px;margin-bottom:12px">'+( t.description||t.title)+'</div>'
   if(t.resolution_notes)h+='<div style="background:rgba(22,163,74,.1);border-radius:8px;padding:11px 13px;font-size:13px"><div style="font-size:10px;color:#16a34a;font-weight:600;margin-bottom:4px">RESOLUTION</div>'+t.resolution_notes+'</div>'
@@ -13603,7 +13678,7 @@ function buildMyWalksDashWidget(walks, jobMap){
     var statusColor=w.status==='in_progress'?'#60a5fa':'#d97706'
     return'<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" data-wid="'+w.id+'" onclick="openJobWalk(this.dataset.wid)">'
     +'<div><div style="font-size:12px;font-weight:500;color:#60a5fa">'+jName+'</div>'
-    +'<div style="font-size:10px;color:#414e63;margin-top:1px">Walk date: '+fd(w.walk_date)+'</div></div>'
+    +'<div style="font-size:10px;color:#5a6b85;margin-top:1px">Walk date: '+fd(w.walk_date)+'</div></div>'
     +'<span class="badge" style="background:'+statusColor+'1a;color:'+statusColor+';flex-shrink:0">'+( w.status||'open')+'</span>'
     +'</div>'
   }).join('')
@@ -13641,11 +13716,11 @@ function buildMyTasksDashWidget(tasks){
     h+='<span style="font-size:10px;color:'+statusColor+'">'+t.status.replace('_',' ')+'</span>'
     h+='<span style="font-size:10px;color:#1a2540">·</span>'
     h+='<span style="font-size:10px;color:#8a96ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px">'+(t.job_name||'—')+'</span>'
-    h+='<span style="font-size:10px;color:#414e63;margin-left:auto;flex-shrink:0">'+ageStr+'</span>'
+    h+='<span style="font-size:10px;color:#5a6b85;margin-left:auto;flex-shrink:0">'+ageStr+'</span>'
     h+='</div>'
     h+='</div>'
   })
-  if(tasks.length>4)h+='<div style="font-size:11px;color:#414e63;padding-top:7px;text-align:center"><a href="javascript:void(0)" onclick="faxNavToMyTasks()" style="color:#2563eb">+' +(tasks.length-4)+' more</a></div>'
+  if(tasks.length>4)h+='<div style="font-size:11px;color:#5a6b85;padding-top:7px;text-align:center"><a href="javascript:void(0)" onclick="faxNavToMyTasks()" style="color:#2563eb">+' +(tasks.length-4)+' more</a></div>'
   h+='</div>'
   return h
 }
@@ -13781,7 +13856,7 @@ async function renderPartsTab(el){
     ordered.forEach(function(p){
       h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
       h+='<div style="flex:1"><div style="font-size:13px;font-weight:500">'+p.part_name+'</div>'
-      h+='<div style="font-size:10px;color:#414e63">Ordered: '+(p.ordered_qty||p.assigned_qty||0)+'</div></div>'
+      h+='<div style="font-size:10px;color:#5a6b85">Ordered: '+(p.ordered_qty||p.assigned_qty||0)+'</div></div>'
       h+='<div style="display:flex;align-items:center;gap:5px">'
       h+='<select class="fs rowwh" id="whq-'+p.id+'" style="width:auto;padding:4px 8px;font-size:11px" title="Warehouse for this part"><option value="Gilbert">Gilbert</option><option value="Phoenix">Phoenix</option></select>'
       h+='<button class="btn btn-sm" data-pid="'+p.id+'" onclick="adjustStageQty(this,-1)">−</button>'
@@ -13800,10 +13875,10 @@ async function renderPartsTab(el){
     h+='</div>'
     staged.forEach(function(p){
       var loc=p.warehouse_location||'—'
-      var locColor=p.warehouse_location==='Gilbert'?'#60a5fa':p.warehouse_location==='Phoenix'?'#a78bfa':'#414e63'
+      var locColor=p.warehouse_location==='Gilbert'?'#60a5fa':p.warehouse_location==='Phoenix'?'#a78bfa':'#5a6b85'
       h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
       h+='<div style="flex:1"><div style="font-size:13px;font-weight:500">'+p.part_name+'</div>'
-      h+='<div style="font-size:10px;color:#414e63">Staged qty: '+(p.assigned_qty||0)+' · <span style="color:'+locColor+'">📍 '+loc+'</span></div></div>'
+      h+='<div style="font-size:10px;color:#5a6b85">Staged qty: '+(p.assigned_qty||0)+' · <span style="color:'+locColor+'">📍 '+loc+'</span></div></div>'
       h+='<div style="display:flex;align-items:center;gap:5px">'
       h+='<button class="btn btn-sm" data-pid="'+p.id+'" data-pname="'+_escAttr(p.part_name||'')+'" data-loc="'+(p.warehouse_location||'')+'" onclick="transferWarehouse(this)" title="Move to other warehouse">↔ WH</button>'
       h+='<button class="btn btn-sm" data-pid="'+p.id+'" onclick="adjustCheckQty(this,-1)">−</button>'
@@ -13830,7 +13905,7 @@ async function renderPartsTab(el){
       var leftover=taken-inst
       h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
       h+='<div style="flex:1"><div style="font-size:13px;font-weight:500">'+_escapeHTML(p.part_name)+'</div>'
-      h+='<div style="font-size:10px;color:#414e63">'+taken+' delivered · '+inst+' installed · <span style="color:#d97706;font-weight:600">'+leftover+' leftover</span></div></div>'
+      h+='<div style="font-size:10px;color:#5a6b85">'+taken+' delivered · '+inst+' installed · <span style="color:#d97706;font-weight:600">'+leftover+' leftover</span></div></div>'
       h+='<select class="fs" id="ret-wh-'+p.id+'" style="width:auto;padding:4px 8px;font-size:11px"><option value="Gilbert">Gilbert</option><option value="Phoenix">Phoenix</option></select>'
       h+='<button class="btn btn-sm btn-b" data-pid="'+p.id+'" data-pname="'+_escAttr(p.part_name)+'" data-qty="'+leftover+'" onclick="processReturn(this)">Return '+leftover+'</button>'
       h+='</div>'
@@ -14109,7 +14184,7 @@ function renderPickupModal(){
     h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">'
     h+='<span style="font-size:16px">'+(done?'✅':'⬜')+'</span>'
     h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500'+(done?';color:#16a34a':'')+'">'+_escapeHTML(p.name)+'</div>'
-    h+='<div style="font-size:10px;color:#414e63">'+(p.barcode?p.barcode+' · ':'')+(p.warehouse?'📍 '+p.warehouse:'')+'</div></div>'
+    h+='<div style="font-size:10px;color:#5a6b85">'+(p.barcode?p.barcode+' · ':'')+(p.warehouse?'📍 '+p.warehouse:'')+'</div></div>'
     h+='<div style="display:flex;align-items:center;gap:5px">'
     h+='<span style="font-size:13px;font-weight:700;color:'+(done?'#16a34a':'#e8edf5')+'">'+p.confirmed+'/'+p.need+'</span>'
     h+='<button class="btn btn-sm" onclick="pickupAdjust('+i+',-1)">−</button>'
@@ -14403,7 +14478,7 @@ function renderCrmAccounts(accounts,search){
     if(a.city||a.state)h+='<div style="font-size:11px;color:#8a96ab;margin-bottom:6px">📍 '+(a.city||'')+(a.city&&a.state?', ':'')+( a.state||'')+'</div>'
     if(a.primary_contact)h+='<div style="font-size:11px;color:#8a96ab;margin-bottom:6px">👤 '+a.primary_contact+'</div>'
     if(a.phone)h+='<div style="font-size:11px;color:#8a96ab;margin-bottom:6px">📞 '+a.phone+'</div>'
-    h+='<div style="display:flex;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#414e63">'
+    h+='<div style="display:flex;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#5a6b85">'
     h+='<span>'+contacts+' contact'+(contacts!==1?'s':'')+'</span>'
     h+='<span>·</span><span>'+buildings+' building'+(buildings!==1?'s':'')+'</span>'
     if(activeAgreements)h+='<span>·</span><span style="color:#16a34a">'+activeAgreements+' active agreement'+(activeAgreements!==1?'s':'')+'</span>'
@@ -14423,7 +14498,7 @@ function crmNewAccount(){
   h+='<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="ca-phone" type="tel"></div>'
   h+='<div class="fg"><label class="fl">Email</label><input class="fi" id="ca-email" type="email"></div></div>'
   h+='<div class="fg"><label class="fl">Website</label><input class="fi" id="ca-web" placeholder="https://..."></div>'
-  h+='<div class="fg"><label class="fl">Street Address <span style="color:#414e63;font-weight:400;font-size:10px">(GC office — separate from job site)</span></label><input class="fi" id="ca-addr" placeholder="123 Main St, Suite 100"></div>'
+  h+='<div class="fg"><label class="fl">Street Address <span style="color:#5a6b85;font-weight:400;font-size:10px">(GC office — separate from job site)</span></label><input class="fi" id="ca-addr" placeholder="123 Main St, Suite 100"></div>'
   h+='<div class="three"><div class="fg"><label class="fl">City</label><input class="fi" id="ca-city"></div>'
   h+='<div class="fg"><label class="fl">State</label><input class="fi" id="ca-state" style="width:80px"></div>'
   h+='<div class="fg"><label class="fl">Zip</label><input class="fi" id="ca-zip" style="width:90px"></div></div>'
@@ -14476,7 +14551,7 @@ async function crmOpenAccount(id){
   h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Account Info</div>'
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">'
   ;[['Type',typeLabel],['Phone',a.phone||'—'],['Email',a.email||'—'],['Website',a.website||'—'],['Address',a.address||'—'],['City/State',(a.city||'')+(a.city&&a.state?', ':'')+( a.state||'')||'—'],['Primary Contact',a.primary_contact||'—']].forEach(function(r){
-    h+='<div><div style="font-size:10px;color:#414e63;text-transform:uppercase;font-weight:600;margin-bottom:2px">'+r[0]+'</div><div>'+r[1]+'</div></div>'
+    h+='<div><div style="font-size:10px;color:#5a6b85;text-transform:uppercase;font-weight:600;margin-bottom:2px">'+r[0]+'</div><div>'+r[1]+'</div></div>'
   })
   h+='</div>'
   if(a.notes)h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06);font-size:12px;color:#8a96ab">'+a.notes+'</div>'
@@ -14492,7 +14567,7 @@ async function crmOpenAccount(id){
       if(c.phone)h+='<a href="tel:'+c.phone+'" style="font-size:11px;color:#60a5fa">'+c.phone+'</a>'
       h+='<button class="btn btn-sm btn-ghost" data-cid="'+c.id+'" onclick="crmEditContact(this)">Edit</button></div>'
     })
-  }else{h+='<div style="font-size:12px;color:#414e63">No contacts yet</div>'}
+  }else{h+='<div style="font-size:12px;color:#5a6b85">No contacts yet</div>'}
   h+='</div>'
   // Buildings
   h+='<div class="card"><div class="card-title">Buildings / Sites ('+(bldRes.data||[]).length+')<button class="btn btn-sm" onclick="crmBtn_crmNewBuilding(this)" data-id=\\"'+id+'\\" style="margin-left:auto">+ Add</button></div>'
@@ -14503,11 +14578,11 @@ async function crmOpenAccount(id){
       h+='<div style="display:flex;align-items:flex-start;justify-content:space-between">'
       h+='<div><div style="font-size:13px;font-weight:500">'+b.name+'</div>'
       h+='<div style="font-size:11px;color:#8a96ab">'+(b.address||'')+'</div>'
-      if(b.system_type)h+='<div style="font-size:10px;color:#414e63;margin-top:2px">'+b.system_type+(b.panel_type?' · '+b.panel_type:'')+(b.device_count?' · '+b.device_count+' devices':'')+'</div>'
+      if(b.system_type)h+='<div style="font-size:10px;color:#5a6b85;margin-top:2px">'+b.system_type+(b.panel_type?' · '+b.panel_type:'')+(b.device_count?' · '+b.device_count+' devices':'')+'</div>'
       h+='</div>'
       h+='<button class="btn btn-sm btn-ghost" data-bid="'+b.id+'" onclick="crmEditBuilding(this)">Edit</button></div></div>'
     })
-  }else{h+='<div style="font-size:12px;color:#414e63">No buildings yet</div>'}
+  }else{h+='<div style="font-size:12px;color:#5a6b85">No buildings yet</div>'}
   h+='</div>'
   h+='</div>'
   // Right column
@@ -14521,11 +14596,11 @@ async function crmOpenAccount(id){
       h+='<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
       h+='<div style="font-size:16px;flex-shrink:0;margin-top:1px">'+typeIcon+'</div>'
       h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">'+act.summary+'</div>'
-      h+='<div style="font-size:10px;color:#414e63">'+fd(act.activity_date)+' · '+(act.logged_by||'')+'</div>'
+      h+='<div style="font-size:10px;color:#5a6b85">'+fd(act.activity_date)+' · '+(act.logged_by||'')+'</div>'
       if(act.notes)h+='<div style="font-size:11px;color:#8a96ab;margin-top:2px">'+act.notes+'</div>'
       h+='</div></div>'
     })
-  }else{h+='<div style="font-size:12px;color:#414e63">No activity logged yet</div>'}
+  }else{h+='<div style="font-size:12px;color:#5a6b85">No activity logged yet</div>'}
   h+='</div>'
   // Agreements
   h+='<div class="card" style="margin-bottom:13px"><div class="card-title">Agreements<button class="btn btn-sm" onclick="crmBtn_crmNewAgreement(this)" data-id=\\"'+id+'\\" style="margin-left:auto">+ Add</button></div>'
@@ -14537,10 +14612,10 @@ async function crmOpenAccount(id){
       h+='<div style="display:flex;justify-content:space-between;align-items:flex-start">'
       h+='<div><div style="font-size:13px;font-weight:500">'+ag.name+'</div>'
       h+='<div style="font-size:11px;color:#8a96ab">'+(ag.agreement_type||'')+(ag.value?' · $'+Number(ag.value).toLocaleString():'')+'</div>'
-      if(ag.renewal_date)h+='<div style="font-size:10px;color:#414e63">Renewal: '+fd(ag.renewal_date)+'</div>'
+      if(ag.renewal_date)h+='<div style="font-size:10px;color:#5a6b85">Renewal: '+fd(ag.renewal_date)+'</div>'
       h+='</div><span style="font-size:11px;font-weight:600;color:'+stColor+'">'+ag.status+'</span></div></div>'
     })
-  }else{h+='<div style="font-size:12px;color:#414e63">No agreements</div>'}
+  }else{h+='<div style="font-size:12px;color:#5a6b85">No agreements</div>'}
   h+='</div>'
   // Linked Jobs
   var jobs=jobRes.data||[]
@@ -14558,12 +14633,12 @@ async function crmOpenAccount(id){
       var notLinked=!j.account_id
       h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" data-jid="'+j.id+'" onclick="openJobFromJid(this)">'
       h+='<div style="flex:1"><div style="font-size:12px;font-weight:500">'+j.name+(notLinked?' <span style="font-size:9px;color:#d97706" title="Matched by name, not yet linked">⚠ unlinked</span>':'')+'</div>'
-      h+='<div style="font-size:10px;color:#414e63">'+(j.job_number?j.job_number+' · ':'')+(j.contract_value?fm(j.contract_value):'')+'</div></div>'
+      h+='<div style="font-size:10px;color:#5a6b85">'+(j.job_number?j.job_number+' · ':'')+(j.contract_value?fm(j.contract_value):'')+'</div></div>'
       h+=stageBadge(j.phase)+'</div>'
     })
-    if(jobs.length>20)h+='<div style="font-size:11px;color:#414e63;padding-top:6px">+ '+(jobs.length-20)+' more</div>'
+    if(jobs.length>20)h+='<div style="font-size:11px;color:#5a6b85;padding-top:6px">+ '+(jobs.length-20)+' more</div>'
   }else{
-    h+='<div style="font-size:12px;color:#414e63;padding:4px 0">No jobs yet for this contractor. Click <strong>+ New Job</strong> to create one.</div>'
+    h+='<div style="font-size:12px;color:#5a6b85;padding:4px 0">No jobs yet for this contractor. Click <strong>+ New Job</strong> to create one.</div>'
   }
   h+='</div>'
   // ── Merged Activity Timeline ────────────────────────────────
@@ -14596,17 +14671,17 @@ async function crmOpenAccount(id){
   // Sort newest first, drop undated
   events=events.filter(function(e){return e.date}).sort(function(x,y){return new Date(y.date)-new Date(x.date)})
   if(!events.length){
-    h+='<div style="font-size:12px;color:#414e63;padding:4px 0">No activity yet. Logged calls, jobs, and quotes will appear here.</div>'
+    h+='<div style="font-size:12px;color:#5a6b85;padding:4px 0">No activity yet. Logged calls, jobs, and quotes will appear here.</div>'
   }else{
     events.slice(0,40).forEach(function(e){
       h+='<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);'+(e.jobId?'cursor:pointer':'')+'"'+(e.jobId?' onclick="openJob(\\''+e.jobId+'\\')"':'')+'>'
       h+='<span style="font-size:14px;flex-shrink:0">'+e.icon+'</span>'
       h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">'+_escapeHTML(e.title)+(e.badge?' '+e.badge:'')+'</div>'
       if(e.detail)h+='<div style="font-size:11px;color:#8a96ab;margin-top:2px">'+_escapeHTML(String(e.detail).slice(0,120))+'</div>'
-      h+='<div style="font-size:10px;color:#414e63;margin-top:2px">'+fd(e.date)+'</div>'
+      h+='<div style="font-size:10px;color:#5a6b85;margin-top:2px">'+fd(e.date)+'</div>'
       h+='</div></div>'
     })
-    if(events.length>40)h+='<div style="font-size:11px;color:#414e63;padding-top:6px">+ '+(events.length-40)+' older</div>'
+    if(events.length>40)h+='<div style="font-size:11px;color:#5a6b85;padding-top:6px">+ '+(events.length-40)+' older</div>'
   }
   h+='</div>'
   // Follow-up reminder
@@ -14639,7 +14714,7 @@ async function crmEditAccount(id){
   h+='<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="ea-phone" value="'+(a.phone||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Email</label><input class="fi" id="ea-email" value="'+(a.email||'')+'"></div></div>'
   h+='<div class="fg"><label class="fl">Website</label><input class="fi" id="ea-web" value="'+(a.website||'')+'"></div>'
-  h+='<div class="fg"><label class="fl">Street Address <span style="color:#414e63;font-weight:400;font-size:10px">(GC office)</span></label><input class="fi" id="ea-addr" value="'+(a.address||'').replace(/"/g,'&quot;')+'"></div>'
+  h+='<div class="fg"><label class="fl">Street Address <span style="color:#5a6b85;font-weight:400;font-size:10px">(GC office)</span></label><input class="fi" id="ea-addr" value="'+(a.address||'').replace(/"/g,'&quot;')+'"></div>'
   h+='<div class="three"><div class="fg"><label class="fl">City</label><input class="fi" id="ea-city" value="'+(a.city||'')+'"></div>'
   h+='<div class="fg"><label class="fl">State</label><input class="fi" id="ea-state" value="'+(a.state||'')+'"></div>'
   h+='<div class="fg"><label class="fl">Zip</label><input class="fi" id="ea-zip" value="'+(a.zip||'')+'"></div></div>'
@@ -14857,7 +14932,7 @@ async function pgCrmPipeline(){
   var leads=res.data||[]
   var stages=['new_lead','contacted','qualified','quoted','negotiating','awarded','lost']
   var stageLabels={new_lead:'New Lead',contacted:'Contacted',qualified:'Qualified',quoted:'Quoted',negotiating:'Negotiating',awarded:'Awarded',lost:'Lost'}
-  var stageColors={new_lead:'#414e63',contacted:'#2563eb',qualified:'#d97706',quoted:'#8b5cf6',negotiating:'#f59e0b',awarded:'#16a34a',lost:'#dc2626'}
+  var stageColors={new_lead:'#5a6b85',contacted:'#2563eb',qualified:'#d97706',quoted:'#8b5cf6',negotiating:'#f59e0b',awarded:'#16a34a',lost:'#dc2626'}
   // Stats
   var open=leads.filter(function(l){return!['awarded','lost'].includes(l.stage)})
   var pipeline=open.reduce(function(s,l){return s+(l.value||0)},0)
@@ -14875,7 +14950,7 @@ async function pgCrmPipeline(){
     var colVal=col.reduce(function(s,l){return s+(l.value||0)},0)
     h+='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px;min-height:200px">'
     h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:'+stageColors[stage]+';margin-bottom:6px">'+stageLabels[stage]+'</div>'
-    h+='<div style="font-size:10px;color:#414e63;margin-bottom:10px">'+col.length+' · '+fm(colVal)+'</div>'
+    h+='<div style="font-size:10px;color:#5a6b85;margin-bottom:10px">'+col.length+' · '+fm(colVal)+'</div>'
     col.forEach(function(l){
       var acc=l.crm_accounts
       h+='<div style="background:#131c2e;border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:8px 10px;margin-bottom:7px;cursor:pointer" data-lid="'+l.id+'" onclick="crmEditLead(this)">'
@@ -14885,7 +14960,7 @@ async function pgCrmPipeline(){
       if(l.close_date){
         var cd=new Date(l.close_date)
         var overdue=cd<new Date()&&!['awarded','lost'].includes(l.stage)
-        h+='<div style="font-size:10px;color:'+(overdue?'#dc2626':'#414e63')+';margin-top:3px">Close: '+fd(l.close_date)+'</div>'
+        h+='<div style="font-size:10px;color:'+(overdue?'#dc2626':'#5a6b85')+';margin-top:3px">Close: '+fd(l.close_date)+'</div>'
       }
       h+='</div>'
     })
@@ -14998,7 +15073,7 @@ function buildInspTable(insps){
     var dueColor=daysUntil<0?'#dc2626':daysUntil<=30?'#d97706':daysUntil<=90?'#2563eb':'#8a96ab'
     var dueLabel=daysUntil<0?Math.abs(daysUntil)+'d overdue':daysUntil===0?'Today':daysUntil+'d'
     var bld=i.crm_buildings,acc=i.crm_accounts
-    var stColor={scheduled:'#2563eb',completed:'#16a34a',overdue:'#dc2626',cancelled:'#414e63'}[i.status]||'#8a96ab'
+    var stColor={scheduled:'#2563eb',completed:'#16a34a',overdue:'#dc2626',cancelled:'#5a6b85'}[i.status]||'#8a96ab'
     var sysType=i.inspection_type||''
     var icon=typeIcon[Object.keys(typeIcon).find(function(k){return sysType.includes(k)})||'']||''
     h+='<tr>'
@@ -15171,8 +15246,8 @@ function renderWizardStep(){
   h+='<div style="font-size:11px;color:#8a96ab">Item '+(idx+1)+' of '+total+'</div></div>'
   h+='<button class="btn btn-sm btn-p" onclick="submitInspection()">Done</button></div>'
   h+='<div style="margin-bottom:16px"><div style="height:8px;background:rgba(255,255,255,.06);border-radius:4px"><div style="height:100%;width:'+pct+'%;background:#2563eb;border-radius:4px;transition:width .3s"></div></div>'
-  h+='<div style="display:flex;justify-content:space-between;font-size:10px;color:#414e63;margin-top:3px"><span>'+done+' answered</span><span>'+pct+'%</span></div></div>'
-  h+='<div style="font-size:11px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">'+item.section+'</div>'
+  h+='<div style="display:flex;justify-content:space-between;font-size:10px;color:#5a6b85;margin-top:3px"><span>'+done+' answered</span><span>'+pct+'%</span></div></div>'
+  h+='<div style="font-size:11px;font-weight:600;color:#5a6b85;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">'+item.section+'</div>'
   h+='<div class="card" style="margin-bottom:12px">'
   h+='<div style="font-size:15px;line-height:1.5;margin-bottom:16px">'+item.text+'</div>'
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
@@ -15400,7 +15475,7 @@ const HTML_WORKER = `<!DOCTYPE html>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#060a10;--bg2:#0c1220;--bg3:#131c2e;--bg4:#1a2540;--border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);--text:#e8edf5;--text2:#8a96ab;--text3:#414e63;--accent:#2563eb;--green:#16a34a;--gbg:rgba(22,163,74,.12);--gb:rgba(22,163,74,.22);--amber:#d97706;--abg:rgba(217,119,6,.12);--ab:rgba(217,119,6,.22);--red:#dc2626;--rbg:rgba(220,38,38,.12);--rb:rgba(220,38,38,.22);--r:12px;--rs:8px}
+:root{--bg:#060a10;--bg2:#0c1220;--bg3:#131c2e;--bg4:#1a2540;--border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);--text:#e8edf5;--text2:#8a96ab;--text3:#5a6b85;--accent:#2563eb;--green:#16a34a;--gbg:rgba(22,163,74,.12);--gb:rgba(22,163,74,.22);--amber:#d97706;--abg:rgba(217,119,6,.12);--ab:rgba(217,119,6,.22);--red:#dc2626;--rbg:rgba(220,38,38,.12);--rb:rgba(220,38,38,.22);--r:12px;--rs:8px}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overscroll-behavior:none}
 body{display:flex;flex-direction:column}
@@ -15688,14 +15763,14 @@ function showConsentModal(ct){
     overlay.innerHTML =
       '<div style="max-width:520px;width:100%;background:#0c1220;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:22px;max-height:90vh;display:flex;flex-direction:column">'
       +'<div style="font-size:17px;font-weight:700;margin-bottom:4px">'+_escapeConsent(ct.title||'Consent Required')+'</div>'
-      +'<div style="font-size:11px;color:#414e63;margin-bottom:14px">Please review and agree before continuing. Version '+ct.version+'.</div>'
+      +'<div style="font-size:11px;color:#5a6b85;margin-bottom:14px">Please review and agree before continuing. Version '+ct.version+'.</div>'
       +'<div style="font-size:13px;color:#c7d0dd;line-height:1.6;overflow-y:auto;flex:1;padding-right:6px;margin-bottom:16px">'+bodyHtml+'</div>'
       +'<label style="display:flex;align-items:flex-start;gap:9px;font-size:13px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="consent-cb" style="margin-top:3px;width:17px;height:17px;flex-shrink:0"><span>I have read and agree to the above. I consent to the collection of my location data as described.</span></label>'
       +'<div style="display:flex;gap:8px">'
       +'<button id="consent-agree" style="flex:1;background:#16a34a;color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;opacity:.5" disabled>Agree &amp; Continue</button>'
       +'<button id="consent-decline" style="background:#131c2e;color:#8a96ab;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 16px;font-size:14px;cursor:pointer">Decline</button>'
       +'</div>'
-      +'<div style="font-size:10px;color:#414e63;margin-top:10px">If you decline, you can still use the app, but location-based check-in will be unavailable. Contact your administrator with questions.</div>'
+      +'<div style="font-size:10px;color:#5a6b85;margin-top:10px">If you decline, you can still use the app, but location-based check-in will be unavailable. Contact your administrator with questions.</div>'
       +'</div>'
     document.body.appendChild(overlay)
     var cb = overlay.querySelector('#consent-cb')
@@ -16050,7 +16125,7 @@ async function loadSafetyTopics(){
           const t=a.safety_topics
           return '<div style="background:#0c1220;border:1px solid rgba(220,38,38,.25);border-radius:10px;padding:14px;margin-bottom:9px">'+
             '<div style="font-weight:600;font-size:14px;margin-bottom:4px">'+t.title+'</div>'+
-            '<div style="font-size:11px;color:#414e63;margin-bottom:9px">'+t.category+' · Week of '+fmtDate(t.week_of)+(a.due_date?' · Due '+fmtDate(a.due_date):'')+'</div>'+
+            '<div style="font-size:11px;color:#5a6b85;margin-bottom:9px">'+t.category+' · Week of '+fmtDate(t.week_of)+(a.due_date?' · Due '+fmtDate(a.due_date):'')+'</div>'+
             '<div style="font-size:13px;color:#8a96ab;line-height:1.6;margin-bottom:12px;background:#131c2e;padding:11px;border-radius:7px;white-space:pre-wrap">'+t.content+'</div>'+
             '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:12px">'+
             '<input type="checkbox" id="ack-'+t.id+'" style="width:18px;height:18px;margin-top:1px;accent-color:#16a34a;flex-shrink:0">'+
@@ -16068,14 +16143,14 @@ async function loadSafetyTopics(){
   if(compEl&&completed.length){
     const ackByTopic={}
     ;(acks||[]).forEach(a=>{ackByTopic[a.topic_id]=a})
-    compEl.innerHTML='<div style="font-size:11px;font-weight:600;color:#414e63;margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Completed ('+completed.length+')</div>'+
+    compEl.innerHTML='<div style="font-size:11px;font-weight:600;color:#5a6b85;margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Completed ('+completed.length+')</div>'+
       completed.map(a=>{
         const t=a.safety_topics
         const ack=ackByTopic[t.id]
         return '<div style="background:#0c1220;border:1px solid rgba(22,163,74,.15);border-radius:10px;padding:12px;margin-bottom:7px;display:flex;align-items:center;gap:11px">'+
           '<div style="font-size:22px;flex-shrink:0">✅</div>'+
           '<div style="flex:1;min-width:0"><div style="font-weight:500;font-size:13px">'+t.title+'</div>'+
-          '<div style="font-size:11px;color:#414e63;margin-top:2px">'+t.category+' · Completed '+fmtDateTime(ack?.acknowledged_at)+'</div></div>'+
+          '<div style="font-size:11px;color:#5a6b85;margin-top:2px">'+t.category+' · Completed '+fmtDateTime(ack?.acknowledged_at)+'</div></div>'+
           '</div>'
       }).join('')
   }
@@ -16122,6 +16197,11 @@ async function uploadToCloudinary(file, folder) {
     body: JSON.stringify({ folder })
   })
   const sig = await sigR.json()
+  // Surface a clear error if signing failed (most common cause: Cloudinary not configured on server)
+  if (!sigR.ok || !sig || !sig.api_key || !sig.cloud_name) {
+    var msg = (sig && sig.error) || ('Upload signing failed (HTTP ' + sigR.status + ')')
+    throw new Error(msg)
+  }
   const fd = new FormData()
   fd.append('file', file)
   fd.append('api_key', sig.api_key)
@@ -16130,7 +16210,10 @@ async function uploadToCloudinary(file, folder) {
   fd.append('folder', sig.folder)
   if (sig.upload_preset) fd.append('upload_preset', sig.upload_preset)
   const r = await fetch(\`https://api.cloudinary.com/v1_1/\${sig.cloud_name}/auto/upload\`, { method: 'POST', body: fd })
-  if (!r.ok) throw new Error('Cloudinary upload failed')
+  if (!r.ok) {
+    var errTxt = '';try{var ed=await r.json();errTxt=(ed&&ed.error&&ed.error.message)||''}catch(e){}
+    throw new Error('Cloudinary upload failed: ' + (errTxt || ('HTTP ' + r.status)))
+  }
   const d = await r.json()
   return { url: d.secure_url, public_id: d.public_id }
 }
@@ -18202,7 +18285,7 @@ const server = http.createServer(async (req, res) => {
           <div style="margin:20px 0">
             <a href="${awardUrl}" style="display:inline-block;background:${branding.accent_color||'#2563eb'};color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px">Review &amp; Award Bid</a>
           </div>
-          <p style="color:#414e63;font-size:12px">This link is unique to you. Once the bid is awarded to another party, this link will show as closed.</p>
+          <p style="color:#5a6b85;font-size:12px">This link is unique to you. Once the bid is awarded to another party, this link will show as closed.</p>
         </div>
       </body></html>`;
       const emailRes = await new Promise((resolve, reject) => {
@@ -18242,11 +18325,11 @@ const HTML_AWARD = `<!DOCTYPE html>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#060a10;color:#e8edf5;font-family:'DM Sans',sans-serif;min-height:100vh;padding:20px 12px}
 .fi{width:100%;padding:10px 13px;background:#131c2e;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e8edf5;font-size:14px;font-family:'DM Sans',sans-serif}
-.fi:focus{outline:none;border-color:#2563eb}.fl{font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px}.fg{margin-bottom:12px}
+.fi:focus{outline:none;border-color:#2563eb}.fl{font-size:10px;font-weight:600;color:#5a6b85;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px}.fg{margin-bottom:12px}
 </style>
 </head>
 <body>
-<div id="award-body"><div style="text-align:center;padding:60px 20px;color:#414e63">Loading…</div></div>
+<div id="award-body"><div style="text-align:center;padding:60px 20px;color:#5a6b85">Loading…</div></div>
 <script>
 const token = window.location.pathname.split('/').pop()
 async function faxBidCalc(items,taxRate){const sub=(items||[]).reduce((s,i)=>s+(parseFloat(i.qty)||0)*(parseFloat(i.rate)||0),0);const tax=sub*(parseFloat(taxRate)||0)/100;return{subtotal:Math.round(sub*100)/100,tax:Math.round(tax*100)/100,total:Math.round((sub+tax)*100)/100}}
@@ -18269,20 +18352,20 @@ async function loadAwardPage(token){
       (branding?.tagline?'<div style="font-size:12px;opacity:.8;margin-top:3px">'+branding.tagline+'</div>':'')+
       '</div>'+
       '<div style="background:#0c1220;border:1px solid rgba(255,255,255,.08);border-top:none;padding:24px 26px;border-radius:0 0 12px 12px;color:#e8edf5">'+
-      '<div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Quote '+q.number+' · v'+q.version+'</div>'+
+      '<div style="font-size:10px;font-weight:600;color:#5a6b85;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Quote '+q.number+' · v'+q.version+'</div>'+
       '<div style="font-size:24px;font-weight:700;margin-bottom:5px">'+(q.project_name||'Project')+'</div>'+
       (q.project_address?'<div style="color:#8a96ab;font-size:13px;margin-bottom:14px">📍 '+q.project_address+(q.project_city?', '+q.project_city:'')+(q.project_state?' '+q.project_state:'')+'</div>':'')+
       (q.bid_due_date?'<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:7px;padding:8px 12px;font-size:12px;color:#f87171;margin-bottom:14px">⏰ Bid due: '+q.bid_due_date+'</div>':'')+
       (q.project_description?'<div style="font-size:13px;color:#8a96ab;line-height:1.6;margin-bottom:16px">'+q.project_description+'</div>':'')+
       +(q.pdf_url?'<div style="margin-bottom:14px">'+'<a href="'+q.pdf_url+'" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:#0c1220;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#60a5fa;text-decoration:none;font-size:13px;font-weight:500">📄 View Full Quote PDF</a></div>':'')
       '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px">'+
-      '<thead><tr style="border-bottom:1px solid rgba(255,255,255,.1)"><th style="text-align:left;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600;text-transform:uppercase">Item</th><th style="text-align:right;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600">Qty</th><th style="text-align:right;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600">Rate</th><th style="text-align:right;padding:7px 8px;font-size:10px;color:#414e63;font-weight:600">Total</th></tr></thead>'+
+      '<thead><tr style="border-bottom:1px solid rgba(255,255,255,.1)"><th style="text-align:left;padding:7px 8px;font-size:10px;color:#5a6b85;font-weight:600;text-transform:uppercase">Item</th><th style="text-align:right;padding:7px 8px;font-size:10px;color:#5a6b85;font-weight:600">Qty</th><th style="text-align:right;padding:7px 8px;font-size:10px;color:#5a6b85;font-weight:600">Rate</th><th style="text-align:right;padding:7px 8px;font-size:10px;color:#5a6b85;font-weight:600">Total</th></tr></thead>'+
       '<tbody>'+(q.line_items||[]).map(li=>'<tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:8px">'+li.description+'</td><td style="text-align:right;padding:8px;color:#8a96ab">'+li.qty+'</td><td style="text-align:right;padding:8px;color:#8a96ab">$'+Number(li.rate||0).toFixed(2)+'</td><td style="text-align:right;padding:8px;font-weight:500">$'+Number((li.qty||0)*(li.rate||0)).toFixed(2)+'</td></tr>').join('')+'</tbody></table>'+
       '<div style="text-align:right;font-size:13px;color:#8a96ab;margin-bottom:3px">Subtotal: $'+tots.subtotal.toFixed(2)+'</div>'+
       (q.tax_rate>0?'<div style="text-align:right;font-size:13px;color:#8a96ab;margin-bottom:3px">Tax ('+q.tax_rate+'%): $'+tots.tax.toFixed(2)+'</div>':'')+
       '<div style="text-align:right;font-size:22px;font-weight:700;border-top:1px solid rgba(255,255,255,.1);padding-top:10px;margin-bottom:20px">Total: $'+tots.total.toFixed(2)+'</div>'+
-      (q.notes?'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Notes</div><div style="font-size:13px;color:#8a96ab;line-height:1.6">'+q.notes+'</div></div>':'')+
-      (q.terms?'<div style="margin-bottom:20px"><div style="font-size:10px;font-weight:600;color:#414e63;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Terms</div><div style="font-size:12px;color:#414e63;line-height:1.6">'+q.terms+'</div></div>':'')+
+      (q.notes?'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#5a6b85;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Notes</div><div style="font-size:13px;color:#8a96ab;line-height:1.6">'+q.notes+'</div></div>':'')+
+      (q.terms?'<div style="margin-bottom:20px"><div style="font-size:10px;font-weight:600;color:#5a6b85;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Terms</div><div style="font-size:12px;color:#5a6b85;line-height:1.6">'+q.terms+'</div></div>':'')+
       '<div id="award-actions">'+
       (rec.status==='awarded'?
         '<div style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.2);border-radius:10px;padding:18px;text-align:center"><div style="font-size:28px;margin-bottom:8px">✅</div><div style="font-size:16px;font-weight:700;color:#16a34a">You have awarded this bid</div><div style="font-size:13px;color:#8a96ab;margin-top:4px">Signed by '+rec.signature_name+(rec.signature_title?' ('+rec.signature_title+')':'')+'</div></div>'
@@ -18294,7 +18377,7 @@ async function loadAwardPage(token){
 }
 function showAwardModal(){
   const ov=document.createElement('div');ov.id='aw-ov';ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9000;display:flex;align-items:flex-end;justify-content:center;padding:16px'
-  ov.innerHTML='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:22px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto"><div style="font-size:17px;font-weight:700;margin-bottom:16px;color:#e8edf5">Award This Bid</div><div class="fg"><label class="fl">Full Name *</label><input class="fi" id="aw-name" placeholder="Your full name"></div><div class="fg"><label class="fl">Title</label><input class="fi" id="aw-title" placeholder="e.g. Project Manager"></div><div class="fg"><label class="fl">Email</label><input class="fi" id="aw-email" type="email" placeholder="your@company.com"></div><div class="fg"><label class="fl">Signature * — draw below</label><canvas id="sig-c" width="440" height="100" style="width:100%;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:#060a10;cursor:crosshair;touch-action:none"></canvas><button onclick="document.getElementById(\'sig-c\').getContext(\'2d\').clearRect(0,0,440,100)" style="font-size:11px;color:#414e63;background:none;border:none;cursor:pointer;padding:4px 0">Clear</button></div><label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer;font-size:13px;color:#8a96ab"><input type="checkbox" id="aw-agree" style="margin-top:2px;width:16px;height:16px;flex-shrink:0"> I agree to award this bid and authorize the work described above.</label><div style="display:flex;gap:8px"><button onclick="submitAward()" style="flex:2;padding:13px;background:#2563eb;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Submit Award</button><button onclick="document.getElementById(\'aw-ov\').remove()" style="flex:1;padding:13px;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#e8edf5;font-size:13px;cursor:pointer;font-family:DM Sans,sans-serif">Cancel</button></div></div>'
+  ov.innerHTML='<div style="background:#0c1220;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:22px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto"><div style="font-size:17px;font-weight:700;margin-bottom:16px;color:#e8edf5">Award This Bid</div><div class="fg"><label class="fl">Full Name *</label><input class="fi" id="aw-name" placeholder="Your full name"></div><div class="fg"><label class="fl">Title</label><input class="fi" id="aw-title" placeholder="e.g. Project Manager"></div><div class="fg"><label class="fl">Email</label><input class="fi" id="aw-email" type="email" placeholder="your@company.com"></div><div class="fg"><label class="fl">Signature * — draw below</label><canvas id="sig-c" width="440" height="100" style="width:100%;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:#060a10;cursor:crosshair;touch-action:none"></canvas><button onclick="document.getElementById(\'sig-c\').getContext(\'2d\').clearRect(0,0,440,100)" style="font-size:11px;color:#5a6b85;background:none;border:none;cursor:pointer;padding:4px 0">Clear</button></div><label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer;font-size:13px;color:#8a96ab"><input type="checkbox" id="aw-agree" style="margin-top:2px;width:16px;height:16px;flex-shrink:0"> I agree to award this bid and authorize the work described above.</label><div style="display:flex;gap:8px"><button onclick="submitAward()" style="flex:2;padding:13px;background:#2563eb;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Submit Award</button><button onclick="document.getElementById(\'aw-ov\').remove()" style="flex:1;padding:13px;background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#e8edf5;font-size:13px;cursor:pointer;font-family:DM Sans,sans-serif">Cancel</button></div></div>'
   document.body.appendChild(ov)
   const c=document.getElementById('sig-c');const ctx=c.getContext('2d');let dr=false
   function gp(e){const r=c.getBoundingClientRect(),sx=c.width/r.width,sy=c.height/r.height;const s=e.touches?e.touches[0]:e;return{x:(s.clientX-r.left)*sx,y:(s.clientY-r.top)*sy}}
