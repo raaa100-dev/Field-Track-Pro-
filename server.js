@@ -4946,12 +4946,13 @@ function _drawCOLines(){
   if(!host)return
   var amtTotal=_coLines.reduce(function(s,l){return s+(Number(l.amount)||0)},0)
   var hrsTotal=_coLines.reduce(function(s,l){return s+(Number(l.expected_hours)||0)},0)
+  var actTotal=_coLines.reduce(function(s,l){return s+(Number(l.actual_amount)||0)},0)
   var h=''
   h+='<table class="tbl" style="width:100%"><thead><tr>'
-  h+='<th style="width:38%">Description</th><th>Category</th><th style="text-align:right">Amount $</th><th style="text-align:right">Hours</th><th></th>'
+  h+='<th style="width:32%">Description</th><th>Category</th><th style="text-align:right">Planned $</th><th style="text-align:right">Actual $</th><th style="text-align:right">Hours</th><th></th>'
   h+='</tr></thead><tbody>'
   if(!_coLines.length){
-    h+='<tr><td colspan="5" style="text-align:center;color:#5a6b85;font-size:12px;padding:14px">No line items yet. Add the first one below.</td></tr>'
+    h+='<tr><td colspan="6" style="text-align:center;color:#5a6b85;font-size:12px;padding:14px">No line items yet. Add the first one below.</td></tr>'
   }
   _coLines.forEach(function(l){
     h+='<tr>'
@@ -4962,6 +4963,7 @@ function _drawCOLines(){
     })
     h+='</select></td>'
     h+='<td style="text-align:right"><input class="fi" type="number" style="font-size:12px;padding:4px 7px;text-align:right;max-width:100px" value="'+(l.amount||'')+'" onchange="updateCOLine(\\''+l.id+'\\',\\'amount\\',this.value)"></td>'
+    h+='<td style="text-align:right"><input class="fi" type="number" style="font-size:12px;padding:4px 7px;text-align:right;max-width:100px" value="'+(l.actual_amount||'')+'" oninput="_coLineDebounce(\\''+l.id+'\\',\\'actual_amount\\',this.value)" onblur="updateCOLine(\\''+l.id+'\\',\\'actual_amount\\',this.value)"></td>'
     h+='<td style="text-align:right"><input class="fi" type="number" style="font-size:12px;padding:4px 7px;text-align:right;max-width:80px" value="'+(l.expected_hours||'')+'" onchange="updateCOLine(\\''+l.id+'\\',\\'expected_hours\\',this.value)"></td>'
     h+='<td style="text-align:center"><button class="btn btn-sm" style="color:#dc2626;font-size:10px;padding:2px 6px" onclick="deleteCOLine(\\''+l.id+'\\')">✕</button></td>'
     h+='</tr>'
@@ -4970,6 +4972,7 @@ function _drawCOLines(){
     h+='<tr style="border-top:2px solid rgba(255,255,255,.1);font-weight:700">'
     h+='<td colspan="2" style="font-size:12px">CO TOTAL</td>'
     h+='<td style="text-align:right;font-size:13px;color:#16a34a">'+fm(amtTotal)+'</td>'
+    h+='<td style="text-align:right;font-size:13px;color:#60a5fa">'+fm(actTotal)+'</td>'
     h+='<td style="text-align:right;font-size:13px">'+fh(hrsTotal)+'</td>'
     h+='<td></td></tr>'
   }
@@ -4977,6 +4980,13 @@ function _drawCOLines(){
   h+='<button class="btn btn-sm" style="margin-top:8px" onclick="addCOLine()">+ Add Line Item</button>'
   h+='<div style="font-size:11px;color:#5a6b85;margin-top:8px">This CO will add <strong style="color:#16a34a">'+fm(amtTotal)+'</strong> to the contract when approved'+(hrsTotal?', plus '+fh(hrsTotal)+' labor hours':'')+'.</div>'
   host.innerHTML=h
+}
+// Debounced save for the Actual column (saves while typing)
+var _coLineDebounceTimers={}
+function _coLineDebounce(id,field,value){
+  var key=id+':'+field
+  if(_coLineDebounceTimers[key])clearTimeout(_coLineDebounceTimers[key])
+  _coLineDebounceTimers[key]=setTimeout(function(){updateCOLine(id,field,value)},500)
 }
 async function addCOLine(){
   if(!_coLinesCoId){toast('No CO selected','error');return}
@@ -4991,12 +5001,20 @@ async function updateCOLine(id,field,value){
   var line=_coLines.find(function(l){return l.id===id})
   if(!line)return
   var val=value
-  if(field==='amount'||field==='expected_hours')val=parseFloat(value)||0
+  if(field==='amount'||field==='expected_hours'||field==='actual_amount')val=parseFloat(value)||0
   line[field]=val
   var patch={};patch[field]=val;patch.updated_at=new Date().toISOString()
-  var{error}=await sb.from('co_budget_lines').update(patch).eq('id',id)
-  if(error){toast(error.message,'error');return}
-  if(field==='amount'||field==='expected_hours'){_drawCOLines();_syncCOTotal()}
+  var res=await sb.from('co_budget_lines').update(patch).eq('id',id)
+  if(res.error){
+    // Graceful retry if actual_amount or updated_at column is missing (migration-026 not run)
+    if(/actual_amount|updated_at/i.test(res.error.message||'')){
+      var p2={};p2[field]=val
+      res=await sb.from('co_budget_lines').update(p2).eq('id',id)
+      if(res.error){toast(res.error.message,'error');return}
+      console.warn('[co lines] actual_amount/updated_at column missing — run migration-026.')
+    }else{toast(res.error.message,'error');return}
+  }
+  if(field==='amount'||field==='expected_hours'||field==='actual_amount'){_drawCOLines();_syncCOTotal()}
 }
 async function deleteCOLine(id){
   var{error}=await sb.from('co_budget_lines').delete().eq('id',id)
@@ -5320,17 +5338,41 @@ async function renderJobFinTab(el){
   // Fetch budget line items so Financials reflects them (the Budget Builder edits these)
   var blRes=await sb.from('job_budget_lines').select('*').eq('job_id',currentJobId).order('sort_order')
   var budgetLines=blRes.data||[]
-  var budgetLinesActualTotal=budgetLines.reduce(function(s,l){return s+(Number(l.actual_amount)||0)},0)
-  var budgetLinesPlanTotal=budgetLines.reduce(function(s,l){return s+(Number(l.budget_amount)||0)},0)
+  // Fetch approved-CO line items so they roll into the same estimate vs actual view
+  // (graceful if migration-026 hasn't run — query still works, just no actuals)
+  var coLineRes=await sb.from('co_budget_lines').select('co_id,description,category,amount,actual_amount,change_orders!inner(status)').eq('job_id',currentJobId)
+  var coLines=[]
+  if(coLineRes.error&&/actual_amount/i.test(coLineRes.error.message||'')){
+    // Column missing — retry without actual_amount
+    coLineRes=await sb.from('co_budget_lines').select('co_id,description,category,amount,change_orders!inner(status)').eq('job_id',currentJobId)
+    console.warn('[financials] co_budget_lines.actual_amount missing — run migration-026.')
+  }
+  // Only include lines whose parent CO is approved (so unapproved drafts don't pollute the financials)
+  ;(coLineRes.data||[]).forEach(function(l){
+    var st=l.change_orders&&l.change_orders.status
+    if(st==='approved'||st==='signed'){coLines.push(l)}
+  })
+  var coLinesActualTotal=coLines.reduce(function(s,l){return s+(Number(l.actual_amount)||0)},0)
+  var coLinesPlanTotal=coLines.reduce(function(s,l){return s+(Number(l.amount)||0)},0)
+  var budgetLinesActualTotal=budgetLines.reduce(function(s,l){return s+(Number(l.actual_amount)||0)},0)+coLinesActualTotal
+  var budgetLinesPlanTotal=budgetLines.reduce(function(s,l){return s+(Number(l.budget_amount)||0)},0)+coLinesPlanTotal
   // Roll up by category for the "how is the job doing" view
   var CAT_LABELS={material:'Material',labor:'Labor',design:'Design',permit:'Permit',sub:'Subcontractor',equipment:'Equipment',other:'Other'}
   var byCat={}
   budgetLines.forEach(function(l){
     var c=l.category||'other'
-    if(!byCat[c])byCat[c]={budget:0,actual:0,count:0}
+    if(!byCat[c])byCat[c]={budget:0,actual:0,count:0,coCount:0}
     byCat[c].budget+=Number(l.budget_amount)||0
     byCat[c].actual+=Number(l.actual_amount)||0
     byCat[c].count++
+  })
+  // Add approved CO line items into the same category buckets
+  coLines.forEach(function(l){
+    var c=l.category||'other'
+    if(!byCat[c])byCat[c]={budget:0,actual:0,count:0,coCount:0}
+    byCat[c].budget+=Number(l.amount)||0
+    byCat[c].actual+=Number(l.actual_amount)||0
+    byCat[c].coCount=(byCat[c].coCount||0)+1
   })
   var catKeys=Object.keys(byCat).sort(function(a,b){return byCat[b].budget-byCat[a].budget})
   const hrs=(dr||[]).reduce((s,r)=>s+(r.total_man_hours||r.hours_worked||r.hours||0),0)
@@ -5371,14 +5413,8 @@ async function renderJobFinTab(el){
   +(j.labor_budget&&j.labor_rate?'<div class="fin-row" style="color:#5a6b85"><span>Budget Labor Cost ('+fh(j.labor_budget)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm((j.labor_budget||0)*(j.labor_rate||0))+'</span></div>':'')
   +'<div class="fin-row"><span style="color:#8a96ab">Labor Actual ('+fh(hrs)+' hrs @ '+fm(j.labor_rate||0)+'/hr)</span><span>'+fm(labor)+'</span></div>'
   +(j.permit_fee?'<div class="fin-row"><span style="color:#8a96ab">Permit Fee</span><span>'+fm(j.permit_fee)+'</span></div>':'')
-  +(budgetLines.length?'<div style="border-top:1px solid rgba(255,255,255,.08);margin:8px 0 4px;padding-top:6px"><div style="font-size:10px;color:#5a6b85;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Budget Line Items ('+budgetLines.length+')</div>'+budgetLines.map(function(l){return '<div class="fin-row"><span style="color:#8a96ab">'+_escapeHTML(l.description||'(no description)')+' <span style="font-size:10px;color:#5a6b85">\u00b7 '+(l.category||'')+'</span></span><span>'+fm(l.actual_amount||0)+(Number(l.budget_amount)?' <span style="color:#5a6b85;font-size:10px">/ '+fm(l.budget_amount)+'</span>':'')+'</span></div>'}).join('')+'<div class="fin-row" style="font-size:11px;color:#60a5fa;font-weight:600"><span>Budget Lines Subtotal</span><span>'+fm(budgetLinesActualTotal)+'</span></div></div>':'<div style="font-size:11px;color:#5a6b85;padding:8px 0;text-align:center">No budget line items yet. Add them in <strong>Edit Budget</strong> above.</div>')
+  +(budgetLines.length?'<div style="border-top:1px solid rgba(255,255,255,.08);margin:8px 0 4px;padding-top:6px"><div style="font-size:10px;color:#5a6b85;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Budget Line Items ('+budgetLines.length+')</div>'+budgetLines.map(function(l){return '<div class="fin-row"><span style="color:#8a96ab">'+_escapeHTML(l.description||'(no description)')+' <span style="font-size:10px;color:#5a6b85">\u00b7 '+(l.category||'')+'</span></span><span>'+fm(l.actual_amount||0)+(Number(l.budget_amount)?' <span style="color:#5a6b85;font-size:10px">/ '+fm(l.budget_amount)+'</span>':'')+'</span></div>'}).join('')+(coLines.length?'<div style="font-size:10px;color:#5a6b85;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin:8px 0 4px">Change Order Line Items ('+coLines.length+')</div>'+coLines.map(function(l){return '<div class="fin-row"><span style="color:#8a96ab">📝 '+_escapeHTML(l.description||'(no description)')+' <span style="font-size:10px;color:#5a6b85">\u00b7 '+(l.category||'')+'</span></span><span>'+fm(l.actual_amount||0)+(Number(l.amount)?' <span style="color:#5a6b85;font-size:10px">/ '+fm(l.amount)+'</span>':'')+'</span></div>'}).join(''):'')+'<div class="fin-row" style="font-size:11px;color:#60a5fa;font-weight:600"><span>Budget Lines Subtotal'+(coLines.length?' (incl. COs)':'')+'</span><span>'+fm(budgetLinesActualTotal)+'</span></div></div>':(coLines.length?'<div style="border-top:1px solid rgba(255,255,255,.08);margin:8px 0 4px;padding-top:6px"><div style="font-size:10px;color:#5a6b85;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Change Order Line Items ('+coLines.length+')</div>'+coLines.map(function(l){return '<div class="fin-row"><span style="color:#8a96ab">📝 '+_escapeHTML(l.description||'(no description)')+' <span style="font-size:10px;color:#5a6b85">\u00b7 '+(l.category||'')+'</span></span><span>'+fm(l.actual_amount||0)+(Number(l.amount)?' <span style="color:#5a6b85;font-size:10px">/ '+fm(l.amount)+'</span>':'')+'</span></div>'}).join('')+'<div class="fin-row" style="font-size:11px;color:#60a5fa;font-weight:600"><span>CO Lines Subtotal</span><span>'+fm(coLinesActualTotal)+'</span></div></div>':'<div style="font-size:11px;color:#5a6b85;padding:8px 0;text-align:center">No budget line items yet. Add them in <strong>Edit Budget</strong> above.</div>'))
   +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(totalCost)+'</span></div>'
-  +'</div>'
-  +'</div>'
-  +(j.permit_fee?'<div class="fin-row"><span style="color:#8a96ab">Permit Fee</span><span>'+fm(j.permit_fee)+'</span></div>':'')
-  +(budgetLines.length?'<div style="border-top:1px solid rgba(255,255,255,.08);margin:8px 0 4px;padding-top:6px"><div style="font-size:10px;color:#5a6b85;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Budget Line Items ('+budgetLines.length+')</div>'+budgetLines.map(function(l){return '<div class="fin-row"><span style="color:#8a96ab">'+_escapeHTML(l.description||'(no description)')+' <span style="font-size:10px;color:#5a6b85">\u00b7 '+(l.category||'')+'</span></span><span>'+fm(l.actual_amount||0)+(Number(l.budget_amount)?' <span style="color:#5a6b85;font-size:10px">/ '+fm(l.budget_amount)+'</span>':'')+'</span></div>'}).join('')+'<div class="fin-row" style="font-size:11px;color:#60a5fa;font-weight:600"><span>Budget Lines Subtotal</span><span>'+fm(budgetLinesActualTotal)+'</span></div></div>':'<div style="font-size:11px;color:#5a6b85;padding:8px 0;text-align:center">No budget line items yet. Add them in <strong>Edit Budget</strong> above.</div>')
-  +'<div class="fin-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:6px"><span style="font-weight:600">Total Cost</span><span style="font-weight:600">'+fm(labor+(j.permit_fee||0)+budgetLinesActualTotal)+'</span></div>'
-  +'</div>'
   +'</div>'
   +'</div>'
   +(catKeys.length?'<div class="card" style="margin-top:14px"><div class="card-title">Estimate vs Actual by Category</div>'+'<div style="font-size:11px;color:#8a96ab;margin-bottom:10px">Tracking spend against your estimate breakdown. Each line item rolls into its category.</div>'+'<table class="tbl" style="font-size:12px"><thead><tr><th>Category</th><th style="text-align:right">Estimate</th><th style="text-align:right">Actual</th><th style="text-align:right">Variance</th><th style="width:30%">% Used</th></tr></thead><tbody>'+catKeys.map(function(c){var d=byCat[c];var variance=d.budget-d.actual;var pct=d.budget>0?Math.round(d.actual/d.budget*100):(d.actual>0?100:0);var vColor=variance>=0?'#16a34a':'#dc2626';var barColor=pct>100?'#dc2626':pct>=85?'#d97706':'#16a34a';return '<tr><td><strong>'+(CAT_LABELS[c]||c)+'</strong> <span style="color:#5a6b85;font-size:10px">\u00b7 '+d.count+' line'+(d.count!==1?'s':'')+'</span></td><td style="text-align:right">'+fm(d.budget)+'</td><td style="text-align:right;color:#60a5fa;font-weight:600">'+fm(d.actual)+'</td><td style="text-align:right;color:'+vColor+';font-weight:600">'+(variance>=0?'+':'')+fm(variance)+'</td><td><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:8px;background:#0c1220;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,pct)+'%;background:'+barColor+'"></div></div><span style="font-size:11px;color:'+barColor+';font-weight:600;min-width:42px;text-align:right">'+pct+'%</span></div></td></tr>'}).join('')+'<tr style="border-top:2px solid rgba(255,255,255,.1);font-weight:700"><td>TOTAL</td><td style="text-align:right">'+fm(budgetLinesPlanTotal)+'</td><td style="text-align:right;color:#60a5fa">'+fm(budgetLinesActualTotal)+'</td><td style="text-align:right;color:'+((budgetLinesPlanTotal-budgetLinesActualTotal)>=0?'#16a34a':'#dc2626')+'">'+((budgetLinesPlanTotal-budgetLinesActualTotal)>=0?'+':'')+fm(budgetLinesPlanTotal-budgetLinesActualTotal)+'</td><td></td></tr>'+'</tbody></table></div>':'')
