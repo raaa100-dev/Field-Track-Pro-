@@ -5447,12 +5447,75 @@ async function njAccountChanged(){
   // Auto-fill GC company name from the account
   var acc=(window._njAccounts||[]).find(function(a){return a.id===accId})
   if(acc&&gcName&&!gcName.value)gcName.value=acc.name
-  // Load the account's contacts
-  var r=await sb.from('crm_contacts').select('id,name,title').eq('account_id',accId).order('name')
+  // Load the account's contacts WITH phone/email so we can auto-fill on pick
+  var r=await sb.from('crm_contacts').select('id,name,title,phone,email').eq('account_id',accId).order('name')
   var contacts=r.data||[]
+  // Cache so onchange handlers can look up phone/email
+  window._njContactsCache=contacts
   var opts='<option value="">— none —</option>'+contacts.map(function(c){return '<option value="'+c.id+'">'+c.name+(c.title?' ('+c.title+')':'')+'</option>'}).join('')
-  if(pmDd)pmDd.innerHTML=opts
-  if(supDd)supDd.innerHTML=opts
+  if(pmDd){pmDd.innerHTML=opts;pmDd.onchange=function(){njContactPicked('pm',this.value)}}
+  if(supDd){supDd.innerHTML=opts;supDd.onchange=function(){njContactPicked('sup',this.value)}}
+}
+// When a contact is picked from a New Job GC PM / Super dropdown, auto-fill the
+// corresponding free-text contact-name and phone fields.
+function njContactPicked(role,contactId){
+  if(!contactId)return
+  var contacts=window._njContactsCache||[]
+  var c=contacts.find(function(x){return x.id===contactId});if(!c)return
+  if(role==='pm'){
+    var nm=document.getElementById('nj-gcc'),ph=document.getElementById('nj-gcp')
+    if(nm&&!nm.value.trim())nm.value=c.name||''
+    if(ph&&!ph.value.trim())ph.value=c.phone||''
+  }else if(role==='sup'){
+    var snm=document.getElementById('nj-sup'),sph=document.getElementById('nj-supp')
+    if(snm&&!snm.value.trim())snm.value=c.name||''
+    if(sph&&!sph.value.trim())sph.value=c.phone||''
+  }
+}
+// Inline "Add Customer" from the New Job form. Opens the same account-create
+// modal as crmNewAccount, but on save it refreshes the new-job account
+// dropdown, auto-selects the just-created account, and triggers the cascade.
+function njAddCustomerInline(){
+  var typeOpts=['gc','owner','property_manager','other'].map(function(t){
+    var l={gc:'General Contractor',owner:'Owner/Developer',property_manager:'Property Manager',other:'Other'}[t]
+    return'<option value="'+t+'">'+l+'</option>'
+  }).join('')
+  var h='<div style="font-size:11px;color:#a8b3c7;margin-bottom:10px">Add a new customer without leaving this form. The new account will be selected automatically when saved.</div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Account Name *</label><input class="fi" id="ca-name"></div>'
+  h+='<div class="fg"><label class="fl">Type</label><select class="fs" id="ca-type">'+typeOpts+'</select></div></div>'
+  h+='<div class="two"><div class="fg"><label class="fl">Phone</label><input class="fi" id="ca-phone" type="tel"></div>'
+  h+='<div class="fg"><label class="fl">Email</label><input class="fi" id="ca-email" type="email"></div></div>'
+  h+='<div class="fg"><label class="fl">Street Address <span style="color:#5a6b85;font-weight:400;font-size:10px">(office \u2014 separate from job site)</span></label><input class="fi" id="ca-addr"></div>'
+  h+='<div class="three"><div class="fg"><label class="fl">City</label><input class="fi" id="ca-city"></div>'
+  h+='<div class="fg"><label class="fl">State</label><input class="fi" id="ca-state" style="width:80px"></div>'
+  h+='<div class="fg"><label class="fl">Zip</label><input class="fi" id="ca-zip" style="width:90px"></div></div>'
+  h+='<div class="fg"><label class="fl">Primary Contact Name</label><input class="fi" id="ca-primary"></div>'
+  modal('Add Customer',h,async function(){
+    var name=(document.getElementById('ca-name').value||'').trim()
+    if(!name){toast('Name required','error');return}
+    // Capture all values BEFORE closeModal — the elements vanish after close
+    var newId=uuid()
+    var type=document.getElementById('ca-type').value
+    var phone=document.getElementById('ca-phone').value||''
+    var res=await sb.from('crm_accounts').insert({id:newId,name:name,type:type,phone:phone||null,email:document.getElementById('ca-email').value||null,address:document.getElementById('ca-addr').value||null,city:document.getElementById('ca-city').value||null,state:document.getElementById('ca-state').value||null,zip:document.getElementById('ca-zip').value||null,primary_contact:document.getElementById('ca-primary').value||null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    if(res.error){toast(res.error.message,'error');return}
+    closeModal()
+    // Refresh the account dropdown with the new entry and select it
+    var sel=document.getElementById('nj-account')
+    if(sel){
+      window._njAccounts=window._njAccounts||[]
+      window._njAccounts.push({id:newId,name:name,type:type})
+      var opt=document.createElement('option')
+      opt.value=newId;opt.textContent=name;opt.selected=true
+      sel.appendChild(opt)
+      sel.value=newId
+      await njAccountChanged()
+      // Auto-fill GC Company name + GC Phone if account has them and fields are empty
+      var gcName=document.getElementById('nj-gc');if(gcName&&!gcName.value)gcName.value=name
+      var gcPhone=document.getElementById('nj-gcp');if(gcPhone&&!gcPhone.value&&phone)gcPhone.value=phone
+    }
+    toast('Customer added \u2014 keep filling out the job')
+  },'Save Customer')
 }
 // Open the New Job form pre-selecting a given account (called from account page).
 async function newJobForAccount(accId){
@@ -5488,7 +5551,7 @@ async function pgNewJob(){
       <div class="three"><div class="fg"><label class="fl">Original Contract $</label><input class="fi" type="number" id="nj-cv"></div>
       <div class="fg"><label class="fl">Labor Budget (hrs)</label><input class="fi" type="number" id="nj-lb"></div>
       <div class="fg"><label class="fl">Labor Rate/hr</label><input class="fi" type="number" id="nj-lr"></div></div>
-      <div class="fg"><label class="fl">Contractor / Account <span style="color:#5a6b85;font-weight:400;font-size:10px">(from CRM)</span></label><select class="fs" id="nj-account" onchange="njAccountChanged()"><option value="">— Select account —</option>\${(crmAccounts||[]).map(function(a){return '<option value="'+a.id+'">'+a.name+'</option>'}).join('')}</select></div>
+      <div class="fg"><label class="fl">Contractor / Account <span style="color:#5a6b85;font-weight:400;font-size:10px">(from CRM)</span></label><div style="display:flex;gap:8px;align-items:stretch"><select class="fs" id="nj-account" onchange="njAccountChanged()" style="flex:1"><option value="">— Select account —</option>\${(crmAccounts||[]).map(function(a){return '<option value="'+a.id+'">'+a.name+'</option>'}).join('')}</select><button type="button" class="btn btn-sm btn-p" onclick="njAddCustomerInline()" style="flex-shrink:0">+ Add Customer</button></div></div>
       <div class="two"><div class="fg"><label class="fl">GC Project Manager</label><select class="fs" id="nj-gcpm"><option value="">— pick account first —</option></select></div>
       <div class="fg"><label class="fl">GC Superintendent</label><select class="fs" id="nj-gcsuper"><option value="">— pick account first —</option></select></div></div>
       <div class="fg"><label class="fl">GC Company <span style="color:#5a6b85;font-weight:400;font-size:10px">(auto-fills from account, or type for non-CRM)</span></label><input class="fi" id="nj-gc"></div>
