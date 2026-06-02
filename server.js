@@ -5434,7 +5434,7 @@ async function pgNewJob(){
     <div class="card">
       <div class="fg"><label class="fl">Sub Company</label><select class="fs" id="nj-co" onchange="loadNjWorkers()"><option value="">— None —</option>\${(companies||[]).map(c=>\`<option value="\${c.id}">\${c.name}</option>\`).join('')}</select></div>
       <div class="fg"><label class="fl">Workers</label><div id="nj-workers" style="background:#131c2e;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:9px;min-height:44px"><div style="font-size:11px;color:#5a6b85">Select a company first</div></div></div>
-      <div class="fg"><label class="fl">PM Review</label><select class="fs" id="nj-pmr"><option value="midpoint_and_final">Mid-point &amp; Final</option><option value="final_only">Final only</option><option value="none">None</option></select></div>
+      <div class="fg"><label class="fl">PM Review</label><select class="fs" id="nj-pmr"><option value="midpoint_and_final">Mid-point &amp; Final</option><option value="final_only">Final only</option><option value="pre_start_14">14 days before start</option><option value="none">None</option></select></div>
       <div class="fg"><label class="fl">Scope of Work</label><textarea class="ft" id="nj-scope"></textarea></div>
       <div class="fg"><label class="fl">Install Notes</label><textarea class="ft" id="nj-notes" style="min-height:55px"></textarea></div>
     </div>
@@ -5493,7 +5493,10 @@ async function submitNewJob(){
 async function schedulePreStartReview(job){
   if(!job)return
   var startDate=job.projected_start||job.expected_onsite_date||job.date_start
-  if(job.pm_visit_schedule!=='pre_start'||!startDate)return
+  // Trigger on either: PM Visit Schedule = "14 days before start"
+  // OR  PM Review = "14 days before start" (the option on the new-job form).
+  var wants14=(job.pm_visit_schedule==='pre_start')||(job.pm_review_type==='pre_start_14')
+  if(!wants14||!startDate)return
   var d=new Date(startDate);d.setDate(d.getDate()-14)
   var dueDate=d.toISOString().split('T')[0]
   // Look up existing PM Review task for this job
