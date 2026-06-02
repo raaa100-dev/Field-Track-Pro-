@@ -226,8 +226,21 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .bg-blue{background:rgba(37,99,235,.12);color:#60a5fa}.bg-red{background:rgba(220,38,38,.12);color:#dc2626}
 .bg-gray{background:#1a2540;color:#8a96ab}.bg-teal{background:rgba(13,148,136,.12);color:#2dd4bf}
 .bg-purple{background:rgba(124,58,237,.12);color:#a78bfa}.bg-orange{background:rgba(234,88,12,.12);color:#fb923c}
-.tab-bar{display:flex;border-bottom:1px solid rgba(255,255,255,.06);overflow-x:auto;background:#0c1220}
-.tab-bar::-webkit-scrollbar{display:none}
+.tab-bar{display:flex;border-bottom:1px solid rgba(255,255,255,.06);overflow-x:auto;background:#0c1220;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;position:relative}
+.tab-bar::-webkit-scrollbar{height:6px;background:transparent}
+.tab-bar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px}
+.tab-bar::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.28)}
+/* Tab bar wrapper with shadow hints on overflow edges */
+.tab-bar-wrap{position:relative}
+.tab-bar-wrap::before,.tab-bar-wrap::after{content:'';position:absolute;top:0;bottom:6px;width:24px;pointer-events:none;z-index:1;transition:opacity .2s}
+.tab-bar-wrap::before{left:0;background:linear-gradient(to right,#0c1220,transparent);opacity:0}
+.tab-bar-wrap::after{right:0;background:linear-gradient(to left,#0c1220,transparent)}
+.tab-bar-wrap.tb-scroll-start::before{opacity:1}
+.tab-bar-wrap.tb-scroll-end::after{opacity:0}
+.tab-scroll-btn{position:absolute;top:0;width:28px;height:38px;background:#0c1220;border:1px solid rgba(255,255,255,.08);color:#a8b3c7;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;transition:.15s}
+.tab-scroll-btn:hover{background:#131c2e;color:#e8edf5}
+.tab-scroll-btn.tb-left{left:0;border-left:none}
+.tab-scroll-btn.tb-right{right:0;border-right:none}
 .tab{padding:10px 14px;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;color:#a8b3c7;transition:.15s;white-space:nowrap;flex-shrink:0;user-select:none;font-weight:500}
 .tab:hover{color:#8a96ab}.tab.active{color:#2563eb;border-bottom-color:#2563eb;font-weight:500}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
@@ -2161,7 +2174,9 @@ function renderJobDetail(){
     </div>
     <div class="progress-stages" style="margin-top:10px">\${STAGES.map((s,i)=>\`<div class="ps \${i<si?'done':i===si?'cur':''}" title="\${STAGE_LABELS[s]}"></div>\`).join('')}</div>
   </div>
-  <div class="tab-bar">
+  <div class="tab-bar-wrap" id="jt-tabwrap">
+  <button class="tab-scroll-btn tb-left" onclick="scrollJobTabs(-1)" title="Scroll left">‹</button>
+  <div class="tab-bar" id="jt-tabbar">
     <div class="tab active" onclick="JT(this,'jt-info')">Info</div>
     <div class="tab" onclick="JT(this,'jt-scope')">Scope</div>
     <div class="tab" onclick="JT(this,'jt-permit')">📐 Design &amp; Permitting</div>
@@ -2184,6 +2199,8 @@ function renderJobDetail(){
     <div class="tab" onclick="JT(this,'jt-docs')">Documents</div>
     <div class="tab" onclick="JT(this,'jt-log')">Daily Log</div>
   </div>
+  <button class="tab-scroll-btn tb-right" onclick="scrollJobTabs(1)" title="Scroll right">›</button>
+  </div>
   <div id="jt-content" style="padding:16px"></div>\`
   _curTab='jt-info';loadJT('jt-info')
 }
@@ -2201,6 +2218,11 @@ function JT(el,id){
     return
   }
   _go()
+}
+// Scroll the job tab bar left/right when the arrow buttons are clicked.
+function scrollJobTabs(dir){
+  var bar=document.getElementById('jt-tabbar');if(!bar)return
+  bar.scrollBy({left:dir*220,behavior:'smooth'})
 }
 // Header "Save Changes" button dispatches to the active tab's save function.
 // Tabs that aren't simple editable forms either have their own inline save
@@ -2403,6 +2425,7 @@ function renderInfoTab(el,j){
     <div class="two"><div class="fg"><label class="fl">Job Name</label><input class="fi" id="ed-name" value="\${j.name||''}"></div><div class="fg"><label class="fl">Job ID / Number</label><input class="fi" id="ed-jobnum" value="\${j.job_number||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">Trade</label><input class="fi" id="ed-trade" value="\${j.trade||''}"></div><div class="fg"><label class="fl">Estimator</label><select class="fs" id="ed-estimator"><option value="">— Unassigned —</option></select></div></div>
     <div class="fg" style="position:relative"><label class="fl">Project Address</label><input class="fi" id="ed-addr" value="\${j.address||''}" oninput="addrAC(this.value,'ed-addr-dd')"><div id="ed-addr-dd" class="addr-dd"></div></div>
+    <div class="fg"><label class="fl">Suite / Unit # <span style="color:#5a6b85;font-weight:400;font-size:10px">(optional — doesn't affect GPS)</span></label><input class="fi" id="ed-suite" value="\${j.address_suite||''}" placeholder="Suite 200, Unit 4B…"></div>
     <div class="three"><div class="fg"><label class="fl">City</label><input class="fi" id="ed-city" value="\${j.city||''}"></div><div class="fg"><label class="fl">State</label><input class="fi" id="ed-state" value="\${j.state||''}" style="max-width:80px"></div><div class="fg"><label class="fl">Zip</label><input class="fi" id="ed-zip" value="\${j.zip||''}"></div></div>
     <div class="two"><div class="fg"><label class="fl">GPS Lat</label><input class="fi" id="ed-lat" value="\${j.gps_lat||''}" style="font-size:11px"></div><div class="fg"><label class="fl">GPS Lng</label><input class="fi" id="ed-lng" value="\${j.gps_lng||''}" style="font-size:11px"></div></div>
     <div class="fg"><label class="fl">Check-in Radius</label><select class="fs" id="ed-rad"><option value="100">100ft</option><option value="250">250ft</option><option value="500">500ft</option><option value="750">750ft</option><option value="1000">1000ft</option></select></div>
@@ -2491,7 +2514,7 @@ function renderInfoTab(el,j){
   edLoadAccountDropdowns(j)
   // Register info-tab fields for unsaved-changes tracking
   setTimeout(function(){
-    var ids=['ed-name','ed-jobnum','ed-trade','ed-estimator','ed-addr','ed-city','ed-state','ed-zip','ed-lat','ed-lng','ed-rad','ed-account','ed-gcpm','ed-gcsuper','ed-gc','ed-gcc','ed-gcp','ed-gce','ed-sup','ed-supp','ed-scope','ed-pm','ed-pmschedule','ed-pmvisit','ed-due','ed-proj-start','ed-proj-close','ed-dc','ed-eos','ed-nvd','ed-dco','ed-dr','ed-dt','ed-di','ed-comp','ed-ocv','ed-cv','ed-lr','ed-lb','ed-mb','ed-exph','ed-manh','ed-burden','ed-permit-status','ed-permit-number']
+    var ids=['ed-name','ed-jobnum','ed-trade','ed-estimator','ed-addr','ed-suite','ed-city','ed-state','ed-zip','ed-lat','ed-lng','ed-rad','ed-account','ed-gcpm','ed-gcsuper','ed-gc','ed-gcc','ed-gcp','ed-gce','ed-sup','ed-supp','ed-scope','ed-pm','ed-pmschedule','ed-pmvisit','ed-due','ed-proj-start','ed-proj-close','ed-dc','ed-eos','ed-nvd','ed-dco','ed-dr','ed-dt','ed-di','ed-comp','ed-ocv','ed-cv','ed-lr','ed-lb','ed-mb','ed-exph','ed-manh','ed-burden','ed-permit-status','ed-permit-number']
     _dirtyAttach(ids,'info',saveInfoTab)
   },100)
 }
@@ -2713,6 +2736,7 @@ async function saveInfoTab(){
     ['ed-trade','trade','strOrNull'],
     ['ed-estimator','estimator','strOrNull'],
     ['ed-addr','address','str'],
+    ['ed-suite','address_suite','strOrNull'],
     ['ed-city','city','strOrNull'],
     ['ed-state','state','strOrNull'],
     ['ed-zip','zip','strOrNull'],
@@ -2771,8 +2795,14 @@ async function saveInfoTab(){
     return
   }
   u.updated_at=new Date().toISOString()
-  const{error}=await sb.from('jobs').update(u).eq('id',currentJobId)
-  if(error){toast(error.message,'error');return}
+  var res=await sb.from('jobs').update(u).eq('id',currentJobId)
+  if(res.error&&/address_suite/i.test(res.error.message||'')){
+    // Column missing — retry without it (migration-025 not run yet)
+    var u2={...u};delete u2.address_suite
+    res=await sb.from('jobs').update(u2).eq('id',currentJobId)
+    console.warn('[info save] address_suite column missing — run migration-025.')
+  }
+  if(res.error){toast(res.error.message,'error');return}
   currentJob={...currentJob,...u}
   var pt=document.getElementById('page-title');if(pt&&u.name)pt.textContent=u.name
   _clearDirty('info');toast('Saved')
@@ -5413,6 +5443,7 @@ async function pgNewJob(){
       <div class="two"><div class="fg"><label class="fl">Job ID / Number</label><input class="fi" id="nj-jobid" placeholder="e.g. 2025-001"></div><div class="fg"><label class="fl">Trade</label><input class="fi" id="nj-trade" value="Fire Alarm" placeholder="Fire Alarm, Suppression..."></div></div>
       <div class="fg" style="position:relative"><label class="fl">Project Address *</label><input class="fi" id="nj-addr" placeholder="Start typing…" autocomplete="off" oninput="addrAC(this.value,'nj-addr-dd')"><div id="nj-addr-dd" class="addr-dd"></div>
       <div id="nj-gps-ok" style="display:none;font-size:10px;color:#16a34a;margin-top:4px">✓ GPS: <span id="nj-coords"></span></div><input type="hidden" id="nj-lat"><input type="hidden" id="nj-lng"></div>
+      <div class="fg"><label class="fl">Suite / Unit # <span style="color:#5a6b85;font-weight:400;font-size:10px">(optional — doesn't affect GPS)</span></label><input class="fi" id="nj-suite" placeholder="Suite 200, Unit 4B…"></div>
       <div class="three"><div class="fg"><label class="fl">City</label><input class="fi" id="nj-city" placeholder="Phoenix"></div>
       <div class="fg"><label class="fl">State</label><input class="fi" id="nj-state" placeholder="AZ" style="max-width:80px"></div>
       <div class="fg"><label class="fl">Zip</label><input class="fi" id="nj-zip" placeholder="85001" style="max-width:90px" onblur="autoLookupZip()"></div></div>
@@ -5487,7 +5518,7 @@ async function submitNewJob(){
   const btn=document.getElementById('nj-btn');btn.disabled=true;btn.textContent='Creating…'
   let lat=parseFloat(v('nj-lat'))||null,lng=parseFloat(v('nj-lng'))||null
   if(!lat&&v('nj-addr')){try{const r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(v('nj-addr'))+'&format=json&limit=1',{headers:{'User-Agent':'FieldAxisHQ/1.0'}});const j=await r.json();if(j[0]){lat=parseFloat(j[0].lat);lng=parseFloat(j[0].lon)}}catch{}}
-  const job={id:uuid(),name,address:v('nj-addr'),city:v('nj-city')||null,state:v('nj-state')||null,zip:v('nj-zip')||null,gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,projected_start:v('nj-proj-start')||null,projected_closeout:v('nj-proj-close')||null,job_number:v('nj-jobid')||null,estimator:v('nj-estimator')||null,original_contract_value:fN('nj-cv'),contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),trade:v('nj-trade')||null,account_id:v('nj-account')||null,gc_pm_contact_id:v('nj-gcpm')||null,gc_super_contact_id:v('nj-gcsuper')||null,gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),project_manager:v('nj-pm')||null,pm_visit_schedule:v('nj-pmschedule')||'none',next_pm_visit:v('nj-pmvisit')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
+  const job={id:uuid(),name,address:v('nj-addr'),address_suite:v('nj-suite')||null,city:v('nj-city')||null,state:v('nj-state')||null,zip:v('nj-zip')||null,gps_lat:lat,gps_lng:lng,gps_radius_ft:parseInt(v('nj-rad'))||250,date_start:null,due_date:v('nj-due')||null,expected_onsite_date:v('nj-eos')||null,next_visit_date:v('nj-nvd')||null,date_closeout:v('nj-dco')||null,projected_start:v('nj-proj-start')||null,projected_closeout:v('nj-proj-close')||null,job_number:v('nj-jobid')||null,estimator:v('nj-estimator')||null,original_contract_value:fN('nj-cv'),contract_value:fN('nj-cv'),labor_budget:fN('nj-lb'),labor_rate:fN('nj-lr'),trade:v('nj-trade')||null,account_id:v('nj-account')||null,gc_pm_contact_id:v('nj-gcpm')||null,gc_super_contact_id:v('nj-gcsuper')||null,gc_company:v('nj-gc'),gc_contact:v('nj-gcc'),gc_phone:v('nj-gcp'),super_name:v('nj-sup'),super_phone:v('nj-supp'),scope:v('nj-scope'),install_notes:v('nj-notes'),company_id:v('nj-co')||null,pm_review_type:v('nj-pmr'),project_manager:v('nj-pm')||null,pm_visit_schedule:v('nj-pmschedule')||'none',next_pm_visit:v('nj-pmvisit')||null,date_roughin:v('nj-dr')||null,date_trimout:v('nj-dt')||null,date_inspection:v('nj-di')||null,date_contract:v('nj-dc')||null,phase:'not_started',pct_complete:0,archived:false,created_by:ME?.full_name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}
   const{data:created,error}=await sb.from('jobs').insert(job).select().single()
   if(error){toast(error.message,'error');btn.disabled=false;btn.textContent='Create Job';return}
   document.querySelectorAll('#nj-workers input[type=checkbox]:checked').forEach(async cb=>await sb.from('job_workers').insert({id:uuid(),job_id:created.id,worker_id:cb.value,is_active:true,added_by:ME?.full_name,added_at:new Date().toISOString()}))
