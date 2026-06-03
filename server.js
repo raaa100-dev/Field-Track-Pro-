@@ -241,6 +241,8 @@ body{font-family:'DM Sans',sans-serif;background:#060a10;color:#e8edf5;font-size
 .tab-scroll-btn:hover{background:#131c2e;color:#e8edf5}
 .tab-scroll-btn.tb-left{left:0;border-left:none}
 .tab-scroll-btn.tb-right{right:0;border-right:none}
+/* When wrapped, the tab bar gets padding so the first/last tab isn't hidden under the arrow buttons */
+.tab-bar-wrap #jt-tabbar{padding-left:32px;padding-right:32px}
 .tab{padding:10px 14px;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;color:#a8b3c7;transition:.15s;white-space:nowrap;flex-shrink:0;user-select:none;font-weight:500}
 .tab:hover{color:#8a96ab}.tab.active{color:#2563eb;border-bottom-color:#2563eb;font-weight:500}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
@@ -2208,7 +2210,6 @@ function renderJobDetail(){
   <button class="tab-scroll-btn tb-left" onclick="scrollJobTabs(-1)" title="Scroll left">‹</button>
   <div class="tab-bar" id="jt-tabbar">
     <div class="tab active" onclick="JT(this,'jt-info')">Info</div>
-    <div class="tab" onclick="JT(this,'jt-scope')">Scope</div>
     <div class="tab" onclick="JT(this,'jt-permit')">📐 Design &amp; Permitting</div>
     <div class="tab" onclick="JT(this,'jt-subprojects')">Sub-Projects</div>
     <div class="tab" onclick="JT(this,'jt-labormix')">Labor Mix</div>
@@ -2472,6 +2473,7 @@ function renderInfoTab(el,j){
   <div>
     <div class="sec-hdr">Scope of Work</div>
     <div class="fg"><textarea class="ft" id="ed-scope" style="min-height:75px" placeholder="Brief scope of work for this job">\${j.scope||''}</textarea></div>
+    <div class="fg"><label class="fl">Install Notes <span style="color:#5a6b85;font-weight:400;font-size:10px">(build notes for the crew during install)</span></label><textarea class="ft" id="ed-install-notes" style="min-height:60px" placeholder="Special install instructions, panel locations, gotchas…">\${j.install_notes||''}</textarea></div>
     <div class="sec-hdr">Key Dates</div>
     <div class="fg"><label class="fl">Due Date</label><input class="fi" type="date" id="ed-due" value="\${j.due_date||''}"></div>
     <div class="two"><div class="fg"><label class="fl">Projected Start</label><input class="fi" type="date" id="ed-proj-start" value="\${j.projected_start||''}"></div><div class="fg"><label class="fl">Projected Closeout</label><input class="fi" type="date" id="ed-proj-close" value="\${j.projected_closeout||''}"></div></div>
@@ -2544,7 +2546,7 @@ function renderInfoTab(el,j){
   edLoadAccountDropdowns(j)
   // Register info-tab fields for unsaved-changes tracking
   setTimeout(function(){
-    var ids=['ed-name','ed-jobnum','ed-trade','ed-estimator','ed-addr','ed-suite','ed-city','ed-state','ed-zip','ed-lat','ed-lng','ed-rad','ed-account','ed-gcpm','ed-gcsuper','ed-gc','ed-gcc','ed-gcp','ed-gce','ed-sup','ed-supp','ed-scope','ed-pm','ed-pmschedule','ed-pmvisit','ed-due','ed-proj-start','ed-proj-close','ed-dc','ed-eos','ed-nvd','ed-dco','ed-dr','ed-dt','ed-di','ed-comp','ed-ocv','ed-cv','ed-lr','ed-lb','ed-mb','ed-exph','ed-manh','ed-burden','ed-permit-status','ed-permit-number']
+    var ids=['ed-name','ed-jobnum','ed-trade','ed-estimator','ed-addr','ed-suite','ed-city','ed-state','ed-zip','ed-lat','ed-lng','ed-rad','ed-account','ed-gcpm','ed-gcsuper','ed-gc','ed-gcc','ed-gcp','ed-gce','ed-sup','ed-supp','ed-scope','ed-install-notes','ed-pm','ed-pmschedule','ed-pmvisit','ed-due','ed-proj-start','ed-proj-close','ed-dc','ed-eos','ed-nvd','ed-dco','ed-dr','ed-dt','ed-di','ed-comp','ed-ocv','ed-cv','ed-lr','ed-lb','ed-mb','ed-exph','ed-manh','ed-burden','ed-permit-status','ed-permit-number']
     _dirtyAttach(ids,'info',saveInfoTab)
   },100)
 }
@@ -2780,6 +2782,7 @@ async function saveInfoTab(){
     ['ed-sup','super_name','str'],
     ['ed-supp','super_phone','str'],
     ['ed-scope','scope','strOrNull'],
+    ['ed-install-notes','install_notes','strOrNull'],
     ['ed-pm','project_manager','str'],
     ['ed-pmschedule','pm_visit_schedule','str'],
     ['ed-pmvisit','next_pm_visit','date'],
@@ -5347,10 +5350,12 @@ async function renderJobFinTab(el){
     coLineRes=await sb.from('co_budget_lines').select('co_id,description,category,amount,change_orders!inner(status)').eq('job_id',currentJobId)
     console.warn('[financials] co_budget_lines.actual_amount missing — run migration-026.')
   }
-  // Only include lines whose parent CO is approved (so unapproved drafts don't pollute the financials)
+  // Include all CO line items except those whose parent CO has been rejected.
+  // (Earlier we filtered to approved/signed only, but that hid new CO work in
+  // progress — line items should surface as soon as they're added.)
   ;(coLineRes.data||[]).forEach(function(l){
     var st=l.change_orders&&l.change_orders.status
-    if(st==='approved'||st==='signed'){coLines.push(l)}
+    if(st!=='rejected')coLines.push(l)
   })
   var coLinesActualTotal=coLines.reduce(function(s,l){return s+(Number(l.actual_amount)||0)},0)
   var coLinesPlanTotal=coLines.reduce(function(s,l){return s+(Number(l.amount)||0)},0)
