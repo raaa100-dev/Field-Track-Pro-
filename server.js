@@ -2781,7 +2781,7 @@ async function saveInfoTab(){
     ['ed-gce','gc_email','strOrNull'],
     ['ed-sup','super_name','str'],
     ['ed-supp','super_phone','str'],
-    ['ed-scope','scope','strOrNull'],
+    ['ed-scope','scope','str'],
     ['ed-install-notes','install_notes','str'],
     ['ed-pm','project_manager','str'],
     ['ed-pmschedule','pm_visit_schedule','str'],
