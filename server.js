@@ -2782,7 +2782,7 @@ async function saveInfoTab(){
     ['ed-sup','super_name','str'],
     ['ed-supp','super_phone','str'],
     ['ed-scope','scope','strOrNull'],
-    ['ed-install-notes','install_notes','strOrNull'],
+    ['ed-install-notes','install_notes','str'],
     ['ed-pm','project_manager','str'],
     ['ed-pmschedule','pm_visit_schedule','str'],
     ['ed-pmvisit','next_pm_visit','date'],
